@@ -1,0 +1,558 @@
+//
+// HomeoJobLanding — Velzon Job Landing theme (scoped, minimal palette)
+// Matches D:\NIGA_API_OLD_NEW\minimal jobs-landing colors & layout
+// Imported only by pages/Landing/HomeoJobLanding/index.js
+//
+
+@import "../../../../node_modules/bootstrap/scss/functions";
+@import "../config/minimal/variables";
+@import "../config/minimal/variables-custom";
+@import "../../../../node_modules/bootstrap/scss/variables";
+@import "../config/minimal/variables";
+@import "../config/minimal/variables-dark";
+@import "../../../../node_modules/bootstrap/scss/mixins";
+
+.layout-wrapper.landing.homeojoblanding {
+    --#{$prefix}primary: #{$primary};
+    --#{$prefix}success: #{$success};
+    --#{$prefix}danger: #{$danger};
+    --#{$prefix}info: #{$info};
+    --#{$prefix}secondary: #{$secondary};
+    --#{$prefix}warning: #{$warning};
+    --#{$prefix}light: #{$light};
+    --#{$prefix}primary-rgb: #{red($primary)}, #{green($primary)}, #{blue($primary)};
+    --#{$prefix}success-rgb: #{red($success)}, #{green($success)}, #{blue($success)};
+    --#{$prefix}danger-rgb: #{red($danger)}, #{green($danger)}, #{blue($danger)};
+    --#{$prefix}info-rgb: #{red($info)}, #{green($info)}, #{blue($info)};
+
+    --bs-primary: #{$primary};
+    --bs-success: #{$success};
+    --bs-danger: #{$danger};
+    --bs-info: #{$info};
+    --bs-secondary: #{$secondary};
+    --bs-warning: #{$warning};
+    --bs-light: #{$light};
+    --bs-primary-rgb: #{red($primary)}, #{green($primary)}, #{blue($primary)};
+    --bs-success-rgb: #{red($success)}, #{green($success)}, #{blue($success)};
+    --bs-danger-rgb: #{red($danger)}, #{green($danger)}, #{blue($danger)};
+    --bs-info-rgb: #{red($info)}, #{green($info)}, #{blue($info)};
+
+    background-color: var(--#{$prefix}secondary-bg);
+    font-family: $font-family-primary;
+    font-size: 15px;
+
+    .ff-secondary,
+    .navbar-landing .navbar-nav .nav-item .nav-link {
+        font-family: $font-family-secondary;
+    }
+
+    .section {
+        padding: 90px 0;
+        position: relative;
+
+        @media (max-width: 767.98px) {
+            padding: 50px 0;
+        }
+    }
+
+    .navbar-landing {
+        padding: 10px 0;
+        transition: all 0.5s ease;
+
+        @media (max-width: 991.98px) {
+            background-color: var(--#{$prefix}secondary-bg);
+            box-shadow: 0 1px 16px -2px rgba(56, 65, 74, 0.15);
+            padding: 10px 8px;
+        }
+
+        .navbar-nav {
+            .nav-item {
+                .nav-link {
+                    font-size: 16px;
+                    font-weight: $font-weight-medium;
+                    transition: all 0.4s;
+                    font-family: $font-family-secondary;
+                    color: var(--#{$prefix}body-color);
+                    padding: 14px;
+
+                    @media (max-width: 991.98px) {
+                        padding: 8px 0;
+                    }
+
+                    &:hover,
+                    &.active,
+                    &:focus {
+                        color: $primary !important;
+                    }
+                }
+            }
+        }
+
+        &.is-sticky {
+            background-color: var(--#{$prefix}secondary-bg);
+            box-shadow: 0 1px 16px -2px rgba(56, 65, 74, 0.15);
+        }
+    }
+
+    .homeojob-brand .card-logo {
+        height: 40px;
+        width: auto;
+
+        @media (max-width: 575.98px) {
+            height: 32px;
+        }
+    }
+
+    .homeojob-footer-brand {
+        display: inline-block;
+        line-height: 0;
+
+        .card-logo {
+            height: 40px;
+            width: auto;
+            display: block;
+
+            @media (max-width: 575.98px) {
+                height: 32px;
+            }
+        }
+
+        .card-logo-dark {
+            display: block !important;
+        }
+    }
+
+    .bg-overlay-pattern {
+        background-image: url("../../images/landing/bg-pattern.png");
+        background-color: transparent;
+        background-position: center;
+        background-size: cover;
+        opacity: 0.2;
+    }
+
+    .custom-footer {
+        color: #9ba7b3;
+    }
+
+    .footer-list li a,
+    .footer-list li span {
+        color: #9ba7b3;
+        padding: 7px 0;
+        display: block;
+        transition: all 0.3s ease-in-out;
+
+        &:hover {
+            color: rgba($white, 0.9);
+        }
+    }
+
+    .footer-social-link {
+        .avatar-title {
+            color: #778089;
+            background-color: rgba($white, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        a:hover .avatar-title {
+            color: $white;
+            background-color: $primary;
+        }
+
+        .footer-social-icon-static {
+            cursor: default;
+            pointer-events: none;
+        }
+    }
+
+    .text-primary {
+        color: $primary !important;
+    }
+
+    .text-success {
+        color: $success !important;
+    }
+
+    .text-danger {
+        color: $danger !important;
+    }
+
+    .text-info {
+        color: $info !important;
+    }
+
+    .bg-primary {
+        background-color: $primary !important;
+    }
+
+    .btn-primary {
+        --bs-btn-bg: #{$primary};
+        --bs-btn-border-color: #{$primary};
+        --bs-btn-hover-bg: #{shade-color($primary, 10%)};
+        --bs-btn-hover-border-color: #{shade-color($primary, 12.5%)};
+        --bs-btn-active-bg: #{shade-color($primary, 12.5%)};
+        --bs-btn-active-border-color: #{shade-color($primary, 15%)};
+        background-color: $primary;
+        border-color: $primary;
+    }
+
+    .btn-soft-primary {
+        color: $primary;
+        background-color: rgba($primary, 0.1);
+        border-color: transparent;
+
+        &:hover {
+            color: $white;
+            background-color: $primary;
+        }
+    }
+
+    .btn-danger {
+        --bs-btn-bg: #{$danger};
+        --bs-btn-border-color: #{$danger};
+        background-color: $danger;
+        border-color: $danger;
+    }
+
+    .btn-ghost-info {
+        color: $info;
+
+        &:hover {
+            color: $info;
+            background-color: rgba($info, 0.1);
+        }
+    }
+
+    .link-success {
+        color: $success !important;
+    }
+
+    .icon-effect {
+        position: relative;
+
+        &::before {
+            content: "";
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: rgba($success, 0.2);
+            border-radius: 50%;
+            bottom: 0;
+            left: 0;
+        }
+    }
+
+    #back-to-top.landing-back-top {
+        bottom: 35px;
+        color: $white !important;
+        --bs-btn-color: #{$white};
+        --bs-btn-bg: #{$danger};
+        --bs-btn-border-color: #{$danger};
+        --bs-btn-hover-color: #{$white};
+        --bs-btn-hover-bg: #{shade-color($danger, 8%)};
+        --bs-btn-hover-border-color: #{shade-color($danger, 10%)};
+        --bs-btn-active-color: #{$white};
+        --bs-btn-active-bg: #{shade-color($danger, 12%)};
+        --bs-btn-active-border-color: #{shade-color($danger, 14%)};
+        background-color: $danger !important;
+        border-color: $danger !important;
+
+        i {
+            color: $white !important;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+    }
+
+    // _job-landing.scss (minimal jobs-landing layout)
+    .custom-container {
+        width: 90%;
+    }
+
+    .job-navbar {
+        .dropdown-menu {
+            .dropdown-item {
+                .avatar-sm {
+                    height: 2.5rem;
+                    width: 2.5rem;
+                }
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            background-color: var(--#{$prefix}secondary-bg);
+            padding: 16px 0;
+        }
+    }
+
+    .job-hero-section {
+        position: relative;
+        padding: 165px 0;
+        overflow-x: hidden;
+    }
+
+    .job-panel-filter {
+        background-color: var(--#{$prefix}secondary-bg);
+        border-radius: $border-radius;
+        overflow: hidden;
+
+        .form-control {
+            height: 45px;
+            border: none;
+            border-radius: 0;
+            background-color: transparent;
+        }
+
+        .btn {
+            border-radius: 0;
+        }
+
+        input.form-control {
+            border-right: 1px solid var(--#{$prefix}border-color);
+        }
+
+        @media (max-width: 767.98px) {
+            background-color: transparent;
+
+            .form-control {
+                background-color: $white;
+                border-radius: $input-border-radius;
+            }
+
+            input.form-control {
+                border: 0;
+            }
+
+            .btn {
+                border-radius: $btn-border-radius;
+            }
+        }
+    }
+
+    .circle-effect {
+        position: absolute;
+        top: 0;
+        z-index: 0;
+        right: -55px;
+        margin: 0 auto;
+
+        .circle,
+        .circle2,
+        .circle3,
+        .circle4 {
+            border: 1px solid var(--#{$prefix}border-color);
+            border-radius: 50%;
+            margin: 0 auto;
+        }
+
+        .circle {
+            height: 240px;
+            width: 240px;
+        }
+
+        .circle2 {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            height: 280px;
+            width: 280px;
+        }
+
+        .circle3 {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            height: 320px;
+            width: 320px;
+        }
+
+        .circle4 {
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            height: 360px;
+            width: 360px;
+        }
+
+        @media (max-width: 991.98px) {
+            display: none;
+        }
+    }
+
+    .home-img .user-img {
+        position: relative;
+        z-index: 1;
+    }
+
+    .application-box,
+    .feedback-box,
+    .inquiry-box {
+        max-width: 240px;
+        position: absolute;
+        z-index: 2;
+        transition: all 0.5s ease;
+
+        &:hover {
+            transform: translateY(-5px);
+        }
+    }
+
+    .inquiry-box {
+        left: -134px;
+        top: 90px;
+
+        @media (max-width: 991.98px) {
+            left: 0;
+        }
+    }
+
+    .application-box {
+        bottom: 50px;
+        right: -160px;
+
+        @media (max-width: 991.98px) {
+            right: 0;
+        }
+    }
+
+    .feedback-box {
+        right: -50px;
+        bottom: -54px;
+
+        @media (max-width: 576.98px) {
+            right: 0;
+            bottom: 0;
+        }
+    }
+
+    .job-icon-effect {
+        height: 30px;
+        width: 30px;
+        position: absolute;
+        top: 0;
+        left: -2%;
+        border-radius: 50%;
+        background: repeating-linear-gradient(-55deg, rgba($white, 0) 0.8px, $success 1.6px, $success 2px, rgba($white, 0) 3.8px, rgba($white, 0) 5px);
+        z-index: 0;
+        opacity: 0.2;
+
+        span {
+            position: relative;
+            z-index: 1;
+        }
+    }
+
+    .about-img-section {
+        position: relative;
+
+        &::before {
+            content: "";
+            position: absolute;
+            left: 20px;
+            right: -20px;
+            top: -20px;
+            bottom: 20px;
+            border: 1px solid $info;
+            z-index: 0;
+            border-radius: $border-radius;
+
+            @media (max-width: 576.98px) {
+                right: 20px;
+                top: 20px;
+            }
+        }
+    }
+
+    .features-company-widgets {
+        position: absolute;
+        bottom: -18px;
+        right: -35px;
+    }
+
+    .page-banner-section {
+        padding-top: 120px;
+        background-color: rgba(var(--#{$prefix}light-rgb), 0.5);
+    }
+
+    .nav-pills-custom {
+        .nav-link {
+            color: $gray-700;
+            font-weight: $font-weight-medium;
+            padding: 0.5rem 1.25rem;
+            border-radius: 50rem;
+            background-color: rgba($primary, 0.08);
+
+            &.active {
+                color: $white;
+                background-color: $primary;
+            }
+        }
+    }
+
+    .blog-content {
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    }
+
+    .minimaltheme-contact-form {
+        background-color: $white;
+        border-color: rgba($gray-600, 0.12) !important;
+    }
+
+    .minimaltheme-form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: $gray-800;
+        margin-bottom: 6px;
+    }
+
+    .minimaltheme-form-control {
+        background-color: $white;
+        border: 1px solid $gray-300;
+        color: $gray-800;
+        padding: 0.65rem 0.9rem;
+        font-size: 14px;
+        border-radius: 0.375rem;
+
+        &::placeholder {
+            color: $gray-500;
+            opacity: 1;
+        }
+
+        &:focus {
+            border-color: $primary;
+            box-shadow: 0 0 0 0.15rem rgba($primary, 0.15);
+        }
+    }
+
+    .minimaltheme-contact-info-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background-color: rgba($success, 0.12);
+        color: $success;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .minimaltheme-feature-index {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background-color: rgba($success, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        .minimaltheme-feature-index-value {
+            color: $success;
+            font-size: 1.125rem;
+            font-weight: $font-weight-bold;
+            line-height: 1;
+        }
+    }
+}

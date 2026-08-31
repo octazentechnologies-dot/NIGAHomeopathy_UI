@@ -1,0 +1,144 @@
+//
+// Velzon "minimal" skin — colors aligned with official Velzon minimal
+// (see https://themesbrand.com/velzon/html/minimal/dashboard-crm.html).
+// Enable with <html data-theme="minimal"> (see public/index.html).
+//
+
+// From Velzon minimal `app.min.css` :root tokens
+$minimal-body-bg: #ffffff;
+$minimal-surface: #ffffff;
+$minimal-canvas-muted: #f6f8fa;
+$minimal-topbar-well: #f3f3f9;
+$minimal-border-hairline: #e9ebec;
+$minimal-boxed-canvas: whitesmoke;
+$minimal-footer-color: #98a6ad;
+$minimal-link-color: #000000;
+
+// Highlighted card / section box border (dashboard + Patient Board tabs)
+// $minimal-card-border: #b9b9b9;
+$minimal-card-border: #d9d9d9;
+
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) {
+  --#{$prefix}link-color: #{$minimal-link-color};
+  --#{$prefix}link-color-rgb: #{to-rgb($minimal-link-color)};
+  --#{$prefix}link-hover-color: #{$minimal-link-color};
+  --#{$prefix}link-hover-color-rgb: #{to-rgb($minimal-link-color)};
+
+  --#{$prefix}body-bg: #{$minimal-body-bg};
+  --#{$prefix}secondary-bg: #{$minimal-surface};
+  --#{$prefix}boxed-body-bg: #{$minimal-boxed-canvas};
+
+  --#{$prefix}header-bg: #{$minimal-surface};
+  --#{$prefix}header-border: #{$minimal-border-hairline};
+  --#{$prefix}topbar-search-bg: #{$minimal-topbar-well};
+  --#{$prefix}topbar-user-bg: #{$minimal-topbar-well};
+
+  --#{$prefix}page-title-box-shadow: none;
+  --#{$prefix}page-title-border: var(--#{$prefix}border-color);
+
+  --#{$prefix}vertical-menu-bg: #{$minimal-canvas-muted};
+  --#{$prefix}vertical-menu-border: #{$minimal-border-hairline};
+  --#{$prefix}vertical-menu-box-shadow: none;
+  --#{$prefix}vertical-menu-dropdown-box-shadow: 0 2px 4px rgba(15, 34, 58, 0.12);
+
+  --#{$prefix}twocolumn-menu-box-shadow: 0 2px 4px rgba(15, 34, 58, 0.12);
+  --#{$prefix}twocolumn-menu-iconview-bg: #{$minimal-surface};
+
+  --#{$prefix}footer-bg: #{$minimal-surface};
+  --#{$prefix}footer-color: #{$minimal-footer-color};
+
+  --#{$prefix}topnav-bg: #{$minimal-surface};
+
+  --minimal-card-border: #{$minimal-card-border};
+}
+
+// Detached layout normally uses a transparent footer; keep it white with the rest of minimal
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) [data-layout="vertical"][data-layout-style="detached"] .footer,
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) [data-layout="semibox"][data-layout-style="detached"] .footer {
+  background-color: var(--#{$prefix}footer-bg) !important;
+}
+
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) .card {
+  box-shadow: none;
+  border: 1px solid $minimal-card-border;
+}
+
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) .card-header,
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) .card-footer {
+  background-color: #{$minimal-surface};
+}
+
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) .card-animate:hover {
+  box-shadow: 0 0.125rem 0.35rem rgba($black, 0.06);
+  transform: translateY(-2px);
+}
+
+html[data-theme="minimal"] #page-topbar.topbar-shadow {
+  box-shadow: none;
+}
+
+// Patient Board tab sections — same highlighted box border as dashboard cards
+html[data-theme="minimal"]:not([data-bs-theme="dark"]) .patient-board-page {
+  --anat-border: #{$minimal-card-border};
+
+  .pb-tab-card,
+  .pb-repertory-card,
+  .pb-repertorize-card,
+  .pb-clinical-table-wrap,
+  .pb-keyword-tabs-wrap,
+  .da-container {
+    border: 1px solid #{$minimal-card-border} !important;
+    box-shadow: none !important;
+    background-color: #{$minimal-surface};
+  }
+
+  .da-container {
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+  }
+
+  .anatomy-header,
+  .anatomy-viewer-card,
+  .anatomy-panel,
+  .anatomy-panel-card,
+  .anatomy-canvas-wrap {
+    border-color: #{$minimal-card-border} !important;
+    box-shadow: none !important;
+  }
+
+  .pb-tab-card-divider,
+  .pb-section-divider {
+    border-top-color: #{$minimal-card-border} !important;
+  }
+
+  .pb-tabs-nav {
+    border-bottom-color: #{$minimal-border-hairline} !important;
+  }
+
+  .pb-tab {
+    font-size: 0.9375rem;
+    font-weight: normal;
+    color: #6d7080;
+    transition: color 0.15s ease-in-out;
+  }
+
+  .pb-tab:hover:not(.active) {
+    color: #25a0e2;
+  }
+
+  .pb-tab.active,
+  .pb-tab.active:hover {
+    color: #25a0e2;
+    text-decoration: underline;
+    text-underline-offset: 6px;
+  }
+}
+
+html[data-theme="minimal"][data-bs-theme="dark"] .card {
+  box-shadow: none;
+  border: 1px solid var(--#{$prefix}border-color);
+}
+
+html[data-theme="minimal"][data-bs-theme="dark"] .card-animate:hover {
+  box-shadow: 0 0.125rem 0.35rem rgba($black, 0.2);
+}

@@ -1,0 +1,222 @@
+.App {
+  text-align: center;
+}
+
+/* QuestionList dropdown hover colors - stronger specificity to override Bootstrap */
+.dropdown-menu .pb-questionlist-item:hover,
+.dropdown-menu .pb-questionlist-subitem:hover,
+.dropdown-menu .pb-questionlist-item:focus,
+.dropdown-menu .pb-questionlist-subitem:focus,
+.dropdown-menu .pb-questionlist-item:active,
+.dropdown-menu .pb-questionlist-subitem:active {
+  background-color: #b56576 !important; /* light maroon */
+  color: #ffffff !important;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hide sidebar for Doctor role */
+.main-content.no-sidebar {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Additional CSS to ensure proper layout for Doctor users */
+[data-layout="vertical"] .main-content.no-sidebar,
+[data-layout="semibox"] .main-content.no-sidebar,
+[data-layout="twocolumn"] .main-content.no-sidebar {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Override all possible sidebar-related margins for Doctor users */
+body .main-content.no-sidebar {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+}
+
+/* Doctor layout - ensure full width layout */
+body.doctor-layout .main-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+}
+
+/* Override all layout-specific margins for doctor users */
+body.doctor-layout[data-layout="vertical"] .main-content,
+body.doctor-layout[data-layout="semibox"] .main-content,
+body.doctor-layout[data-layout="twocolumn"] .main-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+}
+
+/* Ensure layout wrapper takes full width for doctor users */
+body.doctor-layout #layout-wrapper {
+  margin-left: 0 !important;
+  width: 100% !important;
+}
+
+/* Ensure page content takes full width for doctor users */
+body.doctor-layout .page-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Override any container margins for doctor users — horizontal padding on .page-content only */
+body.doctor-layout .container-fluid {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Most aggressive overrides for doctor layout - highest specificity */
+html body.doctor-layout .main-content,
+html body.doctor-layout[data-layout="vertical"] .main-content,
+html body.doctor-layout[data-layout="semibox"] .main-content,
+html body.doctor-layout[data-layout="twocolumn"] .main-content,
+html body.doctor-layout[data-layout="horizontal"] .main-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+}
+
+/* Override all possible sidebar size variations */
+html body.doctor-layout[data-sidebar-size="sm"] .main-content,
+html body.doctor-layout[data-sidebar-size="md"] .main-content,
+html body.doctor-layout[data-sidebar-size="lg"] .main-content,
+html body.doctor-layout[data-sidebar-size="sm-hover"] .main-content,
+html body.doctor-layout[data-sidebar-size="sm-hover-active"] .main-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+}
+
+/* Override layout wrapper and page content */
+html body.doctor-layout #layout-wrapper,
+html body.doctor-layout .page-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Ultimate override - highest specificity possible */
+html body.doctor-layout div.main-content,
+html body.doctor-layout[data-layout="vertical"] div.main-content,
+html body.doctor-layout[data-layout="semibox"] div.main-content,
+html body.doctor-layout[data-layout="twocolumn"] div.main-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  transform: none !important;
+}
+
+/* Force override for all media queries */
+@media (min-width: 768px) {
+  html body.doctor-layout .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  html body.doctor-layout .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  html body.doctor-layout .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Override CSS variables for doctor layout */
+html body.doctor-layout {
+  --vz-vertical-menu-width: 0px !important;
+  --vz-vertical-menu-width-sm: 0px !important;
+  --vz-vertical-menu-width-md: 0px !important;
+  --vz-vertical-menu-width-lg: 0px !important;
+  --vz-twocolumn-menu-width: 0px !important;
+  --vz-twocolumn-menu-iconview-width: 0px !important;
+  --vz-semibox-width: 0px !important;
+}
+
+/* Doctor layout: full width without extra horizontal padding (see themes.scss .page-content) */
+html body.doctor-layout .main-content,
+html body.doctor-layout #layout-wrapper {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow-x: hidden;
+}
+
+html body.doctor-layout .page-content {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden;
+}
+
+html body.doctor-layout .page-content > .container-fluid {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+

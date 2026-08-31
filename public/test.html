@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IIS Deployment Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .success { border-left-color: #27ae60; }
+        .error { border-left-color: #e74c3c; }
+        h1 { color: #2c3e50; }
+        code {
+            background: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .check-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 IIS Deployment Diagnostic Tool</h1>
+    
+    <div class="test-box success">
+        <h3>✅ Test 1: HTML File Loads</h3>
+        <p>If you can see this page, your IIS is serving static HTML files correctly.</p>
+    </div>
+
+    <div class="test-box" id="jsTest">
+        <h3>⏳ Test 2: JavaScript Execution</h3>
+        <p id="jsResult">Testing...</p>
+    </div>
+
+    <div class="test-box" id="fetchTest">
+        <h3>⏳ Test 3: File Access</h3>
+        <p id="fetchResult">Testing...</p>
+    </div>
+
+    <div class="test-box">
+        <h3>📋 Deployment Checklist</h3>
+        <div class="check-item">
+            <strong>1. Files Deployed:</strong> Ensure all files from <code>build</code> folder are in IIS root
+        </div>
+        <div class="check-item">
+            <strong>2. web.config:</strong> Must be in root directory
+        </div>
+        <div class="check-item">
+            <strong>3. URL Rewrite Module:</strong> Must be installed in IIS
+        </div>
+        <div class="check-item">
+            <strong>4. index.html:</strong> Must be set as default document
+        </div>
+        <div class="check-item">
+            <strong>5. Application Pool:</strong> Should use "No Managed Code"
+        </div>
+    </div>
+
+    <div class="test-box">
+        <h3>🔗 Quick Links</h3>
+        <ul>
+            <li><a href="/">Go to Main App (/)</a></li>
+            <li><a href="/login">Go to Login (/login)</a></li>
+            <li><a href="/dashboard">Go to Dashboard (/dashboard)</a></li>
+        </ul>
+    </div>
+
+    <script>
+        // Test 2: JavaScript Execution
+        const jsTestBox = document.getElementById('jsTest');
+        const jsResult = document.getElementById('jsResult');
+        try {
+            jsResult.textContent = '✅ JavaScript is executing correctly!';
+            jsTestBox.classList.add('success');
+        } catch (e) {
+            jsResult.textContent = '❌ JavaScript error: ' + e.message;
+            jsTestBox.classList.add('error');
+        }
+
+        // Test 3: Fetch manifest.json
+        const fetchTestBox = document.getElementById('fetchTest');
+        const fetchResult = document.getElementById('fetchResult');
+        
+        fetch('/manifest.json')
+            .then(response => {
+                if (response.ok) {
+                    fetchResult.textContent = '✅ Can fetch static files (manifest.json found)';
+                    fetchTestBox.classList.add('success');
+                } else {
+                    fetchResult.textContent = '❌ Static files not accessible (Status: ' + response.status + ')';
+                    fetchTestBox.classList.add('error');
+                }
+            })
+            .catch(error => {
+                fetchResult.textContent = '❌ Cannot fetch files: ' + error.message;
+                fetchTestBox.classList.add('error');
+            });
+
+        // Display current URL info
+        console.log('Current URL:', window.location.href);
+        console.log('Protocol:', window.location.protocol);
+        console.log('Host:', window.location.host);
+        console.log('Pathname:', window.location.pathname);
+    </script>
+</body>
+</html>
+

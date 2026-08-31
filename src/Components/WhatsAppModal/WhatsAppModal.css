@@ -1,0 +1,145 @@
+.whatsapp-modal .modal-content {
+  border-radius: 14px;
+}
+
+.whatsapp-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.whatsapp-modal__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.whatsapp-modal__tabs {
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  padding: 8px 12px;
+}
+
+.whatsapp-modal__tabs .nav-link {
+  border: none !important;
+  background: transparent !important;
+  color: #495057 !important;
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.whatsapp-modal__tabs .nav-link.active {
+  color: #0f5132 !important;
+  position: relative;
+}
+
+.whatsapp-modal__tabs .nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 3px;
+  border-radius: 999px;
+  background: #25D366;
+}
+
+.whatsapp-modal__body {
+  padding: 14px 16px;
+  overflow: auto;
+}
+
+.whatsapp-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid #e9ecef;
+  background: #ffffff;
+}
+
+.whatsapp-modal__placeholder-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.whatsapp-modal__editor .rdw-editor-toolbar {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  margin-bottom: 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.whatsapp-modal__editor .rdw-editor-main {
+  font-size: 14px;
+}
+
+.whatsapp-modal__editor-wrapper {
+  background: #fff;
+}
+
+.whatsapp-modal__chip {
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  color: #0f5132;
+  background: rgba(37, 211, 102, 0.08);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.whatsapp-modal__chip:hover {
+  background: rgba(37, 211, 102, 0.14);
+}
+
+.whatsapp-modal__subtle {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.whatsapp-modal__saved {
+  border-top: 1px solid #e9ecef;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.whatsapp-modal__saved-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.whatsapp-modal__saved-title {
+  font-weight: 800;
+}
+
+.whatsapp-modal__count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(37, 211, 102, 0.12);
+  color: #0f5132;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.whatsapp-modal__send-count {
+  font-weight: 800;
+  color: #0f5132;
+}
+

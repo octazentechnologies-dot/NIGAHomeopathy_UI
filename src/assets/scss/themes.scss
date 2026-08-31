@@ -1,0 +1,1953 @@
+@import "../scss/icons.scss";
+@import "../scss/config/corporate/bootstrap.scss";
+@import "../scss/config/corporate/app.scss";
+@import "../scss/config/corporate/custom.scss";
+@import"./shepherd.css";
+@import "./mermaid.min.css";
+
+//RTL 
+// @import "../scss/rtl/components-rtl";
+// @import "../scss/rtl/layouts-rtl";
+// @import "../scss/rtl/plugins-rtl";
+// @import "../scss/rtl/pages-rtl";
+
+
+//Rigthsidebar offcanvas
+.offcanvas-header-dark {
+  .btn-close {
+    
+    filter: invert(1) grayscale(100%) brightness(200%);
+  }
+}
+
+body {
+  * {
+    outline: none;
+  }
+}
+
+.noUi-horizontal .noUi-handle {
+  height: 16px !important;
+  width: 16px !important;
+  border-radius: 50% !important;
+  right: -10px !important;
+  top: -7px !important;
+}
+
+.noUi-connect,
+.noUi-horizontal {
+  height: 2px !important;
+}
+
+.noUi-handle {
+  background: #0ab39c !important;
+  border: 2px solid var(--vz-card-bg) !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.noUi-target {
+  background: #fafafa !important;
+  border-radius: 4px !important;
+  border: 1px solid #d3d3d3 !important;
+  background-color: var(--vz-light) !important;
+  border-color: var(--vz-light) !important;
+  box-shadow: none !important;
+  height: 4px !important;
+}
+
+.dropzone .dz-message {
+  text-align: center;
+}
+
+// //Calendar
+.fc-direction-ltr .fc-daygrid-event.fc-event-end,
+.fc-direction-rtl .fc-daygrid-event.fc-event-start {
+  padding: 5px !important;
+  font-size: 12px !important;
+  margin-right: 2px;
+}
+
+.fc-event {
+  border: none !important;
+}
+
+@include media-breakpoint-down(sm) {
+  .fc-toolbar {
+    display: block !important;
+    text-align: center;
+
+    .fc-left,
+    .fc-right,
+    .fc-center {
+      float: none;
+      display: block;
+      clear: both;
+      margin: 10px 0;
+    }
+  }
+
+  .fc {
+    .fc-toolbar {
+      >* {
+        >* {
+          float: none;
+        }
+      }
+    }
+  }
+
+  .fc-today-button {
+    display: none;
+  }
+}
+
+.flatpickr-calendar.open {
+  z-index: 1090 !important;
+}
+
+.upcoming-scheduled .flatpickr-input[readonly] {
+  display: none;
+}
+
+.ql-container.ql-snow {
+  height: 250px;
+}
+
+.rangeslider-horizontal .rangeslider__fill {
+  background-color: #405189 !important;
+}
+
+// .Toastify__toast {
+//   min-height: 43px !important;
+//   max-height: 43px !important;
+// }
+
+@each $color,
+$value in $theme-colors {
+  .simplebar-track-#{$color} {
+    .simplebar-scrollbar:before {
+      background: $value !important;
+    }
+  }
+}
+
+// chat
+.chat-conversation .chat-list .message-box-drop {
+  .nav-btn {
+    font-size: 18px;
+    padding: 4px;
+    color: $gray-600;
+  }
+}
+
+.chatwidgets {
+  height: 250px !important;
+}
+
+[data-layout="horizontal"] .chat-conversation {
+  &.chatwidgets {
+    height: 250px !important;
+  }
+}
+
+// authentication
+
+#tsparticles {
+  canvas {
+    position: absolute !important;
+  }
+}
+
+.alert-msg-show {
+  right: 24px;
+  top: 40px;
+  z-index: 1005;
+}
+
+// Emoji Picker
+
+.pickerEmoji {
+  position: absolute;
+  bottom: -50px;
+  // left: 10%;
+  left: 16%;
+  transform: translateX(-50%);
+}
+
+.Toastify {
+  .Toastify__toast {
+    min-height: 43px;
+  }
+
+  .Toastify__close-button {
+    top: 6px;
+  }
+
+  .Toastify__close-button--light {
+    color: $light;
+  }
+}
+
+// Tranfer List
+
+.rdl-filter,
+.rdl-control {
+  background-color: $input-bg;
+  border: 1px solid $input-border-color !important;
+  color: $input-color !important;
+}
+
+.rdl-move {
+  background: var(--#{$prefix}light) !important;
+  border: 1px solid var(--#{$prefix}light) !important;
+  color: var(--#{$prefix}body-color) !important;
+}
+
+.react-dual-listbox {
+
+  input:disabled,
+  select:disabled {
+    background-color: $input-disabled-bg !important;
+    border: 1px solid $input-border-color !important;
+  }
+}
+
+.css-26l3qy-menu {
+  background-color: var(--#{$prefix}gray-200) !important;
+  border-color: var(--#{$prefix}border-color) !important;
+}
+
+.css-1n7v3ny-option {
+  background-color: var(--#{$prefix}gray-300) !important;
+  border-color: var(--#{$prefix}border-color) !important;
+}
+
+//react select
+.css-b62m3t-container {
+  .css-13cymwt-control {
+    background-color: var(--#{$prefix}secondary-bg);
+    color: var(--#{$prefix}body-color);
+    border-color: var(--#{$prefix}border-color);
+
+    &:hover,
+    &:focus {
+      border-color: var(--#{$prefix}primary);
+    }
+
+    .css-1p3m7a8-multiValue {
+      color: var(--#{$prefix}white);
+      background-color: var(--#{$prefix}primary);
+
+      .css-wsp0cs-MultiValueGeneric {
+        color: var(--#{$prefix}white);
+      }
+
+      .css-1u9des2-indicatorSeparator {
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+  }
+
+  :is(.css-qbdosj-Input, .css-1dimb5e-singleValue) {
+    color: var(--#{$prefix}body-color);
+  }
+
+  .css-t3ipsp-control {
+    background-color: var(--#{$prefix}secondary-bg);
+    color: var(--#{$prefix}body-color);
+    border-color: var(--#{$prefix}border-color);
+
+    .css-1p3m7a8-multiValue {
+      color: var(--#{$prefix}white);
+      background-color: var(--#{$prefix}primary);
+
+      .css-wsp0cs-MultiValueGeneric {
+        color: var(--#{$prefix}white);
+      }
+
+      .css-1u9des2-indicatorSeparator {
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+  }
+
+  .css-1nmdiq5-menu {
+    background-color: var(--#{$prefix}secondary-bg);
+    color: var(--#{$prefix}body-color);
+    border-color: var(--#{$prefix}border-color);
+
+    .css-d7l1ni-option {
+      color: $white;
+      background-color: var(--#{$prefix}primary);
+
+      &:hover,
+      &:active,
+      &:focus {
+        background-color: var(--#{$prefix}primary);
+      }
+    }
+  }
+}
+
+.required {
+  color: #e24545;
+}
+
+////////////////////// Custom Style //////////////////////
+
+.navbar-header {
+  height: 60px;
+}
+
+body {
+  font-size: 0.8rem !important;
+}
+
+.text-info {
+  --vz-text-opacity: 1;
+  color: rgb(30 136 229) !important;
+}
+
+.form-control {
+  font-size: 0.8rem !important;
+}
+
+.navbar-menu .navbar-nav .nav-link {
+  font-size: 0.87rem !important;
+  color: inherit;
+}
+
+.page-link {
+  font-size: 0.7rem !important;
+}
+
+.header-item {
+  height: 60px;
+}
+
+.app-search {
+  padding: calc(26px* 0.5) 0;
+}
+
+.footer {
+  height: 45px;
+  padding: 13px calc(1.5rem* 0.5);
+}
+
+.page-content {
+  padding: calc(47px + 1.5rem) calc(0rem* 0.5) 33px calc(0rem* 0.5);
+}
+
+.navbar-menu .navbar-nav .nav-link.active {
+  font-weight: 500;
+}
+
+// Light theme: black for titles, menu accents, outline/soft primary button text, list markers, pagination (was brand #800020)
+html:not([data-bs-theme="dark"]) {
+  // Focus ring + dropdown/select hover borders (was primary / maroon-tinted)
+  --#{$prefix}focus-ring-color: rgba(0, 0, 0, 0.22);
+
+  --#{$prefix}vertical-menu-item-hover-color: #000000;
+  --#{$prefix}vertical-menu-item-active-color: #000000;
+  --#{$prefix}vertical-menu-sub-item-hover-color: #000000;
+  --#{$prefix}vertical-menu-sub-item-active-color: #000000;
+  --#{$prefix}topnav-item-active-color: #000000;
+
+  .hamburger-icon span {
+    background-color: #000000 !important;
+  }
+
+  .card-title {
+    font-size: 15px;
+    color: #000000;
+  }
+
+  .page-title-box h4 {
+    color: #000000 !important;
+  }
+
+  .text-primary {
+    color: #000000 !important;
+  }
+
+  .btn-outline-primary {
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+
+  .btn-outline-primary:hover,
+  .btn-outline-primary:focus,
+  .btn-outline-primary:active,
+  .btn-outline-primary.active,
+  .show>.btn-outline-primary.dropdown-toggle {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+  }
+
+  .btn-soft-primary {
+    color: #000000 !important;
+  }
+
+  .btn-soft-primary:hover {
+    color: #ffffff !important;
+  }
+
+  ol>li::marker {
+    color: #000000;
+  }
+
+  .pagination {
+    --#{$prefix}pagination-color: #000000;
+    --#{$prefix}pagination-hover-color: #000000;
+    --#{$prefix}pagination-focus-color: #000000;
+    --#{$prefix}pagination-active-color: #ffffff;
+    --#{$prefix}pagination-active-bg: #000000;
+    --#{$prefix}pagination-active-border-color: #000000;
+  }
+
+  .navbar-menu .navbar-nav .nav-link:hover .icon-dual,
+  .navbar-menu .navbar-nav .nav-link[data-bs-toggle="collapse"][aria-expanded="true"] .icon-dual {
+    fill: rgba(0, 0, 0, 0.16) !important;
+  }
+
+  // All table header cells: pure black (beats inherited .text-muted on TabContent, etc.)
+  .table:not(.table-dark) thead tr>th,
+  .table:not(.table-dark) thead tr>td,
+  table:not(.table-dark) thead tr>th,
+  table:not(.table-dark) thead tr>td {
+    color: #000000 !important;
+  }
+
+  th.gridjs-th,
+  th.gridjs-th .gridjs-th-content {
+    color: #000000 !important;
+  }
+
+  table.dataTable>thead>tr>th,
+  table.dataTable>thead>tr>td {
+    color: #000000 !important;
+  }
+
+  // Native + custom dropdown controls: black border on hover/focus (compiled $input-focus-border-color was primary-tinted)
+  .form-control:focus,
+  .form-select:hover,
+  .form-select:focus {
+    border-color: #000000 !important;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  }
+
+  // react-select (any classPrefix using BEM __control)
+  [class*="__control"]:hover,
+  [class*="__control--is-focused"] {
+    border-color: #000000 !important;
+  }
+
+  [class*="__control--is-focused"] {
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  }
+
+  // Select2
+  .select2-container--default .select2-selection--single:hover,
+  .select2-container--default.select2-container--open .select2-selection--single,
+  .select2-container--default .select2-selection--multiple:hover,
+  .select2-container--default.select2-container--open .select2-selection--multiple {
+    border-color: #000000 !important;
+  }
+
+  // Choices.js
+  .choices__inner:hover,
+  .choices.is-focused .choices__inner,
+  .choices.is-open .choices__inner {
+    border-color: #000000 !important;
+  }
+
+  .choices.is-focused .choices__inner,
+  .choices.is-open .choices__inner {
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  }
+
+  // Neutral / topbar / outline-primary dropdown toggles: black ring, not brand maroon
+  :is(.btn-secondary,
+    .btn-light,
+    .btn-dark,
+    .btn-link,
+    .btn-ghost-primary,
+    .btn-ghost-secondary,
+    .btn-ghost-success,
+    .btn-ghost-info,
+    .btn-ghost-warning,
+    .btn-ghost-danger,
+    .btn-ghost-dark,
+    .btn-soft-secondary,
+    .btn-soft-light,
+    .btn-topbar,
+    .btn-outline-primary,
+    .btn-soft-primary).dropdown-toggle:is(:hover, :focus, :focus-visible, .show) {
+    border-color: #000000 !important;
+  }
+
+  // Dropdowns & selects: remove brand maroon from highlighted / selected rows (Select2, react-select, themed menus)
+  .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #f1f3f5 !important;
+    color: #000000 !important;
+  }
+
+  .select2-container--default .select2-results__option[aria-selected="true"] {
+    background-color: #e9ecef !important;
+    color: #000000 !important;
+  }
+
+  .select2-container--default .select2-results__option[aria-selected="true"]:hover {
+    background-color: #dee2e6 !important;
+    color: #000000 !important;
+  }
+
+  // react-select: menu options (inline default theme may use primary-like hues; classPrefix + portaled listbox ids)
+  [id^="react-select-"] [role="option"][aria-selected="true"] {
+    background-color: #e9ecef !important;
+    color: #000000 !important;
+  }
+
+  [id^="react-select-"] [role="option"]:hover {
+    background-color: #f1f3f5 !important;
+    color: #000000 !important;
+  }
+
+  .react-select__option--is-selected {
+    background-color: #e9ecef !important;
+    color: #000000 !important;
+  }
+
+  .react-select__option--is-focused {
+    background-color: #f1f3f5 !important;
+    color: #000000 !important;
+  }
+
+  // Diagnosis Conditions: readable multi-select chips (no maroon background)
+  .diagnosis-subsection-select__multi-value {
+    background-color: transparent !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 4px !important;
+  }
+
+  .diagnosis-subsection-select__multi-value__label {
+    color: #212529 !important;
+    font-weight: 500 !important;
+  }
+
+  .diagnosis-subsection-select__multi-value__remove {
+    color: #6c757d !important;
+
+    &:hover {
+      background-color: #f8d7da !important;
+      color: #dc3545 !important;
+    }
+  }
+
+  // search-box + react-select (Patient Board Materia Medica, doctor dashboard modals): room for leading icon
+  .search-box .react-select-container .react-select__control {
+    padding-left: 25px !important;
+  }
+
+  // Velzon: .dropdownmenu-primary etc. used hover text color = $theme color (was maroon for primary)
+  @each $state in map-keys($theme-colors) {
+    .dropdownmenu-#{$state} .dropdown-item:is(:focus, :hover, .active) {
+      color: #000000 !important;
+      background-color: rgba(0, 0, 0, 0.06) !important;
+    }
+  }
+
+  // Flatpickr: header + selected days + “today” ring use compiled $primary in _flatpicker.scss
+  .flatpickr-months {
+    background-color: #212529 !important;
+  }
+
+  .flatpickr-weekdays {
+    background-color: #212529 !important;
+  }
+
+  span.flatpickr-weekday {
+    background: #212529 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
+
+  .flatpickr-day.today {
+    border-color: #000000 !important;
+    background-color: rgba(0, 0, 0, 0.06) !important;
+    box-shadow: none !important;
+  }
+
+  .flatpickr-day.today:hover,
+  .flatpickr-day.today:focus {
+    border-color: #000000 !important;
+    background-color: rgba(0, 0, 0, 0.1) !important;
+    color: var(--#{$prefix}body-color) !important;
+  }
+
+  .flatpickr-day.selected,
+  .flatpickr-day.startRange,
+  .flatpickr-day.endRange,
+  .flatpickr-day.selected.inRange,
+  .flatpickr-day.startRange.inRange,
+  .flatpickr-day.endRange.inRange,
+  .flatpickr-day.selected:focus,
+  .flatpickr-day.startRange:focus,
+  .flatpickr-day.endRange:focus,
+  .flatpickr-day.selected:hover,
+  .flatpickr-day.startRange:hover,
+  .flatpickr-day.endRange:hover,
+  .flatpickr-day.selected.prevMonthDay,
+  .flatpickr-day.startRange.prevMonthDay,
+  .flatpickr-day.endRange.prevMonthDay,
+  .flatpickr-day.selected.nextMonthDay,
+  .flatpickr-day.startRange.nextMonthDay,
+  .flatpickr-day.endRange.nextMonthDay {
+    background: #000000 !important;
+    border-color: #000000 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .flatpickr-day.selected.startRange+.endRange:not(:nth-child(7n + 1)),
+  .flatpickr-day.startRange.startRange+.endRange:not(:nth-child(7n + 1)),
+  .flatpickr-day.endRange.startRange+.endRange:not(:nth-child(7n + 1)) {
+    box-shadow: -10px 0 0 #000000 !important;
+  }
+
+  .flatpickr-day.week.selected {
+    box-shadow: -5px 0 0 #000000, 5px 0 0 #000000 !important;
+  }
+
+  // Theme customizer offcanvas header (was bg-primary / maroon)
+  .offcanvas-header.theme-customizer-header {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    border-bottom: 1px solid var(--#{$prefix}border-color) !important;
+    color: #000000;
+
+    .btn-close {
+      filter: none;
+    }
+  }
+
+  // Notification dropdown: white header + tabs (was bg-primary / nav-tabs on colored bar)
+  .dropdown-head-minimal {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    border-bottom: 1px solid var(--#{$prefix}border-color);
+
+    .nav-tabs-custom {
+      border-bottom: 1px solid var(--#{$prefix}border-color) !important;
+
+      .nav-link {
+        color: #6c757d !important;
+
+        &::after {
+          background: #000000 !important;
+        }
+
+        &.active {
+          color: #000000 !important;
+          background-color: #ffffff !important;
+        }
+
+        &:hover {
+          color: #000000 !important;
+        }
+      }
+    }
+  }
+
+  .topbar-head-dropdown .dropdown-menu .notification-item.active {
+    background-color: #f1f3f5 !important;
+  }
+
+  // Admin /admin/* pages: border (outline) buttons only in card footers (Save / Cancel / Update rows)
+  body.admin-forms-ui .card-footer {
+    @each $state in map-keys($theme-colors) {
+      $value: map-get($theme-colors, $state);
+
+      :is(.btn-#{$state}, .btn-soft-#{$state}):not(.btn-outline-#{$state}):not(.btn-icon):not(.btn-label):not([class*="btn-ghost-"]):not(.btn-link):not(.dropdown-toggle) {
+        --#{$prefix}btn-color: #{$value};
+        --#{$prefix}btn-bg: transparent;
+        --#{$prefix}btn-border-color: #{$value};
+        --#{$prefix}btn-hover-color: #{color-contrast($value)};
+        --#{$prefix}btn-hover-bg: #{$value};
+        --#{$prefix}btn-hover-border-color: #{$value};
+        --#{$prefix}btn-focus-shadow-rgb: #{to-rgb($value)};
+        --#{$prefix}btn-active-color: #{color-contrast($value)};
+        --#{$prefix}btn-active-bg: #{$value};
+        --#{$prefix}btn-active-border-color: #{$value};
+        --#{$prefix}btn-disabled-color: #{$value};
+        --#{$prefix}btn-disabled-bg: transparent;
+        --#{$prefix}btn-disabled-border-color: #{$value};
+        box-shadow: none !important;
+      }
+    }
+
+    :is(.btn-primary, .btn-soft-primary):not(.btn-outline-primary):not(.btn-icon):not(.btn-label):not([class*="btn-ghost-"]):not(.btn-link):not(.dropdown-toggle) {
+      --#{$prefix}btn-color: #000000;
+      --#{$prefix}btn-bg: transparent;
+      --#{$prefix}btn-border-color: #000000;
+      --#{$prefix}btn-hover-color: #ffffff;
+      --#{$prefix}btn-hover-bg: #000000;
+      --#{$prefix}btn-hover-border-color: #000000;
+      --#{$prefix}btn-focus-shadow-rgb: 0, 0, 0;
+      --#{$prefix}btn-active-color: #ffffff;
+      --#{$prefix}btn-active-bg: #000000;
+      --#{$prefix}btn-active-border-color: #000000;
+      --#{$prefix}btn-disabled-color: #000000;
+      --#{$prefix}btn-disabled-bg: transparent;
+      --#{$prefix}btn-disabled-border-color: #000000;
+      box-shadow: none !important;
+    }
+  }
+}
+
+.m-btn-top {
+  margin-top: 0.3rem;
+}
+
+
+.mar-10 {
+  margin-top: -10px;
+}
+
+// Theme customizer: primary blue (same as walk-in / waiting KPI icon #1e88e5)
+$theme-customizer-blue: #1e88e5;
+$theme-customizer-blue-subtle: #e8f5ff;
+
+.offcanvas:has(.theme-customizer-header) {
+  .card-radio .form-check-input:checked + .form-check-label {
+    border-color: $theme-customizer-blue !important;
+
+    &::before,
+    &:before {
+      color: $theme-customizer-blue !important;
+    }
+  }
+
+  .card-radio.dark .form-check-input:checked + .form-check-label {
+    border-color: $theme-customizer-blue !important;
+  }
+
+  .bg-primary-subtle {
+    background-color: $theme-customizer-blue-subtle !important;
+  }
+
+  .bg-primary {
+    background-color: $theme-customizer-blue !important;
+  }
+
+  .text-primary {
+    color: $theme-customizer-blue !important;
+  }
+
+  .spinner-border.text-primary {
+    color: $theme-customizer-blue !important;
+  }
+
+  .img-switch .card-radio .form-check-input:checked + .form-check-label {
+    &::before {
+      background-color: rgba(30, 136, 229, 0.45) !important;
+    }
+  }
+
+  [data-bs-target="#collapseBgGradient"].active {
+    border-color: $theme-customizer-blue !important;
+
+    &::before {
+      color: $theme-customizer-blue !important;
+    }
+  }
+}
+
+.popmodal {
+  padding: 15px 10px 0px 10px;
+}
+
+.text-blue {
+  color: blue;
+}
+
+.mb-autos {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+// Doctor dashboard — Today / All: nav-customs slanted tabs (compact, blue active)
+$doctor-tab-active: #1e88e5;
+$doctor-tab-inactive-bg: #f3f6f9;
+$doctor-tab-skew-w: 24px;
+$doctor-tab-skew-out: 15px;
+$doctor-tab-step: 30px;
+
+// Doctor dashboard: patient list + reminders — compact matching card headers
+$doctor-dashboard-header-py: 0.4rem;
+$doctor-dashboard-header-px: 0.75rem;
+$doctor-dashboard-header-min-h: 2.35rem;
+
+body.doctor-layout .doctor-dashboard-stats-row {
+  > [class*="col"] {
+    display: flex;
+
+    > .card {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+
+      > .card-body {
+        flex: 1 1 auto;
+      }
+
+      > .patient-stats-card-body {
+        padding: 0.65rem 0.75rem 0.5rem;
+        overflow: hidden;
+      }
+    }
+  }
+
+  .patient-stats-chart {
+    width: 100% !important;
+  }
+
+  .patient-stats-bar-chart {
+    min-height: 320px;
+  }
+
+  .patient-stats-card-body--bar {
+    padding-right: 0.35rem;
+  }
+}
+
+body.doctor-layout .doctor-dashboard-patient-row,
+body.doctor-layout .doctor-dashboard-stats-row {
+  .doctor-dashboard-card-header {
+    min-height: $doctor-dashboard-header-min-h;
+    height: $doctor-dashboard-header-min-h;
+    padding-top: $doctor-dashboard-header-py !important;
+    padding-bottom: $doctor-dashboard-header-py !important;
+    padding-left: $doctor-dashboard-header-px !important;
+    padding-right: $doctor-dashboard-header-px !important;
+    box-sizing: border-box;
+
+    .card-title {
+      font-size: 0.875rem;
+      line-height: 1.2;
+    }
+
+    .create-new-link,
+    .btn-link {
+      font-size: 0.7rem;
+      line-height: 1.2;
+    }
+
+    .search-box {
+      .form-control,
+      .form-control-sm {
+        min-height: 1.5rem;
+        height: 1.5rem;
+        padding: 0.1rem 0.45rem 0.1rem 1.85rem !important;
+        font-size: 0.75rem;
+      }
+
+      .search-icon {
+        left: 0.45rem;
+        line-height: 1.5rem;
+        font-size: 0.85rem;
+      }
+    }
+
+    .btn.btn-sm {
+      padding: 0.12rem 0.4rem;
+      font-size: 0.7rem;
+      line-height: 1.2;
+    }
+
+    .doctor-dashboard-create-new-btn {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: none;
+      max-width: 100%;
+      color: #1e88e5 !important;
+      border-color: #1e88e5 !important;
+      background-color: transparent !important;
+
+      i {
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      &:hover,
+      &:focus-visible,
+      &:active {
+        color: #1976d2 !important;
+        border-color: #1976d2 !important;
+        background-color: rgba(30, 136, 229, 0.1) !important;
+      }
+
+      &:focus:not(:focus-visible) {
+        color: #1e88e5 !important;
+        border-color: #1e88e5 !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
+    }
+  }
+}
+
+/* Import / Export — same light blue as Waiting / Completed KPI boxes */
+.doctor-dashboard-toolbar-btn {
+  background: #e8f5ff !important;
+  border: 1px solid #cfe9ff !important;
+  color: #1e88e5 !important;
+  box-shadow: none !important;
+  font-weight: 600;
+
+  i {
+    color: inherit !important;
+  }
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active {
+    background: #cfe9ff !important;
+    border-color: #b3dbff !important;
+    color: #1e88e5 !important;
+    box-shadow: none !important;
+  }
+}
+
+.doctor-patient-nav-tabs {
+  background-color: #ffffff !important;
+  overflow: visible !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+
+  .doctor-dashboard-appointment-date {
+    width: 8.75rem;
+    flex-shrink: 0;
+    margin-left: 15px;
+
+    .dob-picker__input-group {
+      min-height: 1.4rem;
+      border-radius: 0.2rem;
+    }
+
+    .dob-picker__icon {
+      padding: 0 0 0 0.35rem;
+      font-size: 0.75rem;
+      background-color: #fff;
+      border-right: none;
+    }
+
+    .dob-picker__input {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.35rem;
+      height: 1.4rem;
+      min-height: 1.4rem;
+    }
+
+    .dob-picker__popover {
+      width: 280px;
+    }
+  }
+
+  .doctor-patient-custom-nav.nav-customs.nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    padding: 0.1rem calc(#{$doctor-tab-skew-out} + 0.15rem) 0.1rem calc(#{$doctor-tab-skew-out} + 0.15rem);
+    margin: 0;
+    overflow: visible !important;
+    flex-shrink: 0;
+    background: transparent;
+
+    .nav-item {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      overflow: visible;
+
+      .nav-link {
+        position: relative;
+        float: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        min-width: 4rem;
+        height: 1.4rem;
+        margin: 0 $doctor-tab-step 0 0;
+        padding: 0 0.4rem;
+        overflow: visible;
+        font-size: 0.7rem;
+        font-weight: 600;
+        line-height: 1;
+        color: #495057;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background-color: $doctor-tab-inactive-bg;
+        isolation: isolate;
+        z-index: 0;
+
+        &::before,
+        &::after {
+          display: block;
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: $doctor-tab-skew-w;
+          background-color: $doctor-tab-inactive-bg;
+          z-index: -1;
+          transition: background-color 0.2s ease;
+        }
+
+        &::before {
+          right: -$doctor-tab-skew-out;
+          border-radius: 0 6px 0 0;
+          transform: skewX(30deg);
+        }
+
+        &::after {
+          left: -$doctor-tab-skew-out;
+          border-radius: 6px 0 0 0;
+          transform: skewX(-30deg);
+        }
+
+        .doctor-patient-tab-icon {
+          font-size: 0.8rem;
+          line-height: 1;
+          color: inherit;
+        }
+
+        .doctor-patient-tab-label {
+          font-size: inherit;
+          font-weight: inherit;
+          color: inherit;
+          white-space: nowrap;
+        }
+
+        &.active {
+          z-index: 2;
+          color: #ffffff;
+          background-color: $doctor-tab-active;
+
+          &::before,
+          &::after {
+            background-color: $doctor-tab-active;
+          }
+
+          .doctor-patient-tab-icon,
+          .doctor-patient-tab-label {
+            color: #ffffff;
+          }
+        }
+
+        &:not(.active) {
+          z-index: 1;
+        }
+      }
+
+      &:last-child .nav-link {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+/* Patient list card: allow slanted tabs to render fully (no clip) */
+body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card,
+body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .card-header {
+  overflow: visible !important;
+}
+
+// Ghost-style action buttons (same tokens as .btn-ghost-*): tables, grids, square icon buttons, compact row actions
+@mixin btn-ghost-variant-vars($state) {
+  --#{$prefix}btn-color: var(--#{$prefix}#{$state});
+  --#{$prefix}btn-bg: transparent;
+  --#{$prefix}btn-border-color: transparent;
+  --#{$prefix}btn-hover-color: var(--#{$prefix}#{$state});
+  --#{$prefix}btn-hover-bg: var(--#{$prefix}#{$state}-bg-subtle);
+  --#{$prefix}btn-hover-border-color: transparent;
+  --#{$prefix}btn-focus-shadow-rgb: var(--#{$prefix}#{$state}-rgb);
+  --#{$prefix}btn-active-color: var(--#{$prefix}#{$state});
+  --#{$prefix}btn-active-bg: var(--#{$prefix}#{$state}-bg-subtle);
+  --#{$prefix}btn-active-border-color: transparent;
+  box-shadow: none !important;
+}
+
+@each $state in map-keys($theme-colors) {
+
+  :is(.table, table) .btn-#{$state},
+  :is(.table, table) .btn-soft-#{$state},
+  :is(.table, table) .btn-outline-#{$state},
+  .gridjs-wrapper .gridjs-td .btn-#{$state},
+  .gridjs-wrapper .gridjs-td .btn-soft-#{$state},
+  .gridjs-wrapper .gridjs-td .btn-outline-#{$state},
+  table.dataTable .btn-#{$state},
+  table.dataTable .btn-soft-#{$state},
+  table.dataTable .btn-outline-#{$state},
+  .btn.btn-icon.btn-#{$state},
+  .btn.btn-icon.btn-soft-#{$state},
+  .btn.btn-icon.btn-outline-#{$state},
+  .btn.btn-sm.remove-item-btn.btn-#{$state},
+  .btn.btn-sm.remove-item-btn.btn-soft-#{$state},
+  .btn.btn-sm.remove-item-btn.btn-outline-#{$state},
+  .btn.btn-sm.edit-item-btn.btn-#{$state},
+  .btn.btn-sm.edit-item-btn.btn-soft-#{$state},
+  .btn.btn-sm.edit-item-btn.btn-outline-#{$state},
+  // Patient Board: compact soft/solid/outline .btn-sm (no btn-icon / edit-remove classes)
+  .patient-board-page .btn.btn-sm.btn-#{$state},
+  .patient-board-page .btn.btn-sm.btn-soft-#{$state},
+  .patient-board-page .btn.btn-sm.btn-outline-#{$state} {
+    @include btn-ghost-variant-vars($state);
+  }
+}
+
+// Topbar: dividers, profile area (no tinted bg), avatar ring
+#page-topbar {
+  .header-topbar-divider {
+    width: 1px;
+    min-height: 1.5rem;
+    opacity: 1;
+    background-color: var(--#{$prefix}border-color);
+  }
+
+  .header-home-dashboard-item {
+    margin-top: 0.4rem;
+  }
+
+  .header-doctor-session-tools {
+    margin-top: 0.4rem;
+    gap: 0;
+  }
+
+  /* Topbar icons: black outline; hover light blue (KPI style) */
+  .btn-topbar,
+  .btn-topbar.btn-ghost-secondary {
+    color: #000000 !important;
+
+    i,
+    i.text-info,
+    svg {
+      color: #000000 !important;
+    }
+
+    --#{$prefix}btn-hover-color: #1e88e5;
+    --#{$prefix}btn-hover-bg: #e8f5ff;
+    --#{$prefix}btn-hover-border-color: #cfe9ff;
+    --#{$prefix}btn-active-color: #1e88e5;
+    --#{$prefix}btn-active-bg: #e8f5ff;
+    --#{$prefix}btn-active-border-color: #cfe9ff;
+
+    &:hover,
+    &:focus,
+    &:focus-visible,
+    &:active,
+    &.active,
+    &.show {
+      color: #1e88e5 !important;
+      background-color: #e8f5ff !important;
+      border-color: #cfe9ff !important;
+      box-shadow: none !important;
+
+      i,
+      i.text-info,
+      svg {
+        color: #1e88e5 !important;
+      }
+    }
+  }
+
+  .header-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .topbar-head-dropdown,
+    .header-item {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+  }
+
+  .header-profile-separator-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: 0.5rem !important;
+
+    .header-topbar-divider {
+      margin: 0 !important;
+      align-self: center;
+    }
+
+    .topbar-head-dropdown,
+    .topbar-user {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+  }
+
+  .topbar-user {
+    background-color: transparent !important;
+
+    @media (min-width: 768px) {
+      background-color: transparent !important;
+    }
+
+    .btn {
+      background-color: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+
+  .header-profile-user {
+    border: 2px solid var(--#{$prefix}border-color);
+    object-fit: cover;
+    padding: 1px;
+    background-color: var(--#{$prefix}secondary-bg, #fff);
+  }
+}
+
+// Doctor: sidebar hidden — Homeocentrum logo in topbar; no semibox “floating” topbar at 1440px+ (top: 25px)
+$doctor-card-gap: 0.3rem;
+$doctor-hover-bg: #f4faff;
+
+body.doctor-layout {
+  scrollbar-gutter: stable;
+
+  #layout-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  #page-topbar {
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    border-radius: 0 !important;
+
+    &.topbar-shadow {
+      top: 0 !important;
+    }
+
+    .layout-width {
+      max-width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
+      padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
+    }
+  }
+
+  #page-topbar .horizontal-logo {
+    display: inline-block !important;
+    width: auto;
+  }
+
+  #page-topbar .horizontal-logo .logo-sm {
+    display: none !important;
+  }
+
+  #page-topbar .horizontal-logo .logo-lg {
+    display: inline-block !important;
+  }
+
+  /* Remove brand-box side padding (doctor topbar) */
+  #page-topbar .navbar-brand-box {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Remove extra right padding so profile aligns */
+  #page-topbar .navbar-header {
+    padding-right: 0 !important;
+  }
+
+  /* Doctor Dashboard: KPI icon boxes — match light blue style */
+  .card-animate .avatar-title.bg-info-subtle {
+    background: #e8f5ff !important;
+    border-color: #cfe9ff !important;
+    color: #1e88e5 !important;
+  }
+
+  .card-animate .avatar-title.bg-info-subtle svg,
+  .card-animate .avatar-title.bg-info-subtle i {
+    color: currentColor !important;
+  }
+
+  /* KPI status row (Waiting, Walk-in, etc.): count + label in black */
+  .page-content .row.mb-2:has(> [class*="col-lg-2"] > .card-animate) {
+    .card-animate {
+      h5,
+      h5.fs-15,
+      p,
+      p.text-muted {
+        color: #000000 !important;
+      }
+    }
+  }
+
+  /* Action cards row (Patient, Appointment, Billings, Subscription) */
+  .page-content .row.mb-2:has(> [class*="col-xl-3"] > .card-animate) {
+    .card-animate {
+      h4,
+      h4 span,
+      h4 .counter-value span,
+      a.text-decoration-none,
+      a.text-uppercase,
+      p.text-uppercase {
+        color: #000000 !important;
+      }
+
+      a.doctor-dashboard-create-new-link,
+      a.doctor-dashboard-action-link {
+        color: #000000 !important;
+
+        &:hover,
+        &:focus {
+          color: #1e88e5 !important;
+        }
+      }
+
+      .doctor-dashboard-create-new-btn {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: none;
+        max-width: 100%;
+        color: #1e88e5 !important;
+        border-color: #1e88e5 !important;
+        background-color: transparent !important;
+
+        i {
+          font-size: 14px;
+          line-height: 1;
+        }
+
+        &:hover,
+        &:focus-visible,
+        &:active {
+          color: #1976d2 !important;
+          border-color: #1976d2 !important;
+          background-color: rgba(30, 136, 229, 0.1) !important;
+        }
+
+        &:focus:not(:focus-visible) {
+          color: #1e88e5 !important;
+          border-color: #1e88e5 !important;
+          background-color: transparent !important;
+          box-shadow: none !important;
+        }
+      }
+
+      h5.text-info,
+      .doctor-dashboard-card-metric {
+        color: #1e88e5 !important;
+      }
+
+      .dashboard-today-count-label {
+        font-weight: 600;
+      }
+    }
+  }
+
+  /* KPI / action rows: soft hover fill that respects rounded corners */
+  .page-content .row.mb-2:has(> [class*="col-lg-2"] > .card-animate) .card-animate:hover,
+  .page-content .row.mb-2:has(> [class*="col-xl-3"] > .card-animate) .card-animate:hover {
+    background-color: $doctor-hover-bg !important;
+
+    /* Keep fill on the card shell — not square card-body — so corners stay round */
+    .card-body {
+      background-color: transparent !important;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .main-content {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    #page-topbar {
+      left: 0 !important;
+      right: 0 !important;
+      top: 0 !important;
+      border-radius: 0 !important;
+    }
+  }
+
+  // Doctor app-wide: uniform 0.3rem gaps between cards (all .page-content pages)
+
+  /* Doctor dashboard: symmetric edge spacing (= card gap); no negative row margins */
+  .page-content {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip;
+    padding-top: calc(47px + 0.9rem) !important;
+    padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
+    padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
+
+    > .container-fluid,
+    .container-fluid {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+
+      > .row > [class*="col"] {
+        min-width: 0;
+      }
+    }
+  }
+
+  .page-content {
+
+    .card-height-100 {
+      height: calc(100% - #{$doctor-card-gap});
+    }
+
+    .card,
+    .card-animate {
+      margin-bottom: $doctor-card-gap !important;
+    }
+
+    // Rows that lay out cards in columns
+    .row:has(> [class*="col"] > .card),
+    .row:has(> [class*="col"] > .card-animate),
+    .row:has(> .card),
+    .row:has(> .card-animate) {
+      --bs-gutter-x: #{$doctor-card-gap} !important;
+      --bs-gutter-y: #{$doctor-card-gap} !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+
+      >[class*="col"] {
+        padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
+        padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin-top: 0 !important;
+      }
+
+      >.card,
+      >.card-animate,
+      >[class*="col"]>.card,
+      >[class*="col"]>.card-animate {
+        margin-bottom: 0 !important;
+      }
+    }
+
+    .row.mb-2:has(> [class*="col"] > .card),
+    .row.mb-2:has(> [class*="col"] > .card-animate),
+    .row.mb-3:has(> [class*="col"] > .card),
+    .row.mb-3:has(> [class*="col"] > .card-animate) {
+      margin-bottom: $doctor-card-gap !important;
+      margin-top: $doctor-card-gap !important;
+    }
+
+    /* Dashboard: no vertical gap between patient/reminders and stats rows */
+    .doctor-dashboard-patient-row {
+      margin-bottom: 0 !important;
+    }
+
+    .doctor-dashboard-stats-row {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    .doctor-dashboard-patient-row + .doctor-dashboard-stats-row {
+      margin-top: 0 !important;
+    }
+
+    // Nested rows inside a card (e.g. toolbar) keep default Bootstrap gutters
+    .card .row,
+    .card-animate .row {
+      --bs-gutter-x: #{$grid-gutter-width} !important;
+      --bs-gutter-y: #{$grid-gutter-width} !important;
+      margin-left: calc(#{$grid-gutter-width} * -0.5) !important;
+      margin-right: calc(#{$grid-gutter-width} * -0.5) !important;
+
+      >[class*="col"] {
+        padding-left: calc(#{$grid-gutter-width} * 0.5) !important;
+        padding-right: calc(#{$grid-gutter-width} * 0.5) !important;
+        padding-top: unset !important;
+        padding-bottom: unset !important;
+      }
+    }
+
+    /* Doctor Dashboard: compact patient list table rows so pagination fits */
+    .doctor-patient-nav-tabs {
+      .table {
+        margin-bottom: 0 !important;
+      }
+
+      .table > :not(caption) > * > * {
+        padding: 0.66rem 0.6rem !important;
+        line-height: 1.2 !important;
+        vertical-align: middle;
+      }
+
+      .table thead th {
+        padding: 0.66rem 0.6rem !important;
+      }
+
+      .btn.btn-sm {
+        padding: 0.2rem 0.35rem;
+        line-height: 1;
+      }
+
+      .avatar-xxs {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+    }
+
+    /* Doctor Dashboard: Today / All patient tables — striped rows + hover */
+    .dashboard-patient-table {
+      --bs-table-striped-bg: #f8f9fa;
+      --bs-table-hover-bg: #{$doctor-hover-bg};
+      margin-bottom: 0 !important;
+      table-layout: fixed;
+      width: 100%;
+
+      > :not(caption) > * > * {
+        padding: 0.45rem 0.4rem !important;
+        line-height: 1.15 !important;
+        vertical-align: middle;
+        box-shadow: none;
+        font-size: 0.8125rem;
+      }
+
+      thead,
+      thead th {
+        background-color: #ffffff !important;
+        --bs-table-bg: #ffffff;
+      }
+
+      thead th {
+        padding: 0.45rem 0.4rem !important;
+        font-weight: 600;
+        font-size: 0.78rem;
+        border-bottom: 1px solid var(--#{$prefix}border-color);
+        white-space: nowrap;
+      }
+
+      .dashboard-patient-col-agesex {
+        font-size: 0.75rem;
+      }
+
+      &.table-striped > tbody > tr:nth-of-type(odd) > * {
+        --bs-table-accent-bg: #f8f9fa;
+        background-color: #f8f9fa;
+      }
+
+      &.table-hover > tbody > tr:hover > * {
+        --bs-table-accent-bg: var(--bs-table-hover-bg);
+        background-color: var(--bs-table-hover-bg);
+      }
+    }
+
+    /* Doctor Dashboard: square pagination boxes, blue active page */
+    .doctor-dashboard-pagination {
+      gap: 0.35rem;
+
+      .page-item .page-link {
+        width: 1.5rem;
+        height: 1.5rem;
+        min-width: 1.5rem;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25rem;
+        line-height: 1;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid #cfe9ff !important;
+        color: #495057 !important;
+        background-color: #ffffff !important;
+        box-shadow: none !important;
+      }
+
+      .page-item.active .page-link {
+        background-color: #1e88e5 !important;
+        border-color: #1e88e5 !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+      }
+
+      .page-item:not(.active):not(.disabled) .page-link:hover {
+        background-color: #e8f5ff !important;
+        border-color: #cfe9ff !important;
+        color: #1e88e5 !important;
+      }
+
+      .page-item.disabled .page-link {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+    }
+  }
+
+  /* ========== Premium Doctor Dashboard polish ========== */
+  .doctor-dashboard-page {
+    .doctor-dashboard-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .doctor-kpi-card,
+    .doctor-action-card,
+    .doctor-appointments-card,
+    .doctor-reminders-card,
+    .doctor-stats-card {
+      border: 1px solid #e3e8ee !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+      background: #ffffff;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    }
+
+    /* Prevent Velzon .card-animate translateY from clipping rounded corners on hover */
+    .doctor-kpi-card.card-animate,
+    .doctor-action-card.card-animate {
+      transform: none !important;
+
+      &:hover {
+        transform: none !important;
+      }
+    }
+
+    .doctor-kpi-card {
+      cursor: pointer;
+      overflow: hidden;
+
+      .card-body {
+        padding: 0.85rem 0.9rem !important;
+      }
+
+      .doctor-kpi-count {
+        font-size: 1.35rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.1rem !important;
+        color: #111827 !important;
+        line-height: 1.15;
+      }
+
+      .doctor-kpi-label {
+        font-size: 0.68rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #6b7280 !important;
+        margin-bottom: 0 !important;
+      }
+
+      .doctor-kpi-icon {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        border-radius: 10px !important;
+        background: linear-gradient(180deg, #eef7ff 0%, #e8f5ff 100%) !important;
+        border: 1px solid #cfe9ff !important;
+        color: #1e88e5 !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+
+      &:hover {
+        border-color: #b3dbff !important;
+        box-shadow: 0 8px 20px rgba(30, 136, 229, 0.1) !important;
+        transform: none !important;
+        background-color: #f7fbff !important;
+
+        .card-body {
+          background-color: transparent !important;
+        }
+
+        .doctor-kpi-icon {
+          background: #dff0fa !important;
+        }
+      }
+
+      &:active {
+        transform: none !important;
+      }
+    }
+
+    .doctor-dashboard-action-row {
+      align-items: stretch;
+
+      > [class*="col"] {
+        display: flex;
+      }
+
+      .doctor-action-card {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .doctor-action-card {
+      /* Clip hover fill to radius; avoid lift that parents clip into square corners */
+      overflow: hidden;
+      isolation: isolate;
+      transform: none !important;
+
+      .doctor-action-card__body {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        padding: 1rem 1.05rem 0.95rem !important;
+        background: transparent !important;
+        border-radius: inherit;
+      }
+
+      .doctor-action-card__top {
+        min-height: 2rem;
+        gap: 0.5rem;
+        margin-bottom: 0;
+      }
+
+      .doctor-action-card__top-start,
+      .doctor-action-card__top-end {
+        display: flex;
+        align-items: center;
+        min-height: 2rem;
+      }
+
+      .doctor-action-card__bottom {
+        margin-top: auto;
+        padding-top: 1.15rem;
+        gap: 0.75rem;
+      }
+
+      .doctor-action-card__copy {
+        min-width: 0;
+      }
+
+      .doctor-dashboard-create-new-btn {
+        height: 2rem;
+        padding-top: 0;
+        padding-bottom: 0;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .doctor-action-title {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em;
+        margin-bottom: 0.65rem !important;
+        color: #111827 !important;
+        line-height: 1.25;
+      }
+
+      .doctor-action-eyebrow {
+        display: inline-flex !important;
+        align-items: center;
+        min-height: 2rem;
+        margin: 0 !important;
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.06em;
+        color: #6b7280 !important;
+        line-height: 1;
+      }
+
+      .doctor-action-metric-pill,
+      .doctor-action-status-pill {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-height: 1.55rem;
+        padding: 0.2rem 0.55rem !important;
+        border-radius: 999px !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+
+      .doctor-action-metric-pill {
+        background: #e8f5ff !important;
+        border: 1px solid #cfe9ff;
+        color: #1e88e5 !important;
+      }
+
+      .doctor-action-status-pill.text-success,
+      .doctor-action-status-pill {
+        &.text-success {
+          background: rgba(10, 179, 156, 0.12) !important;
+          border: 1px solid rgba(10, 179, 156, 0.22);
+          color: #0ab39c !important;
+        }
+
+        &.text-warning {
+          background: rgba(247, 184, 75, 0.14) !important;
+          border: 1px solid rgba(247, 184, 75, 0.28);
+          color: #d29d00 !important;
+        }
+
+        &.text-danger {
+          background: rgba(240, 101, 72, 0.12) !important;
+          border: 1px solid rgba(240, 101, 72, 0.24);
+          color: #f06548 !important;
+        }
+      }
+
+      .doctor-action-icon {
+        width: 2.65rem !important;
+        height: 2.65rem !important;
+        border-radius: 12px !important;
+        background: linear-gradient(180deg, #eef7ff 0%, #e8f5ff 100%) !important;
+        border: 1px solid #cfe9ff;
+        color: #1e88e5 !important;
+      }
+
+      .doctor-dashboard-action-link {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #374151 !important;
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -2px;
+          height: 1px;
+          background: currentColor;
+          opacity: 0;
+          transform: scaleX(0.4);
+          transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+
+        &:hover,
+        &:focus {
+          color: #1e88e5 !important;
+
+          &::after {
+            opacity: 1;
+            transform: scaleX(1);
+          }
+        }
+      }
+
+      &:hover {
+        border-color: #b3dbff !important;
+        box-shadow: 0 10px 24px rgba(16, 24, 40, 0.08) !important;
+        transform: none !important;
+        background-color: #f7fbff !important;
+
+        .doctor-action-card__body,
+        .card-body {
+          background-color: transparent !important;
+        }
+
+        .doctor-action-icon {
+          background: #dff0fa !important;
+        }
+      }
+
+      &:active {
+        transform: none !important;
+      }
+    }
+
+    .doctor-appointments-card,
+    .doctor-reminders-card,
+    .doctor-stats-card {
+      .doctor-dashboard-card-header {
+        border-bottom: 1px solid #eef1f4 !important;
+        background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+        border-top-left-radius: 12px !important;
+        border-top-right-radius: 12px !important;
+
+        .card-title {
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          color: #111827;
+        }
+      }
+    }
+
+    .doctor-appointments-card {
+      .doctor-patient-table-body {
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+      }
+
+      .dashboard-patient-table {
+        thead th {
+          background: #f8fafc !important;
+          color: #475569;
+          font-size: 0.72rem !important;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+        }
+      }
+    }
+
+    .doctor-stats-card {
+      .patient-stats-card-body {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+      }
+    }
+
+    .doctor-dashboard-toolbar-btn {
+      border-radius: 8px !important;
+    }
+  }
+}
+
+// Semibox + hidden sidebar: keep topbar flush to top (no Velzon detached top: 25px at 1440px+)
+@media (min-width: 1440px) {
+  [data-layout="semibox"][data-sidebar-visibility="hidden"] {
+    #page-topbar {
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      border-radius: 0 !important;
+
+      &.topbar-shadow {
+        top: 0 !important;
+      }
+    }
+
+    .main-content {
+      margin-left: 0 !important;
+    }
+  }
+}
+
+@import "./components/appointment-slot-grid";
+@import "./theme/velzon-minimal";
