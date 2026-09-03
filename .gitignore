@@ -427,3 +427,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# React production build
+build/
+
+# Local Cursor/VS Code workspace (machine-specific paths)
+*.code-workspace
