@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Input, Label, Row, Button, Form, FormFeedback, UncontrolledAlert } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Input, Label, Row, Form, FormFeedback, UncontrolledAlert } from 'reactstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from "react-redux";
 import { updateDrugSystem } from "../../../../slices/admin/drugsystem/thunk";
@@ -52,77 +52,75 @@ const EditDrugSystem = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {drugSystemSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {drugSystemSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {drugSystemError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {drugSystemError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form onSubmit={(e) => {
                   e.preventDefault();
                   formik.handleSubmit();
                   return false;
                 }}>
-                  <CardHeader className="align-items-center d-flex">
-                    <h4 className="card-title mb-0 flex-grow-1">Edit Drug System</h4>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">Edit Drug System</h5>
+                    </div>
                   </CardHeader>
 
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Drug System Name</Label>
-                            <Input
-                              name='drugSystemName'
-                              type="input"
-                              value={formik.values.drugSystemName || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="placeholderInput"
-                              placeholder="Enter Drug System Name"
-                              invalid={
-                                formik.touched.drugSystemName && formik.errors.drugSystemName ? true : false
-                              } />
-                            {formik.touched.drugSystemName && formik.errors.drugSystemName ? (
-                              <FormFeedback type="invalid"><div>{formik.errors.drugSystemName}</div></FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-                    </div>
-                  </CardBody>
+                  <CardBody>
+                    {(drugSystemSuccess || drugSystemError) ? (
+                      <div className="admin-form-alerts">
+                        {drugSystemSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {drugSystemSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {drugSystemError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {drugSystemError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
 
-                  <CardFooter className="gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
-                        </div>
-                      </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listdrugsystem">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button color="success" className="btn-label" type="submit">
-                            <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Update
-                          </Button>
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="placeholderInput" className="form-label">Drug System Name</Label>
+                          <Input
+                            name='drugSystemName'
+                            type="input"
+                            value={formik.values.drugSystemName || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="placeholderInput"
+                            placeholder="Enter Drug System Name"
+                            invalid={
+                              formik.touched.drugSystemName && formik.errors.drugSystemName ? true : false
+                            } />
+                          {formik.touched.drugSystemName && formik.errors.drugSystemName ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.drugSystemName}</div></FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listdrugsystem" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          Update
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

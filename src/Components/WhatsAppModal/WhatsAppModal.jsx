@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import classnames from "classnames";
 import Swal from "sweetalert2";
 import {
-  Button,
   Col,
   Modal,
   ModalBody,
@@ -12,17 +11,19 @@ import {
   NavItem,
   NavLink,
   Row,
-  Spinner,
 } from "reactstrap";
 import { useDispatch, useSelector } from "react-redux";
 import Select from "react-select";
 
+import ModalActionButton from "../Common/ModalActionButton";
+import { neutralSelectProps } from "../../helpers/neutralSelectStyles";
 import "./WhatsAppModal.css";
 import RecipientSelector from "./RecipientSelector";
 import WhatsAppCommonFields from "./WhatsAppCommonFields";
 import TabHospitalServices from "./TabHospitalServices";
 import TabOffers from "./TabOffers";
 import TabHealthTips from "./TabHealthTips";
+import WhatsAppFormLabel from "./WhatsAppFormLabel";
 import { getMessageBodyPlainLength } from "./WhatsAppMessageEditor";
 import { getPatientList } from "../../slices/doctor/dashboard/thunk";
 import {
@@ -565,9 +566,10 @@ export default function WhatsAppModal({ isOpen, toggle }) {
       </div>
 
       <ModalBody className="whatsapp-modal__body" style={{ minHeight: 380 }}>
-        <Row className="g-2 mb-3">
+        <div className="whatsapp-modal__form-stack">
+        <Row className="g-3">
           <Col md={6}>
-            <label className="form-label">Language</label>
+            <WhatsAppFormLabel icon="ri-translate-2">Language</WhatsAppFormLabel>
             <Select
               value={
                 selectedLanguage
@@ -578,11 +580,11 @@ export default function WhatsAppModal({ isOpen, toggle }) {
               options={languageOptions}
               isLoading={languagesLoading}
               placeholder={languagesLoading ? "Loading languages..." : "Select language..."}
-              classNamePrefix="select"
+              {...neutralSelectProps}
             />
           </Col>
           <Col md={6}>
-            <label className="form-label">Template</label>
+            <WhatsAppFormLabel icon="ri-file-list-3-line">Template</WhatsAppFormLabel>
             <Select
               value={compose.templateOption}
               onChange={handleTemplateSelect}
@@ -590,7 +592,7 @@ export default function WhatsAppModal({ isOpen, toggle }) {
               isLoading={templatesLoading}
               placeholder={templatesLoading ? "Loading templates..." : "Select template..."}
               isClearable
-              classNamePrefix="select"
+              {...neutralSelectProps}
             />
           </Col>
           {(finalWhatsAppPreview.previewMessage || finalWhatsAppPreview.message) ? (
@@ -634,7 +636,7 @@ export default function WhatsAppModal({ isOpen, toggle }) {
           ) : null}
         </Row>
 
-        <div className="d-flex align-items-center justify-content-end mb-2">
+        <div className="d-flex align-items-center justify-content-end whatsapp-modal__char-count">
           <div className="whatsapp-modal__subtle">
             <span className={characterCount > maxChars ? "text-danger fw-semibold" : ""}>
               {characterCount} / {maxChars}
@@ -642,38 +644,26 @@ export default function WhatsAppModal({ isOpen, toggle }) {
           </div>
         </div>
 
-        <div>
-          <WhatsAppCommonFields
-            compose={compose}
-            onChange={setComposePatch}
-            showMessageDate={activeTab !== TABS.OFFERS}
-          />
-          {renderTab()}
+        <WhatsAppCommonFields
+          compose={compose}
+          onChange={setComposePatch}
+          showMessageDate={activeTab !== TABS.OFFERS}
+        />
+        {renderTab()}
         </div>
       </ModalBody>
 
       <ModalFooter className="whatsapp-modal__footer justify-content-end">
-        <Button type="button" color="light" onClick={toggle} disabled={sending}>
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          style={{ background: "#25D366", borderColor: "#25D366", color: "#0b2e13" }}
+        <ModalActionButton action="cancel" onClick={toggle} disabled={sending} />
+        <ModalActionButton
+          action="send"
           onClick={onSaveAndSend}
           disabled={sending || templatesLoading || languagesLoading}
+          loading={sending}
+          loadingLabel="Sending..."
         >
-          {sending ? (
-            <>
-              <Spinner size="sm" className="me-2" />
-              Sending...
-            </>
-          ) : (
-            <>
-              <i className="ri-send-plane-fill me-2" />
-              Send Now
-            </>
-          )}
-        </Button>
+          Send Now
+        </ModalActionButton>
       </ModalFooter>
     </Modal>
   );

@@ -2,6 +2,9 @@ import React, { useMemo } from "react";
 import { Col, Input, Label, Row } from "reactstrap";
 import Select from "react-select";
 
+import { neutralSelectProps } from "../../helpers/neutralSelectStyles";
+import WhatsAppFormLabel from "./WhatsAppFormLabel";
+
 const RECIPIENT_MODE = {
   INDIVIDUAL: "individual",
   BULK: "bulk",
@@ -58,9 +61,10 @@ export default function RecipientSelector({
   );
 
   return (
-    <div>
-      <Label className="form-label mb-1">Recipients</Label>
-      <div className="d-flex align-items-center gap-4 flex-wrap">
+    <div className="whatsapp-modal__recipient-block">
+      <div>
+        <WhatsAppFormLabel icon="ri-group-line">Recipients</WhatsAppFormLabel>
+        <div className="d-flex align-items-center gap-4 flex-wrap">
         <div className="form-check">
           <Input
             id="wa-recipient-individual"
@@ -87,15 +91,16 @@ export default function RecipientSelector({
             Bulk
           </Label>
         </div>
+        </div>
       </div>
 
       {helperText && mode === RECIPIENT_MODE.BULK ? (
-        <div className="whatsapp-modal__subtle mt-1">{helperText}</div>
+        <div className="whatsapp-modal__subtle">{helperText}</div>
       ) : null}
 
       {mode === RECIPIENT_MODE.INDIVIDUAL ? (
-        <div className="mt-2">
-          <Label className="form-label mb-1">Search Patient</Label>
+        <div>
+          <WhatsAppFormLabel icon="ri-user-search-line">Search Patient</WhatsAppFormLabel>
           <Select
             value={selectedPatient}
             onChange={onChangeSelectedPatient}
@@ -103,26 +108,25 @@ export default function RecipientSelector({
             placeholder="Type name or phone..."
             isClearable
             isSearchable
-            classNamePrefix="select"
+            {...neutralSelectProps}
           />
         </div>
       ) : hideBulkModeDropdown ? null : (
-        <div className="mt-2">
-          <Row className="g-2">
-            <Col md={12}>
-              <Label className="form-label mb-1">Bulk Mode</Label>
+        <Row className="g-3">
+          <Col md={12}>
+            <WhatsAppFormLabel icon="ri-stack-line">Bulk Mode</WhatsAppFormLabel>
               <Select
                 value={selectedBulkMode}
                 onChange={(v) => onChangeBulkFilter?.(v?.value)}
                 options={bulkModeOptions}
                 isClearable={false}
                 isSearchable={false}
-                classNamePrefix="select"
+                {...neutralSelectProps}
               />
             </Col>
             {bulk === "department" ? (
               <Col md={12}>
-                <Label className="form-label mb-1">Department Filter</Label>
+                <WhatsAppFormLabel icon="ri-building-2-line">Department Filter</WhatsAppFormLabel>
                 <Select
                   value={departmentFilter}
                   onChange={onChangeDepartmentFilter}
@@ -130,25 +134,24 @@ export default function RecipientSelector({
                   isMulti
                   isClearable
                   placeholder="Select department(s)..."
-                  classNamePrefix="select"
+                  {...neutralSelectProps}
                 />
               </Col>
             ) : null}
             {bulk === "doctor" ? (
               <Col md={12}>
-                <Label className="form-label mb-1">Doctor Filter</Label>
+                <WhatsAppFormLabel icon="ri-stethoscope-line">Doctor Filter</WhatsAppFormLabel>
                 <Select
                   value={doctorFilter}
                   onChange={onChangeDoctorFilter}
                   options={safeDoctorOptions}
                   isClearable
                   placeholder="Select doctor..."
-                  classNamePrefix="select"
+                  {...neutralSelectProps}
                 />
               </Col>
             ) : null}
-          </Row>
-        </div>
+        </Row>
       )}
     </div>
   );

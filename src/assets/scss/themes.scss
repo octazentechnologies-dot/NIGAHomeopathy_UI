@@ -5,6 +5,170 @@
 @import"./shepherd.css";
 @import "./mermaid.min.css";
 
+// Matches .form-control (0.8rem font + Bootstrap padding) — use for react-select / select2 height parity
+$app-form-field-font-size: 0.8rem;
+$app-form-field-height: calc(0.8rem * 1.5 + 0.5rem * 2 + 2px);
+// Actual rendered topbar height (.navbar-header override); differs from Velzon $header-height (70px)
+$app-topbar-height: 60px;
+$app-horizontal-nav-height: calc(#{$horizontal-menu-item-padding-y} * 2 + 1.25rem);
+
+:root {
+  --app-form-field-font-size: #{$app-form-field-font-size};
+  --app-form-field-height: #{$app-form-field-height};
+  --app-topbar-height: #{$app-topbar-height};
+  --app-modal-padding: 0.5rem;
+  --app-modal-header-padding: 0.7rem;
+  --app-modal-body-padding: 0.7rem;
+
+  /* Compact scrollbars app-wide */
+  --app-scrollbar-size: 3px;
+  --app-scrollbar-rail-size: 4px;
+  --app-scrollbar-track: #e6eff5;
+  --app-scrollbar-thumb: #045c8b;
+  --app-scrollbar-thumb-hover: #034a70;
+}
+
+// Modal / offcanvas: compact padding (all themes)
+.modal-footer,
+.offcanvas-header,
+.offcanvas-body,
+.offcanvas-footer {
+  padding: var(--app-modal-padding) !important;
+}
+
+.modal-header {
+  padding: var(--app-modal-header-padding) !important;
+}
+
+.modal-body {
+  padding: var(--app-modal-body-padding) !important;
+}
+
+// App-wide compact native scrollbars (overflow areas, textareas, modals, panels)
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+}
+
+html * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+}
+
+html *::-webkit-scrollbar {
+  width: var(--app-scrollbar-size) !important;
+  height: var(--app-scrollbar-size) !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+html *::-webkit-scrollbar-track {
+  background: var(--app-scrollbar-track);
+  border-radius: 2px;
+}
+
+html *::-webkit-scrollbar-thumb {
+  background: var(--app-scrollbar-thumb);
+  border-radius: 2px;
+}
+
+html *::-webkit-scrollbar-thumb:hover {
+  background: var(--app-scrollbar-thumb-hover);
+}
+
+html *::-webkit-scrollbar-button,
+html *::-webkit-scrollbar-button:single-button,
+html *::-webkit-scrollbar-button:vertical:start:decrement,
+html *::-webkit-scrollbar-button:vertical:end:increment,
+html *::-webkit-scrollbar-button:horizontal:start:decrement,
+html *::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+html *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+// Perfect Scrollbar (react-perfect-scrollbar)
+.ps__rail-y,
+.ps__rail-x {
+  background: transparent !important;
+  opacity: 1 !important;
+}
+
+.ps__rail-y {
+  width: var(--app-scrollbar-rail-size) !important;
+}
+
+.ps__rail-x {
+  height: var(--app-scrollbar-rail-size) !important;
+}
+
+.ps__thumb-y,
+.ps__thumb-x {
+  background-color: var(--app-scrollbar-thumb) !important;
+  border-radius: 2px !important;
+}
+
+.ps__thumb-y {
+  width: var(--app-scrollbar-size) !important;
+  right: 0 !important;
+}
+
+.ps__thumb-x {
+  height: var(--app-scrollbar-size) !important;
+  bottom: 0 !important;
+}
+
+.ps__thumb-y:hover,
+.ps__thumb-x:hover {
+  background-color: var(--app-scrollbar-thumb-hover) !important;
+}
+
+// Explicit utility (Patient Board, tooltips, etc.)
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+
+  &::-webkit-scrollbar {
+    width: var(--app-scrollbar-size) !important;
+    height: var(--app-scrollbar-size) !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--app-scrollbar-track);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--app-scrollbar-thumb);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--app-scrollbar-thumb-hover);
+  }
+
+  &::-webkit-scrollbar-button,
+  &::-webkit-scrollbar-button:single-button,
+  &::-webkit-scrollbar-button:vertical:start:decrement,
+  &::-webkit-scrollbar-button:vertical:end:increment,
+  &::-webkit-scrollbar-button:horizontal:start:decrement,
+  &::-webkit-scrollbar-button:horizontal:end:increment {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
 //RTL 
 // @import "../scss/rtl/components-rtl";
 // @import "../scss/rtl/layouts-rtl";
@@ -127,9 +291,18 @@ body {
 $value in $theme-colors {
   .simplebar-track-#{$color} {
     .simplebar-scrollbar:before {
-      background: $value !important;
+      background: var(--app-scrollbar-thumb) !important;
     }
   }
+}
+
+// SimpleBar — compact thumb (matches native scrollbar)
+.simplebar-scrollbar:before {
+  background: var(--app-scrollbar-thumb) !important;
+}
+
+.simplebar-scrollbar.simplebar-visible:before {
+  opacity: 1 !important;
 }
 
 // chat
@@ -223,71 +396,117 @@ $value in $theme-colors {
   border-color: var(--#{$prefix}border-color) !important;
 }
 
-//react select
-.css-b62m3t-container {
-  .css-13cymwt-control {
-    background-color: var(--#{$prefix}secondary-bg);
-    color: var(--#{$prefix}body-color);
-    border-color: var(--#{$prefix}border-color);
+// react-select (Emotion hashes + classNamePrefix): neutral borders + compact height
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]),
+[class$="__control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]) {
+  min-height: var(--app-form-field-height) !important;
+  height: var(--app-form-field-height) !important;
+  max-height: var(--app-form-field-height) !important;
+  align-items: center !important;
+  border-color: $input-border-color !important;
+  box-shadow: none !important;
+  font-size: var(--app-form-field-font-size) !important;
 
-    &:hover,
-    &:focus {
-      border-color: var(--#{$prefix}primary);
-    }
-
-    .css-1p3m7a8-multiValue {
-      color: var(--#{$prefix}white);
-      background-color: var(--#{$prefix}primary);
-
-      .css-wsp0cs-MultiValueGeneric {
-        color: var(--#{$prefix}white);
-      }
-
-      .css-1u9des2-indicatorSeparator {
-        border-color: var(--#{$prefix}border-color);
-      }
-    }
+  &:hover {
+    border-color: $input-border-color !important;
+    box-shadow: none !important;
   }
+}
 
-  :is(.css-qbdosj-Input, .css-1dimb5e-singleValue) {
-    color: var(--#{$prefix}body-color);
-  }
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"],
+[class$="__control"] {
+  min-height: var(--app-form-field-height) !important;
+  height: var(--app-form-field-height) !important;
+  max-height: var(--app-form-field-height) !important;
+  align-items: center !important;
+  border-width: $input-border-width !important;
+  border-style: solid !important;
+  border-radius: $input-border-radius !important;
+  box-shadow: none !important;
+  font-size: var(--app-form-field-font-size) !important;
+}
 
-  .css-t3ipsp-control {
-    background-color: var(--#{$prefix}secondary-bg);
-    color: var(--#{$prefix}body-color);
-    border-color: var(--#{$prefix}border-color);
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control--is-focused"],
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control--menu-is-open"],
+[class*="css-"][class*="-control--is-focused"],
+[class*="__control--is-focused"],
+[class*="css-"][class*="-control--menu-is-open"],
+[class*="__control--menu-is-open"] {
+  border-color: #25a0e2 !important;
+  box-shadow: none !important;
+}
 
-    .css-1p3m7a8-multiValue {
-      color: var(--#{$prefix}white);
-      background-color: var(--#{$prefix}primary);
+[class*="css-"][class*="-control--is-multi"],
+[class*="__control--is-multi"] {
+  min-height: var(--app-form-field-height) !important;
+  height: auto !important;
+  max-height: none !important;
+  align-items: flex-start !important;
+}
 
-      .css-wsp0cs-MultiValueGeneric {
-        color: var(--#{$prefix}white);
-      }
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"] [class*="css-"][class*="-ValueContainer"],
+[class$="__value-container"],
+[class*="__value-container"] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: $input-padding-x !important;
+  padding-right: $input-padding-x !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  font-size: var(--app-form-field-font-size) !important;
+}
 
-      .css-1u9des2-indicatorSeparator {
-        border-color: var(--#{$prefix}border-color);
-      }
-    }
-  }
+// Multi-select: class attr ends with --is-multi so $=__value-container never matched
+[class*="__value-container--is-multi"] {
+  height: auto !important;
+  min-height: calc(#{$app-form-field-height} - 2px) !important;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+  padding-left: $input-padding-x !important;
+  padding-right: $input-padding-x !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 0.25rem;
+}
 
-  .css-1nmdiq5-menu {
-    background-color: var(--#{$prefix}secondary-bg);
-    color: var(--#{$prefix}body-color);
-    border-color: var(--#{$prefix}border-color);
+[class*="__multi-value"] {
+  margin: 0 !important;
+}
 
-    .css-d7l1ni-option {
-      color: $white;
-      background-color: var(--#{$prefix}primary);
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"] [class*="css-"][class*="-IndicatorsContainer"],
+[class$="__indicators"] {
+  height: 100% !important;
+  align-self: stretch !important;
+}
 
-      &:hover,
-      &:active,
-      &:focus {
-        background-color: var(--#{$prefix}primary);
-      }
-    }
-  }
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"] [class*="css-"][class*="-indicator"],
+[class$="__indicator"] {
+  padding: 0 6px !important;
+}
+
+[class*="css-"][class*="-IndicatorSeparator"],
+[class*="css-"][class*="-indicatorSeparator"],
+[class$="__indicator-separator"],
+[class*="__indicatorSeparator"] {
+  display: none !important;
+  margin: 0 !important;
+  width: 0 !important;
+}
+
+[class*="css-"][class*="-multiValue"] {
+  background-color: #25a0e2 !important;
+  color: $white !important;
+}
+
+[class*="css-"][class*="-menu"] {
+  background-color: var(--#{$prefix}secondary-bg) !important;
+  border-color: var(--#{$prefix}border-color) !important;
+}
+
+[class*="css-"][class*="-option--is-selected"],
+[class*="css-"][class*="-option--is-focused"] {
+  background-color: transparent !important;
+  color: #25a0e2 !important;
 }
 
 .required {
@@ -297,7 +516,15 @@ $value in $theme-colors {
 ////////////////////// Custom Style //////////////////////
 
 .navbar-header {
-  height: 60px;
+  height: $app-topbar-height;
+}
+
+// Horizontal nav must align to actual topbar height (not Velzon $header-height 70px)
+html[data-layout="horizontal"] {
+  .navbar-menu {
+    top: $app-topbar-height !important;
+    margin-top: 0 !important;
+  }
 }
 
 body {
@@ -306,10 +533,20 @@ body {
 
 .text-info {
   --vz-text-opacity: 1;
-  color: rgb(30 136 229) !important;
+  color: #25a0e2 !important;
 }
 
-.form-control {
+.form-control:not(textarea) {
+  font-size: $app-form-field-font-size !important;
+  line-height: $input-line-height;
+  padding-top: $input-padding-y;
+  padding-bottom: $input-padding-y;
+  height: $app-form-field-height !important;
+  min-height: $app-form-field-height !important;
+  max-height: $app-form-field-height !important;
+}
+
+textarea.form-control {
   font-size: 0.8rem !important;
 }
 
@@ -345,14 +582,22 @@ body {
 
 // Light theme: black for titles, menu accents, outline/soft primary button text, list markers, pagination (was brand #800020)
 html:not([data-bs-theme="dark"]) {
-  // Focus ring + dropdown/select hover borders (was primary / maroon-tinted)
-  --#{$prefix}focus-ring-color: rgba(0, 0, 0, 0.22);
+  // Minimal theme blue — form fields, selects, radios, checkboxes (focus / active)
+  $minimal-theme-blue: #25a0e2;
 
-  --#{$prefix}vertical-menu-item-hover-color: #000000;
-  --#{$prefix}vertical-menu-item-active-color: #000000;
-  --#{$prefix}vertical-menu-sub-item-hover-color: #000000;
-  --#{$prefix}vertical-menu-sub-item-active-color: #000000;
-  --#{$prefix}topnav-item-active-color: #000000;
+  // Bootstrap focus border token (was maroon primary-border-subtle)
+  --#{$prefix}primary-border-subtle: #{$minimal-theme-blue};
+
+  --#{$prefix}focus-ring-color: transparent;
+  --#{$prefix}focus-ring-width: 0;
+
+  // Menu hover/active: minimal theme blue (text + icons + chevrons)
+  --#{$prefix}vertical-menu-item-hover-color: #{$minimal-theme-blue};
+  --#{$prefix}vertical-menu-item-active-color: #{$minimal-theme-blue};
+  --#{$prefix}vertical-menu-sub-item-hover-color: #{$minimal-theme-blue};
+  --#{$prefix}vertical-menu-sub-item-active-color: #{$minimal-theme-blue};
+  --#{$prefix}topnav-item-color: #000000;
+  --#{$prefix}topnav-item-active-color: #{$minimal-theme-blue};
 
   .hamburger-icon span {
     background-color: #000000 !important;
@@ -394,6 +639,30 @@ html:not([data-bs-theme="dark"]) {
     color: #ffffff !important;
   }
 
+  // Modal footers: soft button sizing
+  .modal-footer,
+  .offcanvas-footer {
+    .btn:not(.btn-close) {
+      height: var(--app-form-field-height) !important;
+      min-height: var(--app-form-field-height) !important;
+      max-height: var(--app-form-field-height) !important;
+      font-size: var(--app-form-field-font-size) !important;
+      line-height: $input-line-height !important;
+      padding-top: $input-padding-y !important;
+      padding-bottom: $input-padding-y !important;
+    }
+
+    .btn-soft-primary {
+      color: var(--#{$prefix}primary) !important;
+
+      &:hover,
+      &:focus,
+      &:active {
+        color: #{$white} !important;
+      }
+    }
+  }
+
   ol>li::marker {
     color: #000000;
   }
@@ -408,8 +677,76 @@ html:not([data-bs-theme="dark"]) {
   }
 
   .navbar-menu .navbar-nav .nav-link:hover .icon-dual,
-  .navbar-menu .navbar-nav .nav-link[data-bs-toggle="collapse"][aria-expanded="true"] .icon-dual {
-    fill: rgba(0, 0, 0, 0.16) !important;
+  .navbar-menu .navbar-nav .nav-link.active .icon-dual,
+  .navbar-menu .navbar-nav .nav-link[data-bs-toggle="collapse"][aria-expanded="true"] .icon-dual,
+  .navbar-menu .navbar-nav .nav-item:hover > .nav-link .icon-dual {
+    color: #{$minimal-theme-blue} !important;
+    fill: rgba(37, 160, 226, 0.16) !important;
+  }
+
+  // Horizontal + dropdown menu: blue hover/active for label, icon, chevron
+  .navbar-menu .navbar-nav {
+    // Idle top-level: black (not grey)
+    > .nav-item:not(:hover) > .nav-link:not(:hover):not(.active):not([aria-expanded="true"]) {
+      color: #000000 !important;
+
+      &::after,
+      i,
+      .icon-dual,
+      .las,
+      .ri,
+      [class^="ri-"],
+      [class*=" ri-"] {
+        color: #000000 !important;
+      }
+
+      .icon-dual {
+        fill: rgba(0, 0, 0, 0.12) !important;
+      }
+    }
+
+    .nav-link:hover,
+    .nav-link.active,
+    .nav-link[data-bs-toggle="collapse"][aria-expanded="true"],
+    .nav-item:hover > .nav-link {
+      color: #{$minimal-theme-blue} !important;
+
+      &::after,
+      i,
+      .icon-dual,
+      .las,
+      .ri,
+      [class^="ri-"],
+      [class*=" ri-"] {
+        color: #{$minimal-theme-blue} !important;
+      }
+
+      .icon-dual {
+        fill: rgba(37, 160, 226, 0.16) !important;
+      }
+    }
+
+    .menu-dropdown .nav-link:hover,
+    .menu-dropdown .nav-link.active,
+    .nav-sm .nav-link:hover,
+    .nav-sm .nav-link.active {
+      color: #{$minimal-theme-blue} !important;
+      background-color: transparent !important;
+
+      &::after {
+        color: #{$minimal-theme-blue} !important;
+      }
+    }
+
+    .menu-dropdown {
+      min-width: 16.5rem;
+      width: max-content;
+      max-width: 22rem;
+
+      .nav-link {
+        white-space: nowrap;
+      }
+    }
   }
 
   // All table header cells: pure black (beats inherited .text-muted on TabContent, etc.)
@@ -430,49 +767,313 @@ html:not([data-bs-theme="dark"]) {
     color: #000000 !important;
   }
 
-  // Native + custom dropdown controls: black border on hover/focus (compiled $input-focus-border-color was primary-tinted)
+  // Unified field border — match .form-control (width, radius, color)
+  .form-control,
+  .form-select,
+  textarea.form-control {
+    border-width: $input-border-width !important;
+    border-color: $input-border-color !important;
+    border-radius: $input-border-radius !important;
+    box-shadow: none !important;
+  }
+
+  [class$="__control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]):not([class*="--is-multi"]) {
+    min-height: var(--app-form-field-height) !important;
+    height: var(--app-form-field-height) !important;
+    max-height: var(--app-form-field-height) !important;
+    align-items: center !important;
+    border-width: $input-border-width !important;
+    border-style: solid !important;
+    border-color: $input-border-color !important;
+    border-radius: $input-border-radius !important;
+    background-color: $input-bg !important;
+    box-shadow: none !important;
+    font-size: var(--app-form-field-font-size) !important;
+
+    &:hover {
+      border-color: $input-border-color !important;
+      box-shadow: none !important;
+    }
+  }
+
+  [class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not([class*="--is-multi"]),
+  [class$="__control"]:not([class*="--is-multi"]) {
+    min-height: var(--app-form-field-height) !important;
+    height: var(--app-form-field-height) !important;
+    max-height: var(--app-form-field-height) !important;
+    align-items: center !important;
+    border-width: $input-border-width !important;
+    border-style: solid !important;
+    border-radius: $input-border-radius !important;
+    background-color: $input-bg !important;
+    font-size: var(--app-form-field-font-size) !important;
+  }
+
+  [class*="css-"][class*="-container"] [class*="css-"][class*="-control--is-focused"],
+  [class*="css-"][class*="-container"] [class*="css-"][class*="-control--menu-is-open"],
+  [class*="css-"][class*="-control--is-focused"],
+  [class*="__control--is-focused"],
+  [class*="css-"][class*="-control--menu-is-open"],
+  [class*="__control--menu-is-open"] {
+    border-color: $minimal-theme-blue !important;
+    box-shadow: none !important;
+  }
+
+  // Multi-select may grow vertically when chips are present
+  [class*="__control--is-multi"],
+  .admin-form-select__control--is-multi {
+    min-height: var(--app-form-field-height) !important;
+    height: auto !important;
+    max-height: none !important;
+    align-items: flex-start !important;
+  }
+
+  [class$="__value-container"],
+  [class*="__value-container"] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: $input-padding-x !important;
+    padding-right: $input-padding-x !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: var(--app-form-field-font-size) !important;
+  }
+
+  // Multi-select chips: allow wrap + comfortable inner padding (match .form-control)
+  [class*="__value-container--is-multi"],
+  .admin-form-select__value-container--is-multi {
+    height: auto !important;
+    min-height: calc(var(--app-form-field-height) - 2px) !important;
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+    padding-left: $input-padding-x !important;
+    padding-right: $input-padding-x !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.25rem;
+  }
+
+  [class*="__multi-value"],
+  .admin-form-select__multi-value {
+    margin: 0 !important;
+  }
+
+  [class$="__single-value"],
+  [class$="__placeholder"],
+  [class$="__input-container"] {
+    font-size: var(--app-form-field-font-size) !important;
+    line-height: $input-line-height !important;
+    margin: 0 !important;
+  }
+
+  [class$="__input"] {
+    font-size: var(--app-form-field-font-size) !important;
+    line-height: $input-line-height !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  [class$="__indicators"] {
+    align-self: stretch !important;
+    height: 100% !important;
+    max-height: var(--app-form-field-height) !important;
+  }
+
+  [class$="__indicator"],
+  [class$="__dropdown-indicator"],
+  [class$="__clear-indicator"] {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 6px !important;
+  }
+
+  [class$="__clear-indicator"] {
+    padding: 0 4px !important;
+  }
+
+  [class$="__dropdown-indicator"] svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  [class$="__indicator-separator"],
+  [class*="__indicatorSeparator"] {
+    display: none !important;
+    margin: 0 !important;
+    width: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .select2-container--default .select2-selection--single,
+  .select2-container--default .select2-selection--multiple {
+    min-height: var(--app-form-field-height) !important;
+    height: var(--app-form-field-height) !important;
+    border-width: $input-border-width !important;
+    border-color: $input-border-color !important;
+    border-radius: $input-border-radius !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .select2-container--default .select2-selection--multiple {
+    height: auto !important;
+    min-height: var(--app-form-field-height) !important;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: $input-line-height !important;
+    font-size: var(--app-form-field-font-size) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: $input-padding-x !important;
+    padding-right: $input-padding-x !important;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 100% !important;
+    top: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .choices__inner {
+    min-height: var(--app-form-field-height) !important;
+    height: var(--app-form-field-height) !important;
+    border-width: $input-border-width !important;
+    border-color: $input-border-color !important;
+    border-radius: $input-border-radius !important;
+    padding: 0 $input-padding-x !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: var(--app-form-field-font-size) !important;
+    line-height: $input-line-height !important;
+    box-shadow: none !important;
+  }
+
+  .choices__list--single {
+    padding: 0 !important;
+  }
+
+  .choices__list--single .choices__item {
+    padding: 0 !important;
+  }
+
+  .rdw-editor-wrapper {
+    border: $input-border-width solid $input-border-color !important;
+    border-radius: $input-border-radius !important;
+    overflow: hidden;
+    box-shadow: none !important;
+  }
+
+  .rdw-editor-toolbar {
+    border: none !important;
+    border-bottom: $input-border-width solid $input-border-color !important;
+    margin-bottom: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .rdw-editor-main {
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  .rdw-editor-wrapper:focus-within {
+    border-color: $minimal-theme-blue !important;
+  }
+
+  // Minimal blue border on focus only
   .form-control:focus,
-  .form-select:hover,
-  .form-select:focus {
-    border-color: #000000 !important;
+  .form-control:focus-visible,
+  .form-select:focus,
+  .form-select:focus-visible,
+  textarea.form-control:focus,
+  textarea.form-control:focus-visible,
+  .form-floating > .form-control:focus,
+  .form-floating > .form-select:focus,
+  .input-group > .form-control:focus,
+  .input-group > .form-select:focus {
+    border-color: $minimal-theme-blue !important;
+    box-shadow: none !important;
   }
 
-  .form-control:focus,
-  .form-select:focus {
-    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  // Checkboxes, radios, switches
+  .form-check-input:focus,
+  .form-check-input:focus-visible {
+    border-color: $minimal-theme-blue !important;
+    box-shadow: none !important;
   }
 
-  // react-select (any classPrefix using BEM __control)
-  [class*="__control"]:hover,
-  [class*="__control--is-focused"] {
-    border-color: #000000 !important;
+  .form-check-input:checked {
+    background-color: $minimal-theme-blue !important;
+    border-color: $minimal-theme-blue !important;
   }
 
-  [class*="__control--is-focused"] {
-    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  .form-check-input[type="checkbox"]:indeterminate {
+    background-color: $minimal-theme-blue !important;
+    border-color: $minimal-theme-blue !important;
   }
 
-  // Select2
-  .select2-container--default .select2-selection--single:hover,
+  .form-switch .form-check-input:checked {
+    background-color: $minimal-theme-blue !important;
+    border-color: $minimal-theme-blue !important;
+  }
+
+  // react-select — blue border on focus/open only (never maroon on hover)
+  [class*="css-"][class*="-container"] [class*="css-"][class*="-control--is-focused"],
+  [class*="css-"][class*="-container"] [class*="css-"][class*="-control--menu-is-open"],
+  [class*="css-"][class*="-control--is-focused"],
+  [class*="__control--is-focused"],
+  [class*="css-"][class*="-control--menu-is-open"],
+  [class*="__control--menu-is-open"] {
+    border-color: $minimal-theme-blue !important;
+    box-shadow: none !important;
+  }
+
+  // Select2 — blue border when open / focused
   .select2-container--default.select2-container--open .select2-selection--single,
-  .select2-container--default .select2-selection--multiple:hover,
-  .select2-container--default.select2-container--open .select2-selection--multiple {
-    border-color: #000000 !important;
+  .select2-container--default.select2-container--open .select2-selection--multiple,
+  .select2-container--default.select2-container--focus .select2-selection--single,
+  .select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: $minimal-theme-blue !important;
+    box-shadow: none !important;
   }
 
-  // Choices.js
-  .choices__inner:hover,
+  // Choices.js — blue border when open / focused
   .choices.is-focused .choices__inner,
   .choices.is-open .choices__inner {
-    border-color: #000000 !important;
+    border-color: $minimal-theme-blue !important;
+    box-shadow: none !important;
   }
 
-  .choices.is-focused .choices__inner,
-  .choices.is-open .choices__inner {
-    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  // Flatpickr / date inputs wired as .form-control
+  .flatpickr-input:focus,
+  .flatpickr-input.form-control:focus {
+    border-color: $minimal-theme-blue !important;
+    box-shadow: none !important;
   }
 
-  // Neutral / topbar / outline-primary dropdown toggles: black ring, not brand maroon
+  // Form range slider thumb when active
+  .form-range:focus::-webkit-slider-thumb {
+    box-shadow: none;
+  }
+
+  .form-range:focus::-moz-range-thumb {
+    box-shadow: none;
+  }
+
+  .form-range::-webkit-slider-thumb:active {
+    background-color: $minimal-theme-blue;
+  }
+
+  .form-range::-moz-range-thumb:active {
+    background-color: $minimal-theme-blue;
+  }
+
+  // Dropdown toggles that behave like form controls (optional neutral — keep black for topbar)
   :is(.btn-secondary,
     .btn-light,
     .btn-dark,
@@ -492,41 +1093,86 @@ html:not([data-bs-theme="dark"]) {
     border-color: #000000 !important;
   }
 
-  // Dropdowns & selects: remove brand maroon from highlighted / selected rows (Select2, react-select, themed menus)
+  // Dropdowns & selects: minimal theme blue active text, no background fill
+  $dropdown-option-active-color: #25a0e2;
+
+  // Select2
   .select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background-color: #f1f3f5 !important;
-    color: #000000 !important;
+    background-color: transparent !important;
+    color: $dropdown-option-active-color !important;
   }
 
   .select2-container--default .select2-results__option[aria-selected="true"] {
-    background-color: #e9ecef !important;
-    color: #000000 !important;
+    background-color: transparent !important;
+    color: $dropdown-option-active-color !important;
   }
 
   .select2-container--default .select2-results__option[aria-selected="true"]:hover {
-    background-color: #dee2e6 !important;
-    color: #000000 !important;
+    background-color: transparent !important;
+    color: $dropdown-option-active-color !important;
   }
 
-  // react-select: menu options (inline default theme may use primary-like hues; classPrefix + portaled listbox ids)
-  [id^="react-select-"] [role="option"][aria-selected="true"] {
-    background-color: #e9ecef !important;
-    color: #000000 !important;
+  // react-select: all classPrefix values (select__, react-select__, pb-ae-select__, etc.) + portaled menus
+  [class*="__menu"] [role="option"],
+  [id^="react-select-"] [role="option"] {
+    background-color: transparent !important;
+
+    &[aria-selected="true"],
+    &[class*="__option--is-selected"] {
+      background-color: transparent !important;
+      color: $dropdown-option-active-color !important;
+      font-weight: 500;
+    }
+
+    &:hover,
+    &[class*="__option--is-focused"] {
+      background-color: transparent !important;
+      color: $dropdown-option-active-color !important;
+    }
+
+    &[aria-selected="true"][class*="__option--is-focused"],
+    &[class*="__option--is-selected"][class*="__option--is-focused"] {
+      background-color: transparent !important;
+      color: $dropdown-option-active-color !important;
+    }
   }
 
-  [id^="react-select-"] [role="option"]:hover {
-    background-color: #f1f3f5 !important;
-    color: #000000 !important;
+  [class*="__option--is-selected"] {
+    background-color: transparent !important;
+    color: $dropdown-option-active-color !important;
+    font-weight: 500;
   }
 
-  .react-select__option--is-selected {
-    background-color: #e9ecef !important;
-    color: #000000 !important;
+  [class*="__option--is-focused"]:not([class*="__option--is-selected"]) {
+    background-color: transparent !important;
+    color: $dropdown-option-active-color !important;
   }
 
-  .react-select__option--is-focused {
-    background-color: #f1f3f5 !important;
-    color: #000000 !important;
+  // Bootstrap dropdown menus
+  .dropdown-menu .dropdown-item {
+    &.active,
+    &:active {
+      background-color: transparent !important;
+      color: $dropdown-option-active-color !important;
+    }
+
+    &:hover,
+    &:focus {
+      background-color: transparent !important;
+      color: $dropdown-option-active-color !important;
+    }
+  }
+
+  // Choices.js
+  .choices__list--dropdown .choices__item--selectable.is-highlighted {
+    background-color: transparent !important;
+    color: $dropdown-option-active-color !important;
+  }
+
+  // Native <select> list (supported browsers)
+  .form-select option:checked {
+    background-color: transparent;
+    color: $dropdown-option-active-color;
   }
 
   // Diagnosis Conditions: readable multi-select chips (no maroon background)
@@ -555,11 +1201,11 @@ html:not([data-bs-theme="dark"]) {
     padding-left: 25px !important;
   }
 
-  // Velzon: .dropdownmenu-primary etc. used hover text color = $theme color (was maroon for primary)
+  // Velzon: .dropdownmenu-primary etc. — minimal blue text, no background fill
   @each $state in map-keys($theme-colors) {
     .dropdownmenu-#{$state} .dropdown-item:is(:focus, :hover, .active) {
-      color: #000000 !important;
-      background-color: rgba(0, 0, 0, 0.06) !important;
+      color: $dropdown-option-active-color !important;
+      background-color: transparent !important;
     }
   }
 
@@ -645,20 +1291,43 @@ html:not([data-bs-theme="dark"]) {
     .nav-tabs-custom {
       border-bottom: 1px solid var(--#{$prefix}border-color) !important;
 
+      &.dropdown-tabs {
+        display: flex;
+        width: 100%;
+        flex-wrap: nowrap;
+        justify-content: space-evenly;
+        align-items: stretch;
+        gap: 0;
+
+        .nav-item {
+          flex: 0 0 auto;
+        }
+
+        .nav-link {
+          width: auto;
+          padding-left: 0.75rem;
+          padding-right: 0.75rem;
+          text-align: center;
+          justify-content: center;
+          white-space: nowrap;
+        }
+      }
+
       .nav-link {
         color: #6c757d !important;
 
         &::after {
-          background: #000000 !important;
+          background: #25a0e2 !important;
+          height: 2px !important;
         }
 
         &.active {
-          color: #000000 !important;
+          color: #25a0e2 !important;
           background-color: #ffffff !important;
         }
 
         &:hover {
-          color: #000000 !important;
+          color: #25a0e2 !important;
         }
       }
     }
@@ -719,8 +1388,11 @@ html:not([data-bs-theme="dark"]) {
   margin-top: -10px;
 }
 
-// Theme customizer: primary blue (same as walk-in / waiting KPI icon #1e88e5)
-$theme-customizer-blue: #1e88e5;
+// Theme customizer: primary blue (aligned with Today tab / brand cyan)
+$theme-customizer-blue: #25a0e2;
+$doctor-dashboard-blue: #25a0e2;
+$doctor-dashboard-blue-hover: #2099d4;
+$doctor-dashboard-blue-rgb: 37, 160, 226;
 $theme-customizer-blue-subtle: #e8f5ff;
 
 .offcanvas:has(.theme-customizer-header) {
@@ -755,7 +1427,7 @@ $theme-customizer-blue-subtle: #e8f5ff;
 
   .img-switch .card-radio .form-check-input:checked + .form-check-label {
     &::before {
-      background-color: rgba(30, 136, 229, 0.45) !important;
+      background-color: rgba(37, 160, 226, 0.45) !important;
     }
   }
 
@@ -782,7 +1454,7 @@ $theme-customizer-blue-subtle: #e8f5ff;
 }
 
 // Doctor dashboard — Today / All: nav-customs slanted tabs (compact, blue active)
-$doctor-tab-active: #1e88e5;
+$doctor-tab-active: $doctor-dashboard-blue;
 $doctor-tab-inactive-bg: #f3f6f9;
 $doctor-tab-skew-w: 24px;
 $doctor-tab-skew-out: 15px;
@@ -828,6 +1500,8 @@ body.doctor-layout .doctor-dashboard-stats-row {
 
 body.doctor-layout .doctor-dashboard-patient-row,
 body.doctor-layout .doctor-dashboard-stats-row {
+  --doctor-patient-toolbar-input-h: 1.65rem;
+
   .doctor-dashboard-card-header {
     min-height: $doctor-dashboard-header-min-h;
     height: $doctor-dashboard-header-min-h;
@@ -871,12 +1545,20 @@ body.doctor-layout .doctor-dashboard-stats-row {
     }
 
     .doctor-dashboard-create-new-btn {
+      height: var(--doctor-patient-toolbar-input-h);
+      min-height: var(--doctor-patient-toolbar-input-h);
+      padding-top: 0;
+      padding-bottom: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
       font-size: 12px;
       font-weight: 600;
       text-transform: none;
       max-width: 100%;
-      color: #1e88e5 !important;
-      border-color: #1e88e5 !important;
+      color: #25a0e2 !important;
+      border-color: #25a0e2 !important;
       background-color: transparent !important;
 
       i {
@@ -887,14 +1569,14 @@ body.doctor-layout .doctor-dashboard-stats-row {
       &:hover,
       &:focus-visible,
       &:active {
-        color: #1976d2 !important;
-        border-color: #1976d2 !important;
-        background-color: rgba(30, 136, 229, 0.1) !important;
+        color: #2099d4 !important;
+        border-color: #2099d4 !important;
+        background-color: rgba(37, 160, 226, 0.1) !important;
       }
 
       &:focus:not(:focus-visible) {
-        color: #1e88e5 !important;
-        border-color: #1e88e5 !important;
+        color: #25a0e2 !important;
+        border-color: #25a0e2 !important;
         background-color: transparent !important;
         box-shadow: none !important;
       }
@@ -906,7 +1588,7 @@ body.doctor-layout .doctor-dashboard-stats-row {
 .doctor-dashboard-toolbar-btn {
   background: #e8f5ff !important;
   border: 1px solid #cfe9ff !important;
-  color: #1e88e5 !important;
+  color: #25a0e2 !important;
   box-shadow: none !important;
   font-weight: 600;
 
@@ -920,7 +1602,7 @@ body.doctor-layout .doctor-dashboard-stats-row {
   &.active {
     background: #cfe9ff !important;
     border-color: #b3dbff !important;
-    color: #1e88e5 !important;
+    color: #25a0e2 !important;
     box-shadow: none !important;
   }
 }
@@ -937,26 +1619,59 @@ body.doctor-layout .doctor-dashboard-stats-row {
     margin-left: 15px;
 
     .dob-picker__input-group {
-      min-height: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      min-height: var(--doctor-patient-toolbar-input-h);
+      height: var(--doctor-patient-toolbar-input-h);
+      box-sizing: border-box;
       border-radius: 0.2rem;
     }
 
     .dob-picker__icon {
+      display: inline-flex;
+      align-items: center;
+      align-self: center;
+      flex-shrink: 0;
       padding: 0 0 0 0.35rem;
-      font-size: 0.75rem;
+      margin-right: 0.05rem;
+      font-size: 0.72rem;
+      line-height: 1;
       background-color: #fff;
       border-right: none;
     }
 
     .dob-picker__input {
-      font-size: 0.7rem;
-      padding: 0.15rem 0.35rem;
-      height: 1.4rem;
-      min-height: 1.4rem;
+      flex: 1;
+      min-width: 0;
+      font-size: 0.7rem !important;
+      padding: 0 0.35rem 0 0.1rem !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      line-height: 1 !important;
     }
 
     .dob-picker__popover {
       width: 280px;
+    }
+  }
+
+  &.doctor-dashboard-card-header .search-box {
+    .form-control,
+    .form-control-sm {
+      min-height: var(--doctor-patient-toolbar-input-h) !important;
+      height: var(--doctor-patient-toolbar-input-h) !important;
+      box-sizing: border-box !important;
+      padding: 0.12rem 0.45rem 0.12rem 1.75rem !important;
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
+
+    .search-icon {
+      left: 0.42rem;
+      line-height: var(--doctor-patient-toolbar-input-h);
+      font-size: 0.82rem;
     }
   }
 
@@ -983,13 +1698,13 @@ body.doctor-layout .doctor-dashboard-stats-row {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.2rem;
-        min-width: 4rem;
-        height: 1.4rem;
+        gap: 0.25rem;
+        min-width: 4.25rem;
+        height: 1.8rem;
         margin: 0 $doctor-tab-step 0 0;
-        padding: 0 0.4rem;
+        padding: 0 0.5rem;
         overflow: visible;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         font-weight: 600;
         line-height: 1;
         color: #495057;
@@ -1026,7 +1741,7 @@ body.doctor-layout .doctor-dashboard-stats-row {
         }
 
         .doctor-patient-tab-icon {
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           line-height: 1;
           color: inherit;
         }
@@ -1124,6 +1839,19 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
     background-color: var(--#{$prefix}border-color);
   }
 
+  .header-icon-rail {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-topbar-actions-extra {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
   .header-home-dashboard-item {
     margin-top: 0.4rem;
   }
@@ -1144,10 +1872,10 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
       color: #000000 !important;
     }
 
-    --#{$prefix}btn-hover-color: #1e88e5;
+    --#{$prefix}btn-hover-color: #25a0e2;
     --#{$prefix}btn-hover-bg: #e8f5ff;
     --#{$prefix}btn-hover-border-color: #cfe9ff;
-    --#{$prefix}btn-active-color: #1e88e5;
+    --#{$prefix}btn-active-color: #25a0e2;
     --#{$prefix}btn-active-bg: #e8f5ff;
     --#{$prefix}btn-active-border-color: #cfe9ff;
 
@@ -1157,7 +1885,7 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
     &:active,
     &.active,
     &.show {
-      color: #1e88e5 !important;
+      color: #25a0e2 !important;
       background-color: #e8f5ff !important;
       border-color: #cfe9ff !important;
       box-shadow: none !important;
@@ -1165,7 +1893,7 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
       i,
       i.text-info,
       svg {
-        color: #1e88e5 !important;
+        color: #25a0e2 !important;
       }
     }
   }
@@ -1289,7 +2017,7 @@ body.doctor-layout {
   .card-animate .avatar-title.bg-info-subtle {
     background: #e8f5ff !important;
     border-color: #cfe9ff !important;
-    color: #1e88e5 !important;
+    color: #25a0e2 !important;
   }
 
   .card-animate .avatar-title.bg-info-subtle svg,
@@ -1327,7 +2055,7 @@ body.doctor-layout {
 
         &:hover,
         &:focus {
-          color: #1e88e5 !important;
+          color: #25a0e2 !important;
         }
       }
 
@@ -1336,8 +2064,8 @@ body.doctor-layout {
         font-weight: 600;
         text-transform: none;
         max-width: 100%;
-        color: #1e88e5 !important;
-        border-color: #1e88e5 !important;
+        color: #25a0e2 !important;
+        border-color: #25a0e2 !important;
         background-color: transparent !important;
 
         i {
@@ -1348,14 +2076,14 @@ body.doctor-layout {
         &:hover,
         &:focus-visible,
         &:active {
-          color: #1976d2 !important;
-          border-color: #1976d2 !important;
-          background-color: rgba(30, 136, 229, 0.1) !important;
+          color: #2099d4 !important;
+          border-color: #2099d4 !important;
+          background-color: rgba(37, 160, 226, 0.1) !important;
         }
 
         &:focus:not(:focus-visible) {
-          color: #1e88e5 !important;
-          border-color: #1e88e5 !important;
+          color: #25a0e2 !important;
+          border-color: #25a0e2 !important;
           background-color: transparent !important;
           box-shadow: none !important;
         }
@@ -1363,7 +2091,7 @@ body.doctor-layout {
 
       h5.text-info,
       .doctor-dashboard-card-metric {
-        color: #1e88e5 !important;
+        color: #25a0e2 !important;
       }
 
       .dashboard-today-count-label {
@@ -1406,6 +2134,8 @@ body.doctor-layout {
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: clip;
+    /* Neutralize leftover [data-layout=horizontal] margin after admin → doctor login */
+    margin-top: 0 !important;
     padding-top: calc(47px + 0.9rem) !important;
     padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
     padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
@@ -1463,11 +2193,16 @@ body.doctor-layout {
       }
     }
 
-    .row.mb-2:has(> [class*="col"] > .card),
-    .row.mb-2:has(> [class*="col"] > .card-animate),
+    .row.mb-2:not(.doctor-dashboard-kpi-row):has(> [class*="col"] > .card),
+    .row.mb-2:not(.doctor-dashboard-kpi-row):has(> [class*="col"] > .card-animate),
     .row.mb-3:has(> [class*="col"] > .card),
     .row.mb-3:has(> [class*="col"] > .card-animate) {
       margin-bottom: $doctor-card-gap !important;
+      margin-top: $doctor-card-gap !important;
+    }
+
+    .row.doctor-dashboard-kpi-row {
+      margin-bottom: 0 !important;
       margin-top: $doctor-card-gap !important;
     }
 
@@ -1528,9 +2263,9 @@ body.doctor-layout {
       }
     }
 
-    /* Doctor Dashboard: Today / All patient tables — striped rows + hover */
+    /* Doctor Dashboard: Today / All patient tables — plain white rows + hover */
     .dashboard-patient-table {
-      --bs-table-striped-bg: #f8f9fa;
+      --bs-table-bg: #ffffff;
       --bs-table-hover-bg: #{$doctor-hover-bg};
       margin-bottom: 0 !important;
       table-layout: fixed;
@@ -1542,6 +2277,8 @@ body.doctor-layout {
         vertical-align: middle;
         box-shadow: none;
         font-size: 0.8125rem;
+        background-color: #ffffff;
+        --bs-table-accent-bg: #ffffff;
       }
 
       thead,
@@ -1560,11 +2297,6 @@ body.doctor-layout {
 
       .dashboard-patient-col-agesex {
         font-size: 0.75rem;
-      }
-
-      &.table-striped > tbody > tr:nth-of-type(odd) > * {
-        --bs-table-accent-bg: #f8f9fa;
-        background-color: #f8f9fa;
       }
 
       &.table-hover > tbody > tr:hover > * {
@@ -1596,8 +2328,8 @@ body.doctor-layout {
       }
 
       .page-item.active .page-link {
-        background-color: #1e88e5 !important;
-        border-color: #1e88e5 !important;
+        background-color: #25a0e2 !important;
+        border-color: #25a0e2 !important;
         color: #ffffff !important;
         box-shadow: none !important;
       }
@@ -1605,7 +2337,7 @@ body.doctor-layout {
       .page-item:not(.active):not(.disabled) .page-link:hover {
         background-color: #e8f5ff !important;
         border-color: #cfe9ff !important;
-        color: #1e88e5 !important;
+        color: #25a0e2 !important;
       }
 
       .page-item.disabled .page-link {
@@ -1623,13 +2355,20 @@ body.doctor-layout {
       gap: 0;
     }
 
+    .doctor-dashboard-kpi-row.row {
+      margin-bottom: 0 !important;
+      margin-top: $doctor-card-gap !important;
+    }
+
     .doctor-kpi-card,
     .doctor-action-card,
     .doctor-appointments-card,
     .doctor-reminders-card,
-    .doctor-stats-card {
+    .doctor-stats-card,
+    .user-profile-card,
+    .help-faqs-card {
       border: 1px solid #e3e8ee !important;
-      border-radius: 12px !important;
+      border-radius: 5px !important;
       box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
       background: #ffffff;
       transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
@@ -1677,13 +2416,13 @@ body.doctor-layout {
         border-radius: 10px !important;
         background: linear-gradient(180deg, #eef7ff 0%, #e8f5ff 100%) !important;
         border: 1px solid #cfe9ff !important;
-        color: #1e88e5 !important;
+        color: #25a0e2 !important;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
       }
 
       &:hover {
         border-color: #b3dbff !important;
-        box-shadow: 0 8px 20px rgba(30, 136, 229, 0.1) !important;
+        box-shadow: 0 8px 20px rgba(37, 160, 226, 0.1) !important;
         transform: none !important;
         background-color: #f7fbff !important;
 
@@ -1799,7 +2538,7 @@ body.doctor-layout {
       .doctor-action-metric-pill {
         background: #e8f5ff !important;
         border: 1px solid #cfe9ff;
-        color: #1e88e5 !important;
+        color: #25a0e2 !important;
       }
 
       .doctor-action-status-pill.text-success,
@@ -1829,7 +2568,7 @@ body.doctor-layout {
         border-radius: 12px !important;
         background: linear-gradient(180deg, #eef7ff 0%, #e8f5ff 100%) !important;
         border: 1px solid #cfe9ff;
-        color: #1e88e5 !important;
+        color: #25a0e2 !important;
       }
 
       .doctor-dashboard-action-link {
@@ -1853,7 +2592,7 @@ body.doctor-layout {
 
         &:hover,
         &:focus {
-          color: #1e88e5 !important;
+          color: #25a0e2 !important;
 
           &::after {
             opacity: 1;
@@ -1929,6 +2668,1132 @@ body.doctor-layout {
   }
 }
 
+// Admin: full-width fixed topbar + horizontal nav (match doctor topbar width)
+body.admin-layout {
+  scrollbar-gutter: stable;
+
+  #layout-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  #page-topbar {
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    border-radius: 0 !important;
+
+    &.topbar-shadow {
+      top: 0 !important;
+    }
+
+    .layout-width {
+      max-width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
+      padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
+    }
+
+    .navbar-header {
+      padding-right: 0 !important;
+    }
+
+    .horizontal-logo {
+      display: inline-block !important;
+      width: auto;
+    }
+
+    .horizontal-logo .logo-sm {
+      display: none !important;
+    }
+
+    .horizontal-logo .logo-lg {
+      display: inline-block !important;
+    }
+
+    .navbar-brand-box {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+  }
+
+  // Compact mobile topbar (<500px): dashboard + all admin menus
+  &.admin-mobile-topbar,
+  &.admin-dashboard-route {
+    @media (max-width: 499.98px) {
+      #page-topbar {
+        .layout-width {
+          padding-left: 0.85rem !important;
+          padding-right: 0.55rem !important;
+        }
+
+        .navbar-header {
+          display: flex !important;
+          align-items: center;
+          width: 100%;
+          gap: 0.55rem;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+
+        .header-brand-block {
+          flex: 0 0 auto;
+        }
+
+        .header-brand-divider,
+        .header-topbar-actions-extra,
+        .header-whatsapp-item,
+        .header-doctor-session-tools,
+        .header-profile-separator-group > .header-topbar-divider {
+          display: none !important;
+        }
+
+        .horizontal-logo .logo-sm {
+          display: none !important;
+        }
+
+        .horizontal-logo .logo-lg {
+          display: inline-block !important;
+
+          img {
+            height: 26px !important;
+            width: auto;
+            max-width: 140px;
+            object-fit: contain;
+          }
+        }
+
+        // Remaining width: home / menu / notification / profile — equal gaps
+        .header-icon-rail {
+          flex: 1 1 auto;
+          display: flex !important;
+          align-items: center;
+          justify-content: space-evenly;
+          min-width: 0;
+          margin-left: 0 !important;
+        }
+
+        .header-home-dashboard-item,
+        .vertical-menu-btn.topnav-hamburger,
+        .header-notification-item,
+        .header-profile-separator-group {
+          flex: 0 0 auto;
+          display: flex !important;
+          align-items: center;
+          justify-content: center;
+          margin: 0 !important;
+        }
+
+        .header-home-dashboard-item {
+          margin-top: 0 !important;
+          margin-left: 0 !important;
+        }
+
+        .header-home-dashboard-item .btn-topbar,
+        .header-notification-item .btn-topbar {
+          width: 36px;
+          height: 36px;
+        }
+
+        .header-notification-item .topbar-head-dropdown {
+          margin-left: 0 !important;
+        }
+
+        .vertical-menu-btn.topnav-hamburger {
+          visibility: visible !important;
+          padding-left: 0.2rem !important;
+          padding-right: 0.2rem !important;
+        }
+
+        .topbar-user .btn {
+          padding: 0.1rem !important;
+        }
+
+        .header-profile-user {
+          height: 32px;
+          width: 32px;
+        }
+
+        .user-name-text,
+        .user-name-sub-text,
+        .text-start.ms-xl-2 {
+          display: none !important;
+        }
+      }
+
+      // Tighten topbar → first card/content gap on mobile
+      .page-content.admin-dashboard-page,
+      .page-content {
+        margin-top: $app-topbar-height !important;
+        padding-top: 0.45rem !important;
+      }
+    }
+  }
+
+  .layout-width,
+  .container-fluid {
+    @media (min-width: 1024.1px) {
+      max-width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+  }
+
+  html[data-layout="horizontal"] & .navbar-menu,
+  .navbar-menu {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    top: $app-topbar-height !important;
+    margin-top: 0 !important;
+    z-index: 1001;
+    border-radius: 0 !important;
+    padding-top: 0 !important;
+
+    // Equal-width top-level menu items across the bar
+    @media (min-width: 1024.1px) {
+      .navbar-nav {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        align-items: stretch;
+
+        > .nav-item {
+          flex: 1 1 0 !important;
+          min-width: 0;
+          position: relative;
+
+          > .nav-link.menu-link {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            width: 100% !important;
+            box-sizing: border-box;
+            padding-left: 0.4rem !important;
+            padding-right: 0.4rem !important;
+            white-space: nowrap;
+            text-align: center;
+
+            > i {
+              flex: 0 0 auto !important;
+              min-width: 1.1rem !important;
+              width: 1.1rem !important;
+              margin-right: 0 !important;
+              font-size: 16px;
+              line-height: 1;
+              display: inline-flex !important;
+              align-items: center;
+              justify-content: center;
+            }
+
+            > span {
+              margin-left: 0 !important;
+              flex: 0 1 auto;
+              min-width: 0;
+            }
+          }
+
+          // Hide dropdown chevrons on top-level horizontal menu
+          > .nav-link[data-bs-toggle="collapse"]::after {
+            display: none !important;
+            content: none !important;
+          }
+        }
+
+        // Undo Velzon uneven padding on 2nd item
+        > li:nth-of-type(2) > .nav-link.menu-link {
+          padding-left: 0.4rem !important;
+        }
+      }
+    }
+  }
+
+  html[data-layout="horizontal"] & .page-content {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip;
+    margin-top: calc(#{$app-topbar-height} + #{$app-horizontal-nav-height}) !important;
+    padding-top: $doctor-card-gap !important;
+    padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
+    padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
+    padding-bottom: 33px;
+
+    // Horizontal nav is hidden below 1024 — don't reserve its height (was extra white gap)
+    @media (max-width: 1024px) {
+      margin-top: $app-topbar-height !important;
+      padding-top: $doctor-card-gap !important;
+    }
+
+    @media (min-width: 1024.1px) {
+      margin-top: calc(#{$app-topbar-height} + #{$app-horizontal-nav-height}) !important;
+      padding-top: $doctor-card-gap !important;
+    }
+
+    > .container-fluid,
+    .container-fluid {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+
+      > .row > [class*="col"] {
+        min-width: 0;
+      }
+    }
+  }
+
+  // Admin equal card spacing (doctor formula):
+  // page pad (0.5g) + card-col pad (0.5g) = edge (g)
+  // card-col pad + card-col pad = between (g)
+  // Do NOT pad the outer wrapper Col — that was making edges larger than between-card gaps.
+  $admin-card-gap: $doctor-card-gap;
+
+  html[data-layout="horizontal"] & .page-content,
+  .page-content {
+    padding-left: calc(#{$admin-card-gap} * 0.5) !important;
+    padding-right: calc(#{$admin-card-gap} * 0.5) !important;
+  }
+
+  .page-content {
+    .card-height-100 {
+      height: calc(100% - #{$admin-card-gap});
+    }
+
+    .card,
+    .card-animate {
+      margin-bottom: $admin-card-gap !important;
+    }
+
+    // Kill Bootstrap negative row margins app-wide in admin content
+    .row:not(.g-0) {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+
+    // Outer shell row (Col + sidebar): no side padding so edges aren't doubled
+    > .container-fluid > .row:not(.g-0) {
+      --bs-gutter-x: 0 !important;
+      --bs-gutter-y: 0 !important;
+
+      > [class*="col"],
+      > [class^="col"] {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+    }
+
+    // Only rows that directly hold cards get the equal gutters
+    .row:has(> [class*="col"] > .card),
+    .row:has(> [class*="col"] > .card-animate),
+    .row:has(> [class^="col"] > .card),
+    .row:has(> [class^="col"] > .card-animate) {
+      --bs-gutter-x: #{$admin-card-gap} !important;
+      --bs-gutter-y: #{$admin-card-gap} !important;
+
+      > [class*="col"],
+      > [class^="col"] {
+        padding-left: calc(#{$admin-card-gap} * 0.5) !important;
+        padding-right: calc(#{$admin-card-gap} * 0.5) !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
+      > [class*="col"] > .card,
+      > [class*="col"] > .card-animate,
+      > [class^="col"] > .card,
+      > [class^="col"] > .card-animate {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-bottom: 0 !important;
+      }
+
+      // Keep gap when a filter card sits above a table card in the same column
+      > [class*="col"] > .card.admin-list-filter-card,
+      > [class^="col"] > .card.admin-list-filter-card {
+        margin-bottom: 0.375rem !important;
+      }
+    }
+
+    // Nested rows inside a card keep default Bootstrap gutters
+    .card .row,
+    .card-animate .row {
+      --bs-gutter-x: #{$grid-gutter-width} !important;
+      --bs-gutter-y: #{$grid-gutter-width} !important;
+      margin-left: calc(#{$grid-gutter-width} * -0.5) !important;
+      margin-right: calc(#{$grid-gutter-width} * -0.5) !important;
+
+      > [class*="col"],
+      > [class^="col"] {
+        padding-left: calc(#{$grid-gutter-width} * 0.5) !important;
+        padding-right: calc(#{$grid-gutter-width} * 0.5) !important;
+      }
+
+      > [class*="col"] > .card,
+      > [class*="col"] > .card-animate,
+      > [class^="col"] > .card,
+      > [class^="col"] > .card-animate {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-bottom: $admin-card-gap !important;
+      }
+    }
+
+    // Rubric Intelligence Benchmark: nested cards/stats align L/R with header
+    // (undo nested .card .row gutters + :has(card) col pads that stair-step the layout)
+    .admin-benchmark-dashboard {
+      $benchmark-pad: 0.7rem;
+
+      > .card-header,
+      > .card-body {
+        padding-left: $benchmark-pad !important;
+        padding-right: $benchmark-pad !important;
+      }
+
+      > .card-body > .row {
+        --bs-gutter-x: 0 !important;
+        --bs-gutter-y: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        row-gap: $benchmark-pad !important;
+        column-gap: $benchmark-pad !important;
+
+        > [class*="col"],
+        > [class^="col"] {
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+
+        > [class*="col"] > .card,
+        > [class*="col"] > .card-animate,
+        > [class^="col"] > .card,
+        > [class^="col"] > .card-animate {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          margin-bottom: 0 !important;
+        }
+      }
+
+      @media (max-width: 991.98px) {
+        > .card-body > .row {
+          column-gap: 0 !important;
+
+          > [class*="col"],
+          > [class^="col"] {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+        }
+      }
+    }
+  }
+
+  // Admin list action buttons (toolbar + filter Reset + modal actions)
+  .page-content .admin-list-btn,
+  .whatsapp-modal .admin-list-btn,
+  .modal .admin-list-btn {
+    border-radius: 4px !important;
+    font-weight: 600;
+    font-size: 0.8125rem !important;
+    line-height: 1.25 !important;
+    padding: 0.4rem 0.85rem !important;
+    box-shadow: none !important;
+
+    i {
+      font-size: 0.95rem;
+    }
+
+    &--import {
+      background: #e8f5ff !important;
+      border: 1px solid #cfe9ff !important;
+      color: #25a0e2 !important;
+
+      &:hover,
+      &:focus {
+        background: #d6eeff !important;
+        border-color: #b3dbff !important;
+        color: #1a8bc9 !important;
+      }
+    }
+
+    &--export {
+      background: #eef2f7 !important;
+      border: 1px solid #d8dee8 !important;
+      color: #475569 !important;
+
+      &:hover,
+      &:focus {
+        background: #e2e8f0 !important;
+        border-color: #cbd5e1 !important;
+        color: #334155 !important;
+      }
+    }
+
+    &--new {
+      background: #e8f8ef !important;
+      border: 1px solid #c6ebd5 !important;
+      color: #198754 !important;
+
+      &:hover,
+      &:focus {
+        background: #d7f2e3 !important;
+        border-color: #a9dfc0 !important;
+        color: #146c43 !important;
+      }
+    }
+
+    &--reset {
+      background: #fff4e6 !important;
+      border: 1px solid #ffd8a8 !important;
+      color: #d97706 !important;
+
+      &:hover,
+      &:focus {
+        background: #ffe8cc !important;
+        border-color: #ffc078 !important;
+        color: #b45309 !important;
+      }
+    }
+  }
+
+  .page-content {
+    // Space between stacked filter + table cards in the same column
+    .admin-list-filter-card {
+      margin-bottom: 0.375rem !important;
+
+      > .card-body {
+        padding: 0.7rem !important;
+      }
+
+      .admin-list-filter-select,
+      .form-select.admin-list-filter-select {
+        min-height: 34px !important;
+        height: 34px !important;
+        padding: 0.4rem 2rem 0.4rem 0.85rem !important;
+        font-size: 0.8125rem !important;
+        font-weight: 500;
+        line-height: 1.25 !important;
+        border-radius: 4px !important;
+      }
+
+      .admin-list-filter-reset {
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        min-height: 34px;
+      }
+    }
+
+    // Admin add/edit form cards (aligned with list UI)
+    .admin-form-card {
+      $admin-form-gap: 0.7rem;
+
+      .card-header {
+        padding: 0.75rem $admin-form-gap 0.75rem !important;
+        border-bottom: 0 !important;
+        margin-bottom: 0 !important;
+      }
+
+      .card-body {
+        padding: 0.85rem $admin-form-gap 0.7rem !important;
+      }
+
+      .card-footer {
+        padding: 0.55rem $admin-form-gap 0.7rem !important;
+        border-top: 1px solid #eef2f7 !important;
+        background: transparent !important;
+      }
+
+      .admin-form-title {
+        margin: 0;
+        font-size: 0.9375rem !important;
+        font-weight: 600 !important;
+        color: #000 !important;
+        line-height: 1.3;
+      }
+
+      .admin-form-toolbar {
+        width: 100%;
+      }
+
+      // Flush with card body / footer inset (same 0.7rem). Use gap instead of
+      // column padding + negative margins so left AND right edges match footer.
+      .admin-form-fields.row,
+      .card-body > .row {
+        --bs-gutter-x: 0 !important;
+        --bs-gutter-y: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-top: 0 !important;
+        column-gap: #{$admin-form-gap} !important;
+        row-gap: #{$admin-form-gap} !important;
+
+        > [class*="col"],
+        > [class^="col"] {
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          margin-top: 0 !important;
+        }
+      }
+
+      // Vertical gap between stacked field rows (separate <Row> elements)
+      .admin-form-fields.row + .admin-form-fields.row,
+      .admin-form-fields.row + hr,
+      hr + .admin-form-fields.row {
+        margin-top: #{$admin-form-gap} !important;
+      }
+
+      .admin-form-fields.row,
+      .card-body > .row {
+        // Quarters (col-3) — pair with col-9
+        > [class*="col-md-3"],
+        > [class*="col-lg-3"],
+        > [class*="col-xl-3"],
+        > [class*="col-xxl-3"],
+        > .col-3 {
+          flex: 0 0 calc(25% - #{$admin-form-gap} * 0.75) !important;
+          width: auto !important;
+          max-width: calc(25% - #{$admin-form-gap} * 0.75) !important;
+        }
+
+        // Thirds share the row evenly (flush L/R with footer)
+        > [class*="col-md-4"],
+        > [class*="col-lg-4"],
+        > [class*="col-xl-4"],
+        > [class*="col-xxl-4"],
+        > .col-4 {
+          flex: 1 1 0 !important;
+          width: auto !important;
+          max-width: 100% !important;
+        }
+
+        // Halves
+        > [class*="col-md-6"],
+        > [class*="col-lg-6"],
+        > [class*="col-xl-6"],
+        > [class*="col-xxl-6"],
+        > .col-6 {
+          flex: 1 1 calc(50% - #{$admin-form-gap} / 2) !important;
+          width: auto !important;
+          max-width: calc(50% - #{$admin-form-gap} / 2) !important;
+        }
+
+        // Two-thirds (col-8)
+        > [class*="col-md-8"],
+        > [class*="col-lg-8"],
+        > [class*="col-xl-8"],
+        > [class*="col-xxl-8"],
+        > .col-8 {
+          flex: 1 1 calc(66.666% - #{$admin-form-gap} / 3) !important;
+          width: auto !important;
+          max-width: calc(66.666% - #{$admin-form-gap} / 3) !important;
+        }
+
+        // Three-quarters (col-9) — pair with col-3
+        > [class*="col-md-9"],
+        > [class*="col-lg-9"],
+        > [class*="col-xl-9"],
+        > [class*="col-xxl-9"],
+        > .col-9 {
+          flex: 1 1 0 !important;
+          width: auto !important;
+          max-width: calc(75% - #{$admin-form-gap} * 0.25) !important;
+        }
+
+        // Full width
+        > [class*="col-md-12"],
+        > [class*="col-lg-12"],
+        > [class*="col-xl-12"],
+        > [class*="col-xxl-12"],
+        > .col-12 {
+          flex: 1 1 100% !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        // Mobile / tablet: one field per row (undo forced 50%/33% flex widths)
+        @media (max-width: 767.98px) {
+          column-gap: 0 !important;
+          flex-wrap: wrap !important;
+
+          > [class*="col"],
+          > [class^="col"] {
+            flex: 0 0 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+        }
+      }
+
+      .form-label {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 0.35rem;
+      }
+
+      .form-label .required,
+      .form-label .text-danger {
+        color: #dc3545;
+      }
+
+      // Keep text / select / textarea content inset identical
+      .form-control,
+      textarea.form-control {
+        padding-left: $input-padding-x !important;
+        padding-right: $input-padding-x !important;
+      }
+
+      .admin-form-select__value-container,
+      .admin-form-select__value-container--is-multi {
+        padding-left: $input-padding-x !important;
+        padding-right: $input-padding-x !important;
+      }
+
+      .admin-form-select__control--is-multi {
+        height: auto !important;
+        max-height: none !important;
+        align-items: flex-start !important;
+      }
+
+      .admin-form-select__value-container--is-multi {
+        height: auto !important;
+        min-height: calc(var(--app-form-field-height) - 2px) !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 0.25rem;
+      }
+
+      .admin-form-select__multi-value {
+        margin: 0 !important;
+        background-color: #e8f5ff !important;
+        border-radius: 4px !important;
+      }
+
+      .admin-form-select__multi-value__label {
+        color: #0f6fa3 !important;
+        font-size: var(--app-form-field-font-size) !important;
+        font-weight: 500 !important;
+        padding: 2px 6px !important;
+      }
+
+      .admin-form-select__multi-value__remove {
+        color: #0f6fa3 !important;
+
+        &:hover {
+          background-color: #d6eeff !important;
+          color: #0a557c !important;
+        }
+      }
+
+      .admin-form-alerts {
+        margin-bottom: 0.65rem;
+
+        &:empty {
+          display: none;
+          margin: 0;
+        }
+
+        .alert {
+          margin-bottom: 0.5rem;
+        }
+      }
+
+      .admin-form-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      // Soft teal pills (not the same green as Save / admin-list-btn--new)
+      .admin-form-tabs.nav-pills {
+        gap: 0.35rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.85rem !important;
+
+        .nav-item {
+          margin: 0;
+        }
+
+        .nav-link {
+          border-radius: 4px !important;
+          font-weight: 600 !important;
+          font-size: 0.8125rem !important;
+          line-height: 1.25 !important;
+          padding: 0.4rem 0.85rem !important;
+          color: #475569 !important;
+          background: transparent !important;
+          border: 1px solid transparent !important;
+          box-shadow: none !important;
+
+          &:hover,
+          &:focus {
+            color: #0f766e !important;
+            background: #f0fdfa !important;
+            border-color: transparent !important;
+          }
+
+          &.active {
+            background: #e6f7f5 !important;
+            border-color: #b2e8e2 !important;
+            color: #0d9488 !important;
+          }
+        }
+      }
+    }
+  }
+
+  // Admin list/table cards: 0.7rem side padding; tighter header↔table gap
+  .page-content .card:has(table),
+  .page-content .card:has(.table) {
+    > .card-header {
+      padding: 0.7rem 0.7rem 0.3rem !important;
+    }
+
+    > .card-body {
+      padding: 0.3rem 0.7rem 0.7rem !important;
+    }
+
+    > .card-footer {
+      padding: 0.7rem !important;
+    }
+
+    > .card-header {
+      .admin-list-toolbar {
+        width: 100%;
+        margin: 0;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+
+        .patient-list-modal__search {
+          flex: 1 1 0% !important;
+          width: auto !important;
+          min-width: 6.5rem !important;
+          max-width: 240px;
+
+          .form-control {
+            width: 100%;
+            min-width: 0;
+          }
+        }
+
+        .admin-list-toolbar__actions {
+          margin-right: 0 !important;
+          padding-right: 0 !important;
+          margin-left: auto !important;
+          flex: 0 0 auto !important;
+          flex-wrap: nowrap !important;
+          gap: 0.35rem !important;
+
+          > a {
+            display: inline-flex;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+          }
+
+          .admin-list-btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
+          }
+        }
+
+        // Extra buttons (Update, Ref Rubrics, …): second row on small screens only
+        &.admin-list-toolbar--with-extra {
+          @media (max-width: 767.98px) {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            flex-wrap: nowrap !important;
+            gap: 0.45rem !important;
+
+            .admin-list-toolbar__primary {
+              display: flex !important;
+              flex-wrap: nowrap !important;
+              align-items: center !important;
+              gap: 0.35rem !important;
+              width: 100%;
+            }
+
+            .admin-list-toolbar__extra {
+              display: flex !important;
+              flex-wrap: wrap !important;
+              align-items: center !important;
+              justify-content: flex-start !important;
+              gap: 0.35rem !important;
+              width: 100%;
+              margin-left: 0 !important;
+            }
+
+            .admin-list-toolbar__actions {
+              margin-left: auto !important;
+            }
+
+            .admin-list-btn {
+              padding-left: 0.4rem !important;
+              padding-right: 0.4rem !important;
+            }
+          }
+
+          @media (min-width: 768px) {
+            flex-wrap: nowrap !important;
+
+            .admin-list-toolbar__primary,
+            .admin-list-toolbar__extra {
+              display: contents;
+            }
+
+            .admin-list-toolbar__actions {
+              margin-left: 0 !important;
+            }
+
+            .patient-list-modal__search {
+              margin-right: auto;
+            }
+          }
+        }
+
+        @media (max-width: 499.98px) {
+          gap: 0.35rem !important;
+
+          .admin-list-toolbar__actions .admin-list-btn {
+            padding-left: 0.4rem !important;
+            padding-right: 0.4rem !important;
+          }
+        }
+      }
+    }
+
+    // Match tbody row height to thead (same cell padding; compact action btns)
+    table.table,
+    .patient-list-modal__table {
+      thead th,
+      tbody td {
+        padding: 0.55rem 0.75rem !important;
+        vertical-align: middle !important;
+        line-height: 1.25 !important;
+      }
+
+      thead th {
+        height: auto;
+      }
+
+      tbody td {
+        height: auto;
+      }
+
+      .edit-item-btn,
+      .remove-item-btn {
+        padding: 0.2rem 0.4rem !important;
+        line-height: 1 !important;
+        min-height: 0 !important;
+        height: auto !important;
+
+        i {
+          font-size: 0.85rem;
+          line-height: 1;
+        }
+      }
+    }
+
+    // Calendar-day style active page: soft blue square with light radius
+    .admin-list-pagination {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.15rem;
+      --#{$prefix}pagination-padding-x: 0;
+      --#{$prefix}pagination-padding-y: 0;
+
+      .page-item {
+        margin: 0 !important;
+      }
+
+      .page-item .page-link {
+        width: 1.75rem;
+        height: 1.75rem;
+        min-width: 1.75rem;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px !important;
+        line-height: 1;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid transparent !important;
+        color: #495057 !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
+
+      .page-item.active .page-link {
+        background-color: #e8f5ff !important;
+        border-color: #cfe9ff !important;
+        color: #25a0e2 !important;
+        box-shadow: none !important;
+      }
+
+      .page-item:not(.active):not(.disabled) .page-link:hover {
+        background-color: #f3f9ff !important;
+        border-color: #cfe9ff !important;
+        color: #25a0e2 !important;
+      }
+
+      .page-item.disabled .page-link {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+
+      .page-item .page-link.page-link--nav {
+        width: auto;
+        min-width: 0;
+        height: 1.75rem;
+        padding: 0 0.65rem !important;
+        border-radius: 4px !important;
+      }
+    }
+  }
+
+  // Stacked card rows still need vertical gap (card margin was zeroed inside card rows)
+  .page-content .h-100 > .row:has(> [class*="col"] > .card),
+  .page-content .h-100 > .row:has(> [class*="col"] > .card-animate) {
+    margin-bottom: $admin-card-gap !important;
+  }
+
+  // Admin dashboard: minimal blue card headers + period filters (doctor pattern)
+  .admin-dashboard-page,
+  .page-content {
+    .admin-dash-card {
+      border: 0;
+      box-shadow: 0 1px 2px rgba(56, 65, 74, 0.06);
+
+      .admin-dash-card-header {
+        background: #fff;
+        border-bottom: 1px solid #eff3f7 !important;
+        padding-top: 0.85rem;
+        padding-bottom: 0.85rem;
+
+        .card-title {
+          font-weight: 600;
+          color: #212529;
+        }
+      }
+    }
+
+    .doctor-dashboard-toolbar-btn {
+      border-radius: 8px !important;
+      padding: 0.28rem 0.65rem !important;
+      font-size: 0.75rem !important;
+      line-height: 1.2 !important;
+    }
+
+    // Second-image active state: solid #25a0e2 + white text
+    .admin-period-btn.active,
+    .admin-period-filter .doctor-dashboard-toolbar-btn.active {
+      background: #25a0e2 !important;
+      border-color: #25a0e2 !important;
+      color: #fff !important;
+    }
+
+    .avatar-title.bg-info-subtle {
+      background-color: #e8f5ff !important;
+      color: #25a0e2 !important;
+    }
+  }
+
+  .footer {
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  @media (min-width: 1440px) {
+    .main-content {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    #page-topbar {
+      left: 0 !important;
+      right: 0 !important;
+      top: 0 !important;
+      border-radius: 0 !important;
+      border-left: none !important;
+      border-right: none !important;
+    }
+  }
+}
+
+// Topbar "More" dropdown (admin + doctor dashboards)
+.admin-more-menu-panel {
+  min-width: 14rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.admin-more-menu-body {
+  padding-bottom: 0.25rem;
+}
+
+.admin-more-menu-parent {
+  font-weight: 500;
+}
+
+.admin-more-submenu {
+  .dropdown-item,
+  .admin-more-menu-link {
+    font-size: 0.82rem;
+    padding-left: 1.5rem;
+  }
+}
+
+html:not([data-bs-theme="dark"]) {
+  .admin-more-menu-panel {
+    .dropdown-item,
+    .admin-more-menu-link,
+    .admin-more-menu-parent {
+      color: #6c757d;
+
+      &:hover,
+      &:focus,
+      &.active {
+        color: #25a0e2 !important;
+        background-color: transparent !important;
+      }
+    }
+  }
+}
+
 // Semibox + hidden sidebar: keep topbar flush to top (no Velzon detached top: 25px at 1440px+)
 @media (min-width: 1440px) {
   [data-layout="semibox"][data-sidebar-visibility="hidden"] {
@@ -1951,3 +3816,358 @@ body.doctor-layout {
 
 @import "./components/appointment-slot-grid";
 @import "./theme/velzon-minimal";
+
+// App-wide card border radius (5px) — overrides page-specific card styles
+$app-card-radius: 5px;
+
+.card,
+.subscription-plan-card,
+.pb-tab-card,
+.pb-repertory-card,
+.pb-repertorize-card,
+.pb-clinical-table-wrap,
+.anatomy-viewer-card,
+.anatomy-panel-card,
+.anatomy-panel,
+.ac-workbench-card,
+.ac-col-card,
+.ac-status-card,
+.plan-box {
+  border-radius: $app-card-radius !important;
+}
+
+.card > .card-header:first-child {
+  border-top-left-radius: $app-card-radius !important;
+  border-top-right-radius: $app-card-radius !important;
+}
+
+.card > .card-footer:last-child {
+  border-bottom-left-radius: $app-card-radius !important;
+  border-bottom-right-radius: $app-card-radius !important;
+}
+
+.card-img-top {
+  border-top-left-radius: $app-card-radius !important;
+  border-top-right-radius: $app-card-radius !important;
+}
+
+.subscription-plan-card__body {
+  border-radius: $app-card-radius $app-card-radius 0 0 !important;
+}
+
+.subscription-plan-card__footer {
+  border-radius: 0 0 $app-card-radius $app-card-radius !important;
+}
+
+// App-wide: keep card box-shadow unchanged on hover (no shadow lift)
+.card:hover,
+.card.card-animate:hover,
+.card-animate:hover,
+.explore-box.card:hover,
+.explore-box.card-animate:hover,
+.plan-box:hover,
+.subscription-plan-card:hover {
+  box-shadow: $card-box-shadow !important;
+}
+
+html[data-theme="minimal"] .card:hover,
+html[data-theme="minimal"] .card.card-animate:hover,
+html[data-theme="minimal"] .card-animate:hover {
+  box-shadow: none !important;
+}
+
+body.doctor-layout .doctor-dashboard-page {
+  .doctor-kpi-card:hover,
+  .doctor-action-card:hover,
+  .doctor-appointments-card:hover,
+  .doctor-reminders-card:hover,
+  .doctor-stats-card:hover {
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  }
+
+  .subscription-plan-card:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14) !important;
+  }
+}
+
+// Form fields: no focus/hover box-shadow app-wide (border-only minimal theme)
+html:not([data-bs-theme="dark"]) {
+  .form-control,
+  .form-select,
+  textarea.form-control,
+  .form-check-input,
+  .flatpickr-input,
+  [class$="__control"],
+  [class*="__control--is-focused"],
+  .select2-container .select2-selection--single,
+  .select2-container .select2-selection--multiple,
+  .choices__inner {
+    &,
+    &:hover,
+    &:focus,
+    &:focus-visible {
+      box-shadow: none !important;
+    }
+  }
+}
+
+// Tab selection: minimal theme blue + thin underline (app-wide)
+$minimal-tab-active: #25a0e2;
+$minimal-tab-indicator-height: 2px;
+
+html:not([data-bs-theme="dark"]) {
+  // Velzon nav-tabs-custom (underline grows on active)
+  .nav-tabs-custom .nav-item .nav-link {
+    &::after {
+      background: $minimal-tab-active !important;
+      height: $minimal-tab-indicator-height !important;
+      border-radius: 0 !important;
+    }
+
+    &.active {
+      color: $minimal-tab-active !important;
+    }
+
+    &:hover:not(.active) {
+      color: $minimal-tab-active !important;
+    }
+  }
+
+  // Bootstrap nav-tabs
+  .nav-tabs .nav-link {
+    border-bottom-width: $minimal-tab-indicator-height;
+
+    &.active,
+    &.active:hover,
+    &.active:focus {
+      color: $minimal-tab-active !important;
+      border-bottom-color: $minimal-tab-active !important;
+    }
+  }
+
+  // Theme-colored tab variants (nav-success, nav-primary, etc.)
+  @each $state in map-keys($theme-colors) {
+    .nav-#{$state}.nav-tabs-custom .nav-link {
+      &.active {
+        color: $minimal-tab-active !important;
+        background-color: transparent !important;
+
+        &::after {
+          background-color: $minimal-tab-active !important;
+          height: $minimal-tab-indicator-height !important;
+        }
+      }
+    }
+
+    .nav-#{$state}.nav-tabs .nav-link.active {
+      color: $minimal-tab-active !important;
+      border-bottom-color: $minimal-tab-active !important;
+    }
+  }
+
+  .nav-border-top .nav-link.active {
+    color: $minimal-tab-active !important;
+    border-top-color: $minimal-tab-active !important;
+    border-top-width: $minimal-tab-indicator-height !important;
+  }
+
+  .nav-custom-outline.nav .nav-link.active {
+    color: $minimal-tab-active !important;
+    border-color: $minimal-tab-active !important;
+    border-bottom-width: $minimal-tab-indicator-height !important;
+  }
+}
+
+// Therapeutics Details popup (WhatsApp-like + wider)
+.whatsapp-modal.diagnosis-therapeutics-details-modal .modal-dialog {
+  max-width: 980px !important;
+  width: calc(100vw - 2rem) !important;
+}
+
+.whatsapp-modal.diagnosis-therapeutics-details-modal .modal-content {
+  width: 100% !important;
+}
+
+.whatsapp-modal.diagnosis-therapeutics-details-modal .whatsapp-modal__body {
+  text-align: left !important;
+  padding: 1rem 1.25rem !important;
+  line-height: 1.45 !important;
+
+  // Collapse unnecessary whitespace / breaks from server HTML
+  p, div, span {
+    margin-bottom: 0.15rem !important;
+    margin-top: 0 !important;
+  }
+
+  br {
+    display: block;
+    content: "";
+    margin: 0 !important;
+    line-height: 0.35 !important;
+    font-size: 0.35em !important;
+  }
+
+  // Empty paragraphs that act as spacers
+  p:empty,
+  div:empty {
+    display: none !important;
+  }
+
+  // Tighten lists
+  ul, ol {
+    margin-bottom: 0.25rem !important;
+    padding-left: 1.25rem !important;
+  }
+
+  li {
+    margin-bottom: 0.1rem !important;
+  }
+}
+
+// Rubric Remedy Details popup (WhatsApp-like + wider, no footer)
+.whatsapp-modal.rubric-details-modal .modal-dialog {
+  max-width: 720px !important;
+  width: calc(100vw - 2rem) !important;
+}
+
+.whatsapp-modal.rubric-details-modal .modal-content {
+  width: 100% !important;
+}
+
+.whatsapp-modal.rubric-details-modal .whatsapp-modal__body {
+  padding: 0.75rem 1rem !important;
+  text-align: left !important;
+}
+
+.view-remedial-details-table {
+  th {
+    background: #f8fafc !important;
+    color: #334155;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: top !important;
+    width: 220px;
+  }
+
+  td,
+  th {
+    padding: 0.55rem 0.75rem !important;
+  }
+
+  .remedial-rubric-html {
+    color: #495057;
+    line-height: 1.45;
+
+    p, div, span {
+      margin-top: 0 !important;
+      margin-bottom: 0.15rem !important;
+    }
+
+    p:last-child,
+    div:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    br {
+      display: block;
+      content: "";
+      margin: 0 !important;
+      line-height: 0.35 !important;
+      font-size: 0.35em !important;
+    }
+
+    p:empty,
+    div:empty {
+      display: none !important;
+    }
+  }
+}
+
+// Compact react-select inside admin list tables (Parent Subsection, etc.)
+.page-content {
+  .admin-table-select-cell {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+    vertical-align: middle !important;
+    overflow: visible;
+  }
+
+  .admin-table-select {
+    width: 100%;
+
+    .admin-table-select__control {
+      min-height: 28px !important;
+      height: 28px !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+
+    .admin-table-select__value-container {
+      padding: 0 6px !important;
+      height: 28px !important;
+      min-height: 28px !important;
+    }
+
+    .admin-table-select__indicators {
+      height: 28px !important;
+    }
+
+    .admin-table-select__indicator {
+      padding: 0 4px !important;
+    }
+
+    .admin-table-select__indicator-separator {
+      display: none !important;
+    }
+
+    .admin-table-select__input-container {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+  }
+}
+
+.whatsapp-modal.rubric-details-modal .rubric-details-accordion {
+  .accordion-item {
+    border-color: #e9ecef;
+  }
+
+  .accordion-button {
+    padding: 0.65rem 0.85rem !important;
+    font-weight: 600;
+    box-shadow: none !important;
+
+    &:not(.collapsed) {
+      background: #f8fbff !important;
+      color: #25a0e2 !important;
+    }
+  }
+
+  .accordion-body {
+    padding: 0 !important;
+  }
+
+  .table {
+    margin-bottom: 0 !important;
+
+    th,
+    td {
+      padding: 0.45rem 0.75rem !important;
+    }
+  }
+}
+
+// Import Reference Rubrics popup (WhatsApp-like)
+.whatsapp-modal.ref-rubric-import-modal .modal-dialog {
+  max-width: 560px !important;
+  width: calc(100vw - 2rem) !important;
+}
+
+.whatsapp-modal.ref-rubric-import-modal .whatsapp-modal__body {
+  padding: 1rem 1.25rem !important;
+}
+
+.whatsapp-modal.ref-rubric-import-modal .whatsapp-modal__footer {
+  padding: 0.75rem 1.25rem !important;
+  border-top: 1px solid #eef2f6;
+}

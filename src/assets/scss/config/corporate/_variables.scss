@@ -1396,7 +1396,7 @@ $card-title-color:                  null;
 $card-subtitle-color:               null;
 $card-border-width:                 0;
 $card-border-color:                 var(--#{$prefix}border-color);
-$card-border-radius:                var(--#{$prefix}border-radius);
+$card-border-radius:                5px; // app-wide card corners
 $card-box-shadow:                   $box-shadow;
 $card-inner-border-radius:          $card-border-radius;
 $card-cap-padding-y:                $card-spacer-y;
@@ -1545,7 +1545,7 @@ $badge-border-radius:               $border-radius;
 // Modals
 
 // scss-docs-start modal-variables
-$modal-inner-padding:               $spacer * 1.25;
+$modal-inner-padding:               0.5rem;
 
 $modal-footer-margin-between:       .5rem;
 

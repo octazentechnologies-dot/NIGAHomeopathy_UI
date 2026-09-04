@@ -48,7 +48,7 @@ const Navbar = () => {
                 </Link>
                 <NavbarToggler
                     onClick={toggle}
-                    className="navbar-toggler py-0 fs-20 text-dark"
+                    className="navbar-toggler homeojob-navbar-toggler py-0 fs-20 text-dark border-0 shadow-none"
                     type="button"
                     aria-label="Toggle navigation"
                 >
@@ -56,13 +56,15 @@ const Navbar = () => {
                 </NavbarToggler>
 
                 <Collapse isOpen={isOpenMenu} className="navbar-collapse" id="navbarSupportedContent">
-                    <ul className="navbar-nav mx-auto mt-2 mt-lg-0" id="navbar-example">
+                    <ul className="navbar-nav homeojob-nav mx-auto mt-2 mt-lg-0" id="navbar-example">
                         {NAV_ITEMS.map((item) => (
                             <li className="nav-item" key={item.path}>
                                 <NavLink
                                     to={item.path}
                                     end={item.end}
-                                    className={({ isActive }) => `nav-link fs-15${isActive ? " active" : ""}`}
+                                    className={({ isActive }) =>
+                                        `nav-link homeojob-nav__link${isActive ? " active" : ""}`
+                                    }
                                 >
                                     {item.label}
                                 </NavLink>
@@ -70,9 +72,9 @@ const Navbar = () => {
                         ))}
                     </ul>
 
-                    <div>
-                        <Link to="/login" className="btn btn-link fw-medium text-decoration-none text-dark me-1">
-                            Sign in
+                    <div className="homeojob-nav-actions flex-shrink-0">
+                        <Link to="/login" className="btn btn-soft-primary">
+                            <i className="ri-login-box-line align-bottom me-1"></i> Sign in
                         </Link>
                         <Link to="/register" className="btn btn-soft-primary">
                             <i className="ri-user-3-line align-bottom me-1"></i> Sign Up

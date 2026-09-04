@@ -12,13 +12,20 @@
         background-color: $input-bg;
         outline: none;
         .select2-selection__rendered {
-            line-height: 36px;
-            padding-left: 12px;
+            line-height: $input-line-height;
+            padding-top: 0;
+            padding-bottom: 0;
+            padding-left: $input-padding-x;
+            padding-right: $input-padding-x;
             color: $input-color;
         }
         .select2-selection__arrow {
-            height: 34px;
-            width: 34px;
+            height: 100%;
+            top: 0;
+            display: flex;
+            align-items: center;
+            width: auto;
+            min-width: 28px;
             /*rtl:ignore*/
             right: 3px;
             b {
@@ -67,14 +74,15 @@
         }
     }
     .select2-results__option--highlighted[aria-selected] {
-        background-color: $primary;
+        background-color: transparent;
+        color: #25a0e2;
     }
     .select2-results__option[aria-selected=true] {
-        background-color: var(--#{$prefix}secondary-bg);
-        color: var(--#{$prefix}dropdown-link-active-color);
+        background-color: transparent;
+        color: #25a0e2;
         &:hover {
-            background-color: $primary;
-            color: $white;
+            background-color: transparent;
+            color: #25a0e2;
         }
     }
     .select2-selection--multiple {

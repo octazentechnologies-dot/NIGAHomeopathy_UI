@@ -1,8 +1,9 @@
 import React from "react";
-import { Col, Input, Label, Row } from "reactstrap";
+import { Col, Input, Row } from "reactstrap";
 import Select from "react-select";
+import { neutralSelectProps } from "../../helpers/neutralSelectStyles";
 import MessageBodyField from "./MessageBodyField";
-
+import WhatsAppFormLabel from "./WhatsAppFormLabel";
 export default function TabHealthTips({
   compose,
   onChange,
@@ -19,8 +20,7 @@ export default function TabHealthTips({
   ];
 
   return (
-    <div>
-      <Row className="g-3">
+    <Row className="g-3">
         {/* Template Name — disabled for now
         <Col md={6}>
           <Label className="form-label">Template Name</Label>
@@ -28,14 +28,13 @@ export default function TabHealthTips({
         </Col>
         */}
         <Col md={6}>
-          <Label className="form-label">Tip Category</Label>
-          <Select
+          <WhatsAppFormLabel icon="ri-lightbulb-flash-line">Tip Category</WhatsAppFormLabel>          <Select
             value={compose.tipCategory || null}
             onChange={(v) => onChange({ tipCategory: v })}
             options={tipCategoryOptions}
             isClearable
             placeholder="Select category..."
-            classNamePrefix="select"
+            {...neutralSelectProps}
           />
         </Col>
         <Col md={12}>{recipientSelector}</Col>
@@ -44,7 +43,7 @@ export default function TabHealthTips({
           onChange={onChange}
           onEditorReady={onEditorReady}
           label="Health Tip (required)"
-          hint={
+          labelIcon="ri-heart-pulse-line"          hint={
             isMarathi
               ? "मराठी भाषेत आरोग्य टिप लिहा — {{HealthTip}} साठी."
               : "Type the health tip in the same language as the selected template."
@@ -56,8 +55,7 @@ export default function TabHealthTips({
           }
         />
         <Col md={12}>
-          <Label className="form-label">Attach Image/Infographic (optional)</Label>
-          <Input
+          <WhatsAppFormLabel icon="ri-image-add-line">Attach Image/Infographic (optional)</WhatsAppFormLabel>          <Input
             type="file"
             onChange={(e) => onChange({ attachment: e.target.files?.[0] || null })}
           />
@@ -65,8 +63,7 @@ export default function TabHealthTips({
         {/* Recurring — hidden for now
         <Col md={6}>...</Col>
         */}
-      </Row>
-    </div>
+    </Row>
   );
 }
 

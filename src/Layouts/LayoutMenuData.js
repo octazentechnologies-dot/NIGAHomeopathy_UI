@@ -463,7 +463,7 @@ const Navdata = () => {
 
         {
             id: "businessmanagement",
-            label: "Business Management",
+            label: "BU Mgmt.",
             icon: "ri-customer-service-2-line",
             link: "/#",
             stateVariables: isBusinessManagement,
@@ -521,7 +521,7 @@ const Navdata = () => {
 
         {
             id: "3dbodypart",
-            label: "3D Body Part",
+            label: "3D Parts",
             icon: "ri-body-scan-line",
             link: "/#",
             stateVariables: is3DBodyPart,

@@ -43,7 +43,6 @@ const ActivePatientSessionsStack = () => {
                 id={tooltipId}
                 className={`active-patient-sessions-stack__avatar${isActive ? ' is-active' : ''}`}
                 style={{ backgroundColor, zIndex: index + 1 }}
-                title={displayName}
                 aria-label={`Open patient board for ${displayName}`}
               >
                 <span>{initials}</span>

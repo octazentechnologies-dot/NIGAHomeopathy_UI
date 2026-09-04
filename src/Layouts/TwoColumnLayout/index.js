@@ -9,14 +9,15 @@ import logoSm from "../../assets/images/logo-sm.png";
 import { withTranslation } from "react-i18next";
 
 // Import Data
-import navdata from "../LayoutMenuData";
+import { useLayoutMenu } from "../LayoutMenuContext";
 import VerticalLayout from "../VerticalLayouts";
+import { findActiveMenuAnchor } from "../../helpers/menuActivePathHelper";
 
 //SimpleBar
 import SimpleBar from "simplebar-react";
 
 const TwoColumnLayout = (props) => {
-    const navData = navdata().props.children;
+    const { navChildren: navData } = useLayoutMenu();
     const activateParentDropdown = useCallback((item) => {
         item.classList.add("active");
         let parentCollapseDiv = item.closest(".collapse.menu-dropdown");
@@ -49,9 +50,7 @@ const TwoColumnLayout = (props) => {
         const items = ul.getElementsByTagName("a");
         let itemsArray = [...items]; // converts NodeList to Array
         removeActivation(itemsArray);
-        let matchingMenuItem = itemsArray.find((x) => {
-            return x.pathname === pathName;
-        });
+        let matchingMenuItem = findActiveMenuAnchor(itemsArray, pathName);
         if (matchingMenuItem) {
             activateParentDropdown(matchingMenuItem);
         } else {

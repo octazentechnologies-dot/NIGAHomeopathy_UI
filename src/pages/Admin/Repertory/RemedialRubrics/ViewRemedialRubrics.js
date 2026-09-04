@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Input, Label, Row, Button, Spinner } from 'reactstrap';
+import { Card, CardHeader, CardBody, Col, Container, Input, Row, Spinner } from 'reactstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { getRubricRemedyDetails, updateIsSmallRubricStatus, updateIsConfirmationRubricStatus } from '../../../../slices/admin/repertory/remedialrubrics/thunk';
 import { setRubricRemedyDetails } from '../../../../slices/admin/repertory/remedialrubrics/reducer';
@@ -186,11 +186,14 @@ const ViewRemedialRubrics = () => {
       <React.Fragment>
         <div className="page-content">
           <Container fluid>
-            <Card>
+            <Card className="patient-list-modal admin-existance-list">
               <CardBody className="text-center py-5">
                 <p className="text-muted mb-3">No remedy selected.</p>
-                <Link to="/admin/listremedialrubrics">
-                  <Button color="primary">Back to list</Button>
+                <Link to="/admin/listremedialrubrics" className="d-inline-flex">
+                  <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                    <i className="ri-arrow-left-line align-middle me-1" aria-hidden="true" />
+                    Back
+                  </button>
                 </Link>
               </CardBody>
             </Card>
@@ -206,209 +209,168 @@ const ViewRemedialRubrics = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">View Remedial Rubrics</h4>
-                  {loading && rubricRemedyDetails && (
-                    <Spinner size="sm" color="primary" className="ms-2" />
-                  )}
+              <Card className="patient-list-modal admin-existance-list admin-list-filter-card">
+                <CardHeader className="border-0">
+                  <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
+                    <h5 className="mb-0 fw-semibold">View Remedial Rubrics</h5>
+                    <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                      {loading && rubricRemedyDetails && (
+                        <Spinner size="sm" color="primary" />
+                      )}
+                      <Link to="/admin/listremedialrubrics" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                          <i className="ri-arrow-left-line align-middle me-1" aria-hidden="true" />
+                          Back
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
                 </CardHeader>
-
-                <CardBody className="card-body">
+                <CardBody>
                   {isInitialLoading ? (
                     <div className="text-center py-5">
-                      <Spinner color="primary" />
+                      <Spinner color="primary" size="sm" />
                       <p className="text-muted mt-3 mb-0">Loading remedial rubrics...</p>
                     </div>
                   ) : (
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={12} md={12}>
-                          <table className="table table-responsive table-bordered">
-                            <tbody>
-                              <tr>
-                                <td style={{ width: '220px' }}>Remedy Name</td>
-                                <td>
-                                  <p className="text-muted mb-0">{rubricRemedyDetails?.remedyName}</p>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Themes/ Characteristics</td>
-                                <td>
-                                  {renderHtmlContent(rubricRemedyDetails?.themesOrCharacteristics)}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Generals</td>
-                                <td>
-                                  {renderHtmlContent(rubricRemedyDetails?.generals)}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Modalities</td>
-                                <td>
-                                  {renderHtmlContent(rubricRemedyDetails?.modalities)}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Particulars</td>
-                                <td>
-                                  {renderHtmlContent(rubricRemedyDetails?.particulars)}
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </Col>
-                      </Row>
-
-                      <hr />
-
-                      <Row className="g-4 align-items-center">
-                        <Col className="col-sm">
-                          <div className="d-flex justify-content-sm-start">
-                            <div className="search-box">
-                              <input
-                                type="text"
-                                className="form-control form-control-sm search"
-                                placeholder="Search subsection..."
-                                value={searchQuery}
-                                onChange={handleSearchChange}
-                              />
-                              <i className="ri-search-line search-icon"></i>
-                            </div>
-                          </div>
-                        </Col>
-                        <Col className="col-sm-auto">
-                          <div className="d-flex justify-content-sm-start align-items-center gap-2">
-                            <div style={{ minWidth: 180 }}>
-                              <Select
-                                options={GradeOptions}
-                                value={selectedGrade}
-                                onChange={handleGradeChange}
-                                isClearable
-                                placeholder="Select Grade"
-                                menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
-                                menuPosition="fixed"
-                                styles={{
-                                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                                  menu: (base) => ({ ...base, zIndex: 9999 }),
-                                }}
-                              />
-                            </div>
-                            <span className="text-muted small text-nowrap">
-                              {filteredRubrics.length} rubric{filteredRubrics.length === 1 ? '' : 's'}
-                            </span>
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className="mt-2">
-                        <div className="listjs-table mt-2" id="customerList">
-                          <div
-                            ref={listScrollRef}
-                            className="table-responsive table-card"
-                            style={{ maxHeight: '520px', overflowY: 'auto' }}
-                            onScroll={handleListScroll}
-                          >
-                            <table className="table align-middle table-nowrap mb-0" id="customerTable">
-                              <thead className="table-light" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                                <tr>
-                                  <th>Rubric</th>
-                                  <th>Description</th>
-                                  <th>S.R.</th>
-                                  <th>K.M.</th>
-                                </tr>
-                              </thead>
-                              <tbody className="list form-check-all">
-                                {visibleRubrics.length > 0 ? (
-                                  visibleRubrics.map((rubric) => (
-                                    <tr key={rubric.rubricRemedyId}>
-                                      <td>{rubric.subSectionName}</td>
-                                      <td>{`[${rubric.remedyCount}]`}</td>
-                                      <td>
-                                        <div className="form-check">
-                                          <Input
-                                            className="form-check-input"
-                                            type="checkbox"
-                                            id={`sr-${rubric.rubricRemedyId}`}
-                                            checked={!!rubric.isSmallRubric}
-                                            disabled={updatingRubricId === rubric.rubricRemedyId}
-                                            onChange={(e) => handleSmallRubricChange(rubric.rubricRemedyId, e.target.checked)}
-                                          />
-                                          <Label className="form-check-label" htmlFor={`sr-${rubric.rubricRemedyId}`}>
-                                            &nbsp;S.R.
-                                          </Label>
-                                        </div>
-                                      </td>
-                                      <td>
-                                        <div className="form-check">
-                                          <Input
-                                            className="form-check-input"
-                                            type="checkbox"
-                                            id={`cr-${rubric.rubricRemedyId}`}
-                                            checked={!!rubric.isConformationRubric}
-                                            disabled={updatingRubricId === rubric.rubricRemedyId}
-                                            onChange={(e) => handleConfirmationRubricChange(rubric.rubricRemedyId, e.target.checked)}
-                                          />
-                                          <Label className="form-check-label" htmlFor={`cr-${rubric.rubricRemedyId}`}>
-                                            &nbsp;K.M.
-                                          </Label>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))
-                                ) : (
-                                  <tr>
-                                    <td colSpan="4" className="text-center">
-                                      No rubrics found
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-
-                            {filteredRubrics.length > 0 && (
-                              <div className="text-center py-2 border-top bg-light">
-                                {isLoadingMore ? (
-                                  <span className="text-muted small">
-                                    <Spinner size="sm" className="me-2" />
-                                    Loading more...
-                                  </span>
-                                ) : hasMore ? (
-                                  <span className="text-muted small">
-                                    Showing {visibleRubrics.length} of {filteredRubrics.length} — scroll for more
-                                  </span>
-                                ) : (
-                                  <span className="text-muted small">
-                                    Showing all {filteredRubrics.length} rubrics
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Row>
+                    <div className="table-responsive patient-list-modal__table-wrap">
+                      <table className="table mb-0 align-middle patient-list-modal__table view-remedial-details-table">
+                        <tbody>
+                          <tr>
+                            <th scope="row" style={{ width: '220px' }}>Remedy Name</th>
+                            <td>{rubricRemedyDetails?.remedyName || '—'}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">Themes / Characteristics</th>
+                            <td>{renderHtmlContent(rubricRemedyDetails?.themesOrCharacteristics)}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">Generals</th>
+                            <td>{renderHtmlContent(rubricRemedyDetails?.generals)}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">Modalities</th>
+                            <td>{renderHtmlContent(rubricRemedyDetails?.modalities)}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">Particulars</th>
+                            <td>{renderHtmlContent(rubricRemedyDetails?.particulars)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </CardBody>
-
-                <CardFooter className="gap-2">
-                  <Row className="g-4">
-                    <Col className="col-sm">
-                      <div className="d-flex justify-content-sm-start" />
-                    </Col>
-                    <Col className="col-sm-auto">
-                      <div className="d-inline-flex gap-2">
-                        <Link to="/admin/listremedialrubrics">
-                          <Button color="danger" className="btn-label">
-                            <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                          </Button>
-                        </Link>
-                      </div>
-                    </Col>
-                  </Row>
-                </CardFooter>
               </Card>
+
+              {!isInitialLoading && (
+                <Card className="patient-list-modal admin-existance-list">
+                  <CardHeader className="border-0">
+                    <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
+                      <div className="patient-list-modal__search flex-shrink-0">
+                        <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="Search subsection..."
+                          value={searchQuery}
+                          onChange={handleSearchChange}
+                        />
+                      </div>
+                      <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                        <div style={{ minWidth: 180 }}>
+                          <Select
+                            options={GradeOptions}
+                            value={selectedGrade}
+                            onChange={handleGradeChange}
+                            isClearable
+                            placeholder="Select Grade"
+                            menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                            menuPosition="fixed"
+                            styles={{
+                              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                              menu: (base) => ({ ...base, zIndex: 9999 }),
+                              control: (base) => ({ ...base, minHeight: 34, height: 34 }),
+                              valueContainer: (base) => ({ ...base, padding: '0 8px' }),
+                              indicatorsContainer: (base) => ({ ...base, height: 34 }),
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardBody>
+                    <div
+                      ref={listScrollRef}
+                      className="table-responsive patient-list-modal__table-wrap"
+                      style={{ maxHeight: '520px', overflowY: 'auto' }}
+                      onScroll={handleListScroll}
+                    >
+                      <table className="table mb-0 align-middle patient-list-modal__table" id="customerTable">
+                        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                          <tr>
+                            <th scope="col">Rubric</th>
+                            <th scope="col">Description</th>
+                            <th scope="col" className="text-center" style={{ width: '10%' }}>S.R.</th>
+                            <th scope="col" className="text-center" style={{ width: '10%' }}>K.M.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visibleRubrics.length > 0 ? (
+                            visibleRubrics.map((rubric) => (
+                              <tr key={rubric.rubricRemedyId}>
+                                <td>{rubric.subSectionName || '—'}</td>
+                                <td>{`[${rubric.remedyCount ?? 0}]`}</td>
+                                <td className="text-center">
+                                  <Input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id={`sr-${rubric.rubricRemedyId}`}
+                                    checked={!!rubric.isSmallRubric}
+                                    disabled={updatingRubricId === rubric.rubricRemedyId}
+                                    onChange={(e) => handleSmallRubricChange(rubric.rubricRemedyId, e.target.checked)}
+                                  />
+                                </td>
+                                <td className="text-center">
+                                  <Input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id={`cr-${rubric.rubricRemedyId}`}
+                                    checked={!!rubric.isConformationRubric}
+                                    disabled={updatingRubricId === rubric.rubricRemedyId}
+                                    onChange={(e) => handleConfirmationRubricChange(rubric.rubricRemedyId, e.target.checked)}
+                                  />
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="4" className="text-center text-muted py-4">
+                                {searchQuery || selectedGrade ? 'No rubrics match your filters' : 'No rubrics found'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                      <div className="text-muted patient-list-modal__footer-text">
+                        {isLoadingMore ? (
+                          <>
+                            <Spinner size="sm" className="me-2" />
+                            Loading more...
+                          </>
+                        ) : hasMore ? (
+                          `Showing ${visibleRubrics.length} of ${filteredRubrics.length} Results — scroll for more`
+                        ) : (
+                          `Showing ${visibleRubrics.length} of ${filteredRubrics.length} Results`
+                        )}
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              )}
             </Col>
           </Row>
         </Container>

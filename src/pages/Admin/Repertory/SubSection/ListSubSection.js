@@ -1,12 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Input, Label, Row, Button, InputGroup, InputGroupText, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
-import TableContainer from "../../../../Components/Common/TableContainerReactTable";
+import { Card, CardHeader, CardBody, Col, Container, Input, Label, Row, Button, InputGroup, InputGroupText, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import Select from "react-select";
-import makeAnimated from "react-select/animated";
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import Swal from "sweetalert2";
 
@@ -16,6 +13,7 @@ import { exportSubSectionsToExcelThunk } from '../../../../slices/admin/repertor
 import { importSubSectionsFromExcel, uploadSubSectionsFromExcel } from '../../../../slices/admin/repertory/subsection/thunk';
 import { downloadReferenceRubricsTemplate, importReferenceRubrics } from '../../../../helpers/realbackend_helper';
 import moment from 'moment';
+import '../../../../Components/WhatsAppModal/WhatsAppModal.css';
 
 const triggerBlobDownload = (blob, fileName) => {
   const link = document.createElement('a');
@@ -75,6 +73,8 @@ const ListSubSection = () => {
   const sectionForSubSection = useSelector((state) => state.SubSection.sectionForSubSection);
   const subSectionBySection = useSelector((state) => state.SubSection.subSectionBySection);
   const totalPages = useSelector((state) => state?.SubSection?.subSectionList?.totalPageCount || 1);
+  const totalRecords = useSelector((state) => state?.SubSection?.subSectionList?.totalRecordCount || subSectionList?.resultObject?.length || 0);
+  const rowStart = (currentPage - 1) * pageSize;
   const { subSectionError, subSectionSuccess, loading } = useSelector((state) => state.SubSection);
   const subSectionSuccessResponse = useSelector((state) => state.SubSection.subSectionSuccess);
 
@@ -535,53 +535,60 @@ const ListSubSection = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <CardBody className="card-body">
-                  <div className="live-preview">
-                    <Row className="gy-4">
-                      <Col xxl={4} md={4}>
-                        <div className="mb-3">
-                          <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                          <Select
-                            value={selectedSection}
-                            onChange={(item) => { handleSelectSection(item); }}
-                            options={SectionForSubSectionOptions} />
-                        </div>
-                      </Col>
-                      <Col xxl={4} md={4}>
-                        <div className="mt-4">
-                          <Button className="btn-secondary btn-label m-btn-top"
-                            onClick={() => {
-                              setSelectedSection(null);
-                              dispatch(setSubSectionList([]));
-                              setIsSelectedSection(false);
-                            }}> <i className="ri-refresh-line label-icon align-middle fs-16 me-2"></i> Reset </Button>
-                        </div>
-                      </Col>
-                    </Row>
-                  </div>
+              <Card className="patient-list-modal admin-existance-list admin-list-filter-card">
+                <CardBody>
+                  <Row className="gy-3 align-items-end">
+                    <Col xxl={4} md={4}>
+                      <div className="mb-0">
+                        <Label htmlFor="placeholderInput" className="form-label">Section</Label>
+                        <Select
+                          value={selectedSection}
+                          onChange={(item) => { handleSelectSection(item); }}
+                          options={SectionForSubSectionOptions}
+                        />
+                      </div>
+                    </Col>
+                    <Col xxl={4} md={4}>
+                      <div className="admin-list-filter-reset">
+                        <button
+                          type="button"
+                          className="btn btn-sm admin-list-btn admin-list-btn--reset"
+                          onClick={() => {
+                            setSelectedSection(null);
+                            dispatch(setSubSectionList([]));
+                            setIsSelectedSection(false);
+                          }}
+                        >
+                          <i className="ri-refresh-line align-middle me-1" aria-hidden="true" />
+                          Reset
+                        </button>
+                      </div>
+                    </Col>
+                  </Row>
                 </CardBody>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <Row className="g-4">
-                    <Col className="col-sm">
-                      <div className="d-flex justify-content-sm-start">
-                        <div className="search-box">
-                          <input value={searchQuery} type="text" className="form-control form-control-sm search" placeholder="Search..."
-                            onChange={(e) => {
-                              setSearchQuery(e.target.value);
-                              setCurrentPage(1);
-                            }} /><i className="ri-search-line search-icon"></i>
-                        </div>
+              <Card className="patient-list-modal admin-existance-list">
+                <CardHeader className="border-0">
+                  <div className="admin-list-toolbar admin-list-toolbar--with-extra d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
+                    <div className="admin-list-toolbar__primary d-flex align-items-center gap-2 flex-wrap w-100">
+                      <div className="patient-list-modal__search flex-shrink-0">
+                        <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="Search..."
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                        />
                       </div>
-                    </Col>
-                    <Col className="col-sm-auto">
-                      <div className="d-inline-flex gap-2">
-                        <Button
+                      <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                        <button
                           type="button"
-                          className="btn btn-soft-primary btn-sm"
+                          className="btn btn-sm admin-list-btn admin-list-btn--import"
                           onClick={handleImportClick}
                           disabled={isImporting}
                         >
@@ -591,10 +598,11 @@ const ListSubSection = () => {
                             </>
                           ) : (
                             <>
-                              <i className="ri-newspaper-line align-middle"></i> Import
+                              <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
+                              Import
                             </>
                           )}
-                        </Button>
+                        </button>
                         <input
                           type="file"
                           ref={fileInputRef}
@@ -609,79 +617,87 @@ const ListSubSection = () => {
                           style={{ display: 'none' }}
                           accept=".xlsx,.xls,.csv"
                         />
-                        <Button
+                        <button
                           type="button"
-                          className="btn btn-soft-secondary btn-sm"
+                          className="btn btn-sm admin-list-btn admin-list-btn--export"
                           onClick={handleExport}
                         >
-                          <i className="ri-file-list-3-line align-middle"></i> Export
-                        </Button>
-                        <Button
-                          type="button"
-                          className="btn btn-soft-primary btn-sm"
-                          onClick={handleUploadClick}
-                          disabled={isUploading}
-                        >
-                          {isUploading ? (
-                            <>
-                              <Spinner size="sm" className="me-1" /> Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <i className=" ri-newspaper-line align-middle"></i> Update SubSection
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          className="btn btn-soft-primary btn-sm"
-                          onClick={openRefRubricImportModal}
-                        >
-                          <i className="ri-links-line align-middle"></i> Import Ref Rubrics
-                        </Button>
-                        <Link to="/admin/addsubsection"><button type="button" className="btn btn-soft-info btn-sm"><i className="ri-add-line align-middle"></i> New</button></Link>
+                          <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
+                          Export
+                        </button>
+                        <Link to="/admin/addsubsection" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                            <i className="ri-add-line align-middle me-1" aria-hidden="true" />
+                            New
+                          </button>
+                        </Link>
                       </div>
-                    </Col>
-                  </Row>
+                    </div>
+                    <div className="admin-list-toolbar__extra d-flex align-items-center gap-2 flex-wrap w-100">
+                      <button
+                        type="button"
+                        className="btn btn-sm admin-list-btn admin-list-btn--import"
+                        onClick={handleUploadClick}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Spinner size="sm" className="me-1" /> Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
+                            Update
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm admin-list-btn admin-list-btn--import"
+                        onClick={openRefRubricImportModal}
+                      >
+                        <i className="ri-links-line align-middle me-1" aria-hidden="true" />
+                        Ref Rubrics
+                      </button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardBody>
-                  <div className="listjs-table" id="customerList">
-                    <div className="table-responsive table-card">
-                      <table className="table align-middle table-nowrap" id="customerTable">
-                        <thead className="">
-                          <tr>
-                            <th scope="col" className="text-center" style={{ width: "50px" }}>ID</th>
-                            <th className="text-center">Sub Section Name</th>
-                            <th className="text-center">Section Id</th>
-                            <th className="text-center" style={{ width: '15%' }}>Parent Subsection</th>
-                            <th className='text-center' style={{ width: '10%' }}>Main Parent Subsection</th>
-                            <th className="text-center">Parent Sub Section Id</th>
-                            <th className="text-center">Parent Sub Section Name</th>
-                            <th className='text-center' style={{ width: '10%' }}>Action</th>
-                          </tr>
-                        </thead>
-                        {isSelectedSection ?
-                          <>
-                            {
-                              loading ? (
-                                <tbody className="list form-check-all">
-                                  <tr>
-                                    <td colSpan="8" className="text-center">
-                                      <Spinner color="primary" className="ms-1" />
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              ) : (
-                                <tbody className="list form-check-all">
-                                  {subSectionList?.resultObject?.length > 0 ? (
-                                    subSectionList?.resultObject?.map((subsection, index) => (
-                                      <tr key={index}>
-                                        <td className="text-center">{subsection.subSectionId}</td>
-                                        <td className="text-center">{subsection.subSectionName}</td>
-                                        <td className="text-center">{subsection.sectionId}</td>
-                                        <td className="text-center">
-                                          <Select 
-                                            className="form-select form-select-sm"
+                  <div className="table-responsive patient-list-modal__table-wrap">
+                    <table className="table mb-0 align-middle patient-list-modal__table" id="customerTable">
+                      <thead>
+                        <tr>
+                          <th scope="col" className="text-center" style={{ width: '5%' }}>#</th>
+                          <th scope="col">Sub Section Name</th>
+                          <th scope="col">Section Id</th>
+                          <th scope="col" style={{ width: '15%' }}>Parent Subsection</th>
+                          <th scope="col" style={{ width: '10%' }}>Main Parent</th>
+                          <th scope="col">Parent Sub Section Id</th>
+                          <th scope="col">Parent Sub Section Name</th>
+                          <th scope="col" className="text-center" style={{ width: '12%' }}>Action</th>
+                        </tr>
+                      </thead>
+                        {isSelectedSection ? (
+                          loading ? (
+                            <tbody>
+                              <tr>
+                                <td colSpan="8" className="text-center">
+                                  <Spinner color="primary" size="sm" />
+                                </td>
+                              </tr>
+                            </tbody>
+                          ) : (
+                            <tbody>
+                              {subSectionList?.resultObject?.length > 0 ? (
+                                subSectionList.resultObject.map((subsection, index) => (
+                                  <tr key={subsection.subSectionId || index}>
+                                    <td className="text-center patient-list-modal__index">{rowStart + index + 1}</td>
+                                    <td>{subsection.subSectionName || '—'}</td>
+                                    <td>{subsection.sectionId || '—'}</td>
+                                        <td className="admin-table-select-cell text-start">
+                                          <Select
+                                            classNamePrefix="admin-table-select"
+                                            className="admin-table-select"
                                             value={null}
                                             onChange={(item) => { handleSelectSubSectionAlias(item, subsection); }}
                                             options={SubSectionBySectionOptions}
@@ -696,84 +712,98 @@ const ListSubSection = () => {
                                               return option.label.toLowerCase().includes(inputValue.toLowerCase());
                                             }}
                                             styles={{
-                                              menuPortal: (base) => ({ 
-                                                ...base, 
-                                                zIndex: 9999
+                                              container: (base) => ({
+                                                ...base,
+                                                width: '100%',
+                                                minWidth: '140px',
                                               }),
-                                              menu: (base) => ({ 
-                                                ...base, 
-                                                zIndex: 9999,
-                                                minWidth: '250px',
-                                                maxWidth: '400px',
-                                                maxHeight: '300px'
+                                              control: (base, state) => ({
+                                                ...base,
+                                                minHeight: 28,
+                                                height: 28,
+                                                fontSize: '0.8125rem',
+                                                borderColor: state.isFocused ? '#93c5fd' : '#d7e3ef',
+                                                boxShadow: 'none',
+                                                backgroundColor: '#fff',
+                                                borderRadius: 4,
+                                                cursor: 'pointer',
+                                                '&:hover': {
+                                                  borderColor: '#93c5fd',
+                                                },
                                               }),
-                                              control: (base) => ({ 
-                                                ...base, 
-                                                minHeight: '31px', 
-                                                height: '31px',
-                                                fontSize: '14px',
-                                                borderColor: '#ced4da',
-                                                minWidth: '120px',
-                                                width: '100%'
-                                              }),
-                                              valueContainer: (base) => ({ 
-                                                ...base, 
-                                                padding: '2px 8px',
-                                                height: '31px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                overflow: 'visible'
+                                              valueContainer: (base) => ({
+                                                ...base,
+                                                padding: '0 6px',
+                                                height: 28,
+                                                minHeight: 28,
                                               }),
                                               placeholder: (base) => ({
                                                 ...base,
-                                                color: '#6c757d',
+                                                color: '#94a3b8',
+                                                margin: 0,
                                                 whiteSpace: 'nowrap',
-                                                overflow: 'visible',
-                                                textOverflow: 'clip'
                                               }),
-                                              input: (base) => ({ 
-                                                ...base, 
-                                                margin: 0, 
-                                                padding: 0 
+                                              singleValue: (base) => ({
+                                                ...base,
+                                                margin: 0,
                                               }),
-                                              indicatorsContainer: (base) => ({ 
-                                                ...base, 
-                                                height: '31px',
-                                                padding: '0 4px'
+                                              input: (base) => ({
+                                                ...base,
+                                                margin: 0,
+                                                padding: 0,
+                                              }),
+                                              indicatorsContainer: (base) => ({
+                                                ...base,
+                                                height: 28,
+                                              }),
+                                              clearIndicator: (base) => ({
+                                                ...base,
+                                                padding: '0 2px',
+                                              }),
+                                              dropdownIndicator: (base) => ({
+                                                ...base,
+                                                padding: '0 4px',
+                                              }),
+                                              indicatorSeparator: () => ({
+                                                display: 'none',
+                                              }),
+                                              menuPortal: (base) => ({
+                                                ...base,
+                                                zIndex: 9999,
+                                              }),
+                                              menu: (base) => ({
+                                                ...base,
+                                                zIndex: 9999,
+                                                minWidth: '220px',
+                                                maxWidth: '360px',
+                                                fontSize: '0.8125rem',
                                               }),
                                               option: (base, state) => ({
                                                 ...base,
-                                                backgroundColor: state.isSelected 
-                                                  ? '#0d6efd' 
-                                                  : state.isFocused 
-                                                    ? '#e7f1ff' 
-                                                    : 'white',
-                                                color: state.isSelected ? 'white' : '#212529',
+                                                backgroundColor: 'transparent',
+                                                color: state.isSelected || state.isFocused ? '#25a0e2' : '#212529',
+                                                fontWeight: state.isSelected ? 500 : 400,
                                                 cursor: 'pointer',
-                                                padding: '8px 12px',
+                                                padding: '6px 10px',
                                                 '&:hover': {
-                                                  backgroundColor: state.isSelected ? '#0d6efd' : '#e7f1ff'
-                                                }
-                                              })
+                                                  backgroundColor: 'transparent',
+                                                  color: '#25a0e2',
+                                                },
+                                              }),
                                             }}
                                           />
                                         </td>
-                                        <td className='text-center'>
-                                          <div className="form-check d-flex justify-content-center">
-                                            <Input
-                                              className="form-check-input"
-                                              type="checkbox"
-                                              id={`mainParent-${subsection.subSectionId}`}
-                                              checked={subsection.mainParentSubsection || false}
-                                              onChange={(e) => handleMainParentSubsectionChange(subsection, e.target.checked)}
-                                            />
-                                            <Label className="form-check-label" htmlFor={`mainParent-${subsection.subSectionId}`}>
-                                              &nbsp;
-                                            </Label>
-                                          </div>
+                                        <td className="text-start">
+                                          <Input
+                                            className="form-check-input m-0"
+                                            type="checkbox"
+                                            id={`mainParent-${subsection.subSectionId}`}
+                                            checked={subsection.mainParentSubsection || false}
+                                            onChange={(e) => handleMainParentSubsectionChange(subsection, e.target.checked)}
+                                          />
                                         </td>
-                                        <td className="text-center">{subsection.parentSubSectionId}</td>
-                                        <td className="text-center">{subsection.parentSubSectionName}</td>
+                                        <td className="text-start">{subsection.parentSubSectionId || '—'}</td>
+                                        <td className="text-start">{subsection.parentSubSectionName || '—'}</td>
                                         <td className='text-center'>
                                           <div className="d-inline-flex gap-2">
                                             <div className="edit">
@@ -786,147 +816,140 @@ const ListSubSection = () => {
                                         </td>
                                       </tr>
                                     ))
-                                  ) : (
-                                    <tr>
-                                      <td colSpan="8" className="text-center">
-                                        No subsections found
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
+                              ) : (
+                                <tr>
+                                  <td colSpan="8" className="text-center text-muted py-4">
+                                    {searchQuery ? 'No subsections match your search' : 'No subsections found'}
+                                  </td>
+                                </tr>
                               )}
-                          </>
-                          : (
+                            </tbody>
+                          )
+                        ) : (
+                          <tbody>
                             <tr>
-                              <td colSpan="8" className="text-center">
+                              <td colSpan="8" className="text-center text-muted py-4">
                                 Please select a section
                               </td>
                             </tr>
-                          )}
+                          </tbody>
+                        )}
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    <div className="align-items-center g-3 text-center text-sm-start row mt-3">
-                      <div className="col-sm">
-                        <div className="text-muted">
-                          Showing <span className="fw-semibold ms-1">{currentPage}</span> of <span className="fw-semibold">{totalPages}</span> Pages
-                        </div>
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer flex-wrap gap-2">
+                      <div className="text-muted patient-list-modal__footer-text">
+                        {loading
+                          ? 'Loading...'
+                          : `Showing ${subSectionList?.resultObject?.length || 0} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
                       </div>
-                      <div className="col-sm-auto">
-                        <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center justify-content-sm-start">
-                          <ul className="pagination pagination-separated pagination-md justify-content-center justify-content-sm-start mb-0">
-                            {/* Previous Button */}
-                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                              <button className="page-link" onClick={handlePrevPage}>Previous</button>
-                            </li>
-
-                            {/* First Page */}
-                            {currentPage > 3 && (
-                              <>
-                                <li className="page-item">
-                                  <button className="page-link" onClick={() => setCurrentPage(1)}>1</button>
+                      <div className="d-flex align-items-center gap-2 flex-wrap">
+                        <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
+                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                            <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
+                              Previous
+                            </button>
+                          </li>
+                          {[...Array(totalPages)].map((_, index) => {
+                            const pageNumber = index + 1;
+                            if (
+                              pageNumber === 1 ||
+                              pageNumber === totalPages ||
+                              (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                            ) {
+                              return (
+                                <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
+                                  <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
+                                    {pageNumber}
+                                  </button>
                                 </li>
-                                {currentPage > 4 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                              </>
-                            )}
-
-                            {/* Dynamic Page Numbers */}
-                            {[...Array(totalPages)].map((_, index) => {
-                              const page = index + 1;
-                              if (
-                                page === currentPage || // Current Page
-                                page === currentPage - 1 || // One Before Current
-                                page === currentPage + 1 // One After Current
-                              ) {
-                                return (
-                                  <li key={index} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                                    <button className="page-link" onClick={() => {
-                                      setCurrentPage(page);
-                                    }}>{page}</button>
-                                  </li>
-                                );
-                              }
-                              return null;
-                            })}
-
-                            {/* Last Page */}
-                            {currentPage < totalPages - 2 && (
-                              <>
-                                {currentPage < totalPages - 3 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                                <li className="page-item">
-                                  <button className="page-link" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
+                              );
+                            }
+                            if (pageNumber === 2 || pageNumber === totalPages - 1) {
+                              return (
+                                <li key={index} className="page-item disabled">
+                                  <span className="page-link">...</span>
                                 </li>
-                              </>
-                            )}
-
-                            {/* Next Button */}
-                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                              <button className="page-link" onClick={handleNextPage}>Next</button>
-                            </li>
-                          </ul>
-
-                          <InputGroup size="sm" style={{ width: '190px' }}>
-                            <InputGroupText>Go to</InputGroupText>
-                            <Input
-                              value={goToPageInput}
-                              onChange={handleGoToPageInputChange}
-                              onKeyDown={handleGoToPageKeyDown}
-                              placeholder="Page #"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              aria-label="Go to page number"
-                              disabled={totalPages <= 1}
-                            />
-                            <Button
-                              color="primary"
-                              outline
-                              onClick={handleGoToPage}
-                              disabled={totalPages <= 1}
-                            >
-                              Go
-                            </Button>
-                          </InputGroup>
-                        </div>
+                              );
+                            }
+                            return null;
+                          })}
+                          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                            <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
+                              Next
+                            </button>
+                          </li>
+                        </ul>
+                        <InputGroup size="sm" style={{ width: '190px' }}>
+                          <InputGroupText>Go to</InputGroupText>
+                          <Input
+                            value={goToPageInput}
+                            onChange={handleGoToPageInputChange}
+                            onKeyDown={handleGoToPageKeyDown}
+                            placeholder="Page #"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            aria-label="Go to page number"
+                            disabled={totalPages <= 1}
+                          />
+                          <Button
+                            color="primary"
+                            outline
+                            onClick={handleGoToPage}
+                            disabled={totalPages <= 1}
+                          >
+                            Go
+                          </Button>
+                        </InputGroup>
                       </div>
                     </div>
-                  </div>
                 </CardBody>
               </Card>
             </Col>
           </Row>
         </Container>
       </div>
-      <Modal isOpen={refRubricImportModal} toggle={() => !refRubricImportLoading && setRefRubricImportModal(false)}>
-        <ModalHeader toggle={() => !refRubricImportLoading && setRefRubricImportModal(false)}>
-          Import Reference Rubrics
+      <Modal
+        isOpen={refRubricImportModal}
+        toggle={() => !refRubricImportLoading && setRefRubricImportModal(false)}
+        className="whatsapp-modal ref-rubric-import-modal"
+        centered
+      >
+        <ModalHeader
+          className="whatsapp-modal__header"
+          toggle={() => !refRubricImportLoading && setRefRubricImportModal(false)}
+        >
+          <div className="whatsapp-modal__title">Import Reference Rubrics</div>
         </ModalHeader>
-        <ModalBody>
-          <p className="text-muted mb-3">
+        <ModalBody className="whatsapp-modal__body">
+          <p className="whatsapp-modal__subtle mb-3">
             Upload a 2-column file to link reference rubrics to existing subsections.
           </p>
           <div className="d-flex flex-wrap gap-2 mb-3">
-            <Button
-              color="info"
-              size="sm"
-              outline
+            <button
+              type="button"
+              className="btn btn-sm admin-list-btn admin-list-btn--import"
               disabled={refRubricTemplateLoading || refRubricImportLoading}
               onClick={() => handleDownloadRefRubricTemplate('excel')}
             >
-              <i className="ri-file-excel-2-line me-1"></i> Sample Excel
-            </Button>
-            <Button
-              color="secondary"
-              size="sm"
-              outline
+              <i className="ri-file-excel-2-line align-middle me-1" aria-hidden="true" />
+              Sample Excel
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm admin-list-btn admin-list-btn--export"
               disabled={refRubricTemplateLoading || refRubricImportLoading}
               onClick={() => handleDownloadRefRubricTemplate('csv')}
             >
-              <i className="ri-file-text-line me-1"></i> Sample CSV
-            </Button>
+              <i className="ri-file-text-line align-middle me-1" aria-hidden="true" />
+              Sample CSV
+            </button>
           </div>
           <div>
-            <Label htmlFor="refRubricImportFile" className="form-label fw-semibold">Choose file</Label>
+            <Label htmlFor="refRubricImportFile" className="whatsapp-modal__label">
+              <i className="ri-upload-2-line" aria-hidden="true" />
+              Choose file
+            </Label>
             <Input
               id="refRubricImportFile"
               type="file"
@@ -941,27 +964,29 @@ const ListSubSection = () => {
               </small>
             )}
           </div>
-          <small className="text-muted d-block mt-3">
+          <small className="whatsapp-modal__subtle d-block mt-3">
             Columns: <strong>SubSectionName</strong> and <strong>RefSubSectionName</strong>.
             Existing links and invalid rows are skipped; skipped rows download automatically with reason.
           </small>
         </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={handleRefRubricImportSubmit} disabled={refRubricImportLoading || !refRubricImportFile}>
+        <ModalFooter className="whatsapp-modal__footer justify-content-end">
+          <button
+            type="button"
+            className="btn btn-sm admin-list-btn admin-list-btn--import"
+            onClick={handleRefRubricImportSubmit}
+            disabled={refRubricImportLoading || !refRubricImportFile}
+          >
             {refRubricImportLoading ? (
               <>
-                <Spinner size="sm" className="me-2" />
-                Importing...
+                <Spinner size="sm" className="me-1" /> Importing...
               </>
             ) : (
               <>
-                <i className="ri-upload-2-line me-1"></i> Import
+                <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
+                Import
               </>
             )}
-          </Button>
-          <Button color="secondary" onClick={() => setRefRubricImportModal(false)} disabled={refRubricImportLoading}>
-            Cancel
-          </Button>
+          </button>
         </ModalFooter>
       </Modal>
       <DeleteModal

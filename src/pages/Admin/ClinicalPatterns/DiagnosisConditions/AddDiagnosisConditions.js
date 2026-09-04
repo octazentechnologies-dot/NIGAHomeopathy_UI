@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import classnames from "classnames";
 import { Spinner } from 'reactstrap';
 import Select from "react-select";
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import DiagnosisSubSectionSelect from './DiagnosisSubSectionSelect';
 import { useDispatch, useSelector } from 'react-redux';
 import DiagnosisKeywordTable, { removeSectionFromKeywordList } from './DiagnosisKeywordTable';
@@ -1293,7 +1294,7 @@ const Starter = () => {
 
     return (
       <TabPane tabId={tabId}>
-        <Row className="gy-4">
+        <Row className="gy-3 admin-form-fields">
           <Col xxl={4} md={4}>
             <div>
               <Label htmlFor="placeholderInput" className="form-label">{keywordLabel}</Label>
@@ -1311,6 +1312,9 @@ const Starter = () => {
             <div>
               <Label htmlFor="placeholderInput" className="form-label">Section</Label>
               <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()}
                 value={section.selectedSection}
                 onChange={(option) => handleChangeSubSection(sectionString, option)}
                 options={SingleOptions}
@@ -1323,6 +1327,9 @@ const Starter = () => {
             <div>
               <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
               <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                 isMulti
                 isClearable
                 closeMenuOnSelect={false}
@@ -1330,21 +1337,12 @@ const Starter = () => {
                 onChange={(options) => updateMultiSections(sectionType, options)}
                 options={SingleOptions}
                 placeholder="Select Section(s)..."
-                styles={{
-                  multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                  multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    color: "#495057",
-                    ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                  }),
-                }}
               />
             </div>
           </Col>
         </Row>
 
-        <Row className='mt-3'>
+        <Row className="gy-3 admin-form-fields">
           <Col xxl={8} md={8}>
             <div>
               <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -1360,7 +1358,7 @@ const Starter = () => {
             <div className="d-inline-flex gap-2 mt-4">
               <button
                 type="button"
-                className="btn btn-soft-info btn-sm mt-2"
+                className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
                 onClick={section.addMethod}
               >
                 <i className="ri-add-line align-middle"></i> Add {title}
@@ -1371,7 +1369,7 @@ const Starter = () => {
 
         <hr />
 
-        <Row className='mt-3'>
+        <Row className="gy-3 admin-form-fields">
           <Col xxl={12} md={12}>
             <DiagnosisKeywordTable
               items={section.items}
@@ -1395,31 +1393,34 @@ const Starter = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">New Diagnosis & Conditions</h4>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
+                <CardHeader className="border-0">
+                  <div className="admin-form-toolbar">
+                    <h5 className="admin-form-title">New Diagnosis & Conditions</h5>
+                  </div>
                 </CardHeader>
 
-                <CardBody className="card-body">
-                  <div className="live-preview">
-                    <div className="p-2">
+                <CardBody>
+                  {(diagnosisConditionSuccess || diagnosisConditionError) ? (
+                    <div className="admin-form-alerts">
                       {diagnosisConditionSuccess ? (
-                        <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                          <i className="ri-notification-off-line label-icon"></i>
+                        <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                          <i className="ri-checkbox-circle-line label-icon" />
                           {diagnosisConditionSuccess}
                         </UncontrolledAlert>
                       ) : null}
                       {diagnosisConditionError ? (
-                        <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                          <i className="ri-error-warning-line label-icon"></i>
+                        <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                          <i className="ri-error-warning-line label-icon" />
                           {diagnosisConditionError}
                         </UncontrolledAlert>
                       ) : null}
                     </div>
+                  ) : null}
                     <Row>
                       <Col xxl={12} md={12}>
                         <div>
-                          <Nav pills className="nav-success mb-3">
+                          <Nav pills className="admin-form-tabs mb-3">
                             <NavItem><NavLink style={{ cursor: "pointer" }} className={classnames({ active: pillsTab === "1", })} onClick={() => { pillsToggle("1"); }} >Diagnosis</NavLink></NavItem>
                             <NavItem><NavLink style={{ cursor: "pointer" }} className={classnames({ active: pillsTab === "2", })} onClick={() => { pillsToggle("2"); }} >Diagnosis Symptoms</NavLink></NavItem>
                             <NavItem><NavLink style={{ cursor: "pointer" }} className={classnames({ active: pillsTab === "3", })} onClick={() => { pillsToggle("3"); }} >Diagnosis Monogram</NavLink></NavItem>
@@ -1440,7 +1441,7 @@ const Starter = () => {
 
                           <TabContent activeTab={pillsTab} className="text-muted">
                             <TabPane tabId="1">
-                              <Row className="gy-4">
+                              <Row className="gy-3 admin-form-fields">
                                 <Col xxl={4} md={4}>
                                   <div>
                                     <Label htmlFor="placeholderInput" className="form-label">Diagnosis Name</Label>
@@ -1483,11 +1484,14 @@ const Starter = () => {
                                 </Col>
                               </Row>
 
-                              <Row className="mt-3">
+                              <Row className="gy-3 admin-form-fields">
                                 <Col xxl={4} md={4}>
                                   <div>
                                     <Label htmlFor="placeholderInput" className="form-label">Section Name</Label>
                                     <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()}
                                       value={selectedSingle}
                                       onChange={(option) => handleSelectSingle(option, "Diagnosis")}
                                       options={SingleOptions}
@@ -1513,7 +1517,7 @@ const Starter = () => {
 
                                 <Col xxl={4} md={4}>
                                   <div className="d-inline-flex gap-2 mt-4">
-                                    <button type="button" className="btn btn-soft-info btn-sm mt-2" onClick={addSelectedSubSectionQuestions}>
+                                    <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2" onClick={addSelectedSubSectionQuestions}>
                                       <i className="ri-add-line align-middle"></i> Add Sub Section
                                     </button>
                                   </div>
@@ -1522,9 +1526,10 @@ const Starter = () => {
 
                               <hr />
 
-                              <Row className='mt-3'>
+                              <Row className="gy-3 admin-form-fields">
                                 <Col xxl={12} md={12}>
-                                  <table className="table table-responsive table-bordered table-nowrap">
+                                  <div className="table-responsive patient-list-modal__table-wrap">
+                                  <table className="table mb-0 align-middle patient-list-modal__table table-bordered table-nowrap">
                                     <thead>
                                       <tr>
                                         <th scope="col">Sub Section Name</th>
@@ -1556,6 +1561,7 @@ const Starter = () => {
                                       )}
                                     </tbody>
                                   </table>
+                                  </div>
                                 </Col>
                               </Row>
                             </TabPane>
@@ -1569,11 +1575,14 @@ const Starter = () => {
                             {renderSectionTab('pathology', '5', 'Pathology', 'Diagnosis Pathology Keywords')}
 
                             <TabPane tabId="6">
-                              <Row className="gy-4">
+                              <Row className="gy-3 admin-form-fields">
                                 <Col xxl={8} md={8}>
                                   <div>
                                     <Label htmlFor="placeholderInput" className="form-label">Diagnosis System</Label>
                                     <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                       isMulti
                                       isClearable
                                       closeMenuOnSelect={false}
@@ -1593,7 +1602,7 @@ const Starter = () => {
                             {renderSectionTab('emergencies', '7', 'Emergencies', 'Emergencies Keywords')}
 
                             <TabPane tabId="8">
-                              <Row className="gy-4">
+                              <Row className="gy-3 admin-form-fields">
                                 <Col xxl={4} md={4}>
                                   <div>
                                     <Label htmlFor="placeholderInput" className="form-label">Investigations</Label>
@@ -1656,18 +1665,22 @@ const Starter = () => {
                         </div>
                       </Col>
                     </Row>
-                  </div>
                 </CardBody>
 
-                <CardFooter>
-                  <div className="d-flex gap-2 justify-content-end">
-                    <button type="button" className="btn btn-light" onClick={() => window.history.back()}>
-                      Cancel
-                    </button>
-                    <button type="button" className="btn btn-success" onClick={handleSubmit} disabled={diagnosisConditionLoading}>
-                      {diagnosisConditionLoading ? <Spinner size="sm" /> : <i className="ri-save-line align-bottom me-1"></i>}
-                      Save
-                    </button>
+                <CardFooter className="border-0">
+                  <div className="d-flex justify-content-end">
+                    <div className="admin-form-actions">
+                      <Link to="/admin/listdiagnosisconditions" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                          <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                          Cancel
+                        </button>
+                      </Link>
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new" onClick={handleSubmit} disabled={diagnosisConditionLoading}>
+                        {diagnosisConditionLoading ? <Spinner size="sm" /> : <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />}
+                        Save
+                      </button>
+                    </div>
                   </div>
                 </CardFooter>
               </Card>

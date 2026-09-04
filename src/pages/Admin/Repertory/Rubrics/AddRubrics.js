@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Label, Row, Button, UncontrolledAlert } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Label, Row, UncontrolledAlert, Spinner } from 'reactstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { Spinner } from 'reactstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Select from "react-select";
@@ -10,6 +9,7 @@ import makeAnimated from "react-select/animated";
 import { useDispatch, useSelector } from 'react-redux';
 import { getAuthorForRubric, getSubSection, getRemedyGrades, getRemediesByGrade, createRubric, getSectionForSubSection } from '../../../../slices/admin/repertory/rubric/thunk';
 import { setRubricError, setRubricSuccess } from '../../../../slices/admin/repertory/rubric/reducer';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const AddRubrics = () => {
   const dispatch = useDispatch();
@@ -212,140 +212,160 @@ const AddRubrics = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {rubricError && (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {rubricError}
-                    </UncontrolledAlert>
-                  )}
-                  {rubricSuccess && (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {rubricSuccess}
-                    </UncontrolledAlert>
-                  )}
-                </div>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form id="rubric-form" onSubmit={formik.handleSubmit}>
-                  <CardHeader className="align-items-center d-flex">
-                    <h4 className="card-title mb-0 flex-grow-1">New Rubrics</h4>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New Rubrics</h5>
+                    </div>
                   </CardHeader>
 
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="section" className="form-label">Section Name</Label>
-                            <Select
-                              id="section"
-                              name="section"
-                              value={formik.values.section}
-                              onChange={handleSectionChange}
-                              options={SectionForSubSectionOptions}
-                              isClearable
-                              placeholder="Select Section"
-                              className={formik.touched.section && formik.errors.section ? 'is-invalid' : ''}
-                            />
-                            {formik.touched.section && formik.errors.section && (
-                              <FormFeedback type="invalid">{formik.errors.section}</FormFeedback>
-                            )}
-                          </div>
-                        </Col>
+                  <CardBody>
+                    {(rubricSuccess || rubricError) ? (
+                      <div className="admin-form-alerts">
+                        {rubricSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {rubricSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {rubricError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {rubricError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
 
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="subSection" className="form-label">Sub Section Name</Label>
-                            <Select
-                              id="subSection"
-                              name="subSection"
-                              value={formik.values.subSection}
-                              onChange={(selected) => formik.setFieldValue('subSection', selected)}
-                              options={SubSectionOptions}
-                              isClearable
-                              placeholder="Select Sub Section"
-                              isDisabled={!formik.values.section}
-                              className={formik.touched.subSection && formik.errors.subSection ? 'is-invalid' : ''}
-                            />
-                            {formik.touched.subSection && formik.errors.subSection && (
-                              <FormFeedback type="invalid">{formik.errors.subSection}</FormFeedback>
-                            )}
-                          </div>
-                        </Col>
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="section" className="form-label">Section Name</Label>
+                          <Select
+                            id="section"
+                            name="section"
+                            value={formik.values.section}
+                            onChange={handleSectionChange}
+                            options={SectionForSubSectionOptions}
+                            isClearable
+                            placeholder="Select Section"
+                            className={formik.touched.section && formik.errors.section ? 'is-invalid' : ''}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: Boolean(formik.touched.section && formik.errors.section) })}
+                          />
+                          {formik.touched.section && formik.errors.section && (
+                            <FormFeedback type="invalid">{formik.errors.section}</FormFeedback>
+                          )}
+                        </div>
+                      </Col>
 
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="grade" className="form-label">Grade</Label>
-                            <Select
-                              id="grade"
-                              name="grade"
-                              value={formik.values.grade}
-                              onChange={handleGradeChange}
-                              options={GradeOptions}
-                              isClearable
-                              placeholder="Select Grade"
-                              className={formik.touched.grade && formik.errors.grade ? 'is-invalid' : ''}
-                            />
-                            {formik.touched.grade && formik.errors.grade && (
-                              <FormFeedback type="invalid">{formik.errors.grade}</FormFeedback>
-                            )}
-                          </div>
-                        </Col>
-                      </Row>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="subSection" className="form-label">Sub Section Name</Label>
+                          <Select
+                            id="subSection"
+                            name="subSection"
+                            value={formik.values.subSection}
+                            onChange={(selected) => formik.setFieldValue('subSection', selected)}
+                            options={SubSectionOptions}
+                            isClearable
+                            placeholder="Select Sub Section"
+                            isDisabled={!formik.values.section}
+                            className={formik.touched.subSection && formik.errors.subSection ? 'is-invalid' : ''}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: Boolean(formik.touched.subSection && formik.errors.subSection) })}
+                          />
+                          {formik.touched.subSection && formik.errors.subSection && (
+                            <FormFeedback type="invalid">{formik.errors.subSection}</FormFeedback>
+                          )}
+                        </div>
+                      </Col>
 
-                      <Row className='mt-3'>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="remedy" className="form-label">Select Remedy</Label>
-                            <Select
-                              id="remedy"
-                              name="remedy"
-                              value={formik.values.remedy}
-                              onChange={(selected) => formik.setFieldValue('remedy', selected)}
-                              options={RemediesByGradeOptions}
-                              isClearable
-                              placeholder="Select Remedy"
-                              isDisabled={!formik.values.grade}
-                            />
-                          </div>
-                        </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="grade" className="form-label">Grade</Label>
+                          <Select
+                            id="grade"
+                            name="grade"
+                            value={formik.values.grade}
+                            onChange={handleGradeChange}
+                            options={GradeOptions}
+                            isClearable
+                            placeholder="Select Grade"
+                            className={formik.touched.grade && formik.errors.grade ? 'is-invalid' : ''}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: Boolean(formik.touched.grade && formik.errors.grade) })}
+                          />
+                          {formik.touched.grade && formik.errors.grade && (
+                            <FormFeedback type="invalid">{formik.errors.grade}</FormFeedback>
+                          )}
+                        </div>
+                      </Col>
+                    </Row>
 
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="authors" className="form-label">Select One Or More Authors</Label>
-                            <Select
-                              id="authors"
-                              name="authors"
-                              value={formik.values.authors}
-                              onChange={(selected) => formik.setFieldValue('authors', selected)}
-                              options={AuthorForRubricOptions}
-                              isMulti
-                              isClearable
-                              placeholder="Select Authors"
-                              components={makeAnimated()}
-                              closeMenuOnSelect={false}
-                            />
-                          </div>
-                        </Col>
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="remedy" className="form-label">Select Remedy</Label>
+                          <Select
+                            id="remedy"
+                            name="remedy"
+                            value={formik.values.remedy}
+                            onChange={(selected) => formik.setFieldValue('remedy', selected)}
+                            options={RemediesByGradeOptions}
+                            isClearable
+                            placeholder="Select Remedy"
+                            isDisabled={!formik.values.grade}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles()}
+                          />
+                        </div>
+                      </Col>
 
-                        <Col xxl={4} md={4}>
-                          <div className="d-inline-flex gap-2 mt-4">
-                            <button
-                              type="button"
-                              className="btn btn-soft-info btn-sm mt-2"
-                              onClick={handleAddAuthorRemedy}
-                              disabled={!formik.values.remedy || formik.values.authors.length === 0}
-                            >
-                              <i className="ri-add-line align-middle"></i> Add Author & Remedy
-                            </button>
-                          </div>
-                        </Col>
-                      </Row>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="authors" className="form-label">Select One Or More Authors</Label>
+                          <Select
+                            id="authors"
+                            name="authors"
+                            value={formik.values.authors}
+                            onChange={(selected) => formik.setFieldValue('authors', selected)}
+                            options={AuthorForRubricOptions}
+                            isMulti
+                            isClearable
+                            placeholder="Select Authors"
+                            components={makeAnimated()}
+                            closeMenuOnSelect={false}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ isMulti: true })}
+                          />
+                        </div>
+                      </Col>
 
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <table className="table table-responsive table-bordered table-nowrap">
+                      <Col xxl={4} md={4}>
+                        <div className="d-inline-flex gap-2 mt-4">
+                          <button
+                            type="button"
+                            className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                            onClick={handleAddAuthorRemedy}
+                            disabled={!formik.values.remedy || formik.values.authors.length === 0}
+                          >
+                            <i className="ri-add-line align-middle me-1" aria-hidden="true" /> Add Author & Remedy
+                          </button>
+                        </div>
+                      </Col>
+                    </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={12} md={12}>
+                        <div className="table-responsive patient-list-modal__table-wrap">
+                          <table className="table mb-0 align-middle patient-list-modal__table table-bordered table-nowrap">
                             <thead>
                               <tr>
                                 <th scope="col">Remedy Name</th>
@@ -370,6 +390,7 @@ const AddRubrics = () => {
                                         <td className='text-center'>
                                           <div className="remove">
                                             <button
+                                              type="button"
                                               className="btn btn-sm btn-soft-danger remove-item-btn"
                                               onClick={() => handleRemoveAuthorRemedy(item.id, author.value)}
                                               title="Remove this author"
@@ -385,40 +406,34 @@ const AddRubrics = () => {
                               )}
                             </tbody>
                           </table>
-                        </Col>
-                      </Row>
-                    </div>
-                  </CardBody>
-
-                  <CardFooter className="gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
-                        </div>
-                      </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listrubrics">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button
-                            color="success"
-                            className="btn-label"
-                            type="submit"
-                            disabled={rubricsLoading || authorRemedyList.length === 0}
-                          >
-                            {rubricsLoading ? (
-                              <Spinner size="sm" className="me-2" />
-                            ) : (
-                              <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i>
-                            )}
-                            Save
-                          </Button>
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listrubrics" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button
+                          type="submit"
+                          className="btn btn-sm admin-list-btn admin-list-btn--new"
+                          disabled={rubricsLoading || authorRemedyList.length === 0}
+                        >
+                          {rubricsLoading ? (
+                            <Spinner size="sm" className="me-1" />
+                          ) : (
+                            <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          )}
+                          Save
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

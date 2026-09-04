@@ -6,7 +6,6 @@ import RecentActivity from "./RecentActivity";
 import RecentOrders from "./RecentOrders";
 import Revenue from "./Revenue";
 import SalesByLocations from "./SalesByLocations";
-import Section from "./Section";
 import StoreVisits from "./StoreVisits";
 import TopSellers from "./TopSellers";
 
@@ -20,27 +19,25 @@ const DashboardEcommerce = () => {
 
   return (
     <React.Fragment>
-      <div className="page-content">
+      <div className="page-content admin-dashboard-page">
         <Container fluid>
-        
           <Row>
             <Col>
               <div className="h-100">
-                <Section rightClickBtn={toggleRightColumn} />
-                <Row>
+                <Row className="g-2">
                   <Widget />
                 </Row>
-                <Row>
+                <Row className="g-2">
                   <Col xl={8}>
                     <Revenue />
                   </Col>
                   <SalesByLocations />
                 </Row>
-                <Row>
+                <Row className="g-2">
                   <BestSellingProducts />
                   <TopSellers />
                 </Row>
-                <Row>
+                <Row className="g-2">
                   <StoreVisits />
                   <RecentOrders />
                 </Row>

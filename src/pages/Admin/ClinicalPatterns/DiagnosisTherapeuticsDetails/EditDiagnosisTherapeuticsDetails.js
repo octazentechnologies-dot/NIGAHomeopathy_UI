@@ -1,25 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Label, Row, Button, FormFeedback, UncontrolledAlert } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Label, Row, FormFeedback, UncontrolledAlert } from 'reactstrap';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
-import Select from "react-select";
+import Select from 'react-select';
 import { useDispatch, useSelector } from 'react-redux';
 import { getDiagnosisForClinicalPatternList, saveDiagnosisTherapeuticsDetail } from '../../../../slices/thunks';
 import { convertToRaw, EditorState, ContentState } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';
 import { Editor } from 'react-draft-wysiwyg';
-import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
+import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
 import htmlToDraft from 'html-to-draftjs';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const EditDiagnosisTherapeuticsDetails = () => {
-  document.title = "Edit Diagnosis Therapeutics Details";
+  document.title = 'Edit Diagnosis Therapeutics Details';
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Redux state
   const diagnosisForClinicalPattern = useSelector((state) => state.DiagnosisTherapeutics.diagnosisListForClinicalPattern);
   const { success, error, loading } = useSelector((state) => state.DiagnosisTherapeutics);
 
@@ -28,16 +28,13 @@ const EditDiagnosisTherapeuticsDetails = () => {
     value: diagnosis.diagnosisID,
   })) || [];
 
-  // Get the item to edit from location.state
   const selectedDiagnosis = location.state?.selectedDiagnosis || null;
 
-  // Initial values for form
   const initialDiagnosis = selectedDiagnosis
-    ? DiagnosisForClinicalPatternOptions.find(opt => opt.value === selectedDiagnosis.diagnosisId)
+    ? DiagnosisForClinicalPatternOptions.find((opt) => opt.value === selectedDiagnosis.diagnosisId)
     : null;
   const initialDetails = selectedDiagnosis?.diagnosisTherapeuticsDetail1 || '';
 
-  // Editor state
   const [editorState, setEditorState] = useState(() => {
     if (initialDetails) {
       const contentBlock = htmlToDraft(initialDetails);
@@ -53,7 +50,6 @@ const EditDiagnosisTherapeuticsDetails = () => {
     dispatch(getDiagnosisForClinicalPatternList(null));
   }, [dispatch]);
 
-  // Formik setup
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -64,7 +60,6 @@ const EditDiagnosisTherapeuticsDetails = () => {
       diagnosis: Yup.object().shape({
         value: Yup.string().required('Diagnosis is required'),
       }).nullable().required('Diagnosis is required'),
-      //details: Yup.string().test('not-empty', 'Details are required', value => value && value.replace(/<(.|\n)*?>/g, '').trim().length > 0),
     }),
     onSubmit: (values, { setSubmitting }) => {
       const payload = {
@@ -77,7 +72,8 @@ const EditDiagnosisTherapeuticsDetails = () => {
     },
   });
 
-  // Sync editor state to formik
+  const diagnosisInvalid = Boolean(formik.touched.diagnosis && formik.errors.diagnosis);
+
   function handleEditorStateChange(newEditorState) {
     setEditorState(newEditorState);
     formik.setFieldValue('details', draftToHtml(convertToRaw(newEditorState.getCurrentContent())));
@@ -101,97 +97,112 @@ const EditDiagnosisTherapeuticsDetails = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {success ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {success}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {error ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {error}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">Edit Diagnosis Therapeutics Details</h4>
-                </CardHeader>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <form onSubmit={formik.handleSubmit}>
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="diagnosis" className="form-label">Diagnosis Therapeutics Name <span className="required">*</span></Label>
-                            <Select
-                              name="diagnosis"
-                              value={formik.values.diagnosis}
-                              onChange={handleSelectDiagnosis}
-                              options={DiagnosisForClinicalPatternOptions}
-                              onBlur={() => formik.setFieldTouched('diagnosis', true)}
-                              className={formik.touched.diagnosis && formik.errors.diagnosis ? "is-invalid" : ""}
-                              styles={{
-                                control: (base) => ({
-                                  ...base,
-                                  borderColor: formik.touched.diagnosis && formik.errors.diagnosis ? "red" : base.borderColor,
-                                  "&:hover": {
-                                    borderColor: formik.touched.diagnosis && formik.errors.diagnosis ? "red" : base.borderColor,
-                                  },
-                                }),
-                              }}
-                            />
-                            {formik.touched.diagnosis && formik.errors.diagnosis ? (
-                              <FormFeedback type="invalid" style={{ display: 'block' }}>{formik.errors.diagnosis.value || formik.errors.diagnosis}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="diagnosisTherapeuticsDetails" className="form-label">Diagnosis Therapeutics Details <span className="required">*</span></Label>
-                            <Editor
-                              wrapperClassName="demo-wrapper"
-                              editorClassName="demo-editor"
-                              editorState={editorState}
-                              onEditorStateChange={handleEditorStateChange}
-                              toolbarClassName="toolbar-class"
-                              wrapperStyle={{
-                                borderRadius: 5,
-                                borderWidth: 1,
-                                borderColor: '#0000'
-                              }}
-                              editorStyle={{
-                                borderRadius: 2,
-                                border: '1px solid lightgrey',
-                                backgroundColor: '#FFFFFF',
-                                height: '300px'
-                              }}
-                            />
-                            {formik.touched.details && formik.errors.details ? (
-                              <FormFeedback type="invalid" style={{ display: 'block' }}>{formik.errors.details}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">Edit Diagnosis Therapeutics Details</h5>
                     </div>
-                  </CardBody>
-                  <CardFooter className=" gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                  </CardHeader>
+
+                  <CardBody>
+                    {(success || error) ? (
+                      <div className="admin-form-alerts">
+                        {success ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {success}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {error ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {error}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="diagnosis" className="form-label">
+                            Diagnosis Therapeutics Name <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="diagnosis"
+                            inputId="diagnosis"
+                            value={formik.values.diagnosis}
+                            onChange={handleSelectDiagnosis}
+                            options={DiagnosisForClinicalPatternOptions}
+                            onBlur={() => formik.setFieldTouched('diagnosis', true)}
+                            className={diagnosisInvalid ? 'is-invalid' : ''}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: diagnosisInvalid })}
+                            placeholder="Select..."
+                          />
+                          {diagnosisInvalid ? (
+                            <FormFeedback type="invalid" style={{ display: 'block' }}>
+                              {formik.errors.diagnosis?.value || formik.errors.diagnosis}
+                            </FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listdiagnosistherapeuticsdetails"><Button color="danger" className="btn-label"> <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel </Button></Link>
-                          <Button color="success" className="btn-label" type="submit" disabled={formik.isSubmitting || loading}> <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> {loading ? <Spinner size="sm" /> : 'Update'} </Button>
+
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="diagnosisTherapeuticsDetails" className="form-label">
+                            Diagnosis Therapeutics Details <span className="required">*</span>
+                          </Label>
+                          <Editor
+                            wrapperClassName="demo-wrapper admin-form-editor"
+                            editorClassName="demo-editor"
+                            editorState={editorState}
+                            onEditorStateChange={handleEditorStateChange}
+                            toolbarClassName="toolbar-class"
+                            wrapperStyle={{
+                              borderRadius: 4,
+                              border: '1px solid #dee2e6',
+                            }}
+                            editorStyle={{
+                              borderRadius: 2,
+                              backgroundColor: '#FFFFFF',
+                              height: '300px',
+                              padding: '0 0.5rem',
+                            }}
+                          />
+                          {formik.touched.details && formik.errors.details ? (
+                            <FormFeedback type="invalid" style={{ display: 'block' }}>{formik.errors.details}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listdiagnosistherapeuticsdetails" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button
+                          type="submit"
+                          className="btn btn-sm admin-list-btn admin-list-btn--new"
+                          disabled={formik.isSubmitting || loading}
+                        >
+                          {loading ? (
+                            <Spinner size="sm" className="me-1" />
+                          ) : (
+                            <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          )}
+                          Update
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </form>
               </Card>

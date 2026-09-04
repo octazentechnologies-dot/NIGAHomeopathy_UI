@@ -17,17 +17,17 @@ const Process = () => (
                     </div>
                 </Col>
             </Row>
-            <Row>
-                {JOB_PROCESS.map((item, key) => (
-                    <Col lg={3} md={6} key={item.id}>
-                        <Card className={key === 0 ? "card shadow-lg" : "card shadow-none"}>
-                            <CardBody className="p-4">
+            <Row className="homeojob-process-row g-3">
+                {JOB_PROCESS.map((item) => (
+                    <Col lg={3} md={6} key={item.id} className="d-flex">
+                        <Card className="homeojob-process-card card w-100 h-100">
+                            <CardBody className="p-4 d-flex flex-column">
                                 <h1 className="fw-bold display-5 ff-secondary mb-4 text-success position-relative">
                                     <div className="job-icon-effect"></div>
                                     <span>{item.id}</span>
                                 </h1>
                                 <h6 className="fs-17 mb-2">{item.label}</h6>
-                                <p className="text-muted mb-0 fs-15">{item.desc}</p>
+                                <p className="text-muted mb-0 fs-15 flex-grow-1">{item.desc}</p>
                             </CardBody>
                         </Card>
                     </Col>

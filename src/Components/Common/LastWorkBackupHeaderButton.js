@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Badge,
-  Button,
   Modal,
   ModalBody,
   ModalFooter,
@@ -11,6 +10,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import ModalActionButton from './ModalActionButton';
+import '../WhatsAppModal/WhatsAppModal.css';
 import {
   deletePatientBoardBackup,
   fetchLatestPatientBoardBackupDetail,
@@ -172,7 +173,7 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
           <i className="ri-history-line fs-20" />
           {normalizedSummary.patientCount > 0 ? (
             <Badge
-              color="dark"
+              color="info"
               pill
               className="position-absolute last-work-backup-header__badge"
             >
@@ -182,16 +183,23 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
         </button>
       </div>
 
-      <Modal isOpen={modalOpen} toggle={closeModal} centered size="lg">
-        <ModalHeader toggle={closeModal}>Last Work Backup</ModalHeader>
-        <ModalBody>
+      <Modal isOpen={modalOpen} toggle={closeModal} centered size="lg" className="whatsapp-modal last-work-backup-modal">
+        <ModalHeader toggle={closeModal}>
+          <div className="whatsapp-modal__header">
+            <div className="whatsapp-modal__title">
+              <i className="ri-history-line" style={{ color: '#25a0e2', fontSize: 20 }} />
+              Last Work Backup
+            </div>
+          </div>
+        </ModalHeader>
+        <ModalBody className="whatsapp-modal__body">
           {restoreLoading && !backupSessions.length ? (
             <div className="text-center py-4">
-              <Spinner color="dark" />
+              <Spinner color="primary" />
             </div>
           ) : (
             <>
-              <p className="text-muted mb-3">
+              <p className="whatsapp-modal__subtle mb-3">
                 Saved on {formatSavedAt(normalizedSummary.savedAt || latestBackupDetail?.savedAt)}
                 {' · '}
                 {normalizedSummary.patientCount || backupSessions.length} patient(s)
@@ -206,43 +214,53 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
                     >
                       <div>
                         <div className="fw-semibold">{session.patientName || 'Patient'}</div>
-                        <div className="text-muted small">
+                        <div className="whatsapp-modal__subtle">
                           Last updated {formatSavedAt(session.updatedAt)}
                         </div>
                       </div>
-                      <Button
-                        color="dark"
-                        size="sm"
-                        outline
-                        disabled={restoreLoading}
+                      <ModalActionButton
+                        action="update"
                         onClick={() => handleRestoreOne(session)}
+                        disabled={restoreLoading}
                       >
                         Restore
-                      </Button>
+                      </ModalActionButton>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="mb-0">No patient sessions found in this backup.</p>
+                <div className="patient-list-modal__empty">
+                  <span className="patient-list-modal__empty-icon" aria-hidden="true">
+                    <i className="ri-history-line" />
+                  </span>
+                  No patient sessions found in this backup.
+                </div>
               )}
             </>
           )}
         </ModalBody>
-        <ModalFooter className="d-flex flex-wrap gap-2 justify-content-between">
-          <Button color="danger" outline disabled={deleteLoading || restoreLoading} onClick={handleDeleteBackup}>
-            {deleteLoading ? <Spinner size="sm" /> : 'Delete backup'}
-          </Button>
+        <ModalFooter className="whatsapp-modal__footer d-flex flex-wrap gap-2 justify-content-between">
+          <ModalActionButton
+            action="delete"
+            onClick={handleDeleteBackup}
+            disabled={deleteLoading || restoreLoading}
+            loading={deleteLoading}
+            loadingLabel="Deleting..."
+          >
+            Delete backup
+          </ModalActionButton>
           <div className="d-flex gap-2">
-            <Button color="light" onClick={closeModal}>
-              Close
-            </Button>
-            <Button
-              color="dark"
-              disabled={restoreLoading || !backupSessions.length}
+            <ModalActionButton action="close" onClick={closeModal} />
+            <ModalActionButton
+              action="save"
+              iconClassName="ri-history-line"
               onClick={handleRestoreAll}
+              disabled={restoreLoading || !backupSessions.length}
+              loading={restoreLoading}
+              loadingLabel="Restoring..."
             >
-              {restoreLoading ? <Spinner size="sm" /> : 'Restore all'}
-            </Button>
+              Restore all
+            </ModalActionButton>
           </div>
         </ModalFooter>
       </Modal>

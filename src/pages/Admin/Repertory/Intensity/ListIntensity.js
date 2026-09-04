@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, DropdownItem, DropdownMenu, DropdownToggle, FormGroup, Input, Label, Row, UncontrolledDropdown, Button } from 'reactstrap';
-import TableContainer from "../../../../Components/Common/TableContainerReactTable";
+import { Card, CardHeader, CardBody, Col, Container, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { Spinner } from 'reactstrap';
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch } from 'react-redux';
 import { getIntensitiesList, deleteIntensity } from '../../../../slices/admin/repertory/intensity/thunk';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 
@@ -12,39 +9,37 @@ const IntensityList = () => {
   const dispatch = useDispatch();
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const pageSize = 10;
 
-  // Delete modal state
   const [deleteModal, setDeleteModal] = useState(false);
   const [intensityToDelete, setIntensityToDelete] = useState(null);
 
-  // Redux state
   const intensitiesLoading = useSelector((state) => state?.Intensity?.loading || false);
   const intensities = useSelector((state) => state?.Intensity?.intensitiesList?.resultObject || []);
   const totalPages = useSelector((state) => state?.Intensity?.intensitiesList?.totalPageCount || 1);
+  const totalRecords = useSelector(
+    (state) => state?.Intensity?.intensitiesList?.totalRecordCount || intensities.length || 0
+  );
 
   useEffect(() => {
-    dispatch(getIntensitiesList({ PageNumber: currentPage, PageSize: pageSize }));
-  }, [currentPage]);
+    dispatch(getIntensitiesList({ PageNumber: currentPage, PageSize: pageSize, queryString: searchQuery }));
+  }, [currentPage, searchQuery, dispatch]);
 
-  // Pagination Handlers
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1);
+  };
+
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      dispatch(getIntensitiesList({ PageNumber: currentPage - 1, PageSize: pageSize }));
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      dispatch(getIntensitiesList({ PageNumber: currentPage + 1, PageSize: pageSize }));
-      setCurrentPage((prev) => prev + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
-  // Delete functionality
   const onClickDelete = (intensity) => {
     setIntensityToDelete(intensity);
     setDeleteModal(true);
@@ -52,11 +47,10 @@ const IntensityList = () => {
 
   const handleDeleteIntensity = () => {
     if (intensityToDelete) {
-      // Set deleteStatus to true and pass the whole item
       const intensityWithDeleteStatus = {
         ...intensityToDelete,
         deleteStatus: true,
-        changedBy: userDetails.userId
+        changedBy: userDetails.userId,
       };
 
       dispatch(deleteIntensity(intensityWithDeleteStatus));
@@ -65,152 +59,155 @@ const IntensityList = () => {
     }
   };
 
-  document.title = "List Intensity";
+  const rowStart = (currentPage - 1) * pageSize;
+
+  document.title = 'List Intensity';
   return (
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
-
           <Row>
             <Col lg={12}>
-
-
-              <Card>
-                <CardHeader>
-
-                  <Row className="g-4">
-                    <Col className="col-sm">
-                      <div className="d-flex justify-content-sm-start">
-                        <div className="search-box">
-                          <input type="text" className="form-control form-control-sm search" placeholder="Search..." /><i className="ri-search-line search-icon"></i>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col className="col-sm-auto">
-                      <div className="d-inline-flex gap-2">
-                        <button type="button" className="btn btn-soft-primary btn-sm"><i className=" ri-newspaper-line align-middle"></i> Import</button>
-                        <button type="button" className="btn btn-soft-secondary btn-sm"><i className="ri-file-list-3-line align-middle"></i> Export</button>
-                        <Link to="/admin/addintensity"><button type="button" className="btn btn-soft-info btn-sm"><i className="ri-add-line align-middle"></i> New</button></Link>
-                      </div>
-                    </Col>
-                  </Row>
-
+              <Card className="patient-list-modal admin-existance-list">
+                <CardHeader className="border-0">
+                  <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
+                    <div className="patient-list-modal__search flex-shrink-0">
+                      <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                      />
+                    </div>
+                    <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                        <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
+                        Import
+                      </button>
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                        <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
+                        Export
+                      </button>
+                      <Link to="/admin/addintensity" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-add-line align-middle me-1" aria-hidden="true" />
+                          New
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardBody>
-
-                  <div className="listjs-table" id="customerList">
-
-                    <div className="table-responsive table-card">
-                      <table className="table align-middle table-nowrap" id="customerTable">
-                        <thead className="">
+                  <div className="table-responsive patient-list-modal__table-wrap">
+                    <table className="table mb-0 align-middle patient-list-modal__table" id="customerTable">
+                      <thead>
+                        <tr>
+                          <th scope="col" className="text-center" style={{ width: '5%' }}>#</th>
+                          <th scope="col">Intensity No</th>
+                          <th scope="col">Description</th>
+                          <th scope="col" className="text-center" style={{ width: '12%' }}>Action</th>
+                        </tr>
+                      </thead>
+                      {intensitiesLoading ? (
+                        <tbody>
                           <tr>
-                            <th scope="col" style={{ width: "50px" }}>ID</th>
-                            <th>Intensity No</th>
-                            <th>Description</th>
-                            <th className='text-center' style={{ width: '10%' }}>Action</th>
+                            <td colSpan="4" className="text-center">
+                              <Spinner color="primary" size="sm" />
+                            </td>
                           </tr>
-                        </thead>
-                        {intensitiesLoading ? (
-                          <tbody>
+                        </tbody>
+                      ) : (
+                        <tbody>
+                          {intensities?.length > 0 ? (
+                            intensities.map((intensity, index) => (
+                              <tr key={intensity.intensityId || index}>
+                                <td className="text-center patient-list-modal__index">{rowStart + index + 1}</td>
+                                <td>{intensity.intensityNo || '—'}</td>
+                                <td>{intensity.description || '—'}</td>
+                                <td className="text-center">
+                                  <div className="d-inline-flex gap-2">
+                                    <div className="edit">
+                                      <Link to="/admin/editintensity" state={{ selectedIntensity: intensity }}>
+                                        <button type="button" className="btn btn-sm btn-soft-success edit-item-btn" title="Edit">
+                                          <i className="ri-pencil-fill" />
+                                        </button>
+                                      </Link>
+                                    </div>
+                                    <div className="remove">
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-soft-danger remove-item-btn"
+                                        title="Delete"
+                                        onClick={() => onClickDelete(intensity)}
+                                      >
+                                        <i className="ri-delete-bin-5-line" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
                             <tr>
-                              <td colSpan="4" className="text-center">
-                                <Spinner color="primary" />
+                              <td colSpan="4" className="text-center text-muted py-4">
+                                {searchQuery ? 'No intensities match your search' : 'No Intensities Available'}
                               </td>
                             </tr>
-                          </tbody>
-                        ) : (
-                          <tbody className="list form-check-all">
-                            {intensities?.length > 0 ? (
-                              intensities?.map((intensity, index) => (
-                                <tr key={index}>
-                                  <td>{intensity.intensityId}</td>
-                                  <td>{intensity.intensityNo}</td>
-                                  <td>{intensity.description}</td>
-                                  <td className='text-center '>
-                                    <div className="d-inline-flex gap-2">
-                                      <div className="edit">
-                                        <Link to="/admin/editintensity" state={{ selectedIntensity: intensity }}>
-                                          <button className="btn btn-sm btn-soft-success edit-item-btn"><i className="ri-pencil-fill" /></button>
-                                        </Link>
-                                      </div>
-                                      <div className="remove">
-                                        <button className="btn btn-sm btn-soft-danger remove-item-btn" onClick={() => onClickDelete(intensity)}><i className="ri-delete-bin-5-line" /> </button>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan="4" className="text-center">No Intensities Available</td>
-                              </tr>
-                            )}
-                          </tbody>
-                        )}
-                      </table>
-                    </div>
-
-                    <div class="align-items-center g-3 text-center text-sm-start row">
-                      <div class="col-sm">
-                        <div class="text-muted">
-                          Showing<span class="fw-semibold ms-1">{currentPage}</span> of <span class="fw-semibold">{totalPages}</span> Pages
-                        </div>
-                      </div>
-                      <div class="col-sm-auto">
-                        <ul class="pagination pagination-separated pagination-md justify-content-center justify-content-sm-start mb-0">
-                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                            <button className="page-link" onClick={handlePrevPage}>Previous</button>
-                          </li>
-
-                          {currentPage > 3 && (
-                            <>
-                              <li className="page-item">
-                                <button className="page-link" onClick={() => setCurrentPage(1)}>1</button>
-                              </li>
-                              {currentPage > 4 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                            </>
                           )}
-
-                          {[...Array(totalPages)].map((_, index) => {
-                            const page = index + 1;
-                            if (
-                              page === currentPage ||
-                              page === currentPage - 1 ||
-                              page === currentPage + 1
-                            ) {
-                              return (
-                                <li key={index} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                                  <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
-                                </li>
-                              );
-                            }
-                            return null;
-                          })}
-
-                          {currentPage < totalPages - 2 && (
-                            <>
-                              {currentPage < totalPages - 3 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                              <li className="page-item">
-                                <button className="page-link" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
-                              </li>
-                            </>
-                          )}
-
-                          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                            <button className="page-link" onClick={handleNextPage}>Next</button>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
+                        </tbody>
+                      )}
+                    </table>
                   </div>
 
+                  <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                    <div className="text-muted patient-list-modal__footer-text">
+                      {intensitiesLoading
+                        ? 'Loading...'
+                        : `Showing ${intensities.length} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
+                    </div>
+                    <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
+                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                        <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
+                          Previous
+                        </button>
+                      </li>
+                      {[...Array(totalPages)].map((_, index) => {
+                        const pageNumber = index + 1;
+                        if (
+                          pageNumber === 1 ||
+                          pageNumber === totalPages ||
+                          (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                        ) {
+                          return (
+                            <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
+                              <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
+                                {pageNumber}
+                              </button>
+                            </li>
+                          );
+                        }
+                        if (pageNumber === 2 || pageNumber === totalPages - 1) {
+                          return (
+                            <li key={index} className="page-item disabled">
+                              <span className="page-link">...</span>
+                            </li>
+                          );
+                        }
+                        return null;
+                      })}
+                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                        <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
                 </CardBody>
               </Card>
             </Col>
           </Row>
-
         </Container>
       </div>
       <DeleteModal

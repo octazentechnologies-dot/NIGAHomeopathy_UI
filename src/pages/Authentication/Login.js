@@ -111,10 +111,7 @@ const Login = (props) => {
                         className="auth-signin-logo mb-3"
                         height="38"
                       />
-                      <h4 className="auth-register-title mb-1">Sign in to Homeocentrum</h4>
-                      <p className="text-muted mb-0 auth-register-lead">
-                        Access your doctor dashboard, cases, and practice tools.
-                      </p>
+                      <h4 className="auth-register-title mb-0">Sign in to Homeocentrum</h4>
                     </div>
 
                     {infoNotice ? (

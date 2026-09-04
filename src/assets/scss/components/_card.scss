@@ -5,6 +5,22 @@
 .card {
     margin-bottom: $grid-gutter-width;
     box-shadow: $card-box-shadow;
+    border-radius: $card-border-radius;
+}
+
+.card > .card-header:first-child {
+    border-top-left-radius: $card-inner-border-radius;
+    border-top-right-radius: $card-inner-border-radius;
+}
+
+.card > .card-footer:last-child {
+    border-bottom-left-radius: $card-inner-border-radius;
+    border-bottom-right-radius: $card-inner-border-radius;
+}
+
+.card-img-top {
+    border-top-left-radius: $card-inner-border-radius;
+    border-top-right-radius: $card-inner-border-radius;
 }
 
 .card-header {
@@ -36,7 +52,6 @@
 
     &:hover{
         transform: translateY(calc(#{-$grid-gutter-width} / 5));
-        box-shadow: $box-shadow-lg;
     }
 }
 

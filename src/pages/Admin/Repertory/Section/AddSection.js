@@ -1,8 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, UncontrolledAlert, DropdownItem, DropdownMenu, DropdownToggle, FormGroup, Input, Label, Row, UncontrolledDropdown, Button } from 'reactstrap';
+import React, { useEffect } from 'react';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, UncontrolledAlert, FormFeedback, Form, Input, Label, Row } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { Spinner, FormFeedback, Form, Alert } from 'reactstrap';
 // Formik Validation
 import * as Yup from "yup";
 import { useFormik } from "formik";
@@ -63,113 +61,121 @@ const AddSection = (props) => {
   return (
     <React.Fragment>
       <div className="page-content">
-
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {sectionSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {sectionSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {sectionError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {sectionError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form onSubmit={(e) => {
                   e.preventDefault();
                   formik.handleSubmit();
                   return false;
                 }}>
-                  <CardHeader className="align-items-center d-flex">
-                    <h4 className="card-title mb-0 flex-grow-1">New Section</h4>
-                  </CardHeader>
-                  <CardBody className="card-body">
-
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Section Name</Label>
-                            <Input
-                              name='sectionName'
-                              type="input"
-                              value={formik.values.sectionName || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="placeholderInput"
-                              placeholder="Enter Section Name"
-                              invalid={
-                                formik.touched.sectionName && formik.errors.sectionName ? true : false
-                              } />
-                            {formik.touched.sectionName && formik.errors.sectionName ? (
-                              <FormFeedback type="invalid"><div>{formik.errors.sectionName}</div></FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Section Alias</Label>
-                            <Input
-                              name='sectionAlias'
-                              type="input"
-                              value={formik.values.sectionAlias || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="placeholderInput"
-                              placeholder="Enter Section Alias"
-                              invalid={
-                                formik.touched.sectionAlias && formik.errors.sectionAlias ? true : false
-                              } />
-                            {formik.touched.sectionAlias && formik.errors.sectionAlias ? (
-                              <FormFeedback type="invalid"><div>{formik.errors.sectionAlias}</div></FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Description</Label>
-                            <textarea
-                              name='description'
-                              value={formik.values.description || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="exampleFormControlTextarea5"
-                              rows="1"
-                              placeholder="Enter Description" ></textarea>
-                          </div>
-                        </Col>
-                      </Row>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New Section</h5>
                     </div>
-                  </CardBody>
+                  </CardHeader>
 
-                  <CardFooter className=" gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                  <CardBody>
+                    {(sectionSuccess || sectionError) ? (
+                      <div className="admin-form-alerts">
+                        {sectionSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {sectionSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {sectionError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {sectionError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="sectionName" className="form-label">
+                            Section Name <span className="required">*</span>
+                          </Label>
+                          <Input
+                            name='sectionName'
+                            type="text"
+                            value={formik.values.sectionName || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="sectionName"
+                            placeholder="Enter Section Name"
+                            invalid={
+                              formik.touched.sectionName && formik.errors.sectionName ? true : false
+                            } />
+                          {formik.touched.sectionName && formik.errors.sectionName ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.sectionName}</div></FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listsection"><Button color="danger" className="btn-label"> <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel </Button></Link>
-                          <Button color="success" className="btn-label" type='submit'> <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save </Button>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="sectionAlias" className="form-label">
+                            Section Alias <span className="required">*</span>
+                          </Label>
+                          <Input
+                            name='sectionAlias'
+                            type="text"
+                            value={formik.values.sectionAlias || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="sectionAlias"
+                            placeholder="Enter Section Alias"
+                            invalid={
+                              formik.touched.sectionAlias && formik.errors.sectionAlias ? true : false
+                            } />
+                          {formik.touched.sectionAlias && formik.errors.sectionAlias ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.sectionAlias}</div></FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
                     </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="description" className="form-label">Description</Label>
+                          <Input
+                            name='description'
+                            type="textarea"
+                            rows={1}
+                            value={formik.values.description || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="description"
+                            placeholder="Enter Description"
+                          />
+                        </div>
+                      </Col>
+                    </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listsection" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          Save
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

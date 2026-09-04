@@ -3,15 +3,16 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import { Collapse } from 'reactstrap';
 // Import Data
-import navdata from "../LayoutMenuData";
+import { useLayoutMenu } from "../LayoutMenuContext";
 //i18n
 import { withTranslation } from "react-i18next";
 import withRouter from "../../Components/Common/withRouter";
 import { useSelector } from "react-redux";
 import { createSelector } from 'reselect';
+import { findActiveMenuAnchor } from "../../helpers/menuActivePathHelper";
 
 const VerticalLayout = (props) => {
-    const navData = navdata().props.children;
+    const { navChildren: navData } = useLayoutMenu();
     const path = props.router.location.pathname;
 
     /*
@@ -87,9 +88,7 @@ layout settings
             const items = ul.getElementsByTagName("a");
             let itemsArray = [...items]; // converts NodeList to Array
             removeActivation(itemsArray);
-            let matchingMenuItem = itemsArray.find((x) => {
-                return x.pathname === pathName;
-            });
+            let matchingMenuItem = findActiveMenuAnchor(itemsArray, pathName);
             if (matchingMenuItem) {
                 activateParentDropdown(matchingMenuItem);
             }

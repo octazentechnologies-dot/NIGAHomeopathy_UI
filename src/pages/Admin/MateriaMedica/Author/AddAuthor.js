@@ -1,10 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, FormGroup, Input, Label, Row, UncontrolledAlert, UncontrolledDropdown, Button } from 'reactstrap';
+import React, { useEffect } from 'react';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Input, Label, Row, UncontrolledAlert } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { Spinner } from 'reactstrap';
-import Select from "react-select";
-import makeAnimated from "react-select/animated";
 
 // Formik Validation
 import * as Yup from "yup";
@@ -15,25 +11,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { createAuthor } from '../../../../slices/admin/materiaMedica/author/thunk';
 import { setAuthorError, setAuthorSuccess } from '../../../../slices/admin/materiaMedica/author/reducer';
 
-const SingleOptions = [
-  { value: 'Choices 1', label: 'Choices 1' },
-  { value: 'Choices 2', label: 'Choices 2' },
-  { value: 'Choices 3', label: 'Choices 3' },
-  { value: 'Choices 4', label: 'Choices 4' }
-];
-
 const AddAuthor = (props) => {
-  /*  const [selectedSingle, setSelectedSingle] = useState(null);
-   const [selectedMulti2, setselectedMulti2] = useState(null);
- 
-   function handleSelectSingle(selectedSingle) {
-     setSelectedSingle(selectedSingle);
-   }
- 
-   function handleMulti2(selectedMulti2) {
-     setselectedMulti2(selectedMulti2);
-   } */
-
   const dispatch = useDispatch();
 
   // Redux state
@@ -53,15 +31,6 @@ const AddAuthor = (props) => {
       //description: Yup.string().required("Please Enter Description")
     }),
     onSubmit: (values) => {
-      /*  console.log({
-         "authorId": 0,
-         "authorName": values.authorName,
-         "authorAlias": values.authorAlias,
-         "isForRepertory": values.isForRepertory,
-         "description": values.description,
-         "enteredBy": "Admin",
-         "deleteStatus": false
-       }); */
       dispatch(createAuthor({
         "authorId": 0,
         "authorName": values.authorName,
@@ -94,137 +63,139 @@ const AddAuthor = (props) => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {authorSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {authorSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {authorError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {authorError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form onSubmit={(e) => {
                   e.preventDefault();
                   formik.handleSubmit();
                   return false;
                 }}>
-                  <CardHeader className="align-items-center d-flex">
-                    <h4 className="card-title mb-0 flex-grow-1">New Author</h4>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New Author</h5>
+                    </div>
                   </CardHeader>
 
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
+                  <CardBody>
+                    {(authorSuccess || authorError) ? (
+                      <div className="admin-form-alerts">
+                        {authorSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {authorSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {authorError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {authorError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
 
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Author Name</Label>
-                            <Input
-                              name='authorName'
-                              type="input"
-                              value={formik.values.authorName || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="placeholderInput"
-                              placeholder="Enter Author Name"
-                              invalid={
-                                formik.touched.authorName && formik.errors.authorName ? true : false
-                              } />
-                            {formik.touched.authorName && formik.errors.authorName ? (
-                              <FormFeedback type="invalid"><div>{formik.errors.authorName}</div></FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Author Alias</Label>
-                            <Input
-                              name='authorAlias'
-                              type="input"
-                              value={formik.values.authorAlias || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="placeholderInput"
-                              placeholder="Enter Author Alias"
-                              invalid={
-                                formik.touched.authorAlias && formik.errors.authorAlias ? true : false
-                              } />
-                            {formik.touched.authorAlias && formik.errors.authorAlias ? (
-                              <FormFeedback type="invalid"><div>{formik.errors.authorAlias}</div></FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Is For Repertory ?</Label>
-                            <div className="form-check form-switch form-switch-lg mt-1" dir="ltr">
-                              <Input
-                                name='isForRepertory'
-                                type="checkbox"
-                                checked={!!formik.values.isForRepertory}
-                                onChange={(e) => formik.setFieldValue('isForRepertory', e.target.checked)}
-                                onBlur={formik.handleBlur}
-                                className="form-check-input"
-                                id="customSwitchsizelg"
-                                invalid={formik.touched.isForRepertory && !!formik.errors.isForRepertory} />
-                              {formik.touched.isForRepertory && formik.errors.isForRepertory && (
-                                <FormFeedback>{formik.errors.isForRepertory}</FormFeedback>
-                              )}
-                            </div>
-                          </div>
-                        </Col>
-
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Description</Label>
-                            <textarea
-                              name='description'
-                              value={formik.values.description || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="exampleFormControlTextarea5"
-                              rows="1"
-                              placeholder="Enter Description"
-                              invalid={
-                                formik.touched.description && formik.errors.description ? true : false
-                              }></textarea>
-                            {formik.touched.description && formik.errors.description && (
-                              <FormFeedback>{formik.errors.description}</FormFeedback>
-                            )}
-                          </div>
-                        </Col>
-                      </Row>
-                    </div>
-                  </CardBody>
-
-                  <CardFooter className=" gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="placeholderInput" className="form-label">Author Name</Label>
+                          <Input
+                            name='authorName'
+                            type="input"
+                            value={formik.values.authorName || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="placeholderInput"
+                            placeholder="Enter Author Name"
+                            invalid={
+                              formik.touched.authorName && formik.errors.authorName ? true : false
+                            } />
+                          {formik.touched.authorName && formik.errors.authorName ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.authorName}</div></FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listauthor"><Button color="danger" className="btn-label"> <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel </Button></Link>
-                          <Button color="success" className="btn-label" type='submit'> <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save </Button>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="placeholderInput" className="form-label">Author Alias</Label>
+                          <Input
+                            name='authorAlias'
+                            type="input"
+                            value={formik.values.authorAlias || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="placeholderInput"
+                            placeholder="Enter Author Alias"
+                            invalid={
+                              formik.touched.authorAlias && formik.errors.authorAlias ? true : false
+                            } />
+                          {formik.touched.authorAlias && formik.errors.authorAlias ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.authorAlias}</div></FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="placeholderInput" className="form-label">Is For Repertory ?</Label>
+                          <div className="form-check form-switch form-switch-lg mt-1" dir="ltr">
+                            <Input
+                              name='isForRepertory'
+                              type="checkbox"
+                              checked={!!formik.values.isForRepertory}
+                              onChange={(e) => formik.setFieldValue('isForRepertory', e.target.checked)}
+                              onBlur={formik.handleBlur}
+                              className="form-check-input"
+                              id="customSwitchsizelg"
+                              invalid={formik.touched.isForRepertory && !!formik.errors.isForRepertory} />
+                            {formik.touched.isForRepertory && formik.errors.isForRepertory && (
+                              <FormFeedback>{formik.errors.isForRepertory}</FormFeedback>
+                            )}
+                          </div>
                         </div>
                       </Col>
                     </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="placeholderInput" className="form-label">Description</Label>
+                          <textarea
+                            name='description'
+                            value={formik.values.description || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="exampleFormControlTextarea5"
+                            rows="1"
+                            placeholder="Enter Description"
+                            invalid={
+                              formik.touched.description && formik.errors.description ? true : false
+                            }></textarea>
+                          {formik.touched.description && formik.errors.description && (
+                            <FormFeedback>{formik.errors.description}</FormFeedback>
+                          )}
+                        </div>
+                      </Col>
+                    </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listauthor" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          Save
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AsyncPaginate } from 'react-select-async-paginate';
 import { getSubSectionBySection } from '../../../../helpers/realbackend_helper';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const SUB_SECTION_OPTIONS_PAGE_SIZE = 30;
 
@@ -53,35 +54,6 @@ const loadPaginatedSubSectionOptions = (subSectionList, search, prevOptions) => 
   );
 
   return { options: slicedOptions, hasMore };
-};
-
-export const diagnosisSubSectionSelectStyles = {
-  multiValue: (base) => ({
-    ...base,
-    backgroundColor: 'transparent',
-    border: '1px solid #ced4da',
-    borderRadius: '4px',
-  }),
-  multiValueLabel: (base) => ({
-    ...base,
-    color: '#212529',
-    fontWeight: 500,
-    padding: '2px 6px',
-  }),
-  multiValueRemove: (base) => ({
-    ...base,
-    color: '#6c757d',
-    ':hover': {
-      backgroundColor: '#f8d7da',
-      color: '#dc3545',
-    },
-  }),
-  option: (base, state) => ({
-    ...base,
-    backgroundColor: state.isSelected ? '#e9ecef' : state.isFocused ? '#f1f3f5' : base.backgroundColor,
-    color: '#212529',
-  }),
-  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
 };
 
 const DiagnosisSubSectionSelect = ({
@@ -160,8 +132,12 @@ const DiagnosisSubSectionSelect = ({
             : placeholder
       }
       className="diagnosis-subsection-select"
-      classNamePrefix="diagnosis-subsection-select"
-      styles={diagnosisSubSectionSelectStyles}
+      classNamePrefix="admin-form-select"
+      theme={neutralSelectTheme}
+      styles={{
+        ...getAdminFormSelectStyles({ isMulti }),
+        menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+      }}
       menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
       menuPosition="fixed"
     />

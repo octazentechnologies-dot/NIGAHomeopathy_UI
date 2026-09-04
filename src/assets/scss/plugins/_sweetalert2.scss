@@ -6,8 +6,9 @@
 .swal2-container {
   .swal2-title{
     padding: 24px 24px 0;
-    font-size: 20px;
-    font-weight: $font-weight-medium;
+    font-size: 16px;
+    font-weight: $font-weight-semibold;
+    color: #000;
   }  
 }
 
@@ -18,7 +19,7 @@
   color: var(--#{$prefix}body-color);
 
   .swal2-title{
-    color: var(--#{$prefix}heading-color);
+    color: #000;
   }
 
   .swal2-html-container{
@@ -115,14 +116,19 @@
 
 .swal2-close{
   font-family: $font-family-base;
-  font-weight: $font-weight-light;
-  font-size: 28px;
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #000;
+  opacity: 0.55;
+
   &:focus{
     box-shadow: none;
   }
 
   &:hover{
-    color: $primary;
+    color: #000;
+    opacity: 0.85;
   }
 }
 

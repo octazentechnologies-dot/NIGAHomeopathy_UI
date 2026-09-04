@@ -8,11 +8,11 @@ const SalesByLocations = () => {
     return (
         <React.Fragment>
             <Col xl={4}>
-                <Card className="card-height-100">
-                    <CardHeader className="align-items-center d-flex">
-                        <h4 className="card-title mb-0 flex-grow-1">Sales by Locations</h4>
+                <Card className="card-height-100 admin-dash-card">
+                    <CardHeader className="align-items-center d-flex admin-dash-card-header">
+                        <h4 className="card-title mb-0 flex-grow-1">Patients by Location</h4>
                         <div className="flex-shrink-0">
-                            <button type="button" className="btn btn-soft-secondary btn-sm">
+                            <button type="button" className="btn btn-sm doctor-dashboard-toolbar-btn">
                                 Export Report
                             </button>
                         </div>
@@ -29,24 +29,31 @@ const SalesByLocations = () => {
                         </div>
 
                         <div className="px-2 py-2 mt-1">
-                            <p className="mb-1">Canada <span className="float-end">75%</span></p>
+                            <p className="mb-1">Maharashtra <span className="float-end">68%</span></p>
                             <div className="progress mt-2" style={{ height: "6px" }}>
-                                <div className="progress-bar progress-bar-striped bg-primary" role="progressbar"
-                                    style={{ width: "75%" }} aria-valuenow="75" aria-valuemin="0" aria-valuemax="75">
+                                <div className="progress-bar progress-bar-striped bg-info" role="progressbar"
+                                    style={{ width: "68%" }} aria-valuenow="68" aria-valuemin="0" aria-valuemax="100">
                                 </div>
                             </div>
 
-                            <p className="mt-3 mb-1">Greenland <span className="float-end">47%</span></p>
+                            <p className="mt-3 mb-1">Karnataka <span className="float-end">17%</span></p>
                             <div className="progress mt-2" style={{ height: "6px" }}>
-                                <div className="progress-bar progress-bar-striped bg-primary" role="progressbar"
-                                    style={{ width: "47%" }} aria-valuenow="47" aria-valuemin="0" aria-valuemax="47">
+                                <div className="progress-bar progress-bar-striped bg-info" role="progressbar"
+                                    style={{ width: "17%" }} aria-valuenow="17" aria-valuemin="0" aria-valuemax="100">
                                 </div>
                             </div>
 
-                            <p className="mt-3 mb-1">Russia <span className="float-end">82%</span></p>
+                            <p className="mt-3 mb-1">Goa <span className="float-end">9%</span></p>
                             <div className="progress mt-2" style={{ height: "6px" }}>
-                                <div className="progress-bar progress-bar-striped bg-primary" role="progressbar"
-                                    style={{ width: "82%" }} aria-valuenow="82" aria-valuemin="0" aria-valuemax="82">
+                                <div className="progress-bar progress-bar-striped bg-info" role="progressbar"
+                                    style={{ width: "9%" }} aria-valuenow="9" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+
+                            <p className="mt-3 mb-1">Other States <span className="float-end">6%</span></p>
+                            <div className="progress mt-2" style={{ height: "6px" }}>
+                                <div className="progress-bar progress-bar-striped bg-info" role="progressbar"
+                                    style={{ width: "6%" }} aria-valuenow="6" aria-valuemin="0" aria-valuemax="100">
                                 </div>
                             </div>
                         </div>

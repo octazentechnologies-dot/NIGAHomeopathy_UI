@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import { Card, CardBody, Button, Input, UncontrolledTooltip, Tooltip, Modal, ModalHeader, ModalBody, ModalFooter, Col, Row, Label, Spinner } from 'reactstrap';
 import Select from "react-select";
 import Swal from 'sweetalert2';
@@ -338,25 +339,28 @@ const getClinicalSectionIcon = (tabName) => (
   CLINICAL_SECTION_ICON_BY_TAB[tabName] || 'ri-list-check-2'
 );
 
-const PATIENT_BOARD_INFO_COLOR = '#32ccff';
+const PATIENT_BOARD_INFO_COLOR = '#25a0e2';
 
 const patientBoardSelectStyles = {
   control: (provided, state) => ({
     ...provided,
-    minHeight: '38px',
-    borderRadius: '8px',
-    borderColor: state.isFocused ? PATIENT_BOARD_INFO_COLOR : '#dee2e6',
-    boxShadow: state.isFocused ? '0 0 0 3px rgba(50, 204, 255, 0.12)' : 'none',
+    minHeight: undefined,
+    height: undefined,
+    borderRadius: '0.25rem',
+    borderColor: state.isFocused ? '#25a0e2' : '#dee2e6',
+    borderWidth: '1px',
+    boxShadow: 'none',
     backgroundColor: '#fff',
     cursor: 'pointer',
     transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     '&:hover': {
-      borderColor: state.isFocused ? PATIENT_BOARD_INFO_COLOR : '#ced4da',
+      borderColor: state.isFocused ? '#25a0e2' : '#dee2e6',
     },
   }),
   valueContainer: (provided) => ({
     ...provided,
-    padding: '2px 12px',
+    paddingTop: 0,
+    paddingBottom: 0,
   }),
   placeholder: (provided) => ({
     ...provided,
@@ -411,15 +415,17 @@ const patientBoardSelectStyles = {
     ...provided,
     fontSize: '13px',
     borderRadius: '0',
-    backgroundColor: '#fff',
-    color: '#212529',
-    fontWeight: state.isSelected ? 600 : 400,
+    backgroundColor: 'transparent',
+    color: state.isSelected || state.isFocused ? '#25a0e2' : '#212529',
+    fontWeight: state.isSelected ? 500 : 400,
     cursor: 'pointer',
     ':hover': {
-      backgroundColor: '#fff',
+      backgroundColor: 'transparent',
+      color: '#25a0e2',
     },
     ':active': {
-      backgroundColor: '#fff',
+      backgroundColor: 'transparent',
+      color: '#25a0e2',
     },
   }),
 };
@@ -5557,14 +5563,14 @@ const PatientBoard = () => {
       display:block;
     }
     .pb-subsection-search-suggestions::-webkit-scrollbar {
-      width:8px;
+      width: var(--app-scrollbar-size);
     }
     .pb-subsection-search-suggestions::-webkit-scrollbar-track {
-      background:#f1f3f5;
+      background: var(--app-scrollbar-track);
       border-radius:0 8px 8px 0;
     }
     .pb-subsection-search-suggestions::-webkit-scrollbar-thumb {
-      background:#868e96;
+      background: var(--app-scrollbar-thumb);
       border-radius:4px;
     }
     .pb-subsection-search-suggestion {
@@ -6055,37 +6061,9 @@ const PatientBoard = () => {
     }
     .pb-prescription-modal__footer {
       border-top:1px solid #eef2f6;
-      padding:0.85rem 1.25rem;
-      background:#fafbfc;
-      gap:10px !important;
-    }
-    .pb-prescription-modal__btn-cancel {
-      display:inline-flex !important;
-      align-items:center;
-      gap:6px;
-      border-radius:10px !important;
-      font-weight:700 !important;
-      padding:0.45rem 1rem !important;
-      background:#fff !important;
-      border:1px solid #cbd5e1 !important;
-      color:#475569 !important;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.05);
-    }
-    .pb-prescription-modal__btn-cancel:hover {
-      background:#f8fafc !important;
-      border-color:#94a3b8 !important;
-      color:#0f172a !important;
-    }
-    .pb-prescription-modal__btn-save {
-      display:inline-flex !important;
-      align-items:center;
-      gap:6px;
-      border-radius:10px !important;
-      font-weight:700 !important;
-      padding:0.45rem 1rem !important;
-      background:linear-gradient(180deg, #10b981 0%, #059669 100%) !important;
-      border:1px solid #047857 !important;
-      box-shadow:0 2px 8px rgba(16, 185, 129, 0.28);
+      padding:0.5rem;
+      background:#fff;
+      gap:0.5rem !important;
     }
     .pb-link { text-decoration:underline; }
     .pb-muted { color:#6c757d; }
@@ -6493,27 +6471,31 @@ const PatientBoard = () => {
     .pb-qwrap { display:flex; flex-wrap:wrap; gap:24px 36px; }
     .pb-qitem { color:#495057; font-weight:500; cursor:pointer; text-decoration:none; }
     .pb-qitem.active { color:#000000; text-decoration:underline; text-underline-offset:6px; }
-    .search-box .form-control:focus { background-color:#f6f8fa; box-shadow:none; }
+    .search-box .form-control:focus { background-color:#f6f8fa; border-color:#25a0e2; box-shadow:none !important; }
+    .form-control:focus,
+    .form-control:focus-visible,
+    .form-select:focus,
+    .form-select:focus-visible { box-shadow:none !important; }
     .search-box:focus-within { background-color:transparent; }
-    .form-select:focus { background-color:#fff; border-color:#000000; box-shadow:none; }
-    .choices.is-focused .choices__inner { border-color:#000000 !important; box-shadow:none !important; }
-    .react-select-container .react-select__control--is-focused { border-color:#000000 !important; box-shadow:none !important; }
+    .form-select:focus { background-color:#fff; border-color:#25a0e2; box-shadow:none; }
+    .choices.is-focused .choices__inner { border-color:#25a0e2 !important; box-shadow:none !important; }
+    .react-select-container .react-select__control--is-focused { border-color:#25a0e2 !important; box-shadow:none !important; }
     .react-select-container .react-select__control { padding-left: 25px !important; }
     
     /* Custom scrollbar styling */
     .custom-scrollbar::-webkit-scrollbar {
-      width: 5px;
+      width: var(--app-scrollbar-size);
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: var(--app-scrollbar-track);
       border-radius: 3px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #868e96;
+      background: var(--app-scrollbar-thumb);
       border-radius: 3px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #495057;
+      background: var(--app-scrollbar-thumb-hover);
     }
     .choices__inner { background:#fff; }
     .pb-tab-card--mm {
@@ -11301,9 +11283,7 @@ const PatientBoard = () => {
                     )}
                   </ModalBody>
                   <ModalFooter>
-                    <Button color="secondary" onClick={() => setAdverseReferenceModalOpen(false)}>
-                      Close
-                    </Button>
+                    <ModalActionButton action="close" onClick={() => setAdverseReferenceModalOpen(false)} />
                   </ModalFooter>
                 </Modal>
               </div>
@@ -12649,9 +12629,7 @@ const PatientBoard = () => {
           </div>
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">
-          <Button type="button" outline color="danger" className="btn btn-ghost-danger" onClick={() => setRubricRemedyModalOpen(false)}>
-            <i className="ri-close-circle-line me-1" />Cancel
-          </Button>
+          <ModalActionButton action="cancel" onClick={() => setRubricRemedyModalOpen(false)} />
         </ModalFooter>
       </Modal>
 
@@ -12729,9 +12707,7 @@ const PatientBoard = () => {
           </div>
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">
-          <Button type="button" outline color="danger" className="btn btn-ghost-danger" onClick={() => setQuestionRubricModalOpen(false)}>
-            <i className="ri-close-circle-line me-1" />Cancel
-          </Button>
+          <ModalActionButton action="cancel" onClick={() => setQuestionRubricModalOpen(false)} />
         </ModalFooter>
       </Modal>
 
@@ -12797,7 +12773,6 @@ const PatientBoard = () => {
                       control: (base) => ({
                         ...base,
                         fontSize: '14px',
-                        minHeight: '38px'
                       }),
                       menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
                     }}
@@ -12949,7 +12924,6 @@ const PatientBoard = () => {
                             control: (base) => ({
                               ...base,
                               fontSize: '14px',
-                              minHeight: '38px'
                             }),
                             menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
                           }}
@@ -13168,7 +13142,6 @@ const PatientBoard = () => {
                             control: (base) => ({
                               ...base,
                               fontSize: '14px',
-                              minHeight: '38px'
                             }),
                             menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
                           }}
@@ -13427,10 +13400,13 @@ const PatientBoard = () => {
           )}
         </ModalBody>
         <ModalFooter className="justify-content-end pb-prescription-modal__footer">
-          <Button type="button" color="light" className="pb-prescription-modal__btn-cancel" onClick={() => setPrescriptionModalOpen(false)}>
-            <i className="ri-close-line" aria-hidden="true" />Cancel
-          </Button>
-          <Button type="button" color="success" className="pb-prescription-modal__btn-save" onClick={async () => {
+          <ModalActionButton
+            action="cancel"
+            onClick={() => setPrescriptionModalOpen(false)}
+          />
+          <ModalActionButton
+            action="save"
+            onClick={async () => {
             try {
               // Check if prescription table has at least one item
               if (prescriptionRemedyDetailList.length === 0) {
@@ -13527,20 +13503,9 @@ const PatientBoard = () => {
             }
           }}
             disabled={appointmentHistoryNoteLoading || prescriptionTab === 'Labs & Imaging'}
-          >
-            {appointmentHistoryNoteLoading ? (
-              <>
-                <div className="spinner-border spinner-border-sm me-1" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <i className="ri-save-line me-1" />Save
-              </>
-            )}
-          </Button>
+            loading={appointmentHistoryNoteLoading}
+            loadingLabel="Saving..."
+          />
         </ModalFooter>
       </Modal>
     </div>

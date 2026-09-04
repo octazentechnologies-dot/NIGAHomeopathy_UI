@@ -136,9 +136,9 @@ const RevenueCharts = ({ dataColors, series }) => {
 
 const StoreVisitsCharts = ({ dataColors }) => {
   var chartDonutBasicColors = getChartColorsArray(dataColors);
-  const series = [44, 55, 41, 17, 15];
+  const series = [28.5, 24.8, 21.6, 16.4, 8.7];
   var options = {
-    labels: ["Walkin", "Existing", "E-Consult", "Other", "Reference"],
+    labels: ["Walk-in", "Website", "Referral", "Mobile App", "Other"],
     chart: {
       height: 333,
       type: "donut",

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import ModalActionButton from '../../../Components/Common/ModalActionButton';
+import DateOfBirthPicker from '../../../Components/Common/DateOfBirthPicker';
 import { Card, CardBody, CardHeader, Col, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Label } from 'reactstrap';
 
 const TopSellers = () => {
@@ -83,7 +85,7 @@ const TopSellers = () => {
     const calendarStyles = `
         .doctor-reminders-card .calendar-grid {
             border: 1px solid #e3e8ee;
-            border-radius: 12px;
+            border-radius: 5px;
             overflow: hidden;
             background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
@@ -132,7 +134,7 @@ const TopSellers = () => {
             height: 22px;
             border-radius: 50%;
             background: #e8f5ff;
-            color: #1e88e5;
+            color: #25a0e2;
             font-size: 11px;
             font-weight: 700;
             display: inline-flex;
@@ -175,13 +177,13 @@ const TopSellers = () => {
             background-color: #f4faff;
         }
         .doctor-reminders-card .calendar-day.today {
-            background-color: #1e88e5;
-            color: #ffffff;
+            background-color: #e8f5ff;
+            color: #25a0e2;
             font-weight: 700;
-            border-radius: 8px;
+            border: 1px solid #cfe9ff;
+            border-radius: 5px;
             margin: 3px;
             min-height: 28px;
-            box-shadow: 0 4px 10px rgba(30, 136, 229, 0.28);
         }
         .doctor-reminders-card .calendar-day.empty {
             background-color: #fafbfc;
@@ -259,37 +261,86 @@ const TopSellers = () => {
                             ))}
                         </ol>
 
-                        <Modal isOpen={isModalOpen} toggle={closeModal} centered>
-                            <ModalHeader toggle={closeModal}>Create New Reminder</ModalHeader>
+                        <Modal
+                            isOpen={isModalOpen}
+                            toggle={closeModal}
+                            centered
+                            className="patient-list-modal new-patient-modal new-reminder-modal"
+                        >
+                            <ModalHeader className="patient-list-modal__header" toggle={closeModal}>
+                                <span className="patient-list-modal__title patient-list-modal__title--simple">
+                                    <i className="ri-notification-3-line" style={{ color: '#25a0e2', fontSize: 20 }} aria-hidden="true" />
+                                    <span className="patient-list-modal__title-text">Create New Reminder</span>
+                                </span>
+                            </ModalHeader>
                             <ModalBody>
-                                <div className="mb-3">
-                                    <Label className="form-label">Reminder Date</Label>
-                                    <Input type="date" value={newReminder.date} onChange={(e) => setNewReminder({ ...newReminder, date: e.target.value })} />
-                                </div>
-                                <div className="mb-3">
-                                    <Label className="form-label">Reminder Time</Label>
-                                    <Input type="time" value={newReminder.time} onChange={(e) => setNewReminder({ ...newReminder, time: e.target.value })} />
-                                </div>
-                                <div className="mb-3">
-                                    <Label className="form-label">Reminder Title</Label>
-                                    <Input type="text" placeholder="Enter title" value={newReminder.title} onChange={(e) => setNewReminder({ ...newReminder, title: e.target.value })} />
-                                </div>
-                                <div className="mb-3">
-                                    <Label className="form-label">Reminder Description</Label>
-                                    <Input type="textarea" placeholder="Enter description" value={newReminder.description} onChange={(e) => setNewReminder({ ...newReminder, description: e.target.value })} />
-                                </div>
-                                <div className="mb-0">
-                                    <Label className="form-label">Contact Number</Label>
-                                    <Input type="tel" placeholder="Enter contact number" value={newReminder.contact} onChange={(e) => setNewReminder({ ...newReminder, contact: e.target.value })} />
+                                <div className="row g-3 new-patient-modal__fields">
+                                    <div className="col-md-6">
+                                        <Label className="form-label new-patient-modal__label">
+                                            <i className="ri-calendar-line" aria-hidden="true" />
+                                            Reminder Date
+                                        </Label>
+                                        <DateOfBirthPicker
+                                            name="reminderDate"
+                                            value={newReminder.date}
+                                            minDate={null}
+                                            maxDate={null}
+                                            onChange={(dateStr) => setNewReminder({ ...newReminder, date: dateStr })}
+                                        />
+                                    </div>
+                                    <div className="col-md-6">
+                                        <Label className="form-label new-patient-modal__label">
+                                            <i className="ri-time-line" aria-hidden="true" />
+                                            Reminder Time
+                                        </Label>
+                                        <Input
+                                            type="time"
+                                            value={newReminder.time}
+                                            onChange={(e) => setNewReminder({ ...newReminder, time: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="col-12">
+                                        <Label className="form-label new-patient-modal__label">
+                                            <i className="ri-bookmark-line" aria-hidden="true" />
+                                            Reminder Title
+                                        </Label>
+                                        <Input
+                                            type="text"
+                                            placeholder="Enter title"
+                                            value={newReminder.title}
+                                            onChange={(e) => setNewReminder({ ...newReminder, title: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="col-12">
+                                        <Label className="form-label new-patient-modal__label">
+                                            <i className="ri-file-text-line" aria-hidden="true" />
+                                            Reminder Description
+                                        </Label>
+                                        <Input
+                                            type="textarea"
+                                            rows={3}
+                                            placeholder="Enter description"
+                                            value={newReminder.description}
+                                            onChange={(e) => setNewReminder({ ...newReminder, description: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="col-12">
+                                        <Label className="form-label new-patient-modal__label">
+                                            <i className="ri-phone-line" aria-hidden="true" />
+                                            Contact Number
+                                        </Label>
+                                        <Input
+                                            type="tel"
+                                            placeholder="Enter contact number"
+                                            value={newReminder.contact}
+                                            onChange={(e) => setNewReminder({ ...newReminder, contact: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </ModalBody>
-                            <ModalFooter>
-                                <Button color="secondary" onClick={closeModal}>
-                                    <i className="ri-close-circle-line me-1"/> Cancel
-                                </Button>
-                                <Button color="success" onClick={saveNewReminder}>
-                                    <i className="ri-save-3-fill me-1"/> Save
-                                </Button>
+                            <ModalFooter className="justify-content-end">
+                                <ModalActionButton action="cancel" onClick={closeModal} />
+                                <ModalActionButton action="save" onClick={saveNewReminder} />
                             </ModalFooter>
                         </Modal>
 

@@ -1,5 +1,17 @@
 .whatsapp-modal .modal-content {
   border-radius: 14px;
+  overflow: hidden;
+}
+
+.whatsapp-modal .modal-header {
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+.whatsapp-modal .modal-footer,
+.whatsapp-modal__footer {
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
 }
 
 .whatsapp-modal__header {
@@ -13,51 +25,110 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 800;
-  font-size: 18px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #000;
 }
 
 .whatsapp-modal__tabs {
   border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
+  background: transparent;
   padding: 8px 12px;
 }
 
+.whatsapp-modal__tabs .nav {
+  display: flex;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.whatsapp-modal__tabs .nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .whatsapp-modal__tabs .nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
   border: none !important;
   background: transparent !important;
   color: #495057 !important;
   font-weight: 700;
-  padding: 10px 12px;
+  padding: 10px 8px;
+  white-space: nowrap;
 }
 
 .whatsapp-modal__tabs .nav-link.active {
-  color: #0f5132 !important;
+  color: #25a0e2 !important;
   position: relative;
 }
 
 .whatsapp-modal__tabs .nav-link.active::after {
   content: "";
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 2px;
-  height: 3px;
-  border-radius: 999px;
-  background: #25D366;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 0;
+  background: #25a0e2;
 }
 
 .whatsapp-modal__body {
-  padding: 14px 16px;
   overflow: auto;
+}
+
+/* Consistent vertical rhythm between form rows (matches Bootstrap g-3 = 1rem) */
+.whatsapp-modal__form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.whatsapp-modal__form-stack > .row {
+  margin-bottom: 0;
+}
+
+.whatsapp-modal__form-stack .row.g-3 {
+  --bs-gutter-y: 1rem;
+  --bs-gutter-x: 1rem;
+}
+
+.whatsapp-modal__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.45rem;
+}
+
+.whatsapp-modal__label > i {
+  font-size: 0.95rem;
+  color: #25a0e2;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.whatsapp-modal__recipient-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.whatsapp-modal__char-count {
+  margin: 0;
 }
 
 .whatsapp-modal__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 0.5rem;
+  padding: 0.5rem;
   border-top: 1px solid #e9ecef;
   background: #ffffff;
 }
@@ -70,10 +141,8 @@
 }
 
 .whatsapp-modal__editor .rdw-editor-toolbar {
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
   margin-bottom: 0;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--vz-border-color, #dee2e6);
 }
 
 .whatsapp-modal__editor .rdw-editor-main {
@@ -141,5 +210,44 @@
 .whatsapp-modal__send-count {
   font-weight: 800;
   color: #0f5132;
+}
+
+/* Field height parity: react-select vs .form-control */
+.whatsapp-modal .form-control:not(textarea),
+.whatsapp-modal .flatpickr-input.form-control {
+  height: var(--app-form-field-height) !important;
+  min-height: var(--app-form-field-height) !important;
+  max-height: var(--app-form-field-height) !important;
+}
+
+.whatsapp-modal [class$="__control"],
+.whatsapp-modal [class*="css-"][class*="-control"] {
+  min-height: var(--app-form-field-height) !important;
+  height: var(--app-form-field-height) !important;
+  max-height: var(--app-form-field-height) !important;
+}
+
+.whatsapp-modal [class$="__value-container"] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.whatsapp-modal [class$="__indicator-separator"],
+.whatsapp-modal [class*="IndicatorSeparator"] {
+  display: none !important;
+}
+
+.whatsapp-modal [class$="__dropdown-indicator"],
+.whatsapp-modal [class$="__clear-indicator"] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.whatsapp-modal [class*="__control--is-focused"],
+.whatsapp-modal [class*="__control--menu-is-open"],
+.whatsapp-modal [class*="css-"][class*="-control--is-focused"],
+.whatsapp-modal [class*="css-"][class*="-control--menu-is-open"] {
+  border-color: #25a0e2 !important;
+  box-shadow: none !important;
 }
 

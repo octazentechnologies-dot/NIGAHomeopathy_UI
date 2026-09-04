@@ -15,25 +15,40 @@
 
     &::-webkit-scrollbar {
         -webkit-appearance: none;
+        width: var(--app-scrollbar-size) !important;
+        height: var(--app-scrollbar-size) !important;
     }
 
     &::-webkit-scrollbar:vertical {
-        width: 12px;
+        width: var(--app-scrollbar-size) !important;
     }
 
     &::-webkit-scrollbar:horizontal {
-        height: 12px;
+        height: var(--app-scrollbar-size) !important;
     }
 
     &::-webkit-scrollbar-thumb {
-        background-color: rgba(var(--#{$prefix}dark-rgb), .075);
-        border-radius: 10px;
-        border: 2px solid var(--#{$prefix}secondary-bg);
+        background-color: var(--app-scrollbar-thumb);
+        border-radius: 2px;
+        border: none;
     }
 
     &::-webkit-scrollbar-track {
-        border-radius: 10px;
-        background-color: var(--#{$prefix}secondary-bg);
+        border-radius: 3px;
+        background-color: var(--app-scrollbar-track);
+    }
+
+    &::-webkit-scrollbar-button,
+    &::-webkit-scrollbar-button:single-button,
+    &::-webkit-scrollbar-button:vertical:start:decrement,
+    &::-webkit-scrollbar-button:vertical:end:increment,
+    &::-webkit-scrollbar-button:horizontal:start:decrement,
+    &::-webkit-scrollbar-button:horizontal:end:increment {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        -webkit-appearance: none;
+        appearance: none;
     }
 }
 

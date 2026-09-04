@@ -14,6 +14,7 @@ import makeAnimated from "react-select/animated";
 import { getSectionForSubSection, getRubricsList, importRubricsFromExcel, getGradeDetails, exportRubricsToExcelThunk } from '../../../../slices/thunks';
 import { setRubricsList, setRubricError, setRubricSuccess, setRubricsLoading, setSectionForSubSection, setGradeDetails } from '../../../../slices/admin/repertory/rubric/reducer';
 import { useDispatch, useSelector } from 'react-redux';
+import '../../../../Components/WhatsAppModal/WhatsAppModal.css';
 const SingleOptions = [
   { value: 'Choices 1', label: 'Choices 1' },
   { value: 'Choices 2', label: 'Choices 2' },
@@ -40,6 +41,7 @@ const RubricList = () => {
   const sectionForSubSection = useSelector((state) => state.Rubric.sectionForSubSection);
   const gradeDetails = useSelector((state) => state.Rubric.gradeDetails);
   const totalPages = useSelector((state) => state?.Rubric?.rubricsList?.totalPageCount || 1);
+  const totalRecords = useSelector((state) => state?.Rubric?.rubricsList?.totalRecordCount || rubricList?.resultObject?.length || 0);
   const { rubricError, rubricSuccess, rubricsLoading } = useSelector((state) => state.Rubric);
   const rubricSuccessresponse = useSelector((state) => state.Rubric.rubricSuccess);
   const SectionForSubSectionOptions = sectionForSubSection?.map((section) => ({
@@ -68,12 +70,23 @@ const RubricList = () => {
   function handleSelectSection(section) {
     setSelectedSection(section);
     setIsSelectedSection(true);
-    dispatch(getRubricsList({ sectionId: section.value, queryString: searchQuery, pageNumber: currentPage, pageSize: pageSize }));
+    setCurrentPage(1);
   }
 
   useEffect(() => {
     dispatch(getSectionForSubSection(null));
   }, []);
+
+  useEffect(() => {
+    if (isSelectedSection && selectedSection?.value) {
+      dispatch(getRubricsList({
+        sectionId: selectedSection.value,
+        queryString: searchQuery,
+        pageNumber: currentPage,
+        pageSize: pageSize,
+      }));
+    }
+  }, [dispatch, isSelectedSection, selectedSection, searchQuery, currentPage, pageSize]);
 
   useEffect(() => {
     if (rubricSuccessresponse) {
@@ -143,18 +156,12 @@ const RubricList = () => {
 
   // Pagination Handlers
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      dispatch(getRubricsList({ sectionId: selectedSection?.value, queryString: searchQuery, PageNumber: currentPage - 1, PageSize: pageSize }));
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
-  // const handleNextPage = () => {
-  //   if (currentPage < totalPages) {
-  //     dispatch(getRubricsList({ sectionId: selectedSection?.value, queryString: searchQuery, PageNumber: currentPage + 1, PageSize: pageSize }));
-  //     setCurrentPage((prev) => prev + 1);
-  //   }
-  // };
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -258,304 +265,250 @@ const RubricList = () => {
     }
   };
 
+  const rowStart = (currentPage - 1) * pageSize;
+
   document.title = "List Rubrics";
   return (
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
-
           <Row>
             <Col lg={12}>
-
-
-              <Card>
-
-                <CardBody className="card-body">
-                  <div className="live-preview">
-                    <Row className="gy-4">
-                      <Col xxl={4} md={4}>
-                        <div className="mb-3">
-                          <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                          <Select
-                            value={selectedSection}
-                            onChange={(item) => { handleSelectSection(item); }}
-                            options={SectionForSubSectionOptions} />
-                        </div>
-                      </Col>
-                      <Col xxl={4} md={4}>
-                        <div className="mt-4">
-                          <Button className="btn-secondary btn-label m-btn-top"
-                            onClick={() => {
-                              setSelectedSection(null);
-                              dispatch(setRubricsList([]));
-                              setIsSelectedSection(false);
-                            }}> <i className="ri-refresh-line label-icon align-middle fs-16 me-2"></i> Reset </Button>
-                        </div>
-                      </Col>
-                    </Row>
-                  </div>
-                </CardBody>
-
-              </Card>
-
-              <Card>
-                <CardHeader>
-
-                  <Row className="g-4">
-                    <Col className="col-sm">
-                      <div className="d-flex justify-content-sm-start">
-                        <div className="search-box">
-                          <input value={searchQuery} type="text" className="form-control form-control-sm search" placeholder="Search..."
-                            onChange={(e) => {
-                              setSearchQuery(e.target.value);
-                              dispatch(getRubricsList({ sectionId: selectedSection?.value, queryString: e.target.value, pageNumber: currentPage, pageSize: pageSize }));
-                            }} /><i className="ri-search-line search-icon"></i>
-                        </div>
+              <Card className="patient-list-modal admin-existance-list admin-list-filter-card">
+                <CardBody>
+                  <Row className="gy-3 align-items-end">
+                    <Col xxl={4} md={4}>
+                      <div className="mb-0">
+                        <Label htmlFor="placeholderInput" className="form-label">Section</Label>
+                        <Select
+                          value={selectedSection}
+                          onChange={(item) => { handleSelectSection(item); }}
+                          options={SectionForSubSectionOptions}
+                        />
                       </div>
                     </Col>
-                    <Col className="col-sm-auto">
-                      <div className="d-inline-flex gap-2">
+                    <Col xxl={4} md={4}>
+                      <div className="admin-list-filter-reset">
                         <button
                           type="button"
-                          className="btn btn-soft-primary btn-sm"
-                          onClick={handleImportClick}
-                          disabled={isImporting}
+                          className="btn btn-sm admin-list-btn admin-list-btn--reset"
+                          onClick={() => {
+                            setSelectedSection(null);
+                            dispatch(setRubricsList([]));
+                            setIsSelectedSection(false);
+                          }}
                         >
-                          {isImporting ? (
-                            <>
-                              <Spinner size="sm" className="me-1" /> Importing...
-                            </>
-                          ) : (
-                            <>
-                              <i className="ri-newspaper-line align-middle"></i> Import
-                            </>
-                          )}
+                          <i className="ri-refresh-line align-middle me-1" aria-hidden="true" />
+                          Reset
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-soft-secondary btn-sm"
-                          onClick={handleExport}
-                          disabled={isExporting}
-                        >
-                          {isExporting ? (
-                            <>
-                              <Spinner size="sm" className="me-1" /> Exporting...
-                            </>
-                          ) : (
-                            <>
-                              <i className="ri-file-list-3-line align-middle"></i> Export
-                            </>
-                          )}
-                        </button>
-                        <Link to="/admin/addrubrics"><button type="button" className="btn btn-soft-info btn-sm"><i className="ri-add-line align-middle"></i> New</button></Link>
                       </div>
                     </Col>
                   </Row>
+                </CardBody>
+              </Card>
 
+              <Card className="patient-list-modal admin-existance-list">
+                <CardHeader className="border-0">
+                  <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
+                    <div className="patient-list-modal__search flex-shrink-0">
+                      <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                    <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                      <button
+                        type="button"
+                        className="btn btn-sm admin-list-btn admin-list-btn--import"
+                        onClick={handleImportClick}
+                        disabled={isImporting}
+                      >
+                        {isImporting ? (
+                          <>
+                            <Spinner size="sm" className="me-1" /> Importing...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
+                            Import
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm admin-list-btn admin-list-btn--export"
+                        onClick={handleExport}
+                        disabled={isExporting}
+                      >
+                        {isExporting ? (
+                          <>
+                            <Spinner size="sm" className="me-1" /> Exporting...
+                          </>
+                        ) : (
+                          <>
+                            <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
+                            Export
+                          </>
+                        )}
+                      </button>
+                      <Link to="/admin/addrubrics" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-add-line align-middle me-1" aria-hidden="true" />
+                          New
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardBody>
-
-                  <div className="listjs-table" id="customerList">
-
-                    <div className="table-responsive table-card">
-                      <table className="table align-middle table-nowrap" id="customerTable">
-                        <thead className="">
+                  <div className="table-responsive patient-list-modal__table-wrap">
+                    <table className="table mb-0 align-middle patient-list-modal__table" id="customerTable">
+                      <thead>
+                        <tr>
+                          <th scope="col" className="text-center" style={{ width: '5%' }}>#</th>
+                          <th scope="col">Sub Section Name</th>
+                          <th scope="col" className="text-center" style={{ width: '12%' }}>Details</th>
+                          <th scope="col" className="text-center" style={{ width: '12%' }}>Action</th>
+                        </tr>
+                      </thead>
+                      {isSelectedSection ? (
+                        rubricsLoading ? (
+                          <tbody>
+                            <tr>
+                              <td colSpan="4" className="text-center">
+                                <Spinner color="primary" size="sm" />
+                              </td>
+                            </tr>
+                          </tbody>
+                        ) : (
+                          <tbody>
+                            {rubricList?.resultObject?.length > 0 ? (
+                              rubricList.resultObject.map((rubric, index) => (
+                                <tr key={rubric.subSectionId || index}>
+                                  <td className="text-center patient-list-modal__index">{rowStart + index + 1}</td>
+                                  <td>{rubric.subSectionName || '—'}</td>
+                                  <td className="text-center">
+                                    <div className="d-inline-flex gap-2">
+                                      <div className="remove">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-soft-warning remove-item-btn"
+                                          title="View"
+                                          onClick={() => {
+                                            dispatch(getGradeDetails({ subSectionId: rubric.subSectionId }));
+                                            tog_standard();
+                                          }}
+                                        >
+                                          <i className="ri-eye-line" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="text-center">
+                                    <div className="d-inline-flex gap-2">
+                                      <div className="remove">
+                                        <button type="button" className="btn btn-sm btn-soft-danger remove-item-btn" title="Delete">
+                                          <i className="ri-delete-bin-5-line" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan="4" className="text-center text-muted py-4">
+                                  {searchQuery ? 'No rubrics match your search' : 'No rubrics found'}
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        )
+                      ) : (
+                        <tbody>
                           <tr>
-                            <th scope="col" style={{ width: "50px" }}>ID</th>
-                            <th>Sub Section Name</th>
-                            <th className='text-center' style={{ width: '10%' }}>Details</th>
-                            <th className='text-center' style={{ width: '10%' }}>Action</th>
-                          </tr>
-                        </thead>
-                        {isSelectedSection ?
-                          <>
-                            {
-                              rubricsLoading ? (
-                                <tbody className="list form-check-all">
-                                  <tr>
-                                    <td colSpan="5" className="text-center">
-                                      <Spinner color="primary" className="ms-1" />
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              ) : (
-                                <tbody className="list form-check-all">
-                                  {rubricList?.resultObject?.length > 0 ? (
-                                    rubricList?.resultObject?.map((rubric, index) => (
-                                      <tr key={index}>
-                                        <td>{rubric.subSectionId}</td>
-                                        <td>{rubric.subSectionName}</td>
-                                        <td className='text-center '>
-                                          <div className="d-inline-flex gap-2">
-                                            <div className="remove">
-                                              <button className="btn btn-sm btn-soft-warning remove-item-btn" onClick={() => {
-                                                dispatch(getGradeDetails({ subSectionId: rubric.subSectionId }))
-                                                tog_standard();
-                                              }}><i className="ri-eye-line" /> </button>
-                                            </div>
-                                          </div>
-                                        </td>
-                                        <td className='text-center '>
-                                          <div className="d-inline-flex gap-2">
-                                            <div className="remove">
-                                              <button className="btn btn-sm btn-soft-danger remove-item-btn"><i className="ri-delete-bin-5-line" /> </button>
-                                            </div>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
-                                      <td colSpan="5" className="text-center">
-                                        No rubrics found
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              )}
-                          </> :
-                          <tr>
-                            <td colSpan="5" className="text-center">
+                            <td colSpan="4" className="text-center text-muted py-4">
                               Please select a section
                             </td>
                           </tr>
-                        }
-                      </table>
-                    </div>
-
-                    {/* Pagination */}
-                    <div className="align-items-center g-3 text-center text-sm-start row mt-3">
-                      <div className="col-sm">
-                        <div className="text-muted">
-                          Showing <span className="fw-semibold ms-1">{currentPage}</span> of <span className="fw-semibold">{totalPages}</span> Pages
-                        </div>
-                      </div>
-                      <div className="col-sm-auto">
-                        <ul className="pagination pagination-separated pagination-md justify-content-center justify-content-sm-start mb-0">
-                          {/* Previous Button */}
-                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                            <button className="page-link" onClick={handlePrevPage}>Previous</button>
-                          </li>
-
-                          {/* First Page */}
-                          {currentPage > 3 && (
-                            <>
-                              <li className="page-item">
-                                <button
-                                  className="page-link"
-                                  onClick={() => {
-                                    dispatch(getRubricsList({
-                                      sectionId: selectedSection?.value,
-                                      queryString: searchQuery,
-                                      pageNumber: 1,
-                                      pageSize: pageSize
-                                    }));
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  1
-                                </button>
-                              </li>
-                              {currentPage > 4 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                            </>
-                          )}
-
-                          {/* Dynamic Page Numbers */}
-                          {[...Array(totalPages)].map((_, index) => {
-                            const page = index + 1;
-                            if (
-                              page === currentPage || // Current Page
-                              page === currentPage - 1 || // One Before Current
-                              page === currentPage + 1 // One After Current
-                            ) {
-                              return (
-                                <li key={index} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                                  <button
-                                    className="page-link"
-                                    onClick={() => {
-                                      dispatch(getRubricsList({
-                                        sectionId: selectedSection?.value,
-                                        queryString: searchQuery,
-                                        pageNumber: page,
-                                        pageSize: pageSize
-                                      }));
-                                      setCurrentPage(page);
-                                    }}
-                                  >
-                                    {page}
-                                  </button>
-                                </li>
-                              );
-                            }
-                            return null;
-                          })}
-
-                          {/* Last Page */}
-                          {currentPage < totalPages - 2 && (
-                            <>
-                              {currentPage < totalPages - 3 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                              <li className="page-item">
-                                <button
-                                  className="page-link"
-                                  onClick={() => {
-                                    dispatch(getRubricsList({
-                                      sectionId: selectedSection?.value,
-                                      queryString: searchQuery,
-                                      pageNumber: totalPages,
-                                      pageSize: pageSize
-                                    }));
-                                    setCurrentPage(totalPages);
-                                  }}
-                                >
-                                  {totalPages}
-                                </button>
-                              </li>
-                            </>
-                          )}
-
-                          {/* Next Button */}
-                          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                            <button
-                              className="page-link"
-                              onClick={() => {
-                                if (currentPage < totalPages) {
-                                  const nextPage = currentPage + 1;
-                                  dispatch(getRubricsList({
-                                    sectionId: selectedSection?.value,
-                                    queryString: searchQuery,
-                                    pageNumber: nextPage,
-                                    pageSize: pageSize
-                                  }));
-                                  setCurrentPage(nextPage);
-                                }
-                              }}
-                            >
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
+                        </tbody>
+                      )}
+                    </table>
                   </div>
 
+                  <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                    <div className="text-muted patient-list-modal__footer-text">
+                      {rubricsLoading
+                        ? 'Loading...'
+                        : `Showing ${rubricList?.resultObject?.length || 0} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
+                    </div>
+                    <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
+                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                        <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
+                          Previous
+                        </button>
+                      </li>
+                      {[...Array(totalPages)].map((_, index) => {
+                        const pageNumber = index + 1;
+                        if (
+                          pageNumber === 1 ||
+                          pageNumber === totalPages ||
+                          (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                        ) {
+                          return (
+                            <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
+                              <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
+                                {pageNumber}
+                              </button>
+                            </li>
+                          );
+                        }
+                        if (pageNumber === 2 || pageNumber === totalPages - 1) {
+                          return (
+                            <li key={index} className="page-item disabled">
+                              <span className="page-link">...</span>
+                            </li>
+                          );
+                        }
+                        return null;
+                      })}
+                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                        <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
                 </CardBody>
               </Card>
             </Col>
           </Row>
-
         </Container>
       </div>
 
 
       {/* Modal */}
-      <Modal id="myModal" isOpen={modal_standard} toggle={() => { tog_standard(); }} >
-        <ModalHeader className="modal-title" id="myModalLabel" toggle={() => { tog_standard(); }}>
-          Remedy Details
+      <Modal
+        id="myModal"
+        isOpen={modal_standard}
+        toggle={tog_standard}
+        size="lg"
+        className="whatsapp-modal rubric-details-modal"
+      >
+        <ModalHeader className="whatsapp-modal__header" id="myModalLabel" toggle={tog_standard}>
+          <div className="whatsapp-modal__title">
+            Remedy Details
+          </div>
         </ModalHeader>
-        <ModalBody>
-          <Accordion id="default-accordion-example">
+        <ModalBody className="whatsapp-modal__body">
+          <Accordion id="default-accordion-example" className="rubric-details-accordion">
             {gradeDetails && gradeDetails.length > 0 ? (
               gradeDetails.map((grade, index) => (
                 <AccordionItem key={grade.gradeId}>
@@ -567,8 +520,8 @@ const RubricList = () => {
                       style={{ cursor: "pointer" }}
                     >
                       Grade - {grade.gradeNo}
-                      <Link to="/admin/editrubrics" state={{ selectedGrade: grade }}>
-                        <button className="btn btn-sm btn-soft-success edit-item-btn">
+                      <Link to="/admin/editrubrics" state={{ selectedGrade: grade }} onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className="btn btn-sm btn-soft-success edit-item-btn" title="Edit">
                           <i className="ri-pencil-fill" />
                         </button>
                       </Link>
@@ -576,7 +529,7 @@ const RubricList = () => {
                   </h2>
 
                   <Collapse isOpen={openAccordion === grade.gradeId} className="accordion-collapse">
-                    <div className="accordion-body m-1 p-0">
+                    <div className="accordion-body m-0 p-0">
                       <table className="table table-responsive table-bordered table-nowrap m-0">
                         <thead>
                           <tr>
@@ -584,7 +537,7 @@ const RubricList = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {grade.remediesModels?.map((remedy, remedyIndex) => (
+                          {grade.remediesModels?.map((remedy) => (
                             <tr key={remedy.remedyId}>
                               <td className={grade.gradeId == 5 ? 'grade1css !important' : grade.gradeId == 2 ? 'grade2css !important' : grade.gradeId == 3 ? 'grade3css !important' : grade.gradeId == 4 && 'grade4css !important'}>{remedy.remedyName}</td>
                             </tr>
@@ -596,15 +549,12 @@ const RubricList = () => {
                 </AccordionItem>
               ))
             ) : (
-              <div className="text-center p-3">
-                <p className="mb-0">No data found</p>
+              <div className="text-center py-2">
+                <p className="mb-0 text-muted">No data found</p>
               </div>
             )}
           </Accordion>
         </ModalBody>
-        <div className="modal-footer">
-          <Button color="primary" onClick={() => { tog_standard(); }}>Close</Button>
-        </div>
       </Modal>
       {/* Modal */}
 
