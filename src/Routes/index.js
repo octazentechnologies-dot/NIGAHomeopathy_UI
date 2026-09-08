@@ -8,6 +8,8 @@ import VerticalLayout from "../Layouts/index";
 //routes
 import { authProtectedRoutes, publicRoutes } from "./allRoutes";
 import { AuthProtected } from './AuthProtected';
+import { AdminProtected } from './AdminProtected';
+import { isAdminRoutePath } from '../Components/constants/roles';
 
 const Index = () => {
     return (
@@ -29,17 +31,29 @@ const Index = () => {
                 </Route>
 
                 <Route>
-                    {authProtectedRoutes.map((route, idx) => (
-                        <Route
-                            path={route.path}
-                            element={
-                                <AuthProtected>
-                                    <VerticalLayout>{route.component}</VerticalLayout>
-                                </AuthProtected>}
-                            key={idx}
-                            exact={true}
-                        />
-                    ))}
+                    {authProtectedRoutes.map((route, idx) => {
+                        const requireAdmin =
+                            route.requireAdmin === true || isAdminRoutePath(route.path);
+                        const page = (
+                            <VerticalLayout>{route.component}</VerticalLayout>
+                        );
+                        return (
+                            <Route
+                                path={route.path}
+                                element={
+                                    <AuthProtected>
+                                        {requireAdmin ? (
+                                            <AdminProtected>{page}</AdminProtected>
+                                        ) : (
+                                            page
+                                        )}
+                                    </AuthProtected>
+                                }
+                                key={idx}
+                                exact={true}
+                            />
+                        );
+                    })}
                 </Route>
             </Routes>
         </React.Fragment>

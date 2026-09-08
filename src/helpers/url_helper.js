@@ -579,3 +579,12 @@ export const RUBRIC_INTELLIGENCE_REPERTORY_STATUS = "/AudioCaseIntelligence/repe
 /* Rubric intelligence admin */
 export const RUBRIC_INTELLIGENCE_METAPHORS = "/AudioCaseIntelligence/admin/metaphors";
 export const RUBRIC_INTELLIGENCE_ALIASES = "/AudioCaseIntelligence/admin/aliases";
+
+/* M02 W0 — Admin ACL probe (New-API only) */
+export const ADMIN_ACL_ME = "/AdminAcl/me";
+export const ADMIN_ACL_PING = "/AdminAcl/ping";
+export const ADMIN_ACL_REPERTORY = "/AdminAcl/repertory";
+export const ADMIN_ACL_COVERAGE = "/AdminAcl/coverage";
+
+/* M02 W7 — menus by role (New-API mastersAPI) */
+export const GET_MENU_BY_ROLE = "/mastersAPI/GetMenuByRole";
