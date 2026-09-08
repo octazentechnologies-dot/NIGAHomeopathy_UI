@@ -964,6 +964,7 @@
 
 .audio-case-panel .ac-language-select .ac-language-select__control--is-focused {
   border-color: var(--ac-blue) !important;
+  box-shadow: none !important;
 }
 
 .audio-case-panel .ac-language-select .ac-language-select__menu {

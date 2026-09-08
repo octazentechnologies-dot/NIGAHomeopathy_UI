@@ -1,46 +1,51 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardBody, CardHeader, Col, Container, Form, Input, Label, Nav, NavItem, NavLink, Row, TabContent, TabPane } from 'reactstrap';
 import classnames from "classnames";
 import Flatpickr from "react-flatpickr";
 
-//import images
-import progileBg from '../../../../assets/images/profile-bg.jpg';
 import avatar1 from '../../../../assets/images/users/avatar-1.jpg';
+import ModalActionButton from '../../../../Components/Common/ModalActionButton';
+import { navigateToRoleDashboard } from '../../../../helpers/navigateToRoleDashboard';
+
+const SettingsField = ({ icon, label, htmlFor, className = 'mb-3', children }) => (
+    <div className={className}>
+        <Label htmlFor={htmlFor} className="form-label new-patient-modal__label">
+            <i className={icon} aria-hidden="true" />
+            {label}
+        </Label>
+        {children}
+    </div>
+);
+
+const SettingsSectionTitle = ({ icon, children }) => (
+    <h5 className="user-profile-page__section-title">
+        <i className={icon} aria-hidden="true" />
+        {children}
+    </h5>
+);
 
 const Settings = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("1");
 
     const tabChange = (tab) => {
         if (activeTab !== tab) setActiveTab(tab);
     };
 
-    document.title = "Profile Settings | Velzon - React Admin & Dashboard Template";
+    const handleCancel = () => {
+        navigateToRoleDashboard(navigate);
+    };
+
+    document.title = "Settings | Niga Homeocentrum";
 
     return (
         <React.Fragment>
-            <div className="page-content">
+            <div className="page-content user-profile-page user-settings-page doctor-dashboard-page">
                 <Container fluid>
-                    <div className="position-relative mx-n4 mt-n4">
-                        <div className="profile-wid-bg profile-setting-img">
-                            <img src={progileBg} className="profile-wid-img" alt="" />
-                            <div className="overlay-content">
-                                <div className="text-end p-3">
-                                    <div className="p-0 ms-auto rounded-circle profile-photo-edit">
-                                        <Input id="profile-foreground-img-file-input" type="file"
-                                            className="profile-foreground-img-file-input" />
-                                        <Label htmlFor="profile-foreground-img-file-input"
-                                            className="profile-photo-edit btn btn-light">
-                                            <i className="ri-image-edit-line align-bottom me-1"></i> Change Cover
-                                        </Label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <Row>
                         <Col xxl={3}>
-                            <Card className="mt-n5">
+                            <Card className="user-profile-card doctor-stats-card">
                                 <CardBody className="p-4">
                                     <div className="text-center">
                                         <div className="profile-user position-relative d-inline-block mx-auto  mb-4">
@@ -58,36 +63,42 @@ const Settings = () => {
                                                 </Label>
                                             </div>
                                         </div>
-                                        <h5 className="fs-16 mb-1">Anna Adame</h5>
-                                        <p className="text-muted mb-0">Lead Designer / Developer</p>
+                                        <h5 className="fs-16 mb-1">Dr. Nikhil Jamdar</h5>
+                                        <p className="text-muted mb-0">NIGA Homeopathy</p>
                                     </div>
                                 </CardBody>
                             </Card>
 
-                            <Card>
+                            <Card className="user-profile-card doctor-stats-card">
                                 <CardBody>
                                     <div className="d-flex align-items-center mb-5">
                                         <div className="flex-grow-1">
-                                            <h5 className="card-title mb-0">Complete Your Profile</h5>
+                                            <h5 className="card-title mb-0">
+                                                <i className="ri-user-settings-line text-primary me-1" aria-hidden="true" />
+                                                Complete Your Profile
+                                            </h5>
                                         </div>
                                         <div className="flex-shrink-0">
                                             <Link to="#" className="badge bg-light text-primary fs-12"><i
                                                 className="ri-edit-box-line align-bottom me-1"></i> Edit</Link>
                                         </div>
                                     </div>
-                                    <div className="progress animated-progress custom-progress progress-label">
-                                        <div className="progress-bar bg-danger" role="progressbar" style={{ "width": "30%" }}
+                                    <div className="progress animated-progress custom-progress progress-label user-settings-page__profile-progress">
+                                        <div className="progress-bar bg-primary" role="progressbar" style={{ "width": "30%" }}
                                             aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">
                                             <div className="label">30%</div>
                                         </div>
                                     </div>
                                 </CardBody>
                             </Card>
-                            <Card>
+                            <Card className="user-profile-card doctor-stats-card">
                                 <CardBody>
                                     <div className="d-flex align-items-center mb-4">
                                         <div className="flex-grow-1">
-                                            <h5 className="card-title mb-0">Portfolio</h5>
+                                            <h5 className="card-title mb-0">
+                                                <i className="ri-links-line text-primary me-1" aria-hidden="true" />
+                                                Portfolio
+                                            </h5>
                                         </div>
                                         <div className="flex-shrink-0">
                                             <Link to="#" className="badge bg-light text-primary fs-12"><i
@@ -100,8 +111,8 @@ const Settings = () => {
                                                 <i className="ri-github-fill"></i>
                                             </span>
                                         </div>
-                                        <Input type="email" className="form-control" id="gitUsername" placeholder="Username"
-                                            defaultValue="@daveadame" />
+                                        <Input type="email" className="form-control" id="gitUsername" placeholder="@nikhiljamdar"
+                                            defaultValue="@nikhiljamdar" />
                                     </div>
                                     <div className="mb-3 d-flex">
                                         <div className="avatar-xs d-block flex-shrink-0 me-3">
@@ -110,7 +121,7 @@ const Settings = () => {
                                             </span>
                                         </div>
                                         <Input type="text" className="form-control" id="websiteInput"
-                                            placeholder="www.example.com" defaultValue="www.velzon.com" />
+                                            placeholder="www.nigahomeopathy.com" defaultValue="www.nigahomeopathy.com" />
                                     </div>
                                     <div className="mb-3 d-flex">
                                         <div className="avatar-xs d-block flex-shrink-0 me-3">
@@ -118,8 +129,8 @@ const Settings = () => {
                                                 <i className="ri-dribbble-fill"></i>
                                             </span>
                                         </div>
-                                        <Input type="text" className="form-control" id="dribbleName" placeholder="Username"
-                                            defaultValue="@dave_adame" />
+                                        <Input type="text" className="form-control" id="dribbleName" placeholder="@drnikhiljamdar"
+                                            defaultValue="@drnikhiljamdar" />
                                     </div>
                                     <div className="d-flex">
                                         <div className="avatar-xs d-block flex-shrink-0 me-3">
@@ -128,14 +139,14 @@ const Settings = () => {
                                             </span>
                                         </div>
                                         <Input type="text" className="form-control" id="pinterestName"
-                                            placeholder="Username" defaultValue="Advance Dave" />
+                                            placeholder="Dr. Nikhil Jamdar" defaultValue="Dr. Nikhil Jamdar" />
                                     </div>
                                 </CardBody>
                             </Card>
                         </Col>
 
                         <Col xxl={9}>
-                            <Card className="mt-xxl-n5">
+                            <Card className="user-profile-card doctor-stats-card">
                                 <CardHeader>
                                     <Nav className="nav-tabs-custom rounded card-header-tabs border-bottom-0"
                                         role="tablist">
@@ -145,7 +156,7 @@ const Settings = () => {
                                                 onClick={() => {
                                                     tabChange("1");
                                                 }}>
-                                                <i className="fas fa-home"></i>
+                                                <i className="ri-user-line me-1" aria-hidden="true"></i>
                                                 Personal Details
                                             </NavLink>
                                         </NavItem>
@@ -156,7 +167,7 @@ const Settings = () => {
                                                     tabChange("2");
                                                 }}
                                                 type="button">
-                                                <i className="far fa-user"></i>
+                                                <i className="ri-lock-password-line me-1" aria-hidden="true"></i>
                                                 Change Password
                                             </NavLink>
                                         </NavItem>
@@ -167,7 +178,7 @@ const Settings = () => {
                                                     tabChange("3");
                                                 }}
                                                 type="button">
-                                                <i className="far fa-envelope"></i>
+                                                <i className="ri-briefcase-line me-1" aria-hidden="true"></i>
                                                 Experience
                                             </NavLink>
                                         </NavItem>
@@ -178,7 +189,7 @@ const Settings = () => {
                                                     tabChange("4");
                                                 }}
                                                 type="button">
-                                                <i className="far fa-envelope"></i>
+                                                <i className="ri-shield-check-line me-1" aria-hidden="true"></i>
                                                 Privacy Policy
                                             </NavLink>
                                         </NavItem>
@@ -188,122 +199,101 @@ const Settings = () => {
                                     <TabContent activeTab={activeTab}>
                                         <TabPane tabId="1">
                                             <Form>
-                                                <Row>
+                                                <Row className="g-3 new-patient-modal__fields">
                                                     <Col lg={6}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="firstnameInput" className="form-label">First
-                                                                Name</Label>
+                                                        <SettingsField icon="ri-user-3-line" label="First Name" htmlFor="firstnameInput">
                                                             <Input type="text" className="form-control" id="firstnameInput"
-                                                                placeholder="Enter your firstname" defaultValue="Dave" />
-                                                        </div>
+                                                                placeholder="Enter your firstname" defaultValue="Nikhil" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={6}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="lastnameInput" className="form-label">Last
-                                                                Name</Label>
+                                                        <SettingsField icon="ri-user-4-line" label="Last Name" htmlFor="lastnameInput">
                                                             <Input type="text" className="form-control" id="lastnameInput"
-                                                                placeholder="Enter your lastname" defaultValue="Adame" />
-                                                        </div>
+                                                                placeholder="Enter your lastname" defaultValue="Jamdar" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={6}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="phonenumberInput" className="form-label">Phone
-                                                                Number</Label>
+                                                        <SettingsField icon="ri-phone-line" label="Phone Number" htmlFor="phonenumberInput">
                                                             <Input type="text" className="form-control"
                                                                 id="phonenumberInput"
                                                                 placeholder="Enter your phone number"
-                                                                defaultValue="+(1) 987 6543" />
-                                                        </div>
+                                                                defaultValue="+91 98765 43210" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={6}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="emailInput" className="form-label">Email
-                                                                Address</Label>
+                                                        <SettingsField icon="ri-mail-line" label="Email Address" htmlFor="emailInput">
                                                             <Input type="email" className="form-control" id="emailInput"
                                                                 placeholder="Enter your email"
-                                                                defaultValue="daveadame@velzon.com" />
-                                                        </div>
+                                                                defaultValue="dr.nikhil@nigahomeopathy.com" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={12}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="JoiningdatInput" className="form-label">Joining
-                                                                Date</Label>
+                                                        <SettingsField icon="ri-calendar-line" label="Joining Date" htmlFor="JoiningdatInput">
                                                             <Flatpickr
                                                                 className="form-control"
                                                                 options={{
                                                                     dateFormat: "d M, Y"
                                                                 }}
                                                             />
-                                                        </div>
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={12}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="skillsInput" className="form-label">Skills</Label>
-                                                            <select className="form-select mb-3">
-                                                                <option >Select your Skill </option>
-                                                                <option value="Choices1">CSS</option>
-                                                                <option value="Choices2">HTML</option>
-                                                                <option value="Choices3">PYTHON</option>
-                                                                <option value="Choices4">JAVA</option>
-                                                                <option value="Choices5">ASP.NET</option>
+                                                        <SettingsField icon="ri-tools-line" label="Skills" htmlFor="skillsInput">
+                                                            <select className="form-select" id="skillsInput">
+                                                                <option>Select your Skill</option>
+                                                                <option value="Choices1">Homeopathy</option>
+                                                                <option value="Choices2">Clinical Practice</option>
+                                                                <option value="Choices3">Case Taking</option>
                                                             </select>
-                                                        </div>
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={6}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="designationInput"
-                                                                className="form-label">Designation</Label>
+                                                        <SettingsField icon="ri-briefcase-line" label="Designation" htmlFor="designationInput">
                                                             <Input type="text" className="form-control"
                                                                 id="designationInput" placeholder="Designation"
-                                                                defaultValue="Lead Designer / Developer" />
-                                                        </div>
+                                                                defaultValue="Consulting Homeopath" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={6}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="websiteInput1"
-                                                                className="form-label">Website</Label>
+                                                        <SettingsField icon="ri-global-line" label="Website" htmlFor="websiteInput1">
                                                             <Input type="text" className="form-control" id="websiteInput1"
-                                                                placeholder="www.example.com" defaultValue="www.velzon.com" />
-                                                        </div>
+                                                                placeholder="www.example.com" defaultValue="www.nigahomeopathy.com" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={4}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="cityInput" className="form-label">City</Label>
+                                                        <SettingsField icon="ri-map-pin-line" label="City" htmlFor="cityInput">
                                                             <Input type="text" className="form-control" id="cityInput"
-                                                                placeholder="City" defaultValue="California" />
-                                                        </div>
+                                                                placeholder="City" defaultValue="Pune" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={4}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="countryInput" className="form-label">Country</Label>
+                                                        <SettingsField icon="ri-earth-line" label="Country" htmlFor="countryInput">
                                                             <Input type="text" className="form-control" id="countryInput"
-                                                                placeholder="Country" defaultValue="United States" />
-                                                        </div>
+                                                                placeholder="Country" defaultValue="India" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={4}>
-                                                        <div className="mb-3">
-                                                            <Label htmlFor="zipcodeInput" className="form-label">Zip
-                                                                Code</Label>
+                                                        <SettingsField icon="ri-mail-send-line" label="Zip Code" htmlFor="zipcodeInput">
                                                             <Input type="text" className="form-control" minLength="5"
                                                                 maxLength="6" id="zipcodeInput"
-                                                                placeholder="Enter zipcode" defaultValue="90011" />
-                                                        </div>
+                                                                placeholder="Enter zipcode" defaultValue="411001" />
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={12}>
-                                                        <div className="mb-3 pb-2">
-                                                            <Label htmlFor="exampleFormControlTextarea"
-                                                                className="form-label">Description</Label>
+                                                        <SettingsField icon="ri-file-text-line" label="Description" htmlFor="exampleFormControlTextarea" className="mb-3 pb-2">
                                                             <textarea className="form-control"
                                                                 id="exampleFormControlTextarea"
-                                                                rows="3" defaultValue="Hi I'm Anna Adame, It will be as simple as Occidental; in fact, it will be Occidental. To an English person, it will seem like simplified English, as a skeptical Cambridge friend of mine told me what Occidental is European languages are members of the same family."></textarea>
-                                                        </div>
+                                                                rows="3" defaultValue="Dr. Nikhil Jamdar is a consulting homeopath at NIGA Homeopathy, dedicated to holistic patient care and classical homeopathic practice."></textarea>
+                                                        </SettingsField>
                                                     </Col>
                                                     <Col lg={12}>
-                                                        <div className="hstack gap-2 justify-content-end">
-                                                            <button type="button"
-                                                                className="btn btn-secondary">Updates</button>
-                                                            <button type="button"
-                                                                className="btn btn-soft-danger">Cancel</button>
+                                                        <div className="user-profile-page__form-footer">
+                                                            <ModalActionButton action="cancel" type="button" onClick={handleCancel}>
+                                                                Cancel
+                                                            </ModalActionButton>
+                                                            <ModalActionButton action="update" type="button">
+                                                                Update Profile
+                                                            </ModalActionButton>
                                                         </div>
                                                     </Col>
                                                 </Row>
@@ -312,59 +302,43 @@ const Settings = () => {
 
                                         <TabPane tabId="2">
                                             <Form>
-                                                <Row className="g-2">
+                                                <Row className="g-3 new-patient-modal__fields">
                                                     <Col lg={4}>
-                                                        <div>
-                                                            <Label htmlFor="oldpasswordInput" className="form-label">Old
-                                                                Password*</Label>
+                                                        <SettingsField icon="ri-lock-line" label="Old Password" htmlFor="oldpasswordInput">
                                                             <Input type="password" className="form-control"
                                                                 id="oldpasswordInput"
                                                                 placeholder="Enter current password" />
-                                                        </div>
+                                                        </SettingsField>
                                                     </Col>
-
                                                     <Col lg={4}>
-                                                        <div>
-                                                            <Label htmlFor="newpasswordInput" className="form-label">New
-                                                                Password*</Label>
+                                                        <SettingsField icon="ri-lock-password-line" label="New Password" htmlFor="newpasswordInput">
                                                             <Input type="password" className="form-control"
                                                                 id="newpasswordInput" placeholder="Enter new password" />
-                                                        </div>
+                                                        </SettingsField>
                                                     </Col>
-
                                                     <Col lg={4}>
-                                                        <div>
-                                                            <Label htmlFor="confirmpasswordInput" className="form-label">Confirm
-                                                                Password*</Label>
+                                                        <SettingsField icon="ri-shield-keyhole-line" label="Confirm Password" htmlFor="confirmpasswordInput">
                                                             <Input type="password" className="form-control"
                                                                 id="confirmpasswordInput"
                                                                 placeholder="Confirm password" />
-                                                        </div>
+                                                        </SettingsField>
                                                     </Col>
-
                                                     <Col lg={12}>
-                                                        <div className="mb-3">
-                                                            <Link to="#"
-                                                                className="link-primary text-decoration-underline">Forgot
-                                                                Password ?</Link>
+                                                        <div className="user-profile-page__form-footer">
+                                                            <ModalActionButton action="cancel" type="button" onClick={handleCancel}>
+                                                                Cancel
+                                                            </ModalActionButton>
+                                                            <ModalActionButton action="update" type="button">
+                                                                Change Password
+                                                            </ModalActionButton>
                                                         </div>
                                                     </Col>
-
-                                                    <Col lg={12}>
-                                                        <div className="text-end">
-                                                            <button type="button" className="btn btn-secondary">Change
-                                                                Password</button>
-                                                        </div>
-                                                    </Col>
-
                                                 </Row>
-
                                             </Form>
-                                            <div className="mt-4 mb-3 border-bottom pb-2">
-                                                <div className="float-end">
-                                                    <Link to="#" className="link-primary">All Logout</Link>
-                                                </div>
-                                                <h5 className="card-title">Login History</h5>
+                                            <div className="user-profile-page__divider" />
+                                            <div className="d-flex align-items-center justify-content-between mb-3">
+                                                <SettingsSectionTitle icon="ri-history-line">Login History</SettingsSectionTitle>
+                                                <Link to="#" className="link-primary">All Logout</Link>
                                             </div>
                                             <div className="d-flex align-items-center mb-3">
                                                 <div className="flex-shrink-0 avatar-sm">
@@ -432,31 +406,28 @@ const Settings = () => {
                                             <form>
                                                 <div id="newlink">
                                                     <div id="1">
-                                                        <Row>
+                                                        <Row className="g-3 new-patient-modal__fields">
                                                             <Col lg={12}>
-                                                                <div className="mb-3">
-                                                                    <Label htmlFor="jobTitle" className="form-label">Job
-                                                                        Title</Label>
+                                                                <SettingsField icon="ri-briefcase-line" label="Job Title" htmlFor="jobTitle">
                                                                     <Input type="text" className="form-control"
                                                                         id="jobTitle" placeholder="Job title"
-                                                                        defaultValue="Lead Designer / Developer" />
-                                                                </div>
+                                                                        defaultValue="Consulting Homeopath" />
+                                                                </SettingsField>
                                                             </Col>
-
                                                             <Col lg={6}>
-                                                                <div className="mb-3">
-                                                                    <Label htmlFor="companyName" className="form-label">Company
-                                                                        Name</Label>
+                                                                <SettingsField icon="ri-building-line" label="Company Name" htmlFor="companyName">
                                                                     <Input type="text" className="form-control"
                                                                         id="companyName" placeholder="Company name"
-                                                                        defaultValue="Themesbrand" />
-                                                                </div>
+                                                                        defaultValue="NIGA Homeopathy" />
+                                                                </SettingsField>
                                                             </Col>
-
                                                             <Col lg={6}>
                                                                 <div className="mb-3">
-                                                                    <label htmlFor="experienceYear"
-                                                                        className="form-label">Experience Years</label>
+                                                                    <Label htmlFor="experienceYear"
+                                                                        className="form-label new-patient-modal__label">
+                                                                        <i className="ri-calendar-check-line" aria-hidden="true" />
+                                                                        Experience Years
+                                                                    </Label>
                                                                     <Row>
                                                                         <Col lg={5}>
                                                                             <select className="form-control" data-choices
@@ -527,22 +498,15 @@ const Settings = () => {
                                                             </Col>
 
                                                             <Col lg={12}>
-                                                                <div className="mb-3">
-                                                                    <Label htmlFor="jobDescription" className="form-label">Job
-                                                                        Description</Label>
-                                                                    <Input type='teaxtarea'
+                                                                <SettingsField icon="ri-file-list-3-line" label="Job Description" htmlFor="jobDescription">
+                                                                    <Input type="textarea"
                                                                         className="form-control" id="jobDescription"
                                                                         rows="3"
-                                                                        placeholder='Enter description'
-                                                                        defaultValue="You always want to make sure that your fonts work well together and try to limit the number of fonts you use to three or less. Experiment and play around with the fonts that you already have in the software you're working with reputable font websites."
+                                                                        placeholder="Enter description"
+                                                                        defaultValue="Providing classical homeopathic consultations and patient care at NIGA Homeopathy."
                                                                     />
-                                                                </div>
+                                                                </SettingsField>
                                                             </Col>
-
-                                                            <div className="hstack gap-2 justify-content-end">
-                                                                <Link className="btn btn-danger"
-                                                                    to="#">Delete</Link>
-                                                            </div>
                                                         </Row>
                                                     </div>
                                                 </div>
@@ -550,10 +514,13 @@ const Settings = () => {
                                                 </div>
 
                                                 <Col lg={12}>
-                                                    <div className="hstack gap-2">
-                                                        <button type="submit" className="btn btn-primary">Update</button>
-                                                        <Link to="#" className="btn btn-secondary">Add
-                                                            New</Link>
+                                                    <div className="user-profile-page__form-footer">
+                                                        <ModalActionButton action="cancel" type="button" onClick={handleCancel}>
+                                                            Cancel
+                                                        </ModalActionButton>
+                                                        <ModalActionButton action="update" type="submit">
+                                                            Update
+                                                        </ModalActionButton>
                                                     </div>
                                                 </Col>
                                             </form>
@@ -561,7 +528,7 @@ const Settings = () => {
 
                                         <TabPane tabId="4">
                                             <div className="mb-4 pb-2">
-                                                <h5 className="card-title text-decoration-underline mb-3">Security:</h5>
+                                                <SettingsSectionTitle icon="ri-shield-check-line">Security</SettingsSectionTitle>
                                                 <div className="d-flex flex-column flex-sm-row mb-4 mb-sm-0">
                                                     <div className="flex-grow-1">
                                                         <h6 className="fs-14 mb-1">Two-factor Authentication</h6>
@@ -570,10 +537,10 @@ const Settings = () => {
                                                             two types of identification when you log into Google
                                                             Authentication and SMS are Supported.</p>
                                                     </div>
-                                                    <div className="flex-shrink-0 ms-sm-3">
-                                                        <Link to="#"
-                                                            className="btn btn-sm btn-primary">Enable Two-facor
-                                                            Authentication</Link>
+                                                    <div className="flex-shrink-0 ms-sm-3 user-settings-page__security-action">
+                                                        <ModalActionButton action="update" type="button">
+                                                            Enable Two-factor Authentication
+                                                        </ModalActionButton>
                                                     </div>
                                                 </div>
                                                 <div className="d-flex flex-column flex-sm-row mb-4 mb-sm-0 mt-2">
@@ -584,9 +551,10 @@ const Settings = () => {
                                                             smartphone, or biometrics using your fingerprint, face, or
                                                             retina.</p>
                                                     </div>
-                                                    <div className="flex-shrink-0 ms-sm-3">
-                                                        <Link to="#" className="btn btn-sm btn-primary">Set
-                                                            up secondary method</Link>
+                                                    <div className="flex-shrink-0 ms-sm-3 user-settings-page__security-action">
+                                                        <ModalActionButton action="update" type="button">
+                                                            Set up secondary method
+                                                        </ModalActionButton>
                                                     </div>
                                                 </div>
                                                 <div className="d-flex flex-column flex-sm-row mb-4 mb-sm-0 mt-2">
@@ -597,14 +565,15 @@ const Settings = () => {
                                                             through your iOS or Android Twitter app. You can also
                                                             generate a backup code on twitter.com.</p>
                                                     </div>
-                                                    <div className="flex-shrink-0 ms-sm-3">
-                                                        <Link to="#"
-                                                            className="btn btn-sm btn-primary">Generate backup codes</Link>
+                                                    <div className="flex-shrink-0 ms-sm-3 user-settings-page__security-action">
+                                                        <ModalActionButton action="update" type="button">
+                                                            Generate backup codes
+                                                        </ModalActionButton>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="mb-3">
-                                                <h5 className="card-title text-decoration-underline mb-3">Application Notifications:</h5>
+                                                <SettingsSectionTitle icon="ri-notification-3-line">Application Notifications</SettingsSectionTitle>
                                                 <ul className="list-unstyled mb-0">
                                                     <li className="d-flex">
                                                         <div className="flex-grow-1">
@@ -689,21 +658,23 @@ const Settings = () => {
                                                 </ul>
                                             </div>
                                             <div>
-                                                <h5 className="card-title text-decoration-underline mb-3">Delete This
-                                                    Account:</h5>
+                                                <SettingsSectionTitle icon="ri-delete-bin-line">Delete This Account</SettingsSectionTitle>
                                                 <p className="text-muted">Go to the Data & Privacy section of your profile
                                                     Account. Scroll to "Your data & privacy options." Delete your
-                                                    Profile Account. Follow the instructions to delete your account :
+                                                    Profile Account. Follow the instructions to delete your account.
                                                 </p>
-                                                <div>
+                                                <SettingsField icon="ri-lock-line" label="Password" htmlFor="passwordInput">
                                                     <Input type="password" className="form-control" id="passwordInput"
-                                                        placeholder="Enter your password" defaultValue="make@321654987"
+                                                        placeholder="Enter your password"
                                                         style={{ maxWidth: "265px" }} />
-                                                </div>
-                                                <div className="hstack gap-2 mt-3">
-                                                    <Link to="#" className="btn btn-soft-danger">Close &
-                                                        Delete This Account</Link>
-                                                    <Link to="#" className="btn btn-light">Cancel</Link>
+                                                </SettingsField>
+                                                <div className="user-profile-page__form-footer">
+                                                    <ModalActionButton action="cancel" type="button" onClick={handleCancel}>
+                                                        Cancel
+                                                    </ModalActionButton>
+                                                    <ModalActionButton action="delete" type="button">
+                                                        Close & Delete This Account
+                                                    </ModalActionButton>
                                                 </div>
                                             </div>
                                         </TabPane>

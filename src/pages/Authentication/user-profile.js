@@ -7,27 +7,40 @@ import {
   Row,
   Col,
   Card,
-  Alert,
   CardBody,
-  Button,
+  Alert,
   Label,
   Input,
   FormFeedback,
   Form,
 } from "reactstrap";
 
-// Formik Validation
 import * as Yup from "yup";
 import { useFormik } from "formik";
-
-//redux
 import { useSelector, useDispatch } from "react-redux";
-
-import avatar from "../../assets/images/users/avatar-1.jpg";
-// actions
-import { editProfile, resetProfileFlag } from "../../slices/thunks";
 import { createSelector } from "reselect";
-import { UserRole } from "../../Components/constants/roles";
+
+import ModalActionButton from "../../Components/Common/ModalActionButton";
+import { editProfile, resetProfileFlag } from "../../slices/thunks";
+import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
+
+const ProfileBadge = ({ tone = "neutral", children }) => (
+  <span className={`user-profile-page__badge user-profile-page__badge--${tone}`}>
+    {children}
+  </span>
+);
+
+const ProfileInfoField = ({ icon, label, children }) => (
+  <Col lg={4} md={6} xs={12}>
+    <div className="user-profile-page__field">
+      <Label className="form-label new-patient-modal__label">
+        <i className={icon} aria-hidden="true" />
+        {label}
+      </Label>
+      <div className="user-profile-page__value">{children}</div>
+    </div>
+  </Col>
+);
 
 const UserProfile = () => {
   const dispatch = useDispatch();
@@ -39,25 +52,19 @@ const UserProfile = () => {
   const [userName, setUserName] = useState("Admin");
 
   const selectLayoutState = (state) => state.Profile;
-  const userprofileData = createSelector(
-    selectLayoutState,
-    (state) => ({
-      user: state.user,
-      success: state.success,
-      error: state.error
-    })
-  );
-  // Inside your component
-  const {
-    user, success, error 
-  } = useSelector(userprofileData);
+  const userprofileData = createSelector(selectLayoutState, (state) => ({
+    user: state.user,
+    success: state.success,
+    error: state.error,
+  }));
+
+  const { user, success, error } = useSelector(userprofileData);
 
   useEffect(() => {
     const authUserStr = sessionStorage.getItem("authUser");
     if (authUserStr) {
       try {
         const obj = JSON.parse(authUserStr);
-        // Handle both direct user object and wrapped in data property
         const userInfo = obj.data || obj;
 
         if (userInfo) {
@@ -67,7 +74,6 @@ const UserProfile = () => {
           setidx(userInfo.userId || userInfo._id || "1");
 
           if (!isEmpty(user)) {
-            // Update logic if needed
             const updatedObj = { ...obj };
             if (updatedObj.data) {
               updatedObj.data.first_name = user.first_name;
@@ -81,233 +87,174 @@ const UserProfile = () => {
         setTimeout(() => {
           dispatch(resetProfileFlag());
         }, 3000);
-      } catch (error) {
-        console.error("Error parsing authUser:", error);
+      } catch (parseError) {
+        console.error("Error parsing authUser:", parseError);
       }
     }
   }, [dispatch, user]);
 
-
-
   const validation = useFormik({
-    // enableReinitialize : use this flag when initial values needs to be changed
     enableReinitialize: true,
-
     initialValues: {
-      first_name: userName || 'Admin',
-      idx: idx || '',
+      first_name: userName || "Admin",
+      idx: idx || "",
     },
     validationSchema: Yup.object({
       first_name: Yup.string().required("Please Enter Your UserName"),
     }),
     onSubmit: (values) => {
       dispatch(editProfile(values));
-    }
+    },
   });
 
-  // Function to handle back button click - navigate to appropriate dashboard based on role
   const handleBackToDashboard = () => {
-    const authUserStr = sessionStorage.getItem("authUser");
-    if (authUserStr) {
-      try {
-        const obj = JSON.parse(authUserStr);
-        const userInfo = obj.data || obj;
-        const userRole = userInfo?.role;
-
-        if (userRole === UserRole.ADMIN) {
-          navigate("/dashboard");
-        } else if (userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION) {
-          navigate("/doctordashboard");
-        } else {
-          // Default to dashboard if role is not recognized
-          navigate("/dashboard");
-        }
-      } catch (error) {
-        console.error("Error parsing authUser:", error);
-        navigate("/dashboard");
-      }
-    } else {
-      navigate("/dashboard");
-    }
+    navigateToRoleDashboard(navigate);
   };
 
-  document.title = "Profile | Velzon - React Admin & Dashboard Template";
+  const getDaysRemainingTone = (days) => {
+    if (days > 7) return "success";
+    if (days > 3) return "warning";
+    return "danger";
+  };
+
+  document.title = "Profile | Niga Homeocentrum";
+
   return (
-    <React.Fragment>
-      <div className="page-content">
-        <Container fluid>
-          <Row className="mb-3">
-            <Col lg="12">
-              <Button
-                color="secondary"
-                onClick={handleBackToDashboard}
-                className="d-flex align-items-center"
-              >
-                <i className="mdi mdi-arrow-left me-2"></i>
-                Back to Dashboard
-              </Button>
-            </Col>
-          </Row>
-          <Row>
-            <Col lg="12">
-              {error && error ? <Alert color="danger">{error}</Alert> : null}
-              {success ? <Alert color="success">Username Updated To {userName}</Alert> : null}
+    <div className="page-content user-profile-page doctor-dashboard-page">
+      <Container fluid>
+        <Row>
+          <Col xs={12}>
+            <Card className="user-profile-card doctor-stats-card">
+              <CardBody className="user-profile-card__body">
+            {error ? <Alert color="danger" className="mb-3">{error}</Alert> : null}
+            {success ? (
+              <Alert color="success" className="mb-3">
+                Username updated to {userName}
+              </Alert>
+            ) : null}
 
-              <Card>
-                <CardBody>
-                  <div className="d-flex">
-                    <div className="mx-3">
-                      <img
-                        src={avatar}
-                        alt=""
-                        className="avatar-md rounded-circle img-thumbnail"
-                      />
-                    </div>
-                    <div className="flex-grow-1 align-self-center">
-                      <div className="text-muted">
-                        <h5>{userName || "Admin"}</h5>
-                        <p className="mb-1">Email Id : {email}</p>
-                        <p className="mb-0">User ID : #{idx}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
+            <div className="user-profile-page__summary">
+              <span className="user-profile-page__avatar" aria-hidden="true">
+                <i className="ri-user-heart-line" />
+              </span>
+              <div className="min-w-0">
+                <h5 className="user-profile-page__summary-name text-truncate">{userName || "Admin"}</h5>
+                <p className="user-profile-page__summary-meta">
+                  <i className="ri-mail-line" aria-hidden="true" />
+                  <span>Email: {email}</span>
+                </p>
+                <p className="user-profile-page__summary-meta mb-0">
+                  <i className="ri-hashtag" aria-hidden="true" />
+                  <span>User ID: #{idx}</span>
+                </p>
+              </div>
+            </div>
 
-              {/* Additional User Information */}
-              {userData && (
-                <Card className="mt-4">
-                  <CardBody>
-                    <h4 className="card-title mb-4">User Information</h4>
-                    <Row>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">Full Name</Label>
-                          <p className="mb-0">{userData.userName || "N/A"}</p>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">First Name</Label>
-                          <p className="mb-0">{userData.firstName || "N/A"}</p>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">Last Name</Label>
-                          <p className="mb-0">{userData.lastName || "N/A"}</p>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">Role</Label>
-                          <p className="mb-0">
-                            <span className="badge bg-primary">{userData.role || "N/A"}</span>
-                          </p>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">Role ID</Label>
-                          <p className="mb-0">{userData.roleId || "N/A"}</p>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">User ID</Label>
-                          <p className="mb-0">#{userData.userId || "N/A"}</p>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">Super User</Label>
-                          <p className="mb-0">
-                            <span className={`badge ${userData.isSuperUser ? "bg-success" : "bg-secondary"}`}>
-                              {userData.isSuperUser ? "Yes" : "No"}
-                            </span>
-                          </p>
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="fw-semibold text-muted">Plan Status</Label>
-                          <p className="mb-0">
-                            <span className={`badge ${userData.isPlanActive ? "bg-success" : "bg-danger"}`}>
-                              {userData.isPlanActive ? "Active" : "Inactive"}
-                            </span>
-                          </p>
-                        </div>
-                      </Col>
-                      {userData.daysRemaining !== undefined && (
-                        <Col md={6}>
-                          <div className="mb-3">
-                            <Label className="fw-semibold text-muted">Days Remaining</Label>
-                            <p className="mb-0">
-                              <span className={`badge ${userData.daysRemaining > 7 ? "bg-success" : userData.daysRemaining > 3 ? "bg-warning" : "bg-danger"}`}>
-                                {userData.daysRemaining} days
-                              </span>
-                            </p>
-                          </div>
-                        </Col>
-                      )}
-                      {userData.firmIds && (
-                        <Col md={6}>
-                          <div className="mb-3">
-                            <Label className="fw-semibold text-muted">Firm IDs</Label>
-                            <p className="mb-0">{userData.firmIds}</p>
-                          </div>
-                        </Col>
-                      )}
-                    </Row>
-                  </CardBody>
-                </Card>
-              )}
-            </Col>
-          </Row>
-
-          <h4 className="card-title mb-4">Change User Name</h4>
-
-          <Card>
-            <CardBody>
-              <Form
-                className="form-horizontal"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  validation.handleSubmit();
-                  return false;
-                }}
-              >
-                <div className="form-group">
-                  <Label className="form-label">User Name</Label>
-                  <Input
-                    name="first_name"
-                    // value={name}
-                    className="form-control"
-                    placeholder="Enter User Name"
-                    type="text"
-                    onChange={validation.handleChange}
-                    onBlur={validation.handleBlur}
-                    value={validation.values.first_name || ""}
-                    invalid={
-                      validation.touched.first_name && validation.errors.first_name ? true : false
-                    }
-                  />
-                  {validation.touched.first_name && validation.errors.first_name ? (
-                    <FormFeedback type="invalid">{validation.errors.first_name}</FormFeedback>
+            {userData ? (
+              <>
+                <h5 className="user-profile-page__section-title">
+                  <i className="ri-information-line" aria-hidden="true" />
+                  User Information
+                </h5>
+                <Row className="g-3 new-patient-modal__fields user-profile-page__info-grid">
+                  <ProfileInfoField icon="ri-user-line" label="Full Name">
+                    {userData.userName || "N/A"}
+                  </ProfileInfoField>
+                  <ProfileInfoField icon="ri-user-3-line" label="First Name">
+                    {userData.firstName || "N/A"}
+                  </ProfileInfoField>
+                  <ProfileInfoField icon="ri-user-4-line" label="Last Name">
+                    {userData.lastName || "N/A"}
+                  </ProfileInfoField>
+                  <ProfileInfoField icon="ri-shield-user-line" label="Role">
+                    <ProfileBadge tone="info">{userData.role || "N/A"}</ProfileBadge>
+                  </ProfileInfoField>
+                  <ProfileInfoField icon="ri-key-line" label="Role ID">
+                    {userData.roleId || "N/A"}
+                  </ProfileInfoField>
+                  <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
+                    #{userData.userId || "N/A"}
+                  </ProfileInfoField>
+                  <ProfileInfoField icon="ri-vip-crown-line" label="Super User">
+                    <ProfileBadge tone={userData.isSuperUser ? "success" : "neutral"}>
+                      {userData.isSuperUser ? "Yes" : "No"}
+                    </ProfileBadge>
+                  </ProfileInfoField>
+                  <ProfileInfoField icon="ri-checkbox-circle-line" label="Plan Status">
+                    <ProfileBadge tone={userData.isPlanActive ? "success" : "danger"}>
+                      {userData.isPlanActive ? "Active" : "Inactive"}
+                    </ProfileBadge>
+                  </ProfileInfoField>
+                  {userData.daysRemaining !== undefined ? (
+                    <ProfileInfoField icon="ri-timer-line" label="Days Remaining">
+                      <ProfileBadge tone={getDaysRemainingTone(userData.daysRemaining)}>
+                        {userData.daysRemaining} days
+                      </ProfileBadge>
+                    </ProfileInfoField>
                   ) : null}
-                  <Input name="idx" value={idx} type="hidden" />
-                </div>
-                <div className="text-center mt-4">
-                  <Button type="submit" color="danger">
-                    Update User Name
-                  </Button>
-                </div>
-              </Form>
-            </CardBody>
-          </Card>
-        </Container>
-      </div>
-    </React.Fragment>
+                  {userData.firmIds ? (
+                    <ProfileInfoField icon="ri-building-line" label="Firm IDs">
+                      {userData.firmIds}
+                    </ProfileInfoField>
+                  ) : null}
+                </Row>
+              </>
+            ) : null}
+
+            <div className="user-profile-page__divider" />
+
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                validation.handleSubmit();
+                return false;
+              }}
+            >
+              <div className="user-profile-page__row-section">
+                <h5 className="user-profile-page__section-title">
+                  <i className="ri-edit-line" aria-hidden="true" />
+                  Change User Name
+                </h5>
+                <Row className="g-3 new-patient-modal__fields">
+                  <Col xs={12}>
+                    <Label htmlFor="profileUserName" className="form-label new-patient-modal__label">
+                      <i className="ri-user-line" aria-hidden="true" />
+                      User Name
+                    </Label>
+                    <Input
+                      id="profileUserName"
+                      name="first_name"
+                      className="form-control"
+                      placeholder="Enter user name"
+                      type="text"
+                      onChange={validation.handleChange}
+                      onBlur={validation.handleBlur}
+                      value={validation.values.first_name || ""}
+                      invalid={Boolean(validation.touched.first_name && validation.errors.first_name)}
+                    />
+                    {validation.touched.first_name && validation.errors.first_name ? (
+                      <FormFeedback type="invalid">{validation.errors.first_name}</FormFeedback>
+                    ) : null}
+                    <Input name="idx" value={idx} type="hidden" />
+                  </Col>
+                </Row>
+              </div>
+
+              <div className="user-profile-page__form-footer">
+                <ModalActionButton action="cancel" type="button" onClick={handleBackToDashboard}>
+                  Cancel
+                </ModalActionButton>
+                <ModalActionButton action="update" type="submit">
+                  Update User Name
+                </ModalActionButton>
+              </div>
+            </Form>
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
+    </div>
   );
 };
 

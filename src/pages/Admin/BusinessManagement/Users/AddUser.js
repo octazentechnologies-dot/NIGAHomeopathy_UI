@@ -19,6 +19,7 @@ import "quill/dist/quill.snow.css";
 
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const Starter = () => {
   document.title = "Add User";
@@ -114,237 +115,236 @@ const Starter = () => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
           <Row>
-              <Col lg={12}>
-                <Card>
-                  <div className="p-2">
-                    {userSuccess ? (
-                      <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                        <i className="ri-notification-off-line label-icon"></i>
-                        {userSuccess}
-                      </UncontrolledAlert>
-                    ) : null}
-                    {userError ? (
-                      <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                        <i className="ri-error-warning-line label-icon"></i>
-                        {userError}
-                      </UncontrolledAlert>
-                    ) : null}
-                  </div>
+            <Col lg={12}>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  formik.handleSubmit();
+                  return false;
+                }}>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New User</h5>
+                    </div>
+                  </CardHeader>
 
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    formik.handleSubmit();
-                    return false;
-                  }}>
-                    <CardHeader className="align-items-center d-flex">
-                      <h4 className="card-title mb-0 flex-grow-1">New User</h4>
-                    </CardHeader>
-
-                    <CardBody className="card-body">
-                      <div className="live-preview">
-                        <Row className="gy-4">
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="firstName" className="form-label">First Name</Label>
-                              <Input
-                                name="firstName"
-                                type="text"
-                                value={formik.values.firstName || ""}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                className="form-control"
-                                id="firstName"
-                                placeholder="Enter First Name"
-                                invalid={formik.touched.firstName && formik.errors.firstName ? true : false}
-                              />
-                              {formik.touched.firstName && formik.errors.firstName ? (
-                                <FormFeedback type="invalid"><div>{formik.errors.firstName}</div></FormFeedback>
-                              ) : null}
-                            </div>
-                          </Col>   
-
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="lastName" className="form-label">Last Name</Label>
-                              <Input
-                                name="lastName"
-                                type="text"
-                                value={formik.values.lastName || ""}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                className="form-control"
-                                id="lastName"
-                                placeholder="Enter Last Name"
-                                invalid={formik.touched.lastName && formik.errors.lastName ? true : false}
-                              />
-                              {formik.touched.lastName && formik.errors.lastName ? (
-                                <FormFeedback type="invalid"><div>{formik.errors.lastName}</div></FormFeedback>
-                              ) : null}
-                            </div>
-                          </Col>  
-
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="userName" className="form-label">User Name</Label>
-                              <Input
-                                name="userName"
-                                type="text"
-                                value={formik.values.userName || ""}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                className="form-control"
-                                id="userName"
-                                placeholder="Enter User Name"
-                                invalid={formik.touched.userName && formik.errors.userName ? true : false}
-                              />
-                              {formik.touched.userName && formik.errors.userName ? (
-                                <FormFeedback type="invalid"><div>{formik.errors.userName}</div></FormFeedback>
-                              ) : null}
-                            </div>
-                          </Col>  
-                        </Row>
-
-                        <Row className="mt-3">  
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="emailId" className="form-label">Email</Label>
-                              <Input
-                                name="emailId"
-                                type="email"
-                                value={formik.values.emailId || ""}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                className="form-control"
-                                id="emailId"
-                                placeholder="Enter Email"
-                                invalid={formik.touched.emailId && formik.errors.emailId ? true : false}
-                              />
-                              {formik.touched.emailId && formik.errors.emailId ? (
-                                <FormFeedback type="invalid"><div>{formik.errors.emailId}</div></FormFeedback>
-                              ) : null}
-                            </div>
-                          </Col>
-
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="roleId" className="form-label">Role</Label>
-                              <Select 
-                                value={roleOptions.find(option => option.value === formik.values.roleId) || null}
-                                onChange={(selectedOption) => {
-                                  formik.setFieldValue('roleId', selectedOption ? selectedOption.value : null);
-                                }}
-                                onBlur={() => formik.setFieldTouched('roleId', true)}
-                                options={roleOptions}
-                                isLoading={roleLoading}
-                                placeholder="Select Role"
-                                className={formik.touched.roleId && formik.errors.roleId ? 'is-invalid' : ''}
-                              />
-                              {formik.touched.roleId && formik.errors.roleId ? (
-                                <div className="invalid-feedback d-block">{formik.errors.roleId}</div>
-                              ) : null}
-                            </div>
-                          </Col> 
-
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="userStatus" className="form-label">Status</Label>
-                              <div className="form-check form-switch form-switch-lg mt-1" dir="ltr">
-                                <Input
-                                  name="userStatus"
-                                  type="checkbox"
-                                  checked={formik.values.userStatus}
-                                  onChange={(e) => formik.setFieldValue('userStatus', e.target.checked)}
-                                  className="form-check-input"
-                                  id="userStatus"
-                                />
-                              </div>
-                            </div>
-                          </Col>                                    
-                        </Row>
-
-                        <Row className="mt-3">
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="password" className="form-label">Password</Label>
-                              <Input
-                                name="password"
-                                type="password"
-                                value={formik.values.password || ""}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                className="form-control"
-                                id="password"
-                                placeholder="Enter Password"
-                                invalid={formik.touched.password && formik.errors.password ? true : false}
-                              />
-                              {formik.touched.password && formik.errors.password ? (
-                                <FormFeedback type="invalid"><div>{formik.errors.password}</div></FormFeedback>
-                              ) : null}
-                            </div>
-                          </Col>
-                          <Col xxl={4} md={4}>
-                            <div>
-                              <Label htmlFor="confirmPassword" className="form-label">Confirm Password</Label>
-                              <Input
-                                name="confirmPassword"
-                                type="password"
-                                value={formik.values.confirmPassword || ""}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                className="form-control"
-                                id="confirmPassword"
-                                placeholder="Confirm Password"
-                                invalid={formik.touched.confirmPassword && formik.errors.confirmPassword ? true : false}
-                              />
-                              {formik.touched.confirmPassword && formik.errors.confirmPassword ? (
-                                <FormFeedback type="invalid"><div>{formik.errors.confirmPassword}</div></FormFeedback>
-                              ) : null}
-                            </div>
-                          </Col>
-                        </Row>
-
+                  <CardBody>
+                    {(userSuccess || userError) ? (
+                      <div className="admin-form-alerts">
+                        {userSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {userSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {userError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {userError}
+                          </UncontrolledAlert>
+                        ) : null}
                       </div>
-                    </CardBody>
+                    ) : null}
 
-                    <CardFooter className=" gap-2">
-                      <Row className="g-4">
-                        <Col className="col-sm">
-                          <div className="d-flex justify-content-sm-start">
-                          </div>
-                        </Col>
-                        <Col className="col-sm-auto">
-                          <div className="d-inline-flex gap-2">
-                            <Link to="/admin/listusers">
-                              <Button color="danger" className="btn-label">
-                                <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                              </Button>
-                            </Link>
-                            <Button 
-                              color="success" 
-                              className="btn-label" 
-                              type="submit"
-                              disabled={userLoading}
-                            >
-                              {userLoading ? (
-                                <>
-                                  <Spinner size="sm" className="me-2" /> Saving...
-                                </>
-                              ) : (
-                                <>
-                                  <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </Col>
-                      </Row>
-                    </CardFooter>
-                  </form>
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="firstName" className="form-label">First Name</Label>
+                          <Input
+                            name="firstName"
+                            type="text"
+                            value={formik.values.firstName || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="firstName"
+                            placeholder="Enter First Name"
+                            invalid={formik.touched.firstName && formik.errors.firstName ? true : false}
+                          />
+                          {formik.touched.firstName && formik.errors.firstName ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.firstName}</div></FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
 
-                </Card>
-              </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="lastName" className="form-label">Last Name</Label>
+                          <Input
+                            name="lastName"
+                            type="text"
+                            value={formik.values.lastName || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="lastName"
+                            placeholder="Enter Last Name"
+                            invalid={formik.touched.lastName && formik.errors.lastName ? true : false}
+                          />
+                          {formik.touched.lastName && formik.errors.lastName ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.lastName}</div></FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="userName" className="form-label">User Name</Label>
+                          <Input
+                            name="userName"
+                            type="text"
+                            value={formik.values.userName || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="userName"
+                            placeholder="Enter User Name"
+                            invalid={formik.touched.userName && formik.errors.userName ? true : false}
+                          />
+                          {formik.touched.userName && formik.errors.userName ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.userName}</div></FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                    </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="emailId" className="form-label">Email</Label>
+                          <Input
+                            name="emailId"
+                            type="email"
+                            value={formik.values.emailId || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="emailId"
+                            placeholder="Enter Email"
+                            invalid={formik.touched.emailId && formik.errors.emailId ? true : false}
+                          />
+                          {formik.touched.emailId && formik.errors.emailId ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.emailId}</div></FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="roleId" className="form-label">Role</Label>
+                          <Select
+                            value={roleOptions.find(option => option.value === formik.values.roleId) || null}
+                            onChange={(selectedOption) => {
+                              formik.setFieldValue('roleId', selectedOption ? selectedOption.value : null);
+                            }}
+                            onBlur={() => formik.setFieldTouched('roleId', true)}
+                            options={roleOptions}
+                            isLoading={roleLoading}
+                            placeholder="Select Role"
+                            className={formik.touched.roleId && formik.errors.roleId ? 'is-invalid' : ''}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({
+                              invalid: Boolean(formik.touched.roleId && formik.errors.roleId)
+                            })}
+                          />
+                          {formik.touched.roleId && formik.errors.roleId ? (
+                            <div className="invalid-feedback d-block">{formik.errors.roleId}</div>
+                          ) : null}
+                        </div>
+                      </Col>
+
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="userStatus" className="form-label">Status</Label>
+                          <div className="form-check form-switch form-switch-lg mt-1" dir="ltr">
+                            <Input
+                              name="userStatus"
+                              type="checkbox"
+                              checked={formik.values.userStatus}
+                              onChange={(e) => formik.setFieldValue('userStatus', e.target.checked)}
+                              className="form-check-input"
+                              id="userStatus"
+                            />
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="password" className="form-label">Password</Label>
+                          <Input
+                            name="password"
+                            type="password"
+                            value={formik.values.password || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="password"
+                            placeholder="Enter Password"
+                            invalid={formik.touched.password && formik.errors.password ? true : false}
+                          />
+                          {formik.touched.password && formik.errors.password ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.password}</div></FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="confirmPassword" className="form-label">Confirm Password</Label>
+                          <Input
+                            name="confirmPassword"
+                            type="password"
+                            value={formik.values.confirmPassword || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="confirmPassword"
+                            placeholder="Confirm Password"
+                            invalid={formik.touched.confirmPassword && formik.errors.confirmPassword ? true : false}
+                          />
+                          {formik.touched.confirmPassword && formik.errors.confirmPassword ? (
+                            <FormFeedback type="invalid"><div>{formik.errors.confirmPassword}</div></FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                    </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listusers" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button
+                          type="submit"
+                          className="btn btn-sm admin-list-btn admin-list-btn--new"
+                          disabled={userLoading}
+                        >
+                          {userLoading ? (
+                            <>
+                              <Spinner size="sm" className="me-1" /> Saving...
+                            </>
+                          ) : (
+                            <>
+                              <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                              Save
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </CardFooter>
+                </form>
+              </Card>
+            </Col>
           </Row>
         </Container>
       </div>

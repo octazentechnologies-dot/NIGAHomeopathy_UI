@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Input, Label, Row, Button, UncontrolledAlert } from 'reactstrap';
+import React, { useEffect } from 'react';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Input, Label, Row, UncontrolledAlert } from 'reactstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
@@ -64,109 +64,106 @@ const AddLabsImaging = () => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {labTestDetailsSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {labTestDetailsSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {labTestDetailsError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {labTestDetailsError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">New Labs & Imaging</h4>
-                </CardHeader>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form onSubmit={formik.handleSubmit}>
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={3} md={3}>
-                          <div>
-                            <Label htmlFor="labTestName" className="form-label">Test Name</Label>
-                            <Input
-                              type="text"
-                              className="form-control"
-                              id="labTestName"
-                              name="labTestName"
-                              placeholder="Enter Test Name"
-                              value={formik.values.labTestName}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.labTestName && formik.errors.labTestName ? true : false}
-                            />
-                            {formik.touched.labTestName && formik.errors.labTestName ? (
-                              <FormFeedback type="invalid">{formik.errors.labTestName}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={9} md={9}>
-                          <div>
-                            <Label htmlFor="description" className="form-label">Description</Label>
-                            <Input
-                              type="textarea"
-                              className="form-control"
-                              id="description"
-                              name="description"
-                              rows="1"
-                              placeholder="Enter Description"
-                              value={formik.values.description}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.description && formik.errors.description ? true : false}
-                            />
-                            {formik.touched.description && formik.errors.description ? (
-                              <FormFeedback type="invalid">{formik.errors.description}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New Labs & Imaging</h5>
                     </div>
-                  </CardBody>
+                  </CardHeader>
 
-                  <CardFooter className=" gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                  <CardBody>
+                    {(labTestDetailsSuccess || labTestDetailsError) ? (
+                      <div className="admin-form-alerts">
+                        {labTestDetailsSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {labTestDetailsSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {labTestDetailsError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {labTestDetailsError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="labTestName" className="form-label">Test Name</Label>
+                          <Input
+                            type="text"
+                            className="form-control"
+                            id="labTestName"
+                            name="labTestName"
+                            placeholder="Enter Test Name"
+                            value={formik.values.labTestName}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.labTestName && formik.errors.labTestName ? true : false}
+                          />
+                          {formik.touched.labTestName && formik.errors.labTestName ? (
+                            <FormFeedback type="invalid">{formik.errors.labTestName}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listlabsimaging">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button
-                            color="success"
-                            className="btn-label"
-                            type="submit"
-                            disabled={labTestDetailsLoading}
-                          >
-                            {labTestDetailsLoading ? (
-                              <>
-                                <Spinner size="sm" className="me-2" /> Saving...
-                              </>
-                            ) : (
-                              <>
-                                <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save
-                              </>
-                            )}
-                          </Button>
+                      <Col xxl={9} md={9}>
+                        <div>
+                          <Label htmlFor="description" className="form-label">Description</Label>
+                          <Input
+                            type="textarea"
+                            className="form-control"
+                            id="description"
+                            name="description"
+                            rows="1"
+                            placeholder="Enter Description"
+                            value={formik.values.description}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.description && formik.errors.description ? true : false}
+                          />
+                          {formik.touched.description && formik.errors.description ? (
+                            <FormFeedback type="invalid">{formik.errors.description}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listlabsimaging" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button
+                          type="submit"
+                          className="btn btn-sm admin-list-btn admin-list-btn--new"
+                          disabled={labTestDetailsLoading}
+                        >
+                          {labTestDetailsLoading ? (
+                            <>
+                              <Spinner size="sm" className="me-1" /> Saving...
+                            </>
+                          ) : (
+                            <>
+                              <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                              Save
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
-
               </Card>
             </Col>
           </Row>

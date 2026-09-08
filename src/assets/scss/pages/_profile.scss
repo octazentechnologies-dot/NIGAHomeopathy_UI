@@ -191,3 +191,295 @@ $value in $theme-colors {
         padding: 0 $card-spacer-x;
     }
 }
+
+.user-profile-page,
+.help-faqs-page {
+    > .container-fluid > .row {
+        margin-top: 0.3rem;
+    }
+
+    .user-profile-card,
+    .help-faqs-card {
+        width: 100%;
+        border: 1px solid #e3e8ee;
+        border-radius: 5px;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+        background: #fff;
+        margin-bottom: 0.3rem;
+    }
+
+    .user-profile-card__body,
+    .help-faqs-card__body {
+        padding: 1.15rem;
+    }
+
+    .user-profile-page__info-grid {
+        margin-bottom: 0;
+    }
+
+    .user-profile-page__field {
+        height: 100%;
+    }
+
+    .user-profile-page__row-section {
+        margin-bottom: 0;
+    }
+
+    .user-profile-page__summary {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid #e2ebf3;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #fafcff 0%, #ffffff 100%);
+    }
+
+    .user-profile-page__avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e8f5ff;
+        color: #25a0e2;
+        flex-shrink: 0;
+
+        i {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+    }
+
+    .user-profile-page__summary-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.2rem;
+    }
+
+    .user-profile-page__summary-meta {
+        margin: 0 0 0.15rem;
+        font-size: 0.8125rem;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        i {
+            color: #25a0e2;
+            font-size: 0.9rem;
+            line-height: 1;
+        }
+    }
+
+    .user-profile-page__section-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.85rem;
+
+        i {
+            color: #25a0e2;
+            font-size: 1.05rem;
+            line-height: 1;
+        }
+    }
+
+    .user-profile-page__value {
+        font-weight: 600;
+        color: #334155;
+        font-size: 0.875rem;
+        line-height: 1.35;
+    }
+
+    .user-profile-page__divider {
+        border-top: 1px solid #e9ecef;
+        margin: 1.25rem 0;
+    }
+
+    .user-profile-page__form-footer {
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .user-profile-page__badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.28rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.2;
+
+        &--info {
+            background: #e8f5ff;
+            color: #25a0e2;
+            border: 1px solid #cfe9ff;
+        }
+
+        &--success {
+            background: #eafaf1;
+            color: #1f9d55;
+            border: 1px solid #c6efd8;
+        }
+
+        &--warning {
+            background: #fff8e6;
+            color: #c98600;
+            border: 1px solid #ffe8a3;
+        }
+
+        &--danger {
+            background: #fdecec;
+            color: #dc3545;
+            border: 1px solid #f8c6cb;
+        }
+
+        &--neutral {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+    }
+}
+
+.user-settings-page {
+    > .container-fluid > .row {
+        margin-top: 0.3rem;
+        row-gap: 0.75rem;
+    }
+
+    .new-patient-modal__label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.45rem;
+
+        > i {
+            font-size: 0.95rem;
+            color: #25a0e2;
+            line-height: 1;
+        }
+    }
+
+    .nav-tabs-custom .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.875rem;
+        font-weight: 600;
+
+        i {
+            font-size: 1rem;
+            line-height: 1;
+        }
+    }
+
+    .user-settings-page__tabs {
+        margin-bottom: 1.25rem;
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+            padding: 0.65rem 0.9rem;
+
+            i {
+                font-size: 1rem;
+                line-height: 1;
+            }
+        }
+    }
+
+    .user-settings-page__tab-content {
+        padding-top: 0.15rem;
+    }
+
+    .user-settings-page__profile-progress {
+        .progress-bar {
+            background-color: #25a0e2 !important;
+        }
+
+        .progress-bar .label {
+            background-color: #25a0e2;
+
+            &::after {
+                border-top-color: #25a0e2;
+            }
+        }
+    }
+
+    .user-settings-page__security-action {
+        .modal-action-btn {
+            box-shadow: none !important;
+            white-space: nowrap;
+        }
+    }
+
+    .form-check-input:checked {
+        background-color: #25a0e2;
+        border-color: #25a0e2;
+    }
+
+    .form-check-input:focus {
+        border-color: #25a0e2;
+        box-shadow: 0 0 0 0.2rem rgba(37, 160, 226, 0.2);
+    }
+}
+
+.help-faqs-page {
+    &__section-icon {
+        color: #25a0e2;
+    }
+
+    &__accordion {
+        .accordion-item {
+            border-color: #e2ebf3;
+        }
+
+        .accordion-button {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
+            background: #fff;
+            box-shadow: none;
+
+            &:not(.collapsed) {
+                color: #25a0e2;
+                background: #f8fbff;
+            }
+
+            &:focus {
+                box-shadow: none;
+                border-color: #e2ebf3;
+            }
+
+            &::after {
+                filter: none;
+            }
+        }
+
+        .accordion-body {
+            background: #fff;
+            border-top: 1px solid #eef2f6;
+            color: #475569;
+            font-size: 0.875rem;
+        }
+    }
+}

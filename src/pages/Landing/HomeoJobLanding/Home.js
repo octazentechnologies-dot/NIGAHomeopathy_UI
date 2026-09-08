@@ -17,7 +17,7 @@ const Home = () => {
         <section className="section job-hero-section bg-light pb-0" id="hero">
             <Container>
                 <Row className="justify-content-between align-items-center">
-                    <Col lg={6}>
+                    <Col lg={6} className="homeojob-hero-copy text-center text-lg-start">
                         <div>
                             <h1 className="display-6 fw-bold text-capitalize mb-3 lh-base">
                                 {HERO.title}{" "}
@@ -25,8 +25,8 @@ const Home = () => {
                             </h1>
                             <p className="lead text-muted fw-normal lh-base mb-4">{HERO.subtitle}</p>
                             <Form action="#" className="job-panel-filter" onSubmit={(e) => e.preventDefault()}>
-                                <Row className="g-md-0 g-2">
-                                    <Col className="col-md-4">
+                                <Row className="g-md-0 g-2 justify-content-center justify-content-md-start">
+                                    <Col xs={12} md={4}>
                                         <Input
                                             type="search"
                                             id="job-title"
@@ -34,7 +34,7 @@ const Home = () => {
                                             placeholder="Search modules, rubrics..."
                                         />
                                     </Col>
-                                    <Col className="col-md-4">
+                                    <Col xs={12} md={4}>
                                         <select className="form-control" defaultValue="">
                                             <option value="">Select module</option>
                                             <option value="case">Case Taking</option>
@@ -43,7 +43,7 @@ const Home = () => {
                                             <option value="materia">Materia Medica</option>
                                         </select>
                                     </Col>
-                                    <Col className="col-md-4">
+                                    <Col xs={12} md={4}>
                                         <div className="h-100">
                                             <button
                                                 className="btn btn-primary submit-btn w-100 h-100"
@@ -59,7 +59,7 @@ const Home = () => {
                             </Form>
 
                             <ul className="treding-keywords list-inline mb-0 mt-3 fs-13">
-                                <li className="list-inline-item text-danger fw-semibold">
+                                <li className="list-inline-item text-primary fw-semibold">
                                     <i className="mdi mdi-tag-multiple-outline align-middle"></i> Popular Modules:
                                 </li>
                                 {HERO_KEYWORDS.map((keyword, idx) => (

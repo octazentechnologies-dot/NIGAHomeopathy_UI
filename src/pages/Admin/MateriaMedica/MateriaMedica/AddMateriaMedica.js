@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Label, Row, UncontrolledAlert, Button } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Label, Row, UncontrolledAlert } from 'reactstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { Spinner } from 'reactstrap';
 import Select from "react-select";
-import makeAnimated from "react-select/animated";
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 // Import Draft.js components
 import { convertToRaw, EditorState, ContentState, Modifier } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';
@@ -154,167 +153,155 @@ const AddMateriaMedica = () => {
           {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {materiaMedicaSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {materiaMedicaSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {materiaMedicaError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {materiaMedicaError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">New Materia Medica</h4>
-                </CardHeader>
-                <Form onSubmit={formik.handleSubmit}>
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Author</Label>
-                            <Select
-                              name="author"
-                              value={formik.values.author}
-                              onChange={(selectedOption) => {
-                                formik.setFieldValue("author", selectedOption);
-                                dispatch(getMateriaMedicaHeadByAuthorId({ authorId: selectedOption.value }));
-                              }}
-                              options={AuthorOptions}
-                              onBlur={() => formik.setFieldTouched("author", true)}
-                              className={formik.touched.author && formik.errors.author ? "is-invalid" : ""}
-                              menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
-                              menuPosition="fixed"
-                              styles={{
-                                control: (base) => ({
-                                  ...base,
-                                  borderColor: formik.touched.author && formik.errors.author ? "red" : base.borderColor,
-                                  "&:hover": {
-                                    borderColor: formik.touched.author && formik.errors.author ? "red" : base.borderColor,
-                                  },
-                                }),
-                                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                              }}
-                            />
-                            {formik.touched.author && formik.errors.author ? (
-                              <FormFeedback type="invalid">{formik.errors.author}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Remedy</Label>
-                            <Select
-                              name="remedy"
-                              value={formik.values.remedy}
-                              onChange={(selectedOption) => formik.setFieldValue("remedy", selectedOption)}
-                              options={RemedyOptions}
-                              onBlur={() => formik.setFieldTouched("remedy", true)}
-                              className={formik.touched.remedy && formik.errors.remedy ? "is-invalid" : ""}
-                              menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
-                              menuPosition="fixed"
-                              styles={{
-                                control: (base) => ({
-                                  ...base,
-                                  borderColor: formik.touched.remedy && formik.errors.remedy ? "red" : base.borderColor,
-                                  "&:hover": {
-                                    borderColor: formik.touched.remedy && formik.errors.remedy ? "red" : base.borderColor,
-                                  },
-                                }),
-                                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                              }}
-                            />
-                            {formik.touched.remedy && formik.errors.remedy ? (
-                              <FormFeedback type="invalid">{formik.errors.remedy}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Head</Label>
-                            <Select
-                              name="head"
-                              value={formik.values.head}
-                              onChange={(selectedOption) => formik.setFieldValue("head", selectedOption)}
-                              options={HeadOptions}
-                              onBlur={() => formik.setFieldTouched("head", true)}
-                              className={formik.touched.head && formik.errors.head ? "is-invalid" : ""}
-                              menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
-                              menuPosition="fixed"
-                              styles={{
-                                control: (base) => ({
-                                  ...base,
-                                  borderColor: formik.touched.head && formik.errors.head ? "red" : base.borderColor,
-                                  "&:hover": {
-                                    borderColor: formik.touched.head && formik.errors.head ? "red" : base.borderColor,
-                                  },
-                                }),
-                                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                              }}
-                            />
-                            {formik.touched.head && formik.errors.head ? (
-                              <FormFeedback type="invalid">{formik.errors.head}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Materia Medica Details</Label>
-                            <div>
-                              <Editor
-                                wrapperClassName="demo-wrapper"
-                                editorClassName="demo-editor"
-                                onEditorStateChange={editorState => {
-                                  setEditorState(editorState);
-                                  formik.setFieldValue('details', draftToHtml(convertToRaw(editorState.getCurrentContent())));
-                                }}
-                                toolbarClassName="toolbar-class"
-                                defaultEditorState={editorState}
-                                wrapperStyle={{
-                                  borderRadius: 5,
-                                  borderWidth: 1,
-                                  borderColor: '#0000'
-                                }}
-                                editorStyle={{
-                                  borderRadius: 2,
-                                  border: '1px solid lightgrey',
-                                  backgroundColor: '#FFFFFF',
-                                  height: '300px'
-                                }}
-                              />
-                            </div>
-
-                          </div>
-                        </Col>
-                      </Row>
-
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
+                <Form onSubmit={(e) => {
+                  e.preventDefault();
+                  formik.handleSubmit();
+                  return false;
+                }}>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New Materia Medica</h5>
                     </div>
-                  </CardBody>
+                  </CardHeader>
 
-                  <CardFooter className=" gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                  <CardBody>
+                    {(materiaMedicaSuccess || materiaMedicaError) ? (
+                      <div className="admin-form-alerts">
+                        {materiaMedicaSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {materiaMedicaSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {materiaMedicaError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {materiaMedicaError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="author" className="form-label">Author</Label>
+                          <Select
+                            name="author"
+                            value={formik.values.author}
+                            onChange={(selectedOption) => {
+                              formik.setFieldValue("author", selectedOption);
+                              dispatch(getMateriaMedicaHeadByAuthorId({ authorId: selectedOption.value }));
+                            }}
+                            options={AuthorOptions}
+                            onBlur={() => formik.setFieldTouched("author", true)}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({
+                              invalid: Boolean(formik.touched.author && formik.errors.author),
+                            })}
+                            menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                            menuPosition="fixed"
+                          />
+                          {formik.touched.author && formik.errors.author ? (
+                            <FormFeedback type="invalid" className="d-block">{formik.errors.author}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listmateriamedica"><Button color="danger" className="btn-label"> <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel </Button></Link>
-                          <Button color="success" className="btn-label" type="submit" onClick={formik.handleSubmit}> <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save </Button>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="remedy" className="form-label">Remedy</Label>
+                          <Select
+                            name="remedy"
+                            value={formik.values.remedy}
+                            onChange={(selectedOption) => formik.setFieldValue("remedy", selectedOption)}
+                            options={RemedyOptions}
+                            onBlur={() => formik.setFieldTouched("remedy", true)}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({
+                              invalid: Boolean(formik.touched.remedy && formik.errors.remedy),
+                            })}
+                            menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                            menuPosition="fixed"
+                          />
+                          {formik.touched.remedy && formik.errors.remedy ? (
+                            <FormFeedback type="invalid" className="d-block">{formik.errors.remedy}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="head" className="form-label">Head</Label>
+                          <Select
+                            name="head"
+                            value={formik.values.head}
+                            onChange={(selectedOption) => formik.setFieldValue("head", selectedOption)}
+                            options={HeadOptions}
+                            onBlur={() => formik.setFieldTouched("head", true)}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({
+                              invalid: Boolean(formik.touched.head && formik.errors.head),
+                            })}
+                            menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                            menuPosition="fixed"
+                          />
+                          {formik.touched.head && formik.errors.head ? (
+                            <FormFeedback type="invalid" className="d-block">{formik.errors.head}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
                     </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="details" className="form-label">Materia Medica Details</Label>
+                          <div>
+                            <Editor
+                              wrapperClassName="demo-wrapper"
+                              editorClassName="demo-editor"
+                              onEditorStateChange={editorState => {
+                                setEditorState(editorState);
+                                formik.setFieldValue('details', draftToHtml(convertToRaw(editorState.getCurrentContent())));
+                              }}
+                              toolbarClassName="toolbar-class"
+                              defaultEditorState={editorState}
+                              wrapperStyle={{
+                                borderRadius: 5,
+                                borderWidth: 1,
+                                borderColor: '#0000'
+                              }}
+                              editorStyle={{
+                                borderRadius: 2,
+                                border: '1px solid lightgrey',
+                                backgroundColor: '#FFFFFF',
+                                height: '300px'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listmateriamedica" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          Save
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

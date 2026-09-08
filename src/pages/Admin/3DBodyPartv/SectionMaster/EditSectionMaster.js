@@ -10,7 +10,6 @@ import {
   Form,
   Label,
   Row,
-  Button,
 } from "reactstrap";
 import { Link, useLocation } from "react-router-dom";
 import Select from "react-select";
@@ -24,16 +23,7 @@ import {
   setAnatomySectionMasterError,
   setAnatomySectionMasterSuccess,
 } from "../../../../slices/admin/3dbodypart/sectionmaster/reducer";
-
-const selectStyles = (hasError) => ({
-  control: (base) => ({
-    ...base,
-    borderColor: hasError ? "#f06548" : base.borderColor,
-    "&:hover": {
-      borderColor: hasError ? "#f06548" : base.borderColor,
-    },
-  }),
-});
+import { getAdminFormSelectStyles, neutralSelectTheme } from "../../../../helpers/neutralSelectStyles";
 
 const resolveOption = (options, { id, name }) => {
   if (!options?.length) return null;
@@ -146,86 +136,105 @@ const EditSectionMaster = () => {
       <Container fluid>
         <Row>
           <Col lg={12}>
-            <Card>
-              <div className="p-2">
-                {anatomySectionMasterSuccess && (
-                  <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
-                    {String(anatomySectionMasterSuccess)}
-                  </UncontrolledAlert>
-                )}
-                {anatomySectionMasterError && (
-                  <UncontrolledAlert color="danger" className="alert-label-icon label-arrow">
-                    {anatomySectionMasterError}
-                  </UncontrolledAlert>
-                )}
-              </div>
+            <Card className="patient-list-modal admin-existance-list admin-form-card">
               <Form
                 onSubmit={(e) => {
                   e.preventDefault();
                   formik.handleSubmit();
                 }}
               >
-                <CardHeader>
-                  <h4 className="card-title mb-0">Edit Section</h4>
+                <CardHeader className="border-0">
+                  <div className="admin-form-toolbar">
+                    <h5 className="admin-form-title">Edit Section</h5>
+                  </div>
                 </CardHeader>
                 <CardBody>
-                  <Row className="gy-4">
+                  {(anatomySectionMasterSuccess || anatomySectionMasterError) ? (
+                    <div className="admin-form-alerts">
+                      {anatomySectionMasterSuccess ? (
+                        <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                          <i className="ri-checkbox-circle-line label-icon" />
+                          {String(anatomySectionMasterSuccess)}
+                        </UncontrolledAlert>
+                      ) : null}
+                      {anatomySectionMasterError ? (
+                        <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                          <i className="ri-error-warning-line label-icon" />
+                          {anatomySectionMasterError}
+                        </UncontrolledAlert>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <Row className="gy-3 admin-form-fields">
                     <Col md={6}>
-                      <Label className="form-label">
-                        Mesh Key Name <span className="required">*</span>
-                      </Label>
-                      <Select
-                        name="meshKey"
-                        value={formik.values.meshKey}
-                        onChange={(option) => formik.setFieldValue("meshKey", option)}
-                        onBlur={() => formik.setFieldTouched("meshKey", true)}
-                        options={meshKeyOptions}
-                        isSearchable
-                        isClearable
-                        placeholder="Search mesh key..."
-                        noOptionsMessage={() => "No mesh keys found. Add them in Mesh Key Master."}
-                        styles={selectStyles(
-                          formik.touched.meshKey && formik.errors.meshKey
+                      <div>
+                        <Label className="form-label">
+                          Mesh Key Name <span className="required">*</span>
+                        </Label>
+                        <Select
+                          name="meshKey"
+                          classNamePrefix="admin-form-select"
+                          theme={neutralSelectTheme}
+                          value={formik.values.meshKey}
+                          onChange={(option) => formik.setFieldValue("meshKey", option)}
+                          onBlur={() => formik.setFieldTouched("meshKey", true)}
+                          options={meshKeyOptions}
+                          isSearchable
+                          isClearable
+                          placeholder="Search mesh key..."
+                          noOptionsMessage={() => "No mesh keys found. Add them in Mesh Key Master."}
+                          styles={getAdminFormSelectStyles({
+                            invalid: Boolean(formik.touched.meshKey && formik.errors.meshKey),
+                          })}
+                        />
+                        {formik.touched.meshKey && formik.errors.meshKey && (
+                          <div className="invalid-feedback d-block">{formik.errors.meshKey}</div>
                         )}
-                      />
-                      {formik.touched.meshKey && formik.errors.meshKey && (
-                        <div className="invalid-feedback d-block">{formik.errors.meshKey}</div>
-                      )}
+                      </div>
                     </Col>
                     <Col md={6}>
-                      <Label className="form-label">
-                        Section Name <span className="required">*</span>
-                      </Label>
-                      <Select
-                        name="section"
-                        value={formik.values.section}
-                        onChange={(option) => formik.setFieldValue("section", option)}
-                        onBlur={() => formik.setFieldTouched("section", true)}
-                        options={sectionOptions}
-                        isSearchable
-                        isClearable
-                        placeholder="Search section..."
-                        noOptionsMessage={() => "No sections found"}
-                        styles={selectStyles(
-                          formik.touched.section && formik.errors.section
+                      <div>
+                        <Label className="form-label">
+                          Section Name <span className="required">*</span>
+                        </Label>
+                        <Select
+                          name="section"
+                          classNamePrefix="admin-form-select"
+                          theme={neutralSelectTheme}
+                          value={formik.values.section}
+                          onChange={(option) => formik.setFieldValue("section", option)}
+                          onBlur={() => formik.setFieldTouched("section", true)}
+                          options={sectionOptions}
+                          isSearchable
+                          isClearable
+                          placeholder="Search section..."
+                          noOptionsMessage={() => "No sections found"}
+                          styles={getAdminFormSelectStyles({
+                            invalid: Boolean(formik.touched.section && formik.errors.section),
+                          })}
+                        />
+                        {formik.touched.section && formik.errors.section && (
+                          <div className="invalid-feedback d-block">{formik.errors.section}</div>
                         )}
-                      />
-                      {formik.touched.section && formik.errors.section && (
-                        <div className="invalid-feedback d-block">{formik.errors.section}</div>
-                      )}
+                      </div>
                     </Col>
                   </Row>
                 </CardBody>
-                <CardFooter>
-                  <div className="d-inline-flex gap-2 justify-content-end w-100">
-                    <Link to="/admin/list3dsectionmaster">
-                      <Button color="danger" className="btn-label">
-                        <i className="ri-close-fill label-icon align-middle fs-16 me-2" /> Cancel
-                      </Button>
-                    </Link>
-                    <Button color="success" className="btn-label" type="submit">
-                      <i className="ri-save-2-line label-icon align-middle fs-16 me-2" /> Save
-                    </Button>
+                <CardFooter className="border-0">
+                  <div className="d-flex justify-content-end">
+                    <div className="admin-form-actions">
+                      <Link to="/admin/list3dsectionmaster" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                          <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                          Cancel
+                        </button>
+                      </Link>
+                      <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                        <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                        Update
+                      </button>
+                    </div>
                   </div>
                 </CardFooter>
               </Form>

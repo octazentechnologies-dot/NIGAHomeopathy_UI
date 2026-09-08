@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Col, Collapse, Container, Row } from 'reactstrap';
+import { Card, CardBody, Col, Collapse, Container, Row } from 'reactstrap';
 import classnames from "classnames";
-
-// Import Images
-import faqImg from "../../../assets/images/faq-img.png";
 
 const Faqs = () => {
   const [col1, setcol1] = useState(true)
@@ -11,8 +8,8 @@ const Faqs = () => {
   const [col3, setcol3] = useState(false)
   const [col4, setcol4] = useState(false)
 
-  const [col5, setcol5] = useState(false)
-  const [col6, setcol6] = useState(true)
+  const [col5, setcol5] = useState(true)
+  const [col6, setcol6] = useState(false)
   const [col7, setcol7] = useState(false)
   const [col8, setcol8] = useState(false)
 
@@ -115,48 +112,29 @@ const Faqs = () => {
     setcol11(false)
   }
 
-document.title="FAQs | Velzon - React Admin & Dashboard Template";
+document.title = "Help | Niga Homeocentrum";
 
   return (
     <React.Fragment>
-       <div className="page-content">
-                    <Container fluid>
-                        <Row>
-                            <Col lg={12}>
-                                <Card className="rounded-0 bg-success-subtle mx-n4 mt-n4 border-top">
-                                    <div className="px-4">
-                                        <Row>
-                                            <Col xxl={5} className="align-self-center">
-                                                <div className="py-4">
-                                                    <h4 className="display-6 coming-soon-text">Frequently asked questions</h4>
-                                                    <p className="text-success fs-15 mt-3">If you can not find answer to your question in our FAQ, you can always contact us or email us. We will answer you shortly!</p>
-                                                    <div className="hstack flex-wrap gap-2">
-                                                        <button type="button" className="btn btn-primary btn-label rounded-pill"><i className="ri-mail-line label-icon align-middle rounded-pill fs-16 me-2"></i> Email Us</button>
-                                                        <button type="button" className="btn btn-info btn-label rounded-pill"><i className="ri-twitter-line label-icon align-middle rounded-pill fs-16 me-2"></i> Send Us Tweet</button>
-                                                    </div>
-                                                </div>
-                                            </Col>
-                                            <div className="col-xxl-3 ms-auto">
-                                                <div className="mb-n5 pb-1 faq-img d-none d-xxl-block">
-                                                    <img src={faqImg} alt="" className="img-fluid"/>
-                                                </div>
-                                            </div>
-                                        </Row>
-                                    </div>                                    
-                                </Card>                              
-                                <Row className="justify-content-evenly">
+      <div className="page-content user-profile-page help-faqs-page doctor-dashboard-page">
+        <Container fluid>
+          <Row>
+            <Col xs={12}>
+              <Card className="user-profile-card doctor-stats-card help-faqs-card">
+                <CardBody className="user-profile-card__body help-faqs-card__body">
+                  <Row className="justify-content-evenly g-3">
                                     <Col lg={4}>
-                                        <div className="mt-3">
+                                        <div>
                                             <div className="d-flex align-items-center mb-2">
                                                 <div className="flex-shrink-0 me-1">
-                                                    <i className="ri-question-line fs-24 align-middle text-success me-1"></i>
+                                                    <i className="ri-question-line fs-24 align-middle help-faqs-page__section-icon me-1"></i>
                                                 </div>
                                                 <div className="flex-grow-1">
                                                     <h5 className="fs-16 mb-0 fw-semibold">General Questions</h5>
                                                 </div>
                                             </div>
 
-                                            <div className="accordion accordion-border-box" id="genques-accordion">
+                                            <div className="accordion accordion-border-box help-faqs-page__accordion" id="genques-accordion">
                                                 <div className="accordion-item">
                                                     <h2 className="accordion-header" id="genques-headingOne">
                                                     <button
@@ -246,17 +224,17 @@ document.title="FAQs | Velzon - React Admin & Dashboard Template";
                                     </Col>
 
                                    <Col lg={4}>
-                                        <div className="mt-3">
+                                        <div>
                                             <div className="d-flex align-items-center mb-2">
                                                 <div className="flex-shrink-0 me-1">
-                                                    <i className="ri-user-settings-line fs-24 align-middle text-success me-1"></i>
+                                                    <i className="ri-user-settings-line fs-24 align-middle help-faqs-page__section-icon me-1"></i>
                                                 </div>
                                                 <div className="flex-grow-1">
                                                     <h5 className="fs-16 mb-0 fw-semibold">Manage Account</h5>
                                                 </div>
                                             </div>
 
-                                            <div className="accordion accordion-border-box" id="manageaccount-accordion">
+                                            <div className="accordion accordion-border-box help-faqs-page__accordion" id="manageaccount-accordion">
                                                 <div className="accordion-item">
                                                     <h2 className="accordion-header" id="manageaccount-headingOne">
                                                     <button
@@ -346,17 +324,17 @@ document.title="FAQs | Velzon - React Admin & Dashboard Template";
                                     </Col>
                                     
                                     <Col lg={4}>
-                                        <div className="mt-3">
+                                        <div>
                                             <div className="d-flex align-items-center mb-2">
                                                 <div className="flex-shrink-0 me-1">
-                                                    <i className="ri-shield-keyhole-line fs-24 align-middle text-success me-1"></i>
+                                                    <i className="ri-shield-keyhole-line fs-24 align-middle help-faqs-page__section-icon me-1"></i>
                                                 </div>
                                                 <div className="flex-grow-1">
                                                     <h5 className="fs-16 mb-0 fw-semibold">Privacy &amp; Security</h5>
                                                 </div>
                                             </div>
 
-                                            <div className="accordion accordion-border-box" id="privacy-accordion">
+                                            <div className="accordion accordion-border-box help-faqs-page__accordion" id="privacy-accordion">
                                                 <div className="accordion-item">
                                                     <h2 className="accordion-header" id="privacy-headingOne">
                                                     <button
@@ -445,10 +423,12 @@ document.title="FAQs | Velzon - React Admin & Dashboard Template";
                                         </div>
                                     </Col>
                                 </Row>
-                            </Col>
-                        </Row>                        
-                    </Container>                    
-                </div>
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
     </React.Fragment>
   )
 }

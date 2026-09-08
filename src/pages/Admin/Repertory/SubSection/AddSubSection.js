@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, FormGroup, Input, Label, Row, Button } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Input, Label, Row } from 'reactstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { Spinner } from 'reactstrap';
 import Select from "react-select";
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { getSectionForSubSectionList, getSubSectionBySectionList, createSubSection, getLanguages } from '../../../../slices/admin/repertory/subsection/thunk';
 import { setSubSectionError, setSubSectionSuccess } from '../../../../slices/admin/repertory/subsection/reducer';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const AddSubSection = () => {
 
@@ -246,12 +246,14 @@ const AddSubSection = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">New Sub Section</h4>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
+                <CardHeader className="border-0">
+                  <div className="admin-form-toolbar">
+                    <h5 className="admin-form-title">New Sub Section</h5>
+                  </div>
                 </CardHeader>
 
-                <CardBody className="card-body">
+                <CardBody>
                   <Formik
                     innerRef={formikRef}
                     initialValues={initialValues}
@@ -293,8 +295,8 @@ const AddSubSection = () => {
                     }}
                   >
                     {({ errors, touched, setFieldValue, values }) => (
-                      <Form className="live-preview">
-                        <Row className="gy-4">
+                      <Form>
+                        <Row className="gy-3 admin-form-fields">
                           <Col xxl={4} md={4}>
                             <div>
                               <Label htmlFor="sectionName" className="form-label">Section Name</Label>
@@ -306,6 +308,9 @@ const AddSubSection = () => {
                                   handleSectionChange(option);
                                 }}
                                 options={sectionOptions}
+                                classNamePrefix="admin-form-select"
+                                theme={neutralSelectTheme}
+                                styles={getAdminFormSelectStyles()}
                               />
                               <ErrorMessage name="sectionName" component="div" className="text-danger" />
                             </div>
@@ -337,7 +342,7 @@ const AddSubSection = () => {
                           </Col>
                         </Row>
 
-                        <Row className='mt-3'>
+                        <Row className="gy-3 admin-form-fields">
                           <Col xxl={4} md={4}>
                             <div>
                               <Label htmlFor="parentSubSection" className="form-label">
@@ -354,6 +359,9 @@ const AddSubSection = () => {
                                 options={parentSubSectionOptions}
                                 onMenuScrollToBottom={handleParentSubSectionMenuScrollToBottom}
                                 isDisabled={!values.sectionName}
+                                classNamePrefix="admin-form-select"
+                                theme={neutralSelectTheme}
+                                styles={getAdminFormSelectStyles()}
                               />
                             </div>
                           </Col>
@@ -372,7 +380,7 @@ const AddSubSection = () => {
                           </Col>
                         </Row>
 
-                        <Row className='mt-3'>
+                        <Row className="gy-3 admin-form-fields">
                           <Col xxl={12} md={12}>
                             <div className="d-flex align-items-center">
                               <Label htmlFor="mainParentSubsection" className="form-label mb-0">Main Parent Subsection ? :</Label>
@@ -396,7 +404,7 @@ const AddSubSection = () => {
                           </Col>
                         </Row>
 
-                        <Row className="mt-3">
+                        <Row className="gy-3 admin-form-fields">
                           <Col xxl={4} md={4}>
                             <div className="mb-3">
                               <Label htmlFor="referenceSection" className="form-label">Reference Section Name</Label>
@@ -404,6 +412,9 @@ const AddSubSection = () => {
                                 value={selectedReferenceSection}
                                 onChange={handleReferenceSectionChange}
                                 options={sectionOptions}
+                                classNamePrefix="admin-form-select"
+                                theme={neutralSelectTheme}
+                                styles={getAdminFormSelectStyles()}
                               />
                             </div>
                           </Col>
@@ -424,6 +435,9 @@ const AddSubSection = () => {
                                 options={referenceSubSectionOptions}
                                 onMenuScrollToBottom={handleReferenceSubSectionMenuScrollToBottom}
                                 isDisabled={!selectedReferenceSection}
+                                classNamePrefix="admin-form-select"
+                                theme={neutralSelectTheme}
+                                styles={getAdminFormSelectStyles({ isMulti: true })}
                               />
                             </div>
                           </Col>
@@ -431,52 +445,52 @@ const AddSubSection = () => {
                             <div className="d-inline-flex gap-2 mt-4">
                               <button
                                 type="button"
-                                className="btn btn-soft-info btn-sm mt-2"
+                                className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
                                 onClick={handleAddReferenceRubric}
                               >
-                                <i className="ri-add-line align-middle"></i> Add Reference Rubrics
+                                <i className="ri-add-line align-middle me-1" aria-hidden="true" /> Add Reference Rubrics
                               </button>
                             </div>
                           </Col>
-                        </Row>
 
-                        <Row className='mt-3'>
                           <Col xxl={12} md={12}>
-                            <table className="table table-responsive table-bordered table-nowrap">
-                              <thead>
-                                <tr>
-                                  <th scope="col">Reference Section Name</th>
-                                  <th scope="col">Reference Sub Section Name</th>
-                                  <th scope="col" className='text-center' style={{ width: '10%' }}>Action</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {referenceRubrics.map((rubric, sectionIndex) => (
-                                  <React.Fragment key={sectionIndex}>
-                                    {rubric.subSections.map((subSection, subSectionIndex) => (
-                                      <tr key={`${sectionIndex}-${subSectionIndex}`}>
-                                        {subSectionIndex === 0 ? (
-                                          <td rowSpan={rubric.subSections.length}>{rubric.sectionName}</td>
-                                        ) : null}
-                                        <td>{subSection.subSectionName}</td>
-                                        <td className='text-center'>
-                                          <div className="remove">
-                                            <button
-                                              type="button"
-                                              className="btn btn-sm btn-soft-danger remove-item-btn"
-                                              onClick={() => handleRemoveReferenceRubric(sectionIndex, subSectionIndex)}
-                                              title="Remove this reference"
-                                            >
-                                              <i className="ri-delete-bin-5-line" />
-                                            </button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </React.Fragment>
-                                ))}
-                              </tbody>
-                            </table>
+                            <div className="table-responsive patient-list-modal__table-wrap">
+                              <table className="table mb-0 align-middle patient-list-modal__table table-bordered table-nowrap">
+                                <thead>
+                                  <tr>
+                                    <th scope="col">Reference Section Name</th>
+                                    <th scope="col">Reference Sub Section Name</th>
+                                    <th scope="col" className='text-center' style={{ width: '10%' }}>Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {referenceRubrics.map((rubric, sectionIndex) => (
+                                    <React.Fragment key={sectionIndex}>
+                                      {rubric.subSections.map((subSection, subSectionIndex) => (
+                                        <tr key={`${sectionIndex}-${subSectionIndex}`}>
+                                          {subSectionIndex === 0 ? (
+                                            <td rowSpan={rubric.subSections.length}>{rubric.sectionName}</td>
+                                          ) : null}
+                                          <td>{subSection.subSectionName}</td>
+                                          <td className='text-center'>
+                                            <div className="remove">
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-soft-danger remove-item-btn"
+                                                onClick={() => handleRemoveReferenceRubric(sectionIndex, subSectionIndex)}
+                                                title="Remove this reference"
+                                              >
+                                                <i className="ri-delete-bin-5-line" />
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </React.Fragment>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </Col>
                         </Row>
 
@@ -488,7 +502,7 @@ const AddSubSection = () => {
                           </Col>
                         </Row>
 
-                        <Row className="mt-3">
+                        <Row className="gy-3 admin-form-fields">
                           <Col xxl={4} md={4}>
                             <div className="mb-3">
                               <Label htmlFor="languageName" className="form-label">Language Name</Label>
@@ -499,6 +513,9 @@ const AddSubSection = () => {
                                   setLanguageError(''); // Clear error when selection changes
                                 }}
                                 options={languageOptions}
+                                classNamePrefix="admin-form-select"
+                                theme={neutralSelectTheme}
+                                styles={getAdminFormSelectStyles()}
                               />
                               {languageError && <div className="text-danger mt-1">{languageError}</div>}
                             </div>
@@ -518,67 +535,63 @@ const AddSubSection = () => {
                             <div className="d-inline-flex gap-2 mt-4">
                               <button
                                 type="button"
-                                className="btn btn-soft-info btn-sm mt-2"
+                                className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
                                 onClick={handleAddLanguageReference}
                               >
-                                <i className="ri-add-line align-middle"></i> Add Language Reference
+                                <i className="ri-add-line align-middle me-1" aria-hidden="true" /> Add Language Reference
                               </button>
+                            </div>
+                          </Col>
+
+                          <Col xxl={12} md={12}>
+                            <div className="table-responsive patient-list-modal__table-wrap">
+                              <table className="table mb-0 align-middle patient-list-modal__table table-bordered table-nowrap">
+                                <thead>
+                                  <tr>
+                                    <th scope="col">Language</th>
+                                    <th scope="col">Language Details</th>
+                                    <th scope="col" className='text-center' style={{ width: '10%' }}>Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {languageReferences.map((reference, index) => (
+                                    <tr key={index}>
+                                      <td>{reference.languageName}</td>
+                                      <td>{reference.subSectionDetails}</td>
+                                      <td className='text-center'>
+                                        <div className="remove">
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-soft-danger remove-item-btn"
+                                            onClick={() => handleRemoveLanguageReference(index)}
+                                          >
+                                            <i className="ri-delete-bin-5-line" />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </div>
                           </Col>
                         </Row>
 
-                        <Row className='mt-3'>
-                          <Col xxl={12} md={12}>
-                            <table className="table table-responsive table-bordered table-nowrap">
-                              <thead>
-                                <tr>
-                                  <th scope="col">Language</th>
-                                  <th scope="col">Language Details</th>
-                                  <th scope="col" className='text-center' style={{ width: '10%' }}>Action</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {languageReferences.map((reference, index) => (
-                                  <tr key={index}>
-                                    <td>{reference.languageName}</td>
-                                    <td>{reference.subSectionDetails}</td>
-                                    <td className='text-center'>
-                                      <div className="remove">
-                                        <button
-                                          type="button"
-                                          className="btn btn-sm btn-soft-danger remove-item-btn"
-                                          onClick={() => handleRemoveLanguageReference(index)}
-                                        >
-                                          <i className="ri-delete-bin-5-line" />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </Col>
-                        </Row>
-
-                        <CardFooter className="gap-2">
-                          <Row className="g-4">
-                            <Col className="col-sm">
-                              <div className="d-flex justify-content-sm-start">
-                              </div>
-                            </Col>
-                            <Col className="col-sm-auto">
-                              <div className="d-inline-flex gap-2">
-                                <Link to="/admin/listsubsection">
-                                  <Button color="danger" className="btn-label">
-                                    <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                                  </Button>
-                                </Link>
-                                <Button type="submit" color="success" className="btn-label">
-                                  <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save
-                                </Button>
-                              </div>
-                            </Col>
-                          </Row>
+                        <CardFooter className="border-0">
+                          <div className="d-flex justify-content-end">
+                            <div className="admin-form-actions">
+                              <Link to="/admin/listsubsection" className="d-inline-flex">
+                                <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                                  <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                                  Cancel
+                                </button>
+                              </Link>
+                              <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                                <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                                Save
+                              </button>
+                            </div>
+                          </div>
                         </CardFooter>
                       </Form>
                     )}

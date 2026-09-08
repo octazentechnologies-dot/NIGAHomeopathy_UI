@@ -119,195 +119,190 @@ const AddBlog = () => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {blogDetailsSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {blogDetailsSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {blogDetailsError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {blogDetailsError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">New Blog</h4>
-                </CardHeader>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form onSubmit={formik.handleSubmit}>
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="blogHead" className="form-label">Blog Heading</Label>
-                            <Input
-                              type="text"
-                              className="form-control"
-                              id="blogHead"
-                              name="blogHead"
-                              placeholder="Enter Blog Heading"
-                              value={formik.values.blogHead}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.blogHead && formik.errors.blogHead ? true : false}
-                            />
-                            {formik.touched.blogHead && formik.errors.blogHead ? (
-                              <FormFeedback type="invalid">{formik.errors.blogHead}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="blogSubHead" className="form-label">Blog SubHeading</Label>
-                            <Input
-                              type="text"
-                              className="form-control"
-                              id="blogSubHead"
-                              name="blogSubHead"
-                              placeholder="Enter Blog Sub Heading"
-                              value={formik.values.blogSubHead}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.blogSubHead && formik.errors.blogSubHead ? true : false}
-                            />
-                            {formik.touched.blogSubHead && formik.errors.blogSubHead ? (
-                              <FormFeedback type="invalid">{formik.errors.blogSubHead}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="blogDate" className="form-label">Blog Date</Label>
-                            <Input
-                              type="date"
-                              className="form-control"
-                              id="blogDate"
-                              name="blogDate"
-                              value={formik.values.blogDate}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.blogDate && formik.errors.blogDate ? true : false}
-                            />
-                            {formik.touched.blogDate && formik.errors.blogDate ? (
-                              <FormFeedback type="invalid">{formik.errors.blogDate}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className="mt-3">
-                        <Col xxl={6} md={6}>
-                          <div>
-                            <Label htmlFor="blogImage1" className="form-label">Upload Image 1</Label>
-                            <Input
-                              type="file"
-                              className="form-control"
-                              id="blogImage1"
-                              accept="image/*"
-                              onChange={(e) => handleImageChange(e, 1)}
-                            />
-                            {blogImage1 && (
-                              <div className="mt-2">
-                                <img src={blogImage1} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
-                              </div>
-                            )}
-                          </div>
-                        </Col>
-                        <Col xxl={6} md={6}>
-                          <div>
-                            <Label htmlFor="blogImage2" className="form-label">Upload Image 2</Label>
-                            <Input
-                              type="file"
-                              className="form-control"
-                              id="blogImage2"
-                              accept="image/*"
-                              onChange={(e) => handleImageChange(e, 2)}
-                            />
-                            {blogImage2 && (
-                              <div className="mt-2">
-                                <img src={blogImage2} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
-                              </div>
-                            )}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="blogDetails1" className="form-label">Blog Details</Label>
-                            <div>
-                              <Editor
-                                wrapperClassName="demo-wrapper"
-                                editorClassName="demo-editor"
-                                onEditorStateChange={(newEditorState) => {
-                                  setEditorState(newEditorState);
-                                  formik.setFieldValue('blogDetails1', draftToHtml(convertToRaw(newEditorState.getCurrentContent())));
-                                }}
-                                toolbarClassName="toolbar-class"
-                                editorState={editorState}
-                                wrapperStyle={{
-                                  borderRadius: 5,
-                                  borderWidth: 1,
-                                  borderColor: '#0000'
-                                }}
-                                editorStyle={{
-                                  borderRadius: 2,
-                                  border: '1px solid lightgrey',
-                                  backgroundColor: '#FFFFFF',
-                                  height: '300px'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </Col>
-                      </Row>
-
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New Blog</h5>
                     </div>
-                  </CardBody>
+                  </CardHeader>
 
-                  <CardFooter className=" gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                  <CardBody>
+                    {(blogDetailsSuccess || blogDetailsError) ? (
+                      <div className="admin-form-alerts">
+                        {blogDetailsSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {blogDetailsSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {blogDetailsError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {blogDetailsError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="blogHead" className="form-label">Blog Heading</Label>
+                          <Input
+                            type="text"
+                            className="form-control"
+                            id="blogHead"
+                            name="blogHead"
+                            placeholder="Enter Blog Heading"
+                            value={formik.values.blogHead}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.blogHead && formik.errors.blogHead ? true : false}
+                          />
+                          {formik.touched.blogHead && formik.errors.blogHead ? (
+                            <FormFeedback type="invalid">{formik.errors.blogHead}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listblog">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button
-                            color="success"
-                            className="btn-label"
-                            type="submit"
-                            disabled={blogDetailsLoading}
-                          >
-                            {blogDetailsLoading ? (
-                              <>
-                                <Spinner size="sm" className="me-2" /> Saving...
-                              </>
-                            ) : (
-                              <>
-                                <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save
-                              </>
-                            )}
-                          </Button>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="blogSubHead" className="form-label">Blog SubHeading</Label>
+                          <Input
+                            type="text"
+                            className="form-control"
+                            id="blogSubHead"
+                            name="blogSubHead"
+                            placeholder="Enter Blog Sub Heading"
+                            value={formik.values.blogSubHead}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.blogSubHead && formik.errors.blogSubHead ? true : false}
+                          />
+                          {formik.touched.blogSubHead && formik.errors.blogSubHead ? (
+                            <FormFeedback type="invalid">{formik.errors.blogSubHead}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="blogDate" className="form-label">Blog Date</Label>
+                          <Input
+                            type="date"
+                            className="form-control"
+                            id="blogDate"
+                            name="blogDate"
+                            value={formik.values.blogDate}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.blogDate && formik.errors.blogDate ? true : false}
+                          />
+                          {formik.touched.blogDate && formik.errors.blogDate ? (
+                            <FormFeedback type="invalid">{formik.errors.blogDate}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
                     </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={6} md={6}>
+                        <div>
+                          <Label htmlFor="blogImage1" className="form-label">Upload Image 1</Label>
+                          <Input
+                            type="file"
+                            className="form-control"
+                            id="blogImage1"
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(e, 1)}
+                          />
+                          {blogImage1 && (
+                            <div className="mt-2">
+                              <img src={blogImage1} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                      <Col xxl={6} md={6}>
+                        <div>
+                          <Label htmlFor="blogImage2" className="form-label">Upload Image 2</Label>
+                          <Input
+                            type="file"
+                            className="form-control"
+                            id="blogImage2"
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(e, 2)}
+                          />
+                          {blogImage2 && (
+                            <div className="mt-2">
+                              <img src={blogImage2} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                    </Row>
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="blogDetails1" className="form-label">Blog Details</Label>
+                          <div>
+                            <Editor
+                              wrapperClassName="demo-wrapper"
+                              editorClassName="demo-editor"
+                              onEditorStateChange={(newEditorState) => {
+                                setEditorState(newEditorState);
+                                formik.setFieldValue('blogDetails1', draftToHtml(convertToRaw(newEditorState.getCurrentContent())));
+                              }}
+                              toolbarClassName="toolbar-class"
+                              editorState={editorState}
+                              wrapperStyle={{
+                                border: '1px solid #dee2e6',
+                                borderRadius: 4
+                              }}
+                              editorStyle={{
+                                borderRadius: 4,
+                                border: '1px solid #dee2e6',
+                                backgroundColor: '#FFFFFF',
+                                height: '300px'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listblog" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button
+                          type="submit"
+                          className="btn btn-sm admin-list-btn admin-list-btn--new"
+                          disabled={blogDetailsLoading}
+                        >
+                          {blogDetailsLoading ? (
+                            <>
+                              <Spinner size="sm" className="me-1" /> Saving...
+                            </>
+                          ) : (
+                            <>
+                              <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                              Save
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
-
               </Card>
             </Col>
           </Row>

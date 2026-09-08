@@ -1,14 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Button, Card, Col, Container, Row } from 'reactstrap';
 
-//import images
 import avatar1 from "../../../assets/images/users/avatar-1.jpg";
 
 import AuthSlider from '../authCarousel';
 
 const CoverLockScreen = () => {
-    document.title = "Lock Screen | Velzon - React Admin & Dashboard Template";
+    document.title = "Your Screen Is Locked ! | Niga Homeocentrum";
     return (
         <React.Fragment>
 
@@ -25,12 +23,12 @@ const CoverLockScreen = () => {
                                         <Col lg={6}>
                                             <div className="p-lg-5 p-4">
                                                 <div>
-                                                    <h5 className="text-primary">Lock Screen</h5>
+                                                    <h5 className="text-primary">Your Screen Is Locked !</h5>
                                                     <p className="text-muted">Enter your password to unlock the screen!</p>
                                                 </div>
                                                 <div className="user-thumb text-center">
                                                     <img src={avatar1} className="rounded-circle img-thumbnail avatar-lg" alt="thumbnail" />
-                                                    <h5 className="font-size-15 mt-3">Anna Adame</h5>
+                                                    <h5 className="font-size-15 mt-3">Dr. Nikhil Jamdar</h5>
                                                 </div>
 
                                                 <div className="mt-4">
@@ -43,10 +41,6 @@ const CoverLockScreen = () => {
                                                             <Button color="secondary" className="w-100" type="submit">Unlock</Button>
                                                         </div>
                                                     </form>
-                                                </div>
-
-                                                <div className="mt-5 text-center">
-                                                    <p className="mb-0">Not you ? return <Link to="/auth-signin-cover" className="fw-semibold text-primary text-decoration-underline"> Signin</Link></p>
                                                 </div>
                                             </div>
                                         </Col>

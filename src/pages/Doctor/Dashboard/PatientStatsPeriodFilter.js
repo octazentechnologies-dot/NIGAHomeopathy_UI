@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
+import ModalActionButton from '../../../Components/Common/ModalActionButton';
+import { Input, Label, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
 import { getYearToDateRange } from './patientStatsChartsHelper';
 
 const PatientStatsPeriodFilter = ({ filter, onFilterChange }) => {
@@ -111,12 +112,14 @@ const PatientStatsPeriodFilter = ({ filter, onFilterChange }) => {
                     </div>
                 </ModalBody>
                 <ModalFooter>
-                    <Button color="light" onClick={() => setShowDateModal(false)}>
-                        Cancel
-                    </Button>
-                    <Button color="primary" onClick={handleApplyDateRange} disabled={!draftFromDate || !draftToDate}>
+                    <ModalActionButton action="cancel" onClick={() => setShowDateModal(false)} />
+                    <ModalActionButton
+                        action="confirm"
+                        onClick={handleApplyDateRange}
+                        disabled={!draftFromDate || !draftToDate}
+                    >
                         Apply
-                    </Button>
+                    </ModalActionButton>
                 </ModalFooter>
             </Modal>
         </>

@@ -11,6 +11,13 @@ const UserRole = {
 const usesDoctorDashboardLayout = (role) =>
     role === UserRole.DOCTOR || role === UserRole.RECEPTION;
 
+/** Admin dashboard: full-width fixed topbar + horizontal nav */
+const usesAdminDashboardLayout = (role) => role === UserRole.ADMIN;
+
+/** Topbar briefcase "More" overflow menu (admin + doctor/reception) */
+const usesTopbarMoreMenu = (role) =>
+    usesAdminDashboardLayout(role) || usesDoctorDashboardLayout(role);
+
 const resolveUserRole = (userProfile) => {
     if (userProfile?.role) return userProfile.role;
     try {
@@ -21,4 +28,4 @@ const resolveUserRole = (userProfile) => {
     }
 };
 
-export { UserRole, usesDoctorDashboardLayout, resolveUserRole };;
+export { UserRole, usesDoctorDashboardLayout, usesAdminDashboardLayout, usesTopbarMoreMenu, resolveUserRole };

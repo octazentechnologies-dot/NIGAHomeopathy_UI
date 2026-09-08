@@ -36,6 +36,18 @@
     --bs-success-rgb: #{red($success)}, #{green($success)}, #{blue($success)};
     --bs-danger-rgb: #{red($danger)}, #{green($danger)}, #{blue($danger)};
     --bs-info-rgb: #{red($info)}, #{green($info)}, #{blue($info)};
+    --#{$prefix}primary-bg-subtle: #{tint-color($primary, 85%)};
+    --#{$prefix}primary-border-subtle: #{tint-color($primary, 60%)};
+    --#{$prefix}primary-text-emphasis: #{shade-color($primary, 40%)};
+    --bs-primary-bg-subtle: #{tint-color($primary, 85%)};
+    --bs-primary-border-subtle: #{tint-color($primary, 60%)};
+    --bs-primary-text-emphasis: #{shade-color($primary, 40%)};
+    --#{$prefix}link-color: #{$primary};
+    --#{$prefix}link-hover-color: #{shade-color($primary, 20%)};
+    --bs-link-color: #{$primary};
+    --bs-link-hover-color: #{shade-color($primary, 20%)};
+    --bs-link-color-rgb: #{red($primary)}, #{green($primary)}, #{blue($primary)};
+    --bs-link-hover-color-rgb: #{red(shade-color($primary, 20%))}, #{green(shade-color($primary, 20%))}, #{blue(shade-color($primary, 20%))};
 
     background-color: var(--#{$prefix}secondary-bg);
     font-family: $font-family-primary;
@@ -59,31 +71,143 @@
         padding: 10px 0;
         transition: all 0.5s ease;
 
+        .homeojob-navbar-toggler,
+        .navbar-toggler {
+            border: 0 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            background: transparent !important;
+            padding: 0.15rem 0.25rem;
+
+            &:focus,
+            &:focus-visible,
+            &:active {
+                border: 0 !important;
+                box-shadow: none !important;
+                outline: none !important;
+            }
+        }
+
         @media (max-width: 991.98px) {
             background-color: var(--#{$prefix}secondary-bg);
             box-shadow: 0 1px 16px -2px rgba(56, 65, 74, 0.15);
             padding: 10px 8px;
         }
 
-        .navbar-nav {
+        @media (min-width: 992px) {
+            .navbar-collapse {
+                display: flex !important;
+                flex-wrap: nowrap;
+                align-items: center;
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+        }
+
+        .navbar-nav.homeojob-nav {
+            flex: 1 1 auto;
+            width: 100%;
+            max-width: 44rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-evenly;
+            align-items: center;
+            column-gap: 0;
+            row-gap: 0.25rem;
+            margin-left: auto;
+            margin-right: auto;
+
             .nav-item {
-                .nav-link {
-                    font-size: 16px;
-                    font-weight: $font-weight-medium;
-                    transition: all 0.4s;
+                flex: 1 1 0;
+                text-align: center;
+                min-width: 0;
+
+                .nav-link,
+                .homeojob-nav__link {
+                    display: inline-block;
+                    font-size: 0.9375rem;
+                    font-weight: 600;
+                    letter-spacing: 0.01em;
+                    line-height: 1.25;
+                    transition: color 0.25s ease, text-decoration-color 0.25s ease;
                     font-family: $font-family-secondary;
-                    color: var(--#{$prefix}body-color);
-                    padding: 14px;
+                    color: $gray-800 !important;
+                    padding: 0.75rem 0.35rem;
+                    text-decoration: none;
+                    white-space: nowrap;
+
+                    @media (min-width: 1200px) {
+                        font-size: 1rem;
+                        padding: 0.85rem 0.5rem;
+                    }
 
                     @media (max-width: 991.98px) {
-                        padding: 8px 0;
+                        display: block;
+                        width: 100%;
+                        text-align: left;
+                        padding: 0.65rem 0;
+                        font-size: 1rem;
                     }
 
                     &:hover,
-                    &.active,
                     &:focus {
                         color: $primary !important;
                     }
+
+                    // Selected menu: bold + underline
+                    &.active {
+                        color: $primary !important;
+                        font-weight: 700 !important;
+                        text-decoration: underline !important;
+                        text-decoration-thickness: 2px;
+                        text-underline-offset: 0.35em;
+                        text-decoration-color: $primary;
+                    }
+                }
+            }
+
+            @media (max-width: 991.98px) {
+                max-width: none;
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: flex-start;
+
+                .nav-item {
+                    flex: 0 0 auto;
+                    text-align: left;
+                    width: 100%;
+                }
+            }
+        }
+
+        .homeojob-nav-actions {
+            flex-shrink: 0;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            .btn-soft-primary {
+                white-space: nowrap;
+                min-width: 7.75rem;
+                justify-content: center;
+                display: inline-flex;
+                align-items: center;
+            }
+
+            @media (max-width: 991.98px) {
+                width: 100%;
+                margin-top: 0.75rem;
+                padding-top: 0.75rem;
+                border-top: 1px solid rgba($gray-600, 0.12);
+                justify-content: center;
+                flex-wrap: nowrap;
+
+                .btn-soft-primary {
+                    flex: 1 1 0;
+                    min-width: 0;
+                    max-width: 10rem;
+                    text-align: center;
                 }
             }
         }
@@ -111,13 +235,15 @@
             height: 40px;
             width: auto;
             display: block;
+            // logo-light diamond is maroon in the asset — force full white on dark footer
+            filter: brightness(0) invert(1);
 
             @media (max-width: 575.98px) {
                 height: 32px;
             }
         }
 
-        .card-logo-dark {
+        .card-logo-light {
             display: block !important;
         }
     }
@@ -174,6 +300,24 @@
 
     .text-danger {
         color: $danger !important;
+    }
+
+    a:not(.btn):not(.nav-link):not(.dropdown-item) {
+        color: $primary;
+
+        &:hover {
+            color: shade-color($primary, 20%);
+        }
+    }
+
+    .card h5 a,
+    .card .h5 a {
+        color: $gray-800 !important;
+        text-decoration: none;
+
+        &:hover {
+            color: $primary !important;
+        }
     }
 
     .text-info {
@@ -288,6 +432,24 @@
         position: relative;
         padding: 165px 0;
         overflow-x: hidden;
+
+        @media (max-width: 991.98px) {
+            padding: 110px 0 40px;
+
+            .homeojob-hero-copy {
+                text-align: center;
+
+                .treding-keywords {
+                    text-align: center;
+                }
+            }
+
+            .job-panel-filter {
+                margin-left: auto;
+                margin-right: auto;
+                max-width: 28rem;
+            }
+        }
     }
 
     .job-panel-filter {
@@ -441,6 +603,51 @@
         }
     }
 
+    .homeojob-process-card {
+        border: 1px solid rgba($primary, 0.14);
+        background-color: rgba($primary, 0.08);
+        box-shadow: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+        will-change: transform;
+
+        &:hover {
+            transform: translateY(-8px);
+            background-color: rgba($primary, 0.12);
+            border-color: rgba($primary, 0.28);
+            box-shadow: 0 0.75rem 1.75rem rgba(15, 23, 42, 0.12),
+                0 0.25rem 0.5rem rgba(15, 23, 42, 0.06);
+        }
+
+        &:focus-within {
+            transform: translateY(-8px);
+            background-color: rgba($primary, 0.12);
+            border-color: rgba($primary, 0.28);
+            box-shadow: 0 0.75rem 1.75rem rgba(15, 23, 42, 0.12),
+                0 0.25rem 0.5rem rgba(15, 23, 42, 0.06);
+        }
+    }
+
+    .homeojob-module-card {
+        border: 1px solid rgba($gray-600, 0.12);
+        background-color: $white;
+        box-shadow: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        will-change: transform;
+
+        &:hover,
+        &:focus-within {
+            transform: translateY(-8px);
+            border-color: rgba($primary, 0.22);
+            box-shadow: 0 0.75rem 1.75rem rgba(15, 23, 42, 0.12),
+                0 0.25rem 0.5rem rgba(15, 23, 42, 0.06);
+        }
+    }
+
+    .homeojob-plan-icon {
+        background-color: rgba($primary, 0.12) !important;
+        color: $primary !important;
+    }
+
     .about-img-section {
         position: relative;
 
@@ -470,7 +677,22 @@
 
     .page-banner-section {
         padding-top: 120px;
+        padding-bottom: 2.5rem;
         background-color: rgba(var(--#{$prefix}light-rgb), 0.5);
+
+        .page-banner-breadcrumb {
+            margin-bottom: 0;
+            padding-bottom: 0.25rem;
+        }
+
+        .breadcrumb {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 767.98px) {
+            padding-top: 100px;
+            padding-bottom: 2rem;
+        }
     }
 
     .nav-pills-custom {

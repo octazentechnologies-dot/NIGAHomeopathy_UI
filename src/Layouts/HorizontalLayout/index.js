@@ -5,45 +5,53 @@ import { Col, Collapse, Row } from 'reactstrap';
 import withRouter from '../../Components/Common/withRouter';
 
 // Import Data
-import navdata from "../LayoutMenuData";
+import { useLayoutMenu } from "../LayoutMenuContext";
 //i18n
 import { withTranslation } from "react-i18next";
+import { findActiveMenuAnchor } from "../../helpers/menuActivePathHelper";
 
 const HorizontalLayout = (props) => {
     const [isMoreMenu, setIsMoreMenu] = useState(false);
-    const navData = navdata().props.children;
-    let menuItems = [];
-    let splitMenuItems = [];
-    let menuSplitContainer = 6;
-    navData.forEach(function (value, key) {
-        if (value['isHeader']) {
-            menuSplitContainer++;
-        }
-        if (key >= menuSplitContainer) {
-            let val = value;
-            val.childItems = value.subItems;
-            val.isChildItem = (value.subItems) ? true : false;
-            delete val.subItems;
-            splitMenuItems.push(val);
-        } else {
-            menuItems.push(value);
-        }
-    });
-    menuItems.push({ id: 'more', label: 'More', icon: 'ri-briefcase-2-line', link: "/#", stateVariables: isMoreMenu, subItems: splitMenuItems, click: function (e) { e.preventDefault(); setIsMoreMenu(!isMoreMenu); }, });
+    const { menuItems: baseMenuItems, moreMenuItems } = useLayoutMenu();
+    const menuItems = [...baseMenuItems];
+
+    if (!props.moreMenuInTopbar) {
+        menuItems.push({
+            id: 'more',
+            label: 'More',
+            icon: 'ri-briefcase-2-line',
+            link: "/#",
+            stateVariables: isMoreMenu,
+            subItems: moreMenuItems,
+            click: function (e) {
+                e.preventDefault();
+                setIsMoreMenu(!isMoreMenu);
+            },
+        });
+    }
 
     const path = props.router.location.pathname;
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Mobile horizontal menu: collapse when navigating to a page so content is visible
+        document.body.classList.remove('menu');
+        const hamburgerIcon = document.querySelector('#topnav-hamburger-icon .hamburger-icon');
+        if (hamburgerIcon) {
+            hamburgerIcon.classList.remove('open');
+        }
+
         const initMenu = () => {
             const pathName = process.env.PUBLIC_URL + path;
             const ul = document.getElementById("navbar-nav");
+            if (!ul) {
+                return;
+            }
             const items = ul.getElementsByTagName("a");
             let itemsArray = [...items]; // converts NodeList to Array
             removeActivation(itemsArray);
-            let matchingMenuItem = itemsArray.find((x) => {
-                return x.pathname === pathName;
-            });
+            let matchingMenuItem = findActiveMenuAnchor(itemsArray, pathName);
             if (matchingMenuItem) {
                 activateParentDropdown(matchingMenuItem);
             }
@@ -250,6 +258,7 @@ const HorizontalLayout = (props) => {
 HorizontalLayout.propTypes = {
     location: PropTypes.object,
     t: PropTypes.any,
+    moreMenuInTopbar: PropTypes.bool,
 };
 
 export default withRouter(withTranslation()(HorizontalLayout));

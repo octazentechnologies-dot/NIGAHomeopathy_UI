@@ -1,32 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, DropdownItem, DropdownMenu, DropdownToggle, FormGroup, Input, InputGroup, InputGroupText, Label, Row, UncontrolledDropdown, Button } from 'reactstrap';
-import TableContainer from "../../../../Components/Common/TableContainerReactTable";
+import React, { useEffect, useState } from 'react';
+import { Card, CardHeader, CardBody, Col, Container, Input, InputGroup, InputGroupText, Label, Row, Button, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { Spinner } from 'reactstrap';
-import { useSelector, useDispatch } from "react-redux";
-import Select from "react-select";
-import makeAnimated from "react-select/animated";
+import { useSelector, useDispatch } from 'react-redux';
+import Select from 'react-select';
 import Swal from 'sweetalert2';
-import { getMateriaMedica, getAuthorsForMateriaMedicaDDL, getRemedyDDL, getRemedies, deleteMateriaMedica } from '../../../../slices/thunks';
+import { getMateriaMedica, getAuthorsForMateriaMedicaDDL, getRemedies, deleteMateriaMedica } from '../../../../slices/thunks';
 
 const MateriaMedicaList = () => {
-
   const dispatch = useDispatch();
   const [selectedAuthor, setSelectedAuthor] = useState(null);
   const [selectedRemedy, setSelectedRemedy] = useState(null);
-  const [selectedSingle, setSelectedSingle] = useState(null);
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [goToPageInput, setGoToPageInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const pageSize = 10;
-  // Redux state
+
   const materiaMedicaLoading = useSelector((state) => state?.MateriaMedica?.materiaMedicaLoading || false);
   const materiaMedica = useSelector((state) => state?.MateriaMedica?.materiaMedica?.resultObject || []);
   const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors || []);
   const remedys = useSelector((state) => state?.MateriaMedicaRemedy?.matriaMedicaRemedies || []);
   const totalPages = useSelector((state) => state?.MateriaMedica?.materiaMedica?.totalPageCount || 1);
-  const { materiaMedicaSuccess, materiaMedicaError } = useSelector((state) => state?.MateriaMedica || {});
+  const totalRecords = useSelector(
+    (state) => state?.MateriaMedica?.materiaMedica?.totalRecordCount || materiaMedica.length || 0
+  );
 
   const AuthorOptions = authors?.map((author) => ({
     label: author.authorName,
@@ -42,6 +38,7 @@ const MateriaMedicaList = () => {
     const params = {
       PageNumber: currentPage,
       PageSize: pageSize,
+      queryString: searchQuery,
     };
 
     if (selectedAuthor) {
@@ -53,24 +50,24 @@ const MateriaMedicaList = () => {
     }
 
     dispatch(getMateriaMedica(params));
-  }, [currentPage, selectedAuthor, selectedRemedy]);
+  }, [currentPage, selectedAuthor, selectedRemedy, searchQuery, dispatch]);
 
   useEffect(() => {
     dispatch(getAuthorsForMateriaMedicaDDL());
     dispatch(getRemedies());
-  }, []);
+  }, [dispatch]);
 
-  // Pagination Handlers
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1);
   };
 
   const handleGoToPageInputChange = (e) => {
@@ -86,7 +83,7 @@ const MateriaMedicaList = () => {
         title: 'Invalid page number',
         text: `Please enter a page number between 1 and ${totalPages}.`,
         icon: 'warning',
-        confirmButtonText: 'OK'
+        confirmButtonText: 'OK',
       });
       return;
     }
@@ -96,7 +93,7 @@ const MateriaMedicaList = () => {
         title: 'Invalid page number',
         text: `Page number must be between 1 and ${totalPages}.`,
         icon: 'warning',
-        confirmButtonText: 'OK'
+        confirmButtonText: 'OK',
       });
       return;
     }
@@ -112,278 +109,274 @@ const MateriaMedicaList = () => {
     }
   };
 
-
-  function handleSelectAuthor(selectedAuthor) {
-    setSelectedAuthor(selectedAuthor);
-  }
-
-  function handleSelectRemedy(selectedRemedy) {
-    setSelectedRemedy(selectedRemedy);
-  }
-
   const handleDelete = (materialMedica) => {
     Swal.fire({
-      title: "Are you sure?",
-      text: `You are about to delete material medica which is associated with author " ${materialMedica.authorName}"
-      \n and remedy " ${materialMedica.remedyName}"
-      \n and head " ${materialMedica.materiaMedicaHeadName}"
-      \n. This action cannot be undone!`,
-      icon: "warning",
+      title: 'Are you sure?',
+      text: `You are about to delete material medica which is associated with author "${materialMedica.authorName}", remedy "${materialMedica.remedyName}" and head "${materialMedica.materiaMedicaHeadName}". This action cannot be undone!`,
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
     }).then((result) => {
       if (result.isConfirmed) {
         dispatch(deleteMateriaMedica({
-          "materiaMedicaId": materialMedica.materiaMedicaId,
-          "authorId": materialMedica.authorId,
-          "remedyId": materialMedica.remedyId,
-          "materiaMedicaHeadId": materialMedica.materiaMedicaHeadId,
-          "dose": "string",
-          "enteredBy": 0,
-          "enteredDate": new Date(),
-          "changedBy": 0,
-          "changedDate": new Date(),
-          "seqNo": 0,
-          "isActive": true,
-          "isDeleted": true,
-          "modelEx": [
+          materiaMedicaId: materialMedica.materiaMedicaId,
+          authorId: materialMedica.authorId,
+          remedyId: materialMedica.remedyId,
+          materiaMedicaHeadId: materialMedica.materiaMedicaHeadId,
+          dose: 'string',
+          enteredBy: 0,
+          enteredDate: new Date(),
+          changedBy: 0,
+          changedDate: new Date(),
+          seqNo: 0,
+          isActive: true,
+          isDeleted: true,
+          modelEx: [
             {
-              "matriaMedicaDetailId": 0,
-              "materiaMedicaId": 0,
-              "details": "string"
-            }
-          ]
+              matriaMedicaDetailId: 0,
+              materiaMedicaId: 0,
+              details: 'string',
+            },
+          ],
         })).then(() => {
           setCurrentPage(1);
-          Swal.fire("Deleted!", "The head has been deleted.", "success");
+          Swal.fire('Deleted!', 'The materia medica has been deleted.', 'success');
         }).catch(() => {
-          Swal.fire("Error!", "Something went wrong.", "error");
+          Swal.fire('Error!', 'Something went wrong.', 'error');
         });
       }
     });
   };
 
+  const rowStart = (currentPage - 1) * pageSize;
 
-
-  document.title = "List Materia Medica";
+  document.title = 'List Materia Medica';
   return (
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
-
           <Row>
             <Col lg={12}>
-
-              <Card>
-
-                <CardBody className="card-body">
-                  <div className="live-preview">
-                    <Row className="gy-4">
-                      <Col xxl={4} md={4}>
-                        <div className="mb-3">
-                          <Label htmlFor="placeholderInput" className="form-label">Author Name</Label>
-                          <Select value={selectedAuthor}
-                            onChange={(author) => { handleSelectAuthor(author); }}
-                            options={AuthorOptions} />
-                        </div>
-                      </Col>
-                      <Col xxl={4} md={4}>
-                        <div>
-                          <Label htmlFor="placeholderInput" className="form-label">Remedy Name</Label>
-                          <Select value={selectedRemedy}
-                            onChange={(remedy) => { handleSelectRemedy(remedy); }}
-                            options={RemedyOptions} />
-                        </div>
-                      </Col>
-                      <Col xxl={4} md={4}>
-                        <div className="mt-4">
-                          <Button className="btn-secondary btn-label m-btn-top" onClick={() => {
-                            setSelectedAuthor(null);
-                            setSelectedRemedy(null);
-                          }}> <i className="ri-refresh-line label-icon align-middle fs-16 me-2"></i> Reset </Button>
-                        </div>
-                      </Col>
-                    </Row>
-                  </div>
-                </CardBody>
-
-
-
-              </Card>
-
-              <Card>
-                <CardHeader>
-
-                  <Row className="g-4">
-                    <Col className="col-sm">
-                      <div className="d-flex justify-content-sm-start">
-                        <div className="search-box">
-                          <input type="text" className="form-control form-control-sm search" placeholder="Search..." /><i className="ri-search-line search-icon"></i>
-                        </div>
+              <Card className="patient-list-modal admin-existance-list admin-list-filter-card">
+                <CardBody>
+                  <Row className="gy-3 align-items-end">
+                    <Col xxl={4} md={4}>
+                      <div className="mb-0">
+                        <Label htmlFor="authorFilter" className="form-label">Author Name</Label>
+                        <Select
+                          id="authorFilter"
+                          value={selectedAuthor}
+                          onChange={(author) => {
+                            setSelectedAuthor(author);
+                            setCurrentPage(1);
+                          }}
+                          options={AuthorOptions}
+                          isClearable
+                          placeholder="Select..."
+                        />
                       </div>
                     </Col>
-                    <Col className="col-sm-auto">
-                      <div className="d-inline-flex gap-2">
-                        <button type="button" className="btn btn-soft-primary btn-sm"><i className=" ri-newspaper-line align-middle"></i> Import</button>
-                        <button type="button" className="btn btn-soft-secondary btn-sm"><i className="ri-file-list-3-line align-middle"></i> Export</button>
-                        <Link to="/admin/addmateriamedica"><button type="button" className="btn btn-soft-info btn-sm"><i className="ri-add-line align-middle"></i> New</button></Link>
+                    <Col xxl={4} md={4}>
+                      <div className="mb-0">
+                        <Label htmlFor="remedyFilter" className="form-label">Remedy Name</Label>
+                        <Select
+                          id="remedyFilter"
+                          value={selectedRemedy}
+                          onChange={(remedy) => {
+                            setSelectedRemedy(remedy);
+                            setCurrentPage(1);
+                          }}
+                          options={RemedyOptions}
+                          isClearable
+                          placeholder="Select..."
+                        />
+                      </div>
+                    </Col>
+                    <Col xxl={4} md={4}>
+                      <div className="admin-list-filter-reset">
+                        <button
+                          type="button"
+                          className="btn btn-sm admin-list-btn admin-list-btn--reset"
+                          onClick={() => {
+                            setSelectedAuthor(null);
+                            setSelectedRemedy(null);
+                            setSearchQuery('');
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <i className="ri-refresh-line align-middle me-1" aria-hidden="true" />
+                          Reset
+                        </button>
                       </div>
                     </Col>
                   </Row>
+                </CardBody>
+              </Card>
 
+              <Card className="patient-list-modal admin-existance-list">
+                <CardHeader className="border-0">
+                  <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
+                    <div className="patient-list-modal__search flex-shrink-0">
+                      <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                      />
+                    </div>
+                    <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                        <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
+                        Import
+                      </button>
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                        <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
+                        Export
+                      </button>
+                      <Link to="/admin/addmateriamedica" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-add-line align-middle me-1" aria-hidden="true" />
+                          New
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardBody>
-
-                  <div className="listjs-table" id="customerList">
-
-                    <div className="table-responsive table-card">
-                      <table className="table align-middle table-nowrap" id="customerTable">
-                        <thead className="">
+                  <div className="table-responsive patient-list-modal__table-wrap">
+                    <table className="table mb-0 align-middle patient-list-modal__table" id="customerTable">
+                      <thead>
+                        <tr>
+                          <th scope="col" className="text-center" style={{ width: '5%' }}>#</th>
+                          <th scope="col">Author Name</th>
+                          <th scope="col">Remedy Name</th>
+                          <th scope="col">Head</th>
+                          <th scope="col" className="text-center" style={{ width: '12%' }}>Action</th>
+                        </tr>
+                      </thead>
+                      {materiaMedicaLoading ? (
+                        <tbody>
                           <tr>
-                            <th scope="col" style={{ width: "50px" }}>ID</th>
-                            <th>Author Name</th>
-                            <th>Remedy Name</th>
-                            <th>Head</th>
-                            <th className='text-center' style={{ width: '10%' }}>Action</th>
+                            <td colSpan="5" className="text-center">
+                              <Spinner color="primary" size="sm" />
+                            </td>
                           </tr>
-                        </thead>
-                        {
-                          materiaMedicaLoading ? (
-                            <tbody className="list form-check-all">
-                              <tr>
-                                <td colSpan="5" className="text-center">
-                                  <Spinner color="primary" className="ms-1" />
+                        </tbody>
+                      ) : (
+                        <tbody>
+                          {materiaMedica.length > 0 ? (
+                            materiaMedica.map((item, index) => (
+                              <tr key={item.materiaMedicaId || index}>
+                                <td className="text-center patient-list-modal__index">{rowStart + index + 1}</td>
+                                <td>{item.authorName || '—'}</td>
+                                <td>{item.remedyName || '—'}</td>
+                                <td>{item.materiaMedicaHeadName || '—'}</td>
+                                <td className="text-center">
+                                  <div className="d-inline-flex gap-2">
+                                    <div className="edit">
+                                      <Link to="/admin/editmateriamedica" state={{ selectedMateriaMedica: item }}>
+                                        <button type="button" className="btn btn-sm btn-soft-success edit-item-btn" title="Edit">
+                                          <i className="ri-pencil-fill" />
+                                        </button>
+                                      </Link>
+                                    </div>
+                                    <div className="remove">
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-soft-danger remove-item-btn"
+                                        title="Delete"
+                                        onClick={() => handleDelete(item)}
+                                      >
+                                        <i className="ri-delete-bin-5-line" />
+                                      </button>
+                                    </div>
+                                  </div>
                                 </td>
                               </tr>
-                            </tbody>
+                            ))
                           ) : (
-                            <tbody className="list form-check-all">
-                              {materiaMedica.length > 0 ? (
-                                materiaMedica.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.materiaMedicaId}</td>
-                                    <td>{item.authorName}</td>
-                                    <td>{item.remedyName}</td>
-                                    <td>{item.materiaMedicaHeadName}</td>
-                                    <td className='text-center '>
-                                      <div className="d-inline-flex gap-2">
-                                        <div className="edit">
-                                          <Link to="/admin/editmateriamedica" state={{ selectedMateriaMedica: item }}><button className="btn btn-sm btn-soft-success edit-item-btn"><i className="ri-pencil-fill" /></button></Link>
-                                        </div>
-                                        <div className="remove">
-                                          <button className="btn btn-sm btn-soft-danger remove-item-btn" onClick={() => handleDelete(item)}><i className="ri-delete-bin-5-line" /> </button>
-                                        </div>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td colSpan="5" className="text-center">
-                                    No data found
-                                  </td>
-                                </tr>
-                              )
-                              }
-                            </tbody>)
-                        }
-
-                      </table>
-                    </div>
-
-                    {/* Pagination */}
-                    <div className="align-items-center g-3 text-center text-sm-start row mt-3">
-                      <div className="col-sm">
-                        <div className="text-muted">
-                          Showing <span className="fw-semibold ms-1">{currentPage}</span> of <span className="fw-semibold">{totalPages}</span> Pages
-                        </div>
-                      </div>
-                      <div className="col-sm-auto">
-                        <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center justify-content-sm-start">
-                          <ul className="pagination pagination-separated pagination-md justify-content-center justify-content-sm-start mb-0">
-                            {/* Previous Button */}
-                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                              <button className="page-link" onClick={handlePrevPage}>Previous</button>
-                            </li>
-
-                            {/* First Page */}
-                            {currentPage > 3 && (
-                              <>
-                                <li className="page-item">
-                                  <button className="page-link" onClick={() => setCurrentPage(1)}>1</button>
-                                </li>
-                                {currentPage > 4 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                              </>
-                            )}
-
-                            {/* Dynamic Page Numbers */}
-                            {[...Array(totalPages)].map((_, index) => {
-                              const page = index + 1;
-                              if (
-                                page === currentPage || // Current Page
-                                page === currentPage - 1 || // One Before Current
-                                page === currentPage + 1 // One After Current
-                              ) {
-                                return (
-                                  <li key={index} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                                    <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
-                                  </li>
-                                );
-                              }
-                              return null;
-                            })}
-
-                            {/* Last Page */}
-                            {currentPage < totalPages - 2 && (
-                              <>
-                                {currentPage < totalPages - 3 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                                <li className="page-item">
-                                  <button className="page-link" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
-                                </li>
-                              </>
-                            )}
-
-                            {/* Next Button */}
-                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                              <button className="page-link" onClick={handleNextPage}>Next</button>
-                            </li>
-                          </ul>
-
-                          <InputGroup size="sm" style={{ width: '190px' }}>
-                            <InputGroupText>Go to</InputGroupText>
-                            <Input
-                              value={goToPageInput}
-                              onChange={handleGoToPageInputChange}
-                              onKeyDown={handleGoToPageKeyDown}
-                              placeholder="Page #"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              aria-label="Go to page number"
-                              disabled={totalPages <= 1}
-                            />
-                            <Button
-                              color="primary"
-                              outline
-                              onClick={handleGoToPage}
-                              disabled={totalPages <= 1}
-                            >
-                              Go
-                            </Button>
-                          </InputGroup>
-                        </div>
-                      </div>
-                    </div>
-
+                            <tr>
+                              <td colSpan="5" className="text-center text-muted py-4">
+                                {searchQuery || selectedAuthor || selectedRemedy
+                                  ? 'No data matches your filters'
+                                  : 'No data found'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      )}
+                    </table>
                   </div>
 
+                  <div className="d-flex align-items-center justify-content-between patient-list-modal__footer flex-wrap gap-2">
+                    <div className="text-muted patient-list-modal__footer-text">
+                      {materiaMedicaLoading
+                        ? 'Loading...'
+                        : `Showing ${materiaMedica.length} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
+                    </div>
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                      <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
+                        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                          <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
+                            Previous
+                          </button>
+                        </li>
+                        {[...Array(totalPages)].map((_, index) => {
+                          const pageNumber = index + 1;
+                          if (
+                            pageNumber === 1 ||
+                            pageNumber === totalPages ||
+                            (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                          ) {
+                            return (
+                              <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
+                                <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
+                                  {pageNumber}
+                                </button>
+                              </li>
+                            );
+                          }
+                          if (pageNumber === 2 || pageNumber === totalPages - 1) {
+                            return (
+                              <li key={index} className="page-item disabled">
+                                <span className="page-link">...</span>
+                              </li>
+                            );
+                          }
+                          return null;
+                        })}
+                        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                          <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
+                            Next
+                          </button>
+                        </li>
+                      </ul>
+                      <InputGroup size="sm" style={{ width: '190px' }}>
+                        <InputGroupText>Go to</InputGroupText>
+                        <Input
+                          value={goToPageInput}
+                          onChange={handleGoToPageInputChange}
+                          onKeyDown={handleGoToPageKeyDown}
+                          placeholder="Page #"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          aria-label="Go to page number"
+                          disabled={totalPages <= 1}
+                        />
+                        <Button color="primary" outline onClick={handleGoToPage} disabled={totalPages <= 1}>
+                          Go
+                        </Button>
+                      </InputGroup>
+                    </div>
+                  </div>
                 </CardBody>
               </Card>
             </Col>
           </Row>
-
         </Container>
       </div>
     </React.Fragment>

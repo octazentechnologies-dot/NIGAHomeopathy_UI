@@ -7,6 +7,16 @@ import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from 'reactstrap
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import { createSelector } from 'reselect';
 
+const DEFAULT_BALANCE = 5971.67;
+
+const formatIndianRupeeAmount = (amount) => {
+    const value = Math.round(Number(amount) || 0);
+    return value.toLocaleString('en-IN', {
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
+    });
+};
+
 const ProfileDropdown = () => {
 
     const profiledropdownData = createSelector(
@@ -88,12 +98,7 @@ const ProfileDropdown = () => {
                         <Link to="/apps-chat" className="dropdown-item">
                             <i className="mdi mdi-message-text-outline text-muted fs-16 align-middle me-1"></i> <span
                                 className="align-middle">Messages</span>
-                        </Link>
-                    </DropdownItem>
-                    <DropdownItem className='p-0'>
-                        <Link to="#" className="dropdown-item">
-                            <i className="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i> <span
-                                className="align-middle">Taskboard</span>
+                            <span className="badge bg-success-subtle text-success mt-1 float-end">New</span>
                         </Link>
                     </DropdownItem>
                     <DropdownItem className='p-0'>
@@ -107,14 +112,13 @@ const ProfileDropdown = () => {
                     <DropdownItem className='p-0'>
                         <Link to="/pages-profile" className="dropdown-item">
                             <i
-                                className="mdi mdi-wallet text-muted fs-16 align-middle me-1"></i> <span
-                                    className="align-middle">Balance : <b>$5971.67</b></span>
+                                className="mdi mdi-currency-rupee text-muted fs-16 align-middle me-1"></i> <span
+                                    className="align-middle">Balance : <b>₹{formatIndianRupeeAmount(userData?.balance ?? DEFAULT_BALANCE)}</b></span>
                         </Link>
                     </DropdownItem >
                     <DropdownItem className='p-0'>
                         <Link to="/pages-profile-settings" className="dropdown-item">
-                            <span
-                                className="badge bg-success-subtle text-success mt-1 float-end">New</span><i
+                            <i
                                     className="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i> <span
                                         className="align-middle">Settings</span>
                         </Link>

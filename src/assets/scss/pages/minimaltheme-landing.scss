@@ -307,7 +307,13 @@
 
     .page-banner-section {
         padding-top: 120px;
+        padding-bottom: 2.5rem;
         background-color: rgba(var(--#{$prefix}light-rgb), 0.5);
+
+        @media (max-width: 767.98px) {
+            padding-top: 100px;
+            padding-bottom: 2rem;
+        }
     }
 
     .minimaltheme-contact-form {

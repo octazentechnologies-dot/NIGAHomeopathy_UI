@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Input, Label, Row, Button, UncontrolledAlert } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Input, Label, Row, UncontrolledAlert } from 'reactstrap';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,7 +18,7 @@ import * as Yup from "yup";
 import { useFormik } from "formik";
 
 import Select from "react-select";
-import makeAnimated from "react-select/animated";
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const EditNews = () => {
   document.title = "Edit News";
@@ -220,258 +219,245 @@ const EditNews = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {newsDetailsSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {newsDetailsSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {newsDetailsError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {newsDetailsError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">Edit News</h4>
-                </CardHeader>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form onSubmit={formik.handleSubmit}>
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="newsHeading" className="form-label">News Heading</Label>
-                            <Input
-                              type="text"
-                              className="form-control"
-                              id="newsHeading"
-                              name="newsHeading"
-                              placeholder="Enter News Heading"
-                              value={formik.values.newsHeading}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.newsHeading && formik.errors.newsHeading ? true : false}
-                            />
-                            {formik.touched.newsHeading && formik.errors.newsHeading ? (
-                              <FormFeedback type="invalid">{formik.errors.newsHeading}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={8} md={8}>
-                          <div>
-                            <Label htmlFor="newsSubHeading" className="form-label">News SubHeading</Label>
-                            <Input
-                              type="text"
-                              className="form-control"
-                              id="newsSubHeading"
-                              name="newsSubHeading"
-                              placeholder="Enter News Sub Heading"
-                              value={formik.values.newsSubHeading}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.newsSubHeading && formik.errors.newsSubHeading ? true : false}
-                            />
-                            {formik.touched.newsSubHeading && formik.errors.newsSubHeading ? (
-                              <FormFeedback type="invalid">{formik.errors.newsSubHeading}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className="mt-3">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="newsCategory" className="form-label">News Category</Label>
-                            <Select
-                              name="newsCategory"
-                              value={formik.values.newsCategory}
-                              onChange={(selectedOption) => {
-                                formik.setFieldValue("newsCategory", selectedOption);
-                              }}
-                              options={newsCategoryOptions}
-                              isLoading={newsCategoriesLoading}
-                              onBlur={() => formik.setFieldTouched("newsCategory", true)}
-                              className={formik.touched.newsCategory && formik.errors.newsCategory ? "is-invalid" : ""}
-                              styles={{
-                                control: (base) => ({
-                                  ...base,
-                                  borderColor: formik.touched.newsCategory && formik.errors.newsCategory ? "red" : base.borderColor,
-                                  "&:hover": {
-                                    borderColor: formik.touched.newsCategory && formik.errors.newsCategory ? "red" : base.borderColor,
-                                  },
-                                }),
-                              }}
-                            />
-                            {formik.touched.newsCategory && formik.errors.newsCategory ? (
-                              <FormFeedback type="invalid" style={{ display: 'block' }}>{formik.errors.newsCategory}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="newsDate" className="form-label">News Date</Label>
-                            <Input
-                              type="date"
-                              className="form-control"
-                              id="newsDate"
-                              name="newsDate"
-                              value={formik.values.newsDate}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.newsDate && formik.errors.newsDate ? true : false}
-                            />
-                            {formik.touched.newsDate && formik.errors.newsDate ? (
-                              <FormFeedback type="invalid">{formik.errors.newsDate}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className="mt-3">
-                        <Col xxl={3} md={3}>
-                          <div>
-                            <Label htmlFor="newsImage1" className="form-label">Upload Image 1</Label>
-                            <Input
-                              type="file"
-                              className="form-control"
-                              id="newsImage1"
-                              accept="image/*"
-                              onChange={(e) => handleImageChange(e, 1)}
-                            />
-                            {newsImage1 && (
-                              <div className="mt-2">
-                                <img src={newsImage1} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
-                              </div>
-                            )}
-                          </div>
-                        </Col>
-                        <Col xxl={3} md={3}>
-                          <div>
-                            <Label htmlFor="newsImage2" className="form-label">Upload Image 2</Label>
-                            <Input
-                              type="file"
-                              className="form-control"
-                              id="newsImage2"
-                              accept="image/*"
-                              onChange={(e) => handleImageChange(e, 2)}
-                            />
-                            {newsImage2 && (
-                              <div className="mt-2">
-                                <img src={newsImage2} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
-                              </div>
-                            )}
-                          </div>
-                        </Col>
-                        <Col xxl={3} md={3}>
-                          <div>
-                            <Label htmlFor="newsImage3" className="form-label">Upload Image 3</Label>
-                            <Input
-                              type="file"
-                              className="form-control"
-                              id="newsImage3"
-                              accept="image/*"
-                              onChange={(e) => handleImageChange(e, 3)}
-                            />
-                            {newsImage3 && (
-                              <div className="mt-2">
-                                <img src={newsImage3} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
-                              </div>
-                            )}
-                          </div>
-                        </Col>
-                        <Col xxl={3} md={3}>
-                          <div>
-                            <Label htmlFor="newsImage4" className="form-label">Upload Image 4</Label>
-                            <Input
-                              type="file"
-                              className="form-control"
-                              id="newsImage4"
-                              accept="image/*"
-                              onChange={(e) => handleImageChange(e, 4)}
-                            />
-                            {newsImage4 && (
-                              <div className="mt-2">
-                                <img src={newsImage4} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
-                              </div>
-                            )}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="newsContent" className="form-label">News Details</Label>
-                            <div>
-                              <Editor
-                                wrapperClassName="demo-wrapper"
-                                editorClassName="demo-editor"
-                                onEditorStateChange={(newEditorState) => {
-                                  setEditorState(newEditorState);
-                                  formik.setFieldValue('newsContent', draftToHtml(convertToRaw(newEditorState.getCurrentContent())));
-                                }}
-                                toolbarClassName="toolbar-class"
-                                editorState={editorState}
-                                wrapperStyle={{
-                                  borderRadius: 5,
-                                  borderWidth: 1,
-                                  borderColor: '#0000'
-                                }}
-                                editorStyle={{
-                                  borderRadius: 2,
-                                  border: '1px solid lightgrey',
-                                  backgroundColor: '#FFFFFF',
-                                  height: '300px'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </Col>
-                      </Row>
-
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">Edit News</h5>
                     </div>
-                  </CardBody>
+                  </CardHeader>
 
-                  <CardFooter className=" gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                  <CardBody>
+                    {(newsDetailsSuccess || newsDetailsError) ? (
+                      <div className="admin-form-alerts">
+                        {newsDetailsSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {newsDetailsSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {newsDetailsError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {newsDetailsError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsHeading" className="form-label">News Heading</Label>
+                          <Input
+                            type="text"
+                            className="form-control"
+                            id="newsHeading"
+                            name="newsHeading"
+                            placeholder="Enter News Heading"
+                            value={formik.values.newsHeading}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.newsHeading && formik.errors.newsHeading ? true : false}
+                          />
+                          {formik.touched.newsHeading && formik.errors.newsHeading ? (
+                            <FormFeedback type="invalid">{formik.errors.newsHeading}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listnews">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button
-                            color="success"
-                            className="btn-label"
-                            type="submit"
-                            disabled={newsDetailsLoading}
-                          >
-                            {newsDetailsLoading ? (
-                              <>
-                                <Spinner size="sm" className="me-2" /> Updating...
-                              </>
-                            ) : (
-                              <>
-                                <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Update
-                              </>
-                            )}
-                          </Button>
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsSubHeading" className="form-label">News SubHeading</Label>
+                          <Input
+                            type="text"
+                            className="form-control"
+                            id="newsSubHeading"
+                            name="newsSubHeading"
+                            placeholder="Enter News Sub Heading"
+                            value={formik.values.newsSubHeading}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.newsSubHeading && formik.errors.newsSubHeading ? true : false}
+                          />
+                          {formik.touched.newsSubHeading && formik.errors.newsSubHeading ? (
+                            <FormFeedback type="invalid">{formik.errors.newsSubHeading}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsCategory" className="form-label">News Category</Label>
+                          <Select
+                            name="newsCategory"
+                            value={formik.values.newsCategory}
+                            onChange={(selectedOption) => {
+                              formik.setFieldValue("newsCategory", selectedOption);
+                            }}
+                            options={newsCategoryOptions}
+                            isLoading={newsCategoriesLoading}
+                            onBlur={() => formik.setFieldTouched("newsCategory", true)}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({
+                              invalid: Boolean(formik.touched.newsCategory && formik.errors.newsCategory),
+                            })}
+                            className={formik.touched.newsCategory && formik.errors.newsCategory ? "is-invalid" : ""}
+                          />
+                          {formik.touched.newsCategory && formik.errors.newsCategory ? (
+                            <FormFeedback type="invalid" style={{ display: 'block' }}>{formik.errors.newsCategory}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsDate" className="form-label">News Date</Label>
+                          <Input
+                            type="date"
+                            className="form-control"
+                            id="newsDate"
+                            name="newsDate"
+                            value={formik.values.newsDate}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.newsDate && formik.errors.newsDate ? true : false}
+                          />
+                          {formik.touched.newsDate && formik.errors.newsDate ? (
+                            <FormFeedback type="invalid">{formik.errors.newsDate}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsImage1" className="form-label">Upload Image 1</Label>
+                          <Input
+                            type="file"
+                            className="form-control"
+                            id="newsImage1"
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(e, 1)}
+                          />
+                          {newsImage1 && (
+                            <div className="mt-2">
+                              <img src={newsImage1} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsImage2" className="form-label">Upload Image 2</Label>
+                          <Input
+                            type="file"
+                            className="form-control"
+                            id="newsImage2"
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(e, 2)}
+                          />
+                          {newsImage2 && (
+                            <div className="mt-2">
+                              <img src={newsImage2} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsImage3" className="form-label">Upload Image 3</Label>
+                          <Input
+                            type="file"
+                            className="form-control"
+                            id="newsImage3"
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(e, 3)}
+                          />
+                          {newsImage3 && (
+                            <div className="mt-2">
+                              <img src={newsImage3} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                      <Col xxl={3} md={3}>
+                        <div>
+                          <Label htmlFor="newsImage4" className="form-label">Upload Image 4</Label>
+                          <Input
+                            type="file"
+                            className="form-control"
+                            id="newsImage4"
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(e, 4)}
+                          />
+                          {newsImage4 && (
+                            <div className="mt-2">
+                              <img src={newsImage4} alt="Preview" style={{ maxWidth: '100px', maxHeight: '100px' }} />
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="newsContent" className="form-label">News Details</Label>
+                          <div>
+                            <Editor
+                              wrapperClassName="demo-wrapper"
+                              editorClassName="demo-editor"
+                              onEditorStateChange={(newEditorState) => {
+                                setEditorState(newEditorState);
+                                formik.setFieldValue('newsContent', draftToHtml(convertToRaw(newEditorState.getCurrentContent())));
+                              }}
+                              toolbarClassName="toolbar-class"
+                              editorState={editorState}
+                              wrapperStyle={{
+                                borderRadius: 5,
+                                borderWidth: 1,
+                                borderColor: '#0000'
+                              }}
+                              editorStyle={{
+                                borderRadius: 2,
+                                border: '1px solid lightgrey',
+                                backgroundColor: '#FFFFFF',
+                                height: '300px'
+                              }}
+                            />
+                          </div>
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listnews" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button
+                          type="submit"
+                          className="btn btn-sm admin-list-btn admin-list-btn--new"
+                          disabled={newsDetailsLoading}
+                        >
+                          {newsDetailsLoading ? (
+                            <>
+                              <Spinner size="sm" className="me-1" /> Updating...
+                            </>
+                          ) : (
+                            <>
+                              <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                              Update
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
-
               </Card>
             </Col>
           </Row>

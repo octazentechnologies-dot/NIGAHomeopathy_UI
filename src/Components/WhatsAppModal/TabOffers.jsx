@@ -1,8 +1,8 @@
 import React from "react";
-import { Col, Input, Label, Row } from "reactstrap";
+import { Col, Input, Row } from "reactstrap";
 import Flatpickr from "react-flatpickr";
 import MessageBodyField from "./MessageBodyField";
-
+import WhatsAppFormLabel from "./WhatsAppFormLabel";
 export default function TabOffers({
   compose,
   onChange,
@@ -11,8 +11,7 @@ export default function TabOffers({
   isMarathi = false,
 }) {
   return (
-    <div>
-      <Row className="g-3">
+    <Row className="g-3">
         {/* Template Name — disabled for now
         <Col md={6}>
           <Label className="form-label">Template Name</Label>
@@ -20,10 +19,9 @@ export default function TabOffers({
         </Col>
         */}
         <Col md={6}>
-          <Label className="form-label">
+          <WhatsAppFormLabel icon="ri-price-tag-3-line">
             Offer <span className="text-danger">*</span>
-          </Label>
-          <Input
+          </WhatsAppFormLabel>          <Input
             value={compose.offerTitle || ""}
             onChange={(e) => onChange({ offerTitle: e.target.value })}
             placeholder={
@@ -34,8 +32,7 @@ export default function TabOffers({
           />
         </Col>
         <Col md={6}>
-          <Label className="form-label">Valid Until</Label>
-          <Flatpickr
+          <WhatsAppFormLabel icon="ri-calendar-check-line">Valid Until</WhatsAppFormLabel>          <Flatpickr
             className="form-control"
             value={compose.validUntil || ""}
             options={{ dateFormat: "d-m-Y", altInput: true, altFormat: "d-M-Y" }}
@@ -45,8 +42,7 @@ export default function TabOffers({
           <div className="text-muted small mt-1">Used in template as {"{{Date}}"} or {"{{ValidUntil}}"}</div>
         </Col>
         <Col md={6}>
-          <Label className="form-label">Coupon Code (optional)</Label>
-          <Input
+          <WhatsAppFormLabel icon="ri-coupon-3-line">Coupon Code (optional)</WhatsAppFormLabel>          <Input
             value={compose.couponCode || ""}
             onChange={(e) => onChange({ couponCode: e.target.value })}
             placeholder="e.g. HEALTH50"
@@ -65,14 +61,12 @@ export default function TabOffers({
           placeholder={isMarathi ? "ऑफर संदेश लिहा..." : "Write offer message..."}
         />
         <Col md={12}>
-          <Label className="form-label">Offer Banner Image (optional)</Label>
-          <Input
+          <WhatsAppFormLabel icon="ri-image-line">Offer Banner Image (optional)</WhatsAppFormLabel>          <Input
             type="file"
             onChange={(e) => onChange({ attachment: e.target.files?.[0] || null })}
           />
         </Col>
-      </Row>
-    </div>
+    </Row>
   );
 }
 

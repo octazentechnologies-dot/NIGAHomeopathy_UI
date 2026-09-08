@@ -7,11 +7,11 @@ const RecentOrders = () => {
     return (
         <React.Fragment>
             <Col xl={8}>
-                <Card>
-                    <CardHeader className="align-items-center d-flex">
-                        <h4 className="card-title mb-0 flex-grow-1">Patient Stats</h4>
+                <Card className="admin-dash-card">
+                    <CardHeader className="align-items-center d-flex admin-dash-card-header">
+                        <h4 className="card-title mb-0 flex-grow-1">Recent Patient Records</h4>
                         <div className="flex-shrink-0">
-                            <button type="button" className="btn btn-soft-secondary btn-sm">
+                            <button type="button" className="btn btn-sm doctor-dashboard-toolbar-btn">
                                 <i className="ri-file-list-3-line align-middle"></i> Generate Report
                             </button>
                         </div>
@@ -22,13 +22,13 @@ const RecentOrders = () => {
                             <table className="table table-borderless table-centered align-middle table-nowrap mb-0">
                                 <thead className="text-muted table-light">
                                     <tr>
-                                        <th scope="col">Order ID</th>
-                                        <th scope="col">Customer</th>
-                                        <th scope="col">Product</th>
-                                        <th scope="col">Amount</th>
-                                        <th scope="col">Vendor</th>
+                                        <th scope="col">Patient ID</th>
+                                        <th scope="col">Patient</th>
+                                        <th scope="col">Age</th>
+                                        <th scope="col">Consultation</th>
+                                        <th scope="col">Doctor</th>
                                         <th scope="col">Status</th>
-                                        <th scope="col">Rating</th>
+                                        <th scope="col">Last Visit</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -46,14 +46,14 @@ const RecentOrders = () => {
                                         </td>
                                         <td>{item.product}</td>
                                         <td>
-                                            <span className="text-primary">${item.amount}.00</span>
+                                            <span className="text-muted">{item.amount}</span>
                                         </td>
                                         <td>{item.vendor}</td>
                                         <td>
                                             <span className={"badge bg-" + item.statusClass+"-subtle text-"+ item.statusClass}>{item.status}</span>
                                         </td>
                                         <td>
-                                            <h5 className="fs-14 fw-medium mb-0">{item.rating}<span className="text-muted fs-11 ms-1">({item.votes} votes)</span></h5>
+                                            <h5 className="fs-14 fw-medium mb-0">{item.rating}</h5>
                                         </td>
                                     </tr>))}
                                 </tbody>

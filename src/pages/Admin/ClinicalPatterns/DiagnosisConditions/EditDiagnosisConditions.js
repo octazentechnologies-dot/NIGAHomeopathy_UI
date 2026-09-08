@@ -6,6 +6,7 @@ import { Spinner } from 'reactstrap';
 import { Nav, NavItem, NavLink, TabContent, TabPane, UncontrolledAlert } from 'reactstrap';
 import classnames from 'classnames';
 import Select from 'react-select';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import DiagnosisSubSectionSelect from './DiagnosisSubSectionSelect';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
@@ -1748,38 +1749,42 @@ const EditDiagnosisConditions = () => {
           {/* <BreadCrumb title="Starter" pageTitle="Pages" /> */}
           <Row>
             <Col lg={12}>
-              <Card>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
 
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">Edit Diagnosis & Conditions</h4>
+                <CardHeader className="border-0">
+                  <div className="admin-form-toolbar">
+                    <h5 className="admin-form-title">Edit Diagnosis & Conditions</h5>
+                  </div>
                 </CardHeader>
 
-                <CardBody className="card-body">
+                <CardBody>
                   {loading ? (
                     <div className="text-center">
                       <Spinner color="primary" />
                       <p className="mt-2">Loading diagnosis data...</p>
                     </div>
                   ) : (
-                    <div className="live-preview">
-                      <div className="p-2">
-                        {diagnosisConditionSuccess ? (
-                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                            <i className="ri-notification-off-line label-icon"></i>
-                            {diagnosisConditionSuccess}
-                          </UncontrolledAlert>
-                        ) : null}
-                        {diagnosisConditionError ? (
-                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                            <i className="ri-error-warning-line label-icon"></i>
-                            {diagnosisConditionError}
-                          </UncontrolledAlert>
-                        ) : null}
-                      </div>
+                    <>
+                      {(diagnosisConditionSuccess || diagnosisConditionError) ? (
+                        <div className="admin-form-alerts">
+                          {diagnosisConditionSuccess ? (
+                            <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                              <i className="ri-checkbox-circle-line label-icon" />
+                              {diagnosisConditionSuccess}
+                            </UncontrolledAlert>
+                          ) : null}
+                          {diagnosisConditionError ? (
+                            <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                              <i className="ri-error-warning-line label-icon" />
+                              {diagnosisConditionError}
+                            </UncontrolledAlert>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <Row>
                         <Col xxl={12} md={12}>
                           <div>
-                            <Nav pills className="nav-success mb-3">
+                            <Nav pills className="admin-form-tabs mb-3">
                               <NavItem><NavLink style={{ cursor: "pointer" }} className={classnames({ active: pillsTab === "1", })} onClick={() => { pillsToggle("1"); }} >Diagnosis</NavLink></NavItem>
                               <NavItem><NavLink style={{ cursor: "pointer" }} className={classnames({ active: pillsTab === "2", })} onClick={() => { pillsToggle("2"); }} >Diagnosis Symptoms</NavLink></NavItem>
                               <NavItem><NavLink style={{ cursor: "pointer" }} className={classnames({ active: pillsTab === "3", })} onClick={() => { pillsToggle("3"); }} >Diagnosis Monogram</NavLink></NavItem>
@@ -1802,7 +1807,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="1" >
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Diagnosis Name <span className="required">*</span></Label>
@@ -1845,12 +1850,15 @@ const EditDiagnosisConditions = () => {
                                   </Col>
                                 </Row>
 
-                                <Row className="mt-3">
+                                <Row className="gy-3 admin-form-fields">
 
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section Name <span className="required">*</span></Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()}
                                         value={selectedSingle}
                                         // onChange={handleSelectSingle}
                                         onChange={(option) => handleSelectSingle(option)}
@@ -1877,7 +1885,7 @@ const EditDiagnosisConditions = () => {
                                     <div className="d-inline-flex gap-2  mt-4">
                                       <button
                                         type="button"
-                                        className="btn btn-soft-info btn-sm  mt-2"
+                                        className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
                                         onClick={addSelectedSubSectionQuestions}
                                       >
                                         <i className="ri-add-line align-middle"></i> Add Sub Section
@@ -1888,9 +1896,10 @@ const EditDiagnosisConditions = () => {
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
-                                    <table className="table table-responsive table-bordered table-nowrap">
+                                    <div className="table-responsive patient-list-modal__table-wrap">
+                                    <table className="table mb-0 align-middle patient-list-modal__table table-bordered table-nowrap">
                                       <thead>
                                         <tr>
                                           <th scope="col">Sub Section Name</th>
@@ -1921,6 +1930,7 @@ const EditDiagnosisConditions = () => {
                                         )}
                                       </tbody>
                                     </table>
+                                    </div>
                                   </Col>
                                 </Row>
 
@@ -1928,7 +1938,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="2">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Symptoms Keywords <span className="required">*</span></Label>
@@ -1946,6 +1956,9 @@ const EditDiagnosisConditions = () => {
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section <span className="required">*</span></Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()}
                                         value={SingleOptions.find(option => option.value === SymptomsSectionId)}
                                         onChange={(option) => handleChangeSubSection("Symptoms", option)}
                                         options={SingleOptions}
@@ -1957,6 +1970,9 @@ const EditDiagnosisConditions = () => {
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -1964,21 +1980,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('symptoms', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section <span className="required">*</span></Label>
@@ -1994,7 +2001,7 @@ const EditDiagnosisConditions = () => {
                                     <div className="d-inline-flex gap-2  mt-4">
                                       <button
                                         type="button"
-                                        className="btn btn-soft-info btn-sm  mt-2"
+                                        className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
                                         onClick={addSymptoms}
                                       >
                                         <i className="ri-add-line align-middle"></i> Add Symptoms
@@ -2005,7 +2012,7 @@ const EditDiagnosisConditions = () => {
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: models,
@@ -2025,7 +2032,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="3">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Monogram Keywords</Label>
@@ -2043,6 +2050,9 @@ const EditDiagnosisConditions = () => {
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()}
                                         value={selectedMonogramSection}
                                         onChange={handleMonogramSectionChange}
                                         options={SingleOptions}
@@ -2055,6 +2065,9 @@ const EditDiagnosisConditions = () => {
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2062,21 +2075,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('monogram', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2092,7 +2096,7 @@ const EditDiagnosisConditions = () => {
                                     <div className="d-inline-flex gap-2  mt-4">
                                       <button
                                         type="button"
-                                        className="btn btn-soft-info btn-sm  mt-2"
+                                        className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
                                         onClick={addMonogram}
                                       >
                                         <i className="ri-add-line align-middle"></i> Add Monogram
@@ -2103,7 +2107,7 @@ const EditDiagnosisConditions = () => {
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: DiagnosisMonogramDetails,
@@ -2123,7 +2127,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="4">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Causations Keywords</Label>
@@ -2133,13 +2137,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedCausationsSection} onChange={handleCausationsSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedCausationsSection} onChange={handleCausationsSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2147,21 +2157,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('causations', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2175,7 +2176,7 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button type="button" className="btn btn-soft-info btn-sm  mt-2"
+                                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
                                         onClick={addCausations}><i className="ri-add-line align-middle"></i> Add Causations</button>
                                     </div>
                                   </Col>
@@ -2183,7 +2184,7 @@ const EditDiagnosisConditions = () => {
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: DiagnosisCausationNameDetails,
@@ -2203,7 +2204,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="5">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Pathology Keywords</Label>
@@ -2213,13 +2214,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedPathologySection} onChange={handlePathologySectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedPathologySection} onChange={handlePathologySectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2227,21 +2234,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('pathology', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2255,14 +2253,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addPathology} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Pathology</button>
+                                      <button onClick={addPathology} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Pathology</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: DiagnosisPathologyDetails,
@@ -2282,11 +2280,14 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="6">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Diagnosis System <span className="required">*</span></Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isClearable
                                         isMulti
                                         placeholder="Select one or more Diagnosis System"
@@ -2306,7 +2307,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="7">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Emergencies Keywords</Label>
@@ -2316,13 +2317,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedEmergenciesSection} onChange={handleEmergenciesSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedEmergenciesSection} onChange={handleEmergenciesSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2330,21 +2337,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('emergencies', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2358,14 +2356,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addEmergencies} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Emergencies</button>
+                                      <button onClick={addEmergencies} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Emergencies</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: EmergencieDetails,
@@ -2385,7 +2383,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="8" >
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Investigations <span className="required">*</span></Label>
@@ -2430,7 +2428,7 @@ const EditDiagnosisConditions = () => {
                               </TabPane>
 
                               <TabPane tabId="9">
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Onset/Duration/Progress Keywords</Label>
@@ -2440,13 +2438,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedOnsetSection} onChange={handleOnsetSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedOnsetSection} onChange={handleOnsetSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2454,21 +2458,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('onset', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2482,14 +2477,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addOnset} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Onset/Duration/Progress</button>
+                                      <button onClick={addOnset} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Onset/Duration/Progress</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: OnsetDurationProgressDetails,
@@ -2509,7 +2504,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="10">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Patterns Keywords</Label>
@@ -2519,13 +2514,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedPatternsSection} onChange={handlePatternsSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedPatternsSection} onChange={handlePatternsSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2533,21 +2534,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('patterns', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2561,14 +2553,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addPatterns} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Patterns</button>
+                                      <button onClick={addPatterns} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Patterns</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: PatternsDetail,
@@ -2588,7 +2580,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="11">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Location-Extension Keywords</Label>
@@ -2598,13 +2590,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedLocationExtentionSection} onChange={handleLocationExtentionSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedLocationExtentionSection} onChange={handleLocationExtentionSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2612,21 +2610,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('locationExtension', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2640,14 +2629,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addLocationExtention} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Location-Extension</button>
+                                      <button onClick={addLocationExtention} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Location-Extension</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: LocationExtentionDetails,
@@ -2667,7 +2656,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="12">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sensation Keywords</Label>
@@ -2677,13 +2666,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedSensationSection} onChange={handleSensationSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedSensationSection} onChange={handleSensationSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2691,21 +2686,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('sensation', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2719,14 +2705,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addSensation} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Sensation</button>
+                                      <button onClick={addSensation} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Sensation</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: SensationDetails,
@@ -2746,7 +2732,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="13">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Modalities Keywords</Label>
@@ -2756,13 +2742,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedModalitiesSection} onChange={handleModalitiesSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedModalitiesSection} onChange={handleModalitiesSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2770,21 +2762,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('modalities', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2798,14 +2781,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addModalities} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Modalities</button>
+                                      <button onClick={addModalities} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Modalities</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: ModalitiesDetails,
@@ -2825,7 +2808,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="14">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Accompanied Keywords</Label>
@@ -2835,13 +2818,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedAccompaniedSection} onChange={handleAccompaniedSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedAccompaniedSection} onChange={handleAccompaniedSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2849,21 +2838,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('accompanied', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2877,14 +2857,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addAccompanied} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Accompanied</button>
+                                      <button onClick={addAccompanied} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Accompanied</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: AccompaniedDetails,
@@ -2904,7 +2884,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="15">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Observations Keywords</Label>
@@ -2914,13 +2894,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedObservationsSection} onChange={handleObservationsSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedObservationsSection} onChange={handleObservationsSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -2928,21 +2914,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('observations', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -2956,14 +2933,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addObservations} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Observations</button>
+                                      <button onClick={addObservations} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Observations</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: ObservationsDetails,
@@ -2983,7 +2960,7 @@ const EditDiagnosisConditions = () => {
 
                               <TabPane tabId="16">
 
-                                <Row className="gy-4">
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Before/After/During Keywords</Label>
@@ -2993,13 +2970,19 @@ const EditDiagnosisConditions = () => {
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                                      <Select value={selectedBeforeAfterDuringSection} onChange={handleBeforeAfterDuringSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
+                                      <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles()} value={selectedBeforeAfterDuringSection} onChange={handleBeforeAfterDuringSectionChange} options={SingleOptions} placeholder="Select Section" isClearable />
                                     </div>
                                   </Col>
                                   <Col xxl={4} md={4}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Multi Section</Label>
                                       <Select
+                                      classNamePrefix="admin-form-select"
+                                      theme={neutralSelectTheme}
+                                      styles={getAdminFormSelectStyles({ isMulti: true })}
                                         isMulti
                                         isClearable
                                         closeMenuOnSelect={false}
@@ -3007,21 +2990,12 @@ const EditDiagnosisConditions = () => {
                                         onChange={(options) => updateMultiSections('beforeAfterDuring', options)}
                                         options={SingleOptions}
                                         placeholder="Select Section(s)..."
-                                        styles={{
-                                          multiValue: (base) => ({ ...base, backgroundColor: "#e9ecef" }),
-                                          multiValueLabel: (base) => ({ ...base, color: "#212529" }),
-                                          multiValueRemove: (base) => ({
-                                            ...base,
-                                            color: "#495057",
-                                            ":hover": { backgroundColor: "#ced4da", color: "#212529" },
-                                          }),
-                                        }}
                                       />
                                     </div>
                                   </Col>
                                 </Row>
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={8} md={8}>
                                     <div>
                                       <Label htmlFor="placeholderInput" className="form-label">Sub Section</Label>
@@ -3035,14 +3009,14 @@ const EditDiagnosisConditions = () => {
 
                                   <Col xxl={4} md={4}>
                                     <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addBeforeAfterDuring} type="button" className="btn btn-soft-info btn-sm  mt-2"><i className="ri-add-line align-middle"></i> Add Before/After/During</button>
+                                      <button onClick={addBeforeAfterDuring} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Before/After/During</button>
                                     </div>
                                   </Col>
                                 </Row>
 
                                 <hr />
 
-                                <Row className='mt-3'>
+                                <Row className="gy-3 admin-form-fields">
                                   <Col xxl={12} md={12}>
                                     {renderKeywordTable({
                                       items: BeforeAfterDuringDetails,
@@ -3065,26 +3039,25 @@ const EditDiagnosisConditions = () => {
                         </Col>
                       </Row>
 
-
-
-
-                    </div>
+                    </>
                   )}
                 </CardBody>
 
-                <CardFooter className=" gap-2">
-                  <Row className="g-4">
-                    <Col className="col-sm">
-                      <div className="d-flex justify-content-sm-start">
-                      </div>
-                    </Col>
-                    <Col className="col-sm-auto">
-                      <div className="d-inline-flex gap-2">
-                        <Link to="/admin/listdiagnosisconditions"><Button color="danger" className="btn-label"> <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel </Button></Link>
-                        <Button color="success" className="btn-label" onClick={submitForm}> <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Update </Button>
-                      </div>
-                    </Col>
-                  </Row>
+                <CardFooter className="border-0">
+                  <div className="d-flex justify-content-end">
+                    <div className="admin-form-actions">
+                      <Link to="/admin/listdiagnosisconditions" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                          <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                          Cancel
+                        </button>
+                      </Link>
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new" onClick={submitForm}>
+                        <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                        Update
+                      </button>
+                    </div>
+                  </div>
                 </CardFooter>
 
               </Card>

@@ -13,10 +13,12 @@ import { Container } from "reactstrap";
 import HorizontalLayout from "./HorizontalLayout";
 import { useProfile } from "../Components/Hooks/UserHooks";
 import { getHomeDashboardPath } from "../helpers/dashboard_helper";
+import { resolveUserRole, usesAdminDashboardLayout } from "../Components/constants/roles";
 
 const Sidebar = ({ layoutType }) => {
   const { userProfile } = useProfile();
   const homeDashboardPath = getHomeDashboardPath(userProfile?.role);
+  const moreMenuInTopbar = usesAdminDashboardLayout(resolveUserRole(userProfile));
 
   useEffect(() => {
     var verticalOverlay = document.getElementsByClassName("vertical-overlay");
@@ -73,7 +75,7 @@ const Sidebar = ({ layoutType }) => {
             <Container fluid>
               <div id="two-column-menu"></div>
               <ul className="navbar-nav" id="navbar-nav">
-                <HorizontalLayout />
+                <HorizontalLayout moreMenuInTopbar={moreMenuInTopbar} />
               </ul>
             </Container>
           </div>

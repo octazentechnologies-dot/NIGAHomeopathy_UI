@@ -2,22 +2,22 @@ export const JOB_PROCESS = [
     {
         id: 1,
         label: "Register Account",
-        desc: "Create your Homeo Centrum account and choose a plan that fits your practice.",
+        desc: "Create your Homeo Centrum account, verify your profile, then choose a plan that fits your clinic size and practice goals.",
     },
     {
         id: 2,
         label: "Case Taking",
-        desc: "Capture patient history with keyword-based symptom collection and structured rubrics.",
+        desc: "Capture patient history with keyword-based symptoms, structured rubrics, and guided prompts that keep every case complete.",
     },
     {
         id: 3,
         label: "Repertorize",
-        desc: "Use graphical remedy scoring and multi-lingual rubric search for confident prescriptions.",
+        desc: "Use graphical remedy scoring and multi-lingual rubric search to compare differentials with greater clinical confidence.",
     },
     {
         id: 4,
         label: "Prescribe & Track",
-        desc: "Finalize remedies with materia medica support and deep analytics for follow-up care.",
+        desc: "Finalize remedies with materia medica support and deep analytics that guide follow-up care and patient outcomes.",
     },
 ];
 
