@@ -1,62 +1,18 @@
-/* Start case taking modal — Doctor Dashboard palette */
+/* Start case taking modal — matches patient-list-modal shell */
+
+.ctm-modal.patient-list-modal .modal-content {
+  box-shadow: none !important;
+}
 
 .ctm-modal .modal-dialog {
   max-width: 460px;
 }
 
-.ctm-modal__content {
-  border: 1px solid #e2ebf3 !important;
-  border-radius: 14px !important;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14) !important;
-  overflow: hidden;
-  background: linear-gradient(180deg, #fbfdff 0%, #ffffff 40%) !important;
-}
-
 .ctm-modal__body {
-  padding: 1.15rem 1.2rem 1rem !important;
-}
-
-.ctm-modal__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
-}
-
-.ctm-modal__title-wrap {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-.ctm-modal__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #0b5cab;
-  font-size: 1.2rem;
-  background: linear-gradient(180deg, #ffffff 0%, #eaf5ff 100%);
-  border: 1px solid #d7e3ef;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.ctm-modal__title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 750;
-  letter-spacing: 0.01em;
-  color: #0f172a;
-  line-height: 1.25;
+  padding-top: 0.25rem;
 }
 
 .ctm-modal__patient {
-  margin-top: 0.2rem;
   font-size: 0.8125rem;
   color: #64748b;
 }
@@ -66,31 +22,9 @@
   font-weight: 700;
 }
 
-.ctm-modal__close {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid #e2ebf3;
-  background: #fff;
-  color: #64748b;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
-  line-height: 1;
-  flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.ctm-modal__close:hover {
-  background: #f5faff;
-  border-color: #93c5fd;
-  color: #0b5cab;
-}
-
 .ctm-modal__lead {
   margin: 0 0 0.9rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   line-height: 1.45;
   color: #475569;
 }
@@ -110,31 +44,27 @@
   text-align: left;
   padding: 0.85rem 0.9rem;
   border-radius: 12px;
-  border: 1px solid #d7e3ef;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2ebf3;
+  background: #fff;
   color: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .ctm-choice:hover,
 .ctm-choice:focus-visible {
   border-color: #93c5fd;
-  background: linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
-  box-shadow: 0 4px 14px rgba(30, 136, 229, 0.14);
+  background: #f8fbff;
   outline: none;
-  transform: translateY(-1px);
 }
 
 .ctm-choice--audio {
-  border-color: #7ec2f5;
-  background: linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+  border-color: #b8e3f7;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef7fd 100%);
 }
 
 .ctm-choice--audio:hover,
 .ctm-choice--audio:focus-visible {
-  border-color: #1e88e5;
-  box-shadow: 0 6px 16px rgba(30, 136, 229, 0.22);
+  border-color: #25a0e2;
 }
 
 .ctm-choice__icon {
@@ -146,16 +76,15 @@
   justify-content: center;
   font-size: 1.25rem;
   flex-shrink: 0;
-  border: 1px solid #d7e3ef;
+  border: 1px solid #e2ebf3;
   background: #fff;
   color: #475569;
 }
 
 .ctm-choice--audio .ctm-choice__icon {
   color: #fff;
-  border-color: #0b5cab;
-  background: linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
-  box-shadow: 0 4px 10px rgba(30, 136, 229, 0.28);
+  border-color: #25a0e2;
+  background: linear-gradient(180deg, #25a0e2 0%, #2099d4 100%);
 }
 
 .ctm-choice__content {
@@ -171,7 +100,7 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   font-size: 0.95rem;
-  font-weight: 750;
+  font-weight: 600;
   color: #0f172a;
   line-height: 1.2;
 }
@@ -182,12 +111,12 @@
   padding: 0.12rem 0.45rem;
   border-radius: 999px;
   font-size: 0.65rem;
-  font-weight: 750;
+  font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: #0b5cab;
-  background: rgba(30, 136, 229, 0.12);
-  border: 1px solid rgba(30, 136, 229, 0.2);
+  color: #25a0e2;
+  background: rgba(37, 160, 226, 0.12);
+  border: 1px solid rgba(37, 160, 226, 0.2);
 }
 
 .ctm-choice__desc {
@@ -204,29 +133,5 @@
 
 .ctm-choice:hover .ctm-choice__arrow,
 .ctm-choice:focus-visible .ctm-choice__arrow {
-  color: #0b5cab;
-}
-
-.ctm-modal__footer {
-  display: flex;
-  justify-content: flex-start;
-  margin-top: 0.95rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e2ebf3;
-}
-
-.ctm-modal__cancel {
-  border: none;
-  background: transparent;
-  color: #64748b;
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 0.35rem 0.15rem;
-  border-radius: 6px;
-}
-
-.ctm-modal__cancel:hover {
-  color: #0b5cab;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: #25a0e2;
 }

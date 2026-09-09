@@ -13,6 +13,7 @@ import makeAnimated from "react-select/animated";
 import { getDiagnosisForClinicalPatternList, getDiagnosisTherapeuticsList, getDiagnosisTherapeuticsById } from '../../../../slices/thunks';
 import { setDiagnosisTherapeuticsList } from '../../../../slices/admin/clinicalpattern/diagnosistherapeutics/reducer';
 import { useDispatch, useSelector } from 'react-redux';
+import '../../../../Components/WhatsAppModal/WhatsAppModal.css';
 
 const DiagnosisTherapeuticsList = () => {
   document.title = "List Diagnosis Therapeutics Details";
@@ -93,6 +94,8 @@ const DiagnosisTherapeuticsList = () => {
     }
   };
 
+  const rowStart = (currentPage - 1) * pageSize;
+
   return (
     <React.Fragment>
       <div className="page-content">
@@ -100,12 +103,12 @@ const DiagnosisTherapeuticsList = () => {
           <Row>
             <Col lg={12}>
 
-              <Card>
-                <CardBody className="card-body">
+              <Card className="patient-list-modal admin-existance-list admin-list-filter-card">
+                <CardBody>
                   <div className="live-preview">
-                    <Row className="gy-4">
+                    <Row className="gy-3 align-items-end">
                       <Col xxl={4} md={4}>
-                        <div className="mb-3">
+                        <div className="mb-0">
                           <Label htmlFor="placeholderInput" className="form-label">Diagnosis Name</Label>
                           <Select
                             value={selectedDiagnosis}
@@ -115,16 +118,23 @@ const DiagnosisTherapeuticsList = () => {
                         </div>
                       </Col>
                       <Col xxl={4} md={4}>
-                        <div className="mt-4">
-                          <Button className="btn-secondary btn-label m-btn-top"
+                        <Label className="form-label mb-0 opacity-0 user-select-none" aria-hidden="true">
+                          Reset
+                        </Label>
+                        <div className="admin-list-filter-reset">
+                          <button
+                            type="button"
+                            className="btn btn-sm admin-list-btn admin-list-btn--reset"
                             onClick={() => {
                               dispatch(getDiagnosisTherapeuticsList({ pageNumber: currentPage, pageSize: pageSize }));
                               setCurrentPage(1);
                               setSelectedDiagnosis(null);
                               setIsSelectedDiagnosis(false);
-                            }}>
-                            <i className="ri-refresh-line label-icon align-middle fs-16 me-2"></i> Reset
-                          </Button>
+                            }}
+                          >
+                            <i className="ri-refresh-line align-middle me-1" aria-hidden="true" />
+                            Reset
+                          </button>
                         </div>
                       </Col>
                     </Row>
@@ -132,49 +142,59 @@ const DiagnosisTherapeuticsList = () => {
                 </CardBody>
               </Card>
 
-              <Card>
-                <CardHeader>
-
-                  <Row className="g-4">
-                    <Col className="col-sm">
-                      <div className="d-flex justify-content-sm-start">
-                        <div className="search-box">
-                          <input
-                            value={searchQuery}
-                            type="text"
-                            className="form-control form-control-sm search"
-                            placeholder="Search..."
-                            onChange={(e) => {
-                              setSearchQuery(e.target.value);
-                              dispatch(getDiagnosisTherapeuticsList({ diagonosisId: selectedDiagnosis?.value, queryString: e.target.value, pageNumber: currentPage, pageSize: pageSize }));
-                            }}
-                          />
-                          <i className="ri-search-line search-icon"></i>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col className="col-sm-auto">
-                      <div className="d-inline-flex gap-2">
-                        <button type="button" className="btn btn-soft-primary btn-sm"><i className=" ri-newspaper-line align-middle"></i> Import</button>
-                        <button type="button" className="btn btn-soft-secondary btn-sm"><i className="ri-file-list-3-line align-middle"></i> Export</button>
-                        <Link to="/admin/adddiagnosistherapeuticsdetails"><button type="button" className="btn btn-soft-info btn-sm"><i className="ri-add-line align-middle"></i> New</button></Link>
-                      </div>
-                    </Col>
-                  </Row>
-
+              <Card className="patient-list-modal admin-existance-list">
+                <CardHeader className="border-0">
+                  <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
+                    <div className="patient-list-modal__search flex-shrink-0">
+                      <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          dispatch(
+                            getDiagnosisTherapeuticsList({
+                              diagonosisId: selectedDiagnosis?.value,
+                              queryString: e.target.value,
+                              pageNumber: currentPage,
+                              pageSize: pageSize,
+                            })
+                          );
+                        }}
+                      />
+                    </div>
+                    <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                        <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
+                        Import
+                      </button>
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                        <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
+                        Export
+                      </button>
+                      <Link to="/admin/adddiagnosistherapeuticsdetails" className="d-inline-flex">
+                        <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-add-line align-middle me-1" aria-hidden="true" />
+                          New
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardBody>
 
                   <div className="listjs-table" id="customerList">
 
-                    <div className="table-responsive table-card">
-                      <table className="table align-middle table-nowrap" id="customerTable">
+                    <div className="table-responsive patient-list-modal__table-wrap">
+                      <table className="table mb-0 align-middle patient-list-modal__table" id="customerTable">
                         <thead className="">
                           <tr>
-                            <th scope="col" style={{ width: "50px" }}>ID</th>
+                            <th scope="col" className="text-center" style={{ width: '5%' }}>#</th>
                             <th>Diagnosis Name</th>
-                            <th className='text-center' style={{ width: '10%' }}>Therapeutics Details</th>
-                            <th className='text-center' style={{ width: '10%' }}>Action</th>
+                            <th className='text-center' style={{ width: '12%' }}>Therapeutics Details</th>
+                            <th className='text-center' style={{ width: '12%' }}>Action</th>
                           </tr>
                         </thead>
                         <>
@@ -182,7 +202,7 @@ const DiagnosisTherapeuticsList = () => {
                             diagnosisTherapeuticsLoading ? (
                               <tbody className="list form-check-all">
                                 <tr>
-                                  <td colSpan="5" className="text-center">
+                                  <td colSpan="4" className="text-center">
                                     <Spinner color="primary" className="ms-1" />
                                   </td>
                                 </tr>
@@ -192,7 +212,7 @@ const DiagnosisTherapeuticsList = () => {
                                 {diagnosisTherapeuticsList?.resultObject?.length > 0 ? (
                                   diagnosisTherapeuticsList?.resultObject?.map((diagnosis, index) => (
                                     <tr key={diagnosis.diagnosisTherapeuticsDetailId}>
-                                      <td>{diagnosis.diagnosisTherapeuticsDetailId}</td>
+                                      <td className="text-center patient-list-modal__index">{rowStart + index + 1}</td>
                                       <td>{diagnosis.diagnosisName}</td>
                                       <td className='text-center '>
                                         <div className="d-inline-flex gap-2">
@@ -201,7 +221,7 @@ const DiagnosisTherapeuticsList = () => {
                                               //dispatch(getDiagnosisTherapeuticsById({ diagnosisTherapeuticsId: diagnosis.diagnosisTherapeuticsId }))
                                               setSelectedDiagnosisItem(diagnosis);
                                               tog_standard();
-                                            }}><i className="ri-eye-line" /> </button>
+                                            }} type="button" title="View"><i className="ri-eye-line" /> </button>
                                           </div>
                                         </div>
                                       </td>
@@ -209,13 +229,13 @@ const DiagnosisTherapeuticsList = () => {
                                         <div className="d-inline-flex gap-2">
                                           <div className="edit">
                                             <Link to="/admin/editdiagnosistherapeuticsdetails" state={{ selectedDiagnosis: diagnosis }}>
-                                              <button className="btn btn-sm btn-soft-success edit-item-btn">
+                                              <button className="btn btn-sm btn-soft-success edit-item-btn" type="button" title="Edit">
                                                 <i className="ri-pencil-fill" />
                                               </button>
                                             </Link>
                                           </div>
                                           <div className="remove">
-                                            <button className="btn btn-sm btn-soft-danger remove-item-btn"><i className="ri-delete-bin-5-line" /> </button>
+                                            <button className="btn btn-sm btn-soft-danger remove-item-btn" type="button" title="Delete"><i className="ri-delete-bin-5-line" /> </button>
                                           </div>
                                         </div>
                                       </td>
@@ -223,7 +243,7 @@ const DiagnosisTherapeuticsList = () => {
                                   ))
                                 ) : (
                                   <tr>
-                                    <td colSpan="5" className="text-center">
+                                    <td colSpan="4" className="text-center">
                                       No diagnosis therapeutics found
                                     </td>
                                   </tr>
@@ -234,63 +254,66 @@ const DiagnosisTherapeuticsList = () => {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    <div className="align-items-center g-3 text-center text-sm-start row mt-3">
-                      <div className="col-sm">
-                        <div className="text-muted">
-                          Showing <span className="fw-semibold ms-1">{currentPage}</span> of <span className="fw-semibold">{totalPages}</span> Pages
-                        </div>
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                      <div className="text-muted patient-list-modal__footer-text">
+                        {diagnosisTherapeuticsLoading
+                          ? 'Loading...'
+                          : `Showing ${diagnosisTherapeuticsList?.resultObject?.length || 0} of ${diagnosisTherapeuticsList?.resultObject?.length || 0} Results · Page ${currentPage} of ${totalPages}`}
                       </div>
-                      <div className="col-sm-auto">
-                        <ul className="pagination pagination-separated pagination-md justify-content-center justify-content-sm-start mb-0">
-                          {/* Previous Button */}
-                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                            <button className="page-link" onClick={handlePrevPage}>Previous</button>
-                          </li>
 
-                          {/* First Page */}
-                          {currentPage > 3 && (
-                            <>
-                              <li className="page-item">
-                                <button className="page-link" onClick={() => setCurrentPage(1)}>1</button>
+                      <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
+                        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                          <button
+                            type="button"
+                            className="page-link page-link--nav"
+                            onClick={handlePrevPage}
+                          >
+                            Previous
+                          </button>
+                        </li>
+
+                        {[...Array(totalPages)].map((_, index) => {
+                          const pageNumber = index + 1;
+                          if (
+                            pageNumber === 1 ||
+                            pageNumber === totalPages ||
+                            (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                          ) {
+                            return (
+                              <li
+                                key={index}
+                                className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}
+                              >
+                                <button
+                                  type="button"
+                                  className="page-link"
+                                  onClick={() => setCurrentPage(pageNumber)}
+                                >
+                                  {pageNumber}
+                                </button>
                               </li>
-                              {currentPage > 4 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                            </>
-                          )}
-
-                          {/* Dynamic Page Numbers */}
-                          {[...Array(totalPages)].map((_, index) => {
-                            const page = index + 1;
-                            if (
-                              page === currentPage || // Current Page
-                              page === currentPage - 1 || // One Before Current
-                              page === currentPage + 1 // One After Current
-                            ) {
-                              return (
-                                <li key={index} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                                  <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
-                                </li>
-                              );
-                            }
-                            return null;
-                          })}
-
-                          {/* Last Page */}
-                          {currentPage < totalPages - 2 && (
-                            <>
-                              {currentPage < totalPages - 3 && <li className="page-item disabled"><span className="page-link">...</span></li>}
-                              <li className="page-item">
-                                <button className="page-link" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
+                            );
+                          }
+                          if (pageNumber === 2 || pageNumber === totalPages - 1) {
+                            return (
+                              <li key={index} className="page-item disabled">
+                                <span className="page-link">...</span>
                               </li>
-                            </>
-                          )}
+                            );
+                          }
+                          return null;
+                        })}
 
-                          {/* Next Button */}
-                          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                            <button className="page-link" onClick={handleNextPage}>Next</button>
-                          </li>
-                        </ul>
-                      </div>
+                        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                          <button
+                            type="button"
+                            className="page-link page-link--nav"
+                            onClick={handleNextPage}
+                          >
+                            Next
+                          </button>
+                        </li>
+                      </ul>
                     </div>
 
                   </div>
@@ -304,11 +327,19 @@ const DiagnosisTherapeuticsList = () => {
       </div>
 
       {/* Modal */}
-      <Modal id="myModal" isOpen={modal_standard} toggle={() => { tog_standard(); }} >
-        <ModalHeader className="modal-title" id="myModalLabel" toggle={() => { tog_standard(); }}>
-          Therapeutics Details
+      <Modal
+        id="myModal"
+        isOpen={modal_standard}
+        toggle={tog_standard}
+        size="xl"
+        className="whatsapp-modal diagnosis-therapeutics-details-modal"
+      >
+        <ModalHeader className="whatsapp-modal__header" id="myModalLabel" toggle={tog_standard}>
+          <div className="whatsapp-modal__title">
+            Therapeutics Details
+          </div>
         </ModalHeader>
-        <ModalBody>
+        <ModalBody className="whatsapp-modal__body">
           <>
             <Row>
               <Col xs="12" md="12">
@@ -318,9 +349,6 @@ const DiagnosisTherapeuticsList = () => {
           </>
 
         </ModalBody>
-        <div className="modal-footer">
-          <Button color="primary" onClick={() => { tog_standard(); }} >Close </Button>
-        </div>
       </Modal>
       {/* Modal */}
 

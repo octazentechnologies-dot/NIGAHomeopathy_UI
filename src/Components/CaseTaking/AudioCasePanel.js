@@ -79,15 +79,15 @@ const audioLanguageSelectStyles = {
   control: (provided, state) => ({
     ...provided,
     minHeight: '36px',
-    borderRadius: '10px',
-    borderColor: state.isFocused ? AC_SELECT_BLUE : '#d7e3ef',
-    boxShadow: state.isFocused ? '0 0 0 3px rgba(30, 136, 229, 0.14)' : '0 1px 2px rgba(15, 23, 42, 0.04)',
+    borderRadius: '0.25rem',
+    borderColor: state.isFocused ? '#25a0e2' : '#dee2e6',
+    borderWidth: '1px',
+    boxShadow: 'none',
     backgroundColor: '#fff',
-    backgroundImage: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
     cursor: 'pointer',
     transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     '&:hover': {
-      borderColor: state.isFocused ? AC_SELECT_BLUE : '#93c5fd',
+      borderColor: state.isFocused ? '#25a0e2' : '#dee2e6',
     },
   }),
   valueContainer: (provided) => ({

@@ -1,26 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
+import { Card, CardBody, CardHeader, Col } from 'reactstrap';
 import { topSellers } from "../../common/data";
 
 const TopSellers = () => {
     return (
         <React.Fragment>
             <Col xl={6}>
-                <Card className="card-height-100">
-                    <CardHeader className="align-items-center d-flex">
-                        <h4 className="card-title mb-0 flex-grow-1">Top Sellers</h4>
+                <Card className="card-height-100 admin-dash-card">
+                    <CardHeader className="align-items-center d-flex admin-dash-card-header">
+                        <h4 className="card-title mb-0 flex-grow-1">Top Performing Doctors</h4>
                         <div className="flex-shrink-0">
-                            <UncontrolledDropdown className="card-header-dropdown">
-                                <DropdownToggle tag="a" className="text-reset dropdown-btn" role="button">
-                                    <span className="text-muted">Report<i className="mdi mdi-chevron-down ms-1"></i></span>
-                                </DropdownToggle>
-                                <DropdownMenu className="dropdown-menu dropdown-menu-end" end>
-                                    <DropdownItem>Download Report</DropdownItem>
-                                    <DropdownItem>Export</DropdownItem>
-                                    <DropdownItem>Import</DropdownItem>
-                                </DropdownMenu>
-                            </UncontrolledDropdown>
+                            <button type="button" className="btn btn-sm doctor-dashboard-toolbar-btn">
+                                View Report
+                            </button>
                         </div>
                     </CardHeader>
 
@@ -46,10 +39,10 @@ const TopSellers = () => {
                                             </td>
                                             <td>
                                                 <p className="mb-0">{item.stock}</p>
-                                                <span className="text-muted">Stock</span>
+                                                <span className="text-muted">Patients</span>
                                             </td>
                                             <td>
-                                                <span className="text-muted">${item.amount}</span>
+                                                <span className="text-muted">{item.amount}</span>
                                             </td>
                                             <td>
                                                 <h5 className="fs-14 mb-0">{item.percentage}%<i className="ri-bar-chart-fill text-success fs-16 align-middle ms-2"></i></h5>

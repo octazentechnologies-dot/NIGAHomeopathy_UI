@@ -46,10 +46,11 @@ const selectStyles = {
   control: (base, state) => ({
     ...base,
     minHeight: 42,
-    borderRadius: 10,
-    borderColor: state.isFocused ? "#1e88e5" : "#ced4da",
-    boxShadow: state.isFocused ? "0 0 0 0.2rem rgba(30, 136, 229, 0.15)" : "none",
-    "&:hover": { borderColor: "#1e88e5" },
+    borderRadius: "0.25rem",
+    borderWidth: "1px",
+    borderColor: state.isFocused ? "#25a0e2" : "#dee2e6",
+    boxShadow: "none",
+    "&:hover": { borderColor: state.isFocused ? "#25a0e2" : "#dee2e6" },
   }),
   menu: (base) => ({ ...base, zIndex: 20, borderRadius: 10 }),
 };

@@ -4,19 +4,166 @@
 
 .modal-title {
     font-weight: $font-weight-semibold;
+    font-size: 16px;
+    color: #000;
 }
 
-.modal-dialog:not(.modal-dialog-scrollable) {
-    .modal-header {
-        padding-bottom: 0;
-    
-        .btn-close {
-            margin-top: -$modal-header-padding;
+// Popup headings: semibold (600), 16px, black — includes custom title markup outside .modal-title
+.modal-header {
+    padding: 0.7rem;
+    font-weight: $font-weight-semibold;
+    font-size: 16px;
+    color: #000;
+    background: #fff;
+    border-bottom: none !important;
+
+    .modal-title,
+    h1, h2, h3, h4, h5, h6,
+    [class*="modal__title"]:not([class*="saved"]),
+    [class$="__title-text"] {
+        font-weight: $font-weight-semibold !important;
+        font-size: 16px !important;
+        color: #000 !important;
+    }
+
+    .btn,
+    button:not(.btn-close) {
+        font-weight: $font-weight-medium;
+    }
+
+    .btn-close {
+        display: block !important;
+        flex-shrink: 0;
+        width: 1rem;
+        height: 1rem;
+        padding: 0.25rem;
+        margin: 0 0 0 auto;
+        opacity: 0.55;
+        box-shadow: none;
+        background-size: 1rem;
+        filter: none;
+
+        &:hover,
+        &:focus {
+            opacity: 0.85;
+            box-shadow: none;
         }
     }
-    
-    .modal-footer {
-        padding-top: 0;
+}
+
+.offcanvas-header {
+    .btn-close {
+        display: block !important;
+        flex-shrink: 0;
+        width: 1rem;
+        height: 1rem;
+        padding: 0.25rem;
+        margin: 0;
+        opacity: 0.55;
+        box-shadow: none;
+        background-size: 1rem;
+        filter: none;
+
+        &:hover,
+        &:focus {
+            opacity: 0.85;
+            box-shadow: none;
+        }
+    }
+}
+
+.offcanvas-header .offcanvas-title {
+    font-weight: $font-weight-semibold !important;
+    font-size: 16px !important;
+    color: #000 !important;
+}
+
+.modal-body {
+    padding: 0.7rem;
+}
+
+.offcanvas-header {
+    padding: 0.5rem;
+}
+
+.offcanvas-body {
+    padding: 0.5rem;
+}
+
+// Modal / offcanvas footers — Velzon soft buttons with icon spacing
+$modal-footer-btn-height: calc(0.8rem * 1.5 + #{$input-padding-y} * 2 + #{$border-width * 2});
+
+.modal-footer,
+.offcanvas-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+
+    .btn:not(.btn-close),
+    .modal-action-btn {
+        box-shadow: none !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        font-weight: 500;
+        border-color: transparent !important;
+        height: var(--app-form-field-height, #{$modal-footer-btn-height});
+        min-height: var(--app-form-field-height, #{$modal-footer-btn-height});
+        max-height: var(--app-form-field-height, #{$modal-footer-btn-height});
+        font-size: 0.8rem;
+        line-height: $input-line-height;
+        padding-top: $input-padding-y;
+        padding-bottom: $input-padding-y;
+        padding-left: 0.625rem;
+        padding-right: 0.625rem;
+        border-radius: $input-border-radius !important;
+        white-space: nowrap;
+
+        i[class^="ri-"],
+        i[class*=" ri-"],
+        .ri {
+            font-size: 0.95em;
+            line-height: 1;
+        }
+
+        .spinner-border,
+        .spinner-border-sm {
+            width: 0.85rem;
+            height: 0.85rem;
+            border-width: 0.15em;
+            flex-shrink: 0;
+        }
+    }
+
+    @each $state in map-keys($theme-colors) {
+        .btn-#{$state}:not([class*="btn-soft"]):not([class*="btn-outline"]):not([class*="btn-ghost"]):not(.btn-link),
+        .btn-outline-#{$state}:not([class*="btn-soft"]),
+        [class*="btn-ghost-#{$state}"] {
+            --#{$prefix}btn-color: var(--#{$prefix}#{$state});
+            --#{$prefix}btn-bg: var(--#{$prefix}#{$state}-bg-subtle);
+            --#{$prefix}btn-border-color: transparent;
+            --#{$prefix}btn-hover-bg: var(--#{$prefix}#{$state});
+            --#{$prefix}btn-hover-border-color: transparent;
+            --#{$prefix}btn-hover-color: #{$white};
+            --#{$prefix}btn-active-bg: var(--#{$prefix}#{$state});
+            --#{$prefix}btn-active-border-color: transparent;
+            --#{$prefix}btn-active-color: #{$white};
+            --#{$prefix}btn-focus-shadow-rgb: var(--#{$prefix}#{$state}-rgb);
+        }
+    }
+
+    .btn-light:not([class*="btn-soft"]) {
+        --#{$prefix}btn-color: var(--#{$prefix}secondary);
+        --#{$prefix}btn-bg: var(--#{$prefix}secondary-bg-subtle);
+        --#{$prefix}btn-border-color: transparent;
+        --#{$prefix}btn-hover-bg: var(--#{$prefix}secondary);
+        --#{$prefix}btn-hover-border-color: transparent;
+        --#{$prefix}btn-hover-color: #{$white};
     }
 }
 

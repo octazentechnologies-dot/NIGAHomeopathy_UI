@@ -54,7 +54,7 @@ const HomeBlogSection = () => {
                             <Spinner color="primary" />
                         </div>
                     ) : (
-                        <Row>
+                        <Row className={displayBlogs.length < 3 ? "justify-content-center" : undefined}>
                             {displayBlogs.map((blog, idx) => (
                                 <Col lg={4} md={6} key={blog.blogId || idx}>
                                     <Card>
@@ -77,7 +77,9 @@ const HomeBlogSection = () => {
                                             )}
                                             <h5>
                                                 {blog.blogId ? (
-                                                    <Link to={landingPath(`blog/${blog.blogId}`)}>{blog.blogHead}</Link>
+                                                    <Link to={landingPath(`blog/${blog.blogId}`)} className="text-body">
+                                                        {blog.blogHead}
+                                                    </Link>
                                                 ) : (
                                                     blog.blogHead
                                                 )}

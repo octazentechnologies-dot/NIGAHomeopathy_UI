@@ -17,6 +17,7 @@ import { useFormik } from "formik";
 import { useSelector, useDispatch } from "react-redux";
 import { createOrUpdateRemedy, getTermalDDL } from '../../../../slices/admin/repertory/remedy/thunk';
 import { setRemedySuccess, setRemedyError } from '../../../../slices/admin/repertory/remedy/reducer';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const AddRemedy = () => {
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
@@ -138,286 +139,271 @@ const AddRemedy = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {remedySuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {remedySuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {remedyError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {remedyError}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      Please fill the required fields (Remedy Name and Remedy Alias).
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-                <CardHeader className="align-items-center d-flex">
-                  <h4 className="card-title mb-0 flex-grow-1">New Remedy</h4>
-                </CardHeader>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <Form onSubmit={formik.handleSubmit}>
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="remedyName" className="form-label">Remedy Name <span className="required">*</span></Label>
-                            <Input
-                              type="text"
-                              className="form-control"
-                              id="remedyName"
-                              name="remedyName"
-                              value={formik.values.remedyName}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.remedyName && formik.errors.remedyName ? true : false}
-                            />
-                            {formik.touched.remedyName && formik.errors.remedyName ? (
-                              <FormFeedback type="invalid">{formik.errors.remedyName}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="remedyAlias" className="form-label">Remedy Alias <span className="required">*</span></Label>
-                            <Input
-                              type="text"
-                              className="form-control"
-                              id="remedyAlias"
-                              name="remedyAlias"
-                              value={formik.values.remedyAlias}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.remedyAlias && formik.errors.remedyAlias ? true : false}
-                            />
-                            {formik.touched.remedyAlias && formik.errors.remedyAlias ? (
-                              <FormFeedback type="invalid">{formik.errors.remedyAlias}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="thermalName" className="form-label">Thermal Name</Label>
-                            <div id="thermalName">
-                              <Select
-                                name="thermalName"
-                                value={formik.values.thermalName}
-                                onChange={(selectedOption) => formik.setFieldValue("thermalName", selectedOption)}
-                                options={ThermalNameOptions}
-                                onBlur={() => formik.setFieldTouched("thermalName", true)}
-                                isClearable
-                              />
-                            </div>
-                            {formik.touched.thermalName && formik.errors.thermalName ? (
-                              <div className="invalid-feedback d-block">
-                                {typeof formik.errors.thermalName === 'string' ? formik.errors.thermalName : formik.errors.thermalName.value}
-                              </div>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="description" className="form-label">Description</Label>
-                            <Input
-                              type="textarea"
-                              className="form-control"
-                              id="description"
-                              name="description"
-                              value={formik.values.description}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              invalid={formik.touched.description && formik.errors.description ? true : false}
-                            />
-                            {formik.touched.description && formik.errors.description ? (
-                              <FormFeedback type="invalid">{formik.errors.description}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div className="d-flex align-items-center">
-                            <Label htmlFor="commonOrUncommon" className="form-label mb-0">Common ? :</Label>
-                            <Input
-                              type="checkbox"
-                              id="commonOrUncommon"
-                              name="commonOrUncommon"
-                              checked={formik.values.commonOrUncommon}
-                              onChange={(e) => formik.setFieldValue("commonOrUncommon", e.target.checked)}
-                              style={{ marginLeft: '1.25em' }}
-                            />
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="themes" className="form-label">Themes/ Characteristics</Label>
-                            <div id="themes">
-                              <Editor
-                                wrapperClassName="demo-wrapper"
-                                editorClassName="demo-editor"
-                                editorState={editorStateThemes}
-                                onEditorStateChange={editorState => {
-                                  setEditorStateThemes(editorState);
-                                  formik.setFieldValue('themes', draftToHtml(convertToRaw(editorState.getCurrentContent())));
-                                }}
-                                toolbarClassName="toolbar-class"
-                                wrapperStyle={{
-                                  borderRadius: 5,
-                                  borderWidth: 1,
-                                  borderColor: '#0000'
-                                }}
-                                editorStyle={{
-                                  borderRadius: 2,
-                                  border: '1px solid lightgrey',
-                                  backgroundColor: '#FFFFFF',
-                                  height: '300px'
-                                }}
-                              />
-                            </div>
-                            {formik.touched.themes && formik.errors.themes ? (
-                              <div className="invalid-feedback d-block">{formik.errors.themes}</div>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="generals" className="form-label">Generals</Label>
-                            <div id="generals">
-                              <Editor
-                                wrapperClassName="demo-wrapper"
-                                editorClassName="demo-editor"
-                                editorState={editorStateGenerals}
-                                onEditorStateChange={editorState => {
-                                  setEditorStateGenerals(editorState);
-                                  formik.setFieldValue('generals', draftToHtml(convertToRaw(editorState.getCurrentContent())));
-                                }}
-                                toolbarClassName="toolbar-class"
-                                wrapperStyle={{
-                                  borderRadius: 5,
-                                  borderWidth: 1,
-                                  borderColor: '#0000'
-                                }}
-                                editorStyle={{
-                                  borderRadius: 2,
-                                  border: '1px solid lightgrey',
-                                  backgroundColor: '#FFFFFF',
-                                  height: '300px'
-                                }}
-                              />
-                            </div>
-                            {formik.touched.generals && formik.errors.generals ? (
-                              <div className="invalid-feedback d-block">{formik.errors.generals}</div>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="modalities" className="form-label">Modalities</Label>
-                            <div id="modalities">
-                              <Editor
-                                wrapperClassName="demo-wrapper"
-                                editorClassName="demo-editor"
-                                editorState={editorStateModalities}
-                                onEditorStateChange={editorState => {
-                                  setEditorStateModalities(editorState);
-                                  formik.setFieldValue('modalities', draftToHtml(convertToRaw(editorState.getCurrentContent())));
-                                }}
-                                toolbarClassName="toolbar-class"
-                                wrapperStyle={{
-                                  borderRadius: 5,
-                                  borderWidth: 1,
-                                  borderColor: '#0000'
-                                }}
-                                editorStyle={{
-                                  borderRadius: 2,
-                                  border: '1px solid lightgrey',
-                                  backgroundColor: '#FFFFFF',
-                                  height: '300px'
-                                }}
-                              />
-                            </div>
-                            {formik.touched.modalities && formik.errors.modalities ? (
-                              <div className="invalid-feedback d-block">{formik.errors.modalities}</div>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="particulars" className="form-label">Particulars</Label>
-                            <div id="particulars">
-                              <Editor
-                                wrapperClassName="demo-wrapper"
-                                editorClassName="demo-editor"
-                                editorState={editorStateParticulars}
-                                onEditorStateChange={editorState => {
-                                  setEditorStateParticulars(editorState);
-                                  formik.setFieldValue('particulars', draftToHtml(convertToRaw(editorState.getCurrentContent())));
-                                }}
-                                toolbarClassName="toolbar-class"
-                                wrapperStyle={{
-                                  borderRadius: 5,
-                                  borderWidth: 1,
-                                  borderColor: '#0000'
-                                }}
-                                editorStyle={{
-                                  borderRadius: 2,
-                                  border: '1px solid lightgrey',
-                                  backgroundColor: '#FFFFFF',
-                                  height: '300px'
-                                }}
-                              />
-                            </div>
-                            {formik.touched.particulars && formik.errors.particulars ? (
-                              <div className="invalid-feedback d-block">{formik.errors.particulars}</div>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">New Remedy</h5>
                     </div>
-                  </CardBody>
-
-                  <CardFooter className="gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                  </CardHeader>
+                  <CardBody>
+                    {(remedySuccess || remedyError || (formik.submitCount > 0 && Object.keys(formik.errors).length > 0)) ? (
+                      <div className="admin-form-alerts">
+                        {remedySuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon"></i>
+                            {remedySuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {remedyError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon"></i>
+                            {remedyError}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon"></i>
+                            Please fill the required fields (Remedy Name and Remedy Alias).
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="remedyName" className="form-label">Remedy Name <span className="required">*</span></Label>
+                          <Input
+                            type="text"
+                            className="form-control"
+                            id="remedyName"
+                            name="remedyName"
+                            value={formik.values.remedyName}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.remedyName && formik.errors.remedyName ? true : false}
+                          />
+                          {formik.touched.remedyName && formik.errors.remedyName ? (
+                            <FormFeedback type="invalid">{formik.errors.remedyName}</FormFeedback>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listremedy">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button color="success" className="btn-label" type="submit">
-                            <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Save
-                          </Button>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="remedyAlias" className="form-label">Remedy Alias <span className="required">*</span></Label>
+                          <Input
+                            type="text"
+                            className="form-control"
+                            id="remedyAlias"
+                            name="remedyAlias"
+                            value={formik.values.remedyAlias}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.remedyAlias && formik.errors.remedyAlias ? true : false}
+                          />
+                          {formik.touched.remedyAlias && formik.errors.remedyAlias ? (
+                            <FormFeedback type="invalid">{formik.errors.remedyAlias}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="thermalName" className="form-label">Thermal Name</Label>
+                          <div id="thermalName">
+                            <Select
+                              name="thermalName"
+                              value={formik.values.thermalName}
+                              onChange={(selectedOption) => formik.setFieldValue("thermalName", selectedOption)}
+                              options={ThermalNameOptions}
+                              onBlur={() => formik.setFieldTouched("thermalName", true)}
+                              isClearable
+                              classNamePrefix="admin-form-select"
+                              theme={neutralSelectTheme}
+                              styles={getAdminFormSelectStyles({
+                                invalid: Boolean(formik.touched.thermalName && formik.errors.thermalName),
+                              })}
+                            />
+                          </div>
+                          {formik.touched.thermalName && formik.errors.thermalName ? (
+                            <div className="invalid-feedback d-block">
+                              {typeof formik.errors.thermalName === 'string' ? formik.errors.thermalName : formik.errors.thermalName.value}
+                            </div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="description" className="form-label">Description</Label>
+                          <Input
+                            type="textarea"
+                            className="form-control"
+                            id="description"
+                            name="description"
+                            value={formik.values.description}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            invalid={formik.touched.description && formik.errors.description ? true : false}
+                          />
+                          {formik.touched.description && formik.errors.description ? (
+                            <FormFeedback type="invalid">{formik.errors.description}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div className="d-flex align-items-center">
+                          <Label htmlFor="commonOrUncommon" className="form-label mb-0">Common ? :</Label>
+                          <Input
+                            type="checkbox"
+                            id="commonOrUncommon"
+                            name="commonOrUncommon"
+                            checked={formik.values.commonOrUncommon}
+                            onChange={(e) => formik.setFieldValue("commonOrUncommon", e.target.checked)}
+                            style={{ marginLeft: '1.25em' }}
+                          />
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="themes" className="form-label">Themes/ Characteristics</Label>
+                          <div id="themes">
+                            <Editor
+                              wrapperClassName="demo-wrapper"
+                              editorClassName="demo-editor"
+                              editorState={editorStateThemes}
+                              onEditorStateChange={editorState => {
+                                setEditorStateThemes(editorState);
+                                formik.setFieldValue('themes', draftToHtml(convertToRaw(editorState.getCurrentContent())));
+                              }}
+                              toolbarClassName="toolbar-class"
+                              wrapperStyle={{
+                                borderRadius: 5,
+                                borderWidth: 1,
+                                borderColor: '#0000'
+                              }}
+                              editorStyle={{
+                                borderRadius: 2,
+                                border: '1px solid lightgrey',
+                                backgroundColor: '#FFFFFF',
+                                height: '300px'
+                              }}
+                            />
+                          </div>
+                          {formik.touched.themes && formik.errors.themes ? (
+                            <div className="invalid-feedback d-block">{formik.errors.themes}</div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="generals" className="form-label">Generals</Label>
+                          <div id="generals">
+                            <Editor
+                              wrapperClassName="demo-wrapper"
+                              editorClassName="demo-editor"
+                              editorState={editorStateGenerals}
+                              onEditorStateChange={editorState => {
+                                setEditorStateGenerals(editorState);
+                                formik.setFieldValue('generals', draftToHtml(convertToRaw(editorState.getCurrentContent())));
+                              }}
+                              toolbarClassName="toolbar-class"
+                              wrapperStyle={{
+                                borderRadius: 5,
+                                borderWidth: 1,
+                                borderColor: '#0000'
+                              }}
+                              editorStyle={{
+                                borderRadius: 2,
+                                border: '1px solid lightgrey',
+                                backgroundColor: '#FFFFFF',
+                                height: '300px'
+                              }}
+                            />
+                          </div>
+                          {formik.touched.generals && formik.errors.generals ? (
+                            <div className="invalid-feedback d-block">{formik.errors.generals}</div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="modalities" className="form-label">Modalities</Label>
+                          <div id="modalities">
+                            <Editor
+                              wrapperClassName="demo-wrapper"
+                              editorClassName="demo-editor"
+                              editorState={editorStateModalities}
+                              onEditorStateChange={editorState => {
+                                setEditorStateModalities(editorState);
+                                formik.setFieldValue('modalities', draftToHtml(convertToRaw(editorState.getCurrentContent())));
+                              }}
+                              toolbarClassName="toolbar-class"
+                              wrapperStyle={{
+                                borderRadius: 5,
+                                borderWidth: 1,
+                                borderColor: '#0000'
+                              }}
+                              editorStyle={{
+                                borderRadius: 2,
+                                border: '1px solid lightgrey',
+                                backgroundColor: '#FFFFFF',
+                                height: '300px'
+                              }}
+                            />
+                          </div>
+                          {formik.touched.modalities && formik.errors.modalities ? (
+                            <div className="invalid-feedback d-block">{formik.errors.modalities}</div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="particulars" className="form-label">Particulars</Label>
+                          <div id="particulars">
+                            <Editor
+                              wrapperClassName="demo-wrapper"
+                              editorClassName="demo-editor"
+                              editorState={editorStateParticulars}
+                              onEditorStateChange={editorState => {
+                                setEditorStateParticulars(editorState);
+                                formik.setFieldValue('particulars', draftToHtml(convertToRaw(editorState.getCurrentContent())));
+                              }}
+                              toolbarClassName="toolbar-class"
+                              wrapperStyle={{
+                                borderRadius: 5,
+                                borderWidth: 1,
+                                borderColor: '#0000'
+                              }}
+                              editorStyle={{
+                                borderRadius: 2,
+                                border: '1px solid lightgrey',
+                                backgroundColor: '#FFFFFF',
+                                height: '300px'
+                              }}
+                            />
+                          </div>
+                          {formik.touched.particulars && formik.errors.particulars ? (
+                            <div className="invalid-feedback d-block">{formik.errors.particulars}</div>
+                          ) : null}
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listremedy" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          Save
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

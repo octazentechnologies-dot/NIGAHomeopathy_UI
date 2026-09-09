@@ -1,30 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
+import { Card, CardBody, CardHeader, Col } from 'reactstrap';
 import { bestSellingProducts } from "../../common/data";
+import AdminPeriodFilter from './AdminPeriodFilter';
 
 const BestSellingProducts = () => {
+    const [activePeriod, setActivePeriod] = useState('all');
+
     return (
         <React.Fragment>
             <Col xl={6}>
-                <Card>
-                    <CardHeader className="align-items-center d-flex">
-                        <h4 className="card-title mb-0 flex-grow-1">Best Selling Products</h4>
-                        <div className="flex-shrink-0">
-                            <UncontrolledDropdown className="card-header-dropdown">
-                                <DropdownToggle tag="a" className="text-reset" role="button">
-                                    <span className="fw-semibold text-uppercase fs-12">Sort by: </span><span className="text-muted">Today<i className="mdi mdi-chevron-down ms-1"></i></span>
-                                </DropdownToggle>
-                                <DropdownMenu className="dropdown-menu-end" end>
-                                    <DropdownItem>Today</DropdownItem>
-                                    <DropdownItem>Yesterday</DropdownItem>
-                                    <DropdownItem>Last 7 Days</DropdownItem>
-                                    <DropdownItem>Last 30 Days</DropdownItem>
-                                    <DropdownItem>This Month</DropdownItem>
-                                    <DropdownItem>Last Month</DropdownItem>
-                                </DropdownMenu>
-                            </UncontrolledDropdown>
-                        </div>
+                <Card className="admin-dash-card">
+                    <CardHeader className="align-items-center d-flex admin-dash-card-header">
+                        <h4 className="card-title mb-0 flex-grow-1">Recent Appointments</h4>
+                        <AdminPeriodFilter activePeriod={activePeriod} onChange={setActivePeriod} />
                     </CardHeader>
 
                     <CardBody>
@@ -36,7 +25,7 @@ const BestSellingProducts = () => {
                                             <td>
                                                 <div className="d-flex align-items-center">
                                                     <div className="avatar-sm bg-light rounded p-1 me-2">
-                                                        <img src={item.img} alt="" className="img-fluid d-block" />
+                                                        <img src={item.img} alt="" className="img-fluid d-block rounded-circle" />
                                                     </div>
                                                     <div>
                                                         <h5 className="fs-14 my-1"><Link to="/apps-ecommerce-product-details" className="text-reset">{item.label}</Link></h5>
@@ -45,20 +34,22 @@ const BestSellingProducts = () => {
                                                 </div>
                                             </td>
                                             <td>
-                                                <h5 className="fs-14 my-1 fw-normal">${(item.price).toFixed(2)}</h5>
-                                                <span className="text-muted">Price</span>
+                                                <h5 className="fs-14 my-1 fw-normal">{item.time}</h5>
+                                                <span className="text-muted">Appointment</span>
                                             </td>
                                             <td>
-                                                <h5 className="fs-14 my-1 fw-normal">{item.orders}</h5>
-                                                <span className="text-muted">Orders</span>
+                                                <h5 className="fs-14 my-1 fw-normal">{item.doctor}</h5>
+                                                <span className="text-muted">Doctor</span>
                                             </td>
                                             <td>
-                                                <h5 className="fs-14 my-1 fw-normal">{item.stock ? item.stock : <span className="badge bg-danger-subtle text-danger">Out of stock</span>} </h5>
-                                                <span className="text-muted">Stock</span>
+                                                <h5 className="fs-14 my-1 fw-normal">{item.type}</h5>
+                                                <span className="text-muted">Type</span>
                                             </td>
                                             <td>
-                                                <h5 className="fs-14 my-1 fw-normal">${item.amount}</h5>
-                                                <span className="text-muted">Amount</span>
+                                                <h5 className="fs-14 my-1 fw-normal">
+                                                    <span className={"badge bg-" + item.statusClass + "-subtle text-" + item.statusClass}>{item.status}</span>
+                                                </h5>
+                                                <span className="text-muted">Status</span>
                                             </td>
                                         </tr>
                                     ))}
@@ -68,7 +59,7 @@ const BestSellingProducts = () => {
 
                         <div className="align-items-center mt-4 pt-2 justify-content-between row text-center text-sm-start">
                             <div className="col-sm">
-                                <div className="text-muted">Showing <span className="fw-semibold">5</span> of <span className="fw-semibold">25</span> Results
+                                <div className="text-muted">Showing <span className="fw-semibold">5</span> of <span className="fw-semibold">28</span> Appointments
                                 </div>
                             </div>
                             <div className="col-sm-auto mt-3 mt-sm-0">

@@ -18,6 +18,13 @@ const ADMIN_PORTAL_ROLES = [UserRole.ADMIN, UserRole.MANAGEMENT];
 const usesDoctorDashboardLayout = (role) =>
     role === UserRole.DOCTOR || role === UserRole.RECEPTION;
 
+/** Admin dashboard: full-width fixed topbar + horizontal nav */
+const usesAdminDashboardLayout = (role) => role === UserRole.ADMIN;
+
+/** Topbar briefcase "More" overflow menu (admin + doctor/reception) */
+const usesTopbarMoreMenu = (role) =>
+    usesAdminDashboardLayout(role) || usesDoctorDashboardLayout(role);
+
 const resolveUserRole = (userProfile) => {
     if (userProfile?.role) return userProfile.role;
     if (userProfile?.Role) return userProfile.Role;
@@ -90,6 +97,8 @@ export {
     UserRole,
     ADMIN_PORTAL_ROLES,
     usesDoctorDashboardLayout,
+    usesAdminDashboardLayout,
+    usesTopbarMoreMenu,
     resolveUserRole,
     resolveUserRoleId,
     canAccessAdminPortal,

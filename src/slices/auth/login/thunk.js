@@ -12,8 +12,8 @@ import { clearPatientBoardBackupSummary } from '../../doctor/patientBoardBackup/
 import { fetchPatientBoardBackupSummary } from '../../doctor/patientBoardBackup/thunk';
 import { login as loginApi, getSubscriptionStatus as getSubscriptionStatusApi } from "../../../helpers/realbackend_helper";
 import { UserRole } from '../../../Components/constants/roles';
-import { changeSidebarVisibility } from '../../../slices/thunks';
-import { sidebarVisibilitytypes } from '../../../Components/constants/layout';
+import { changeLayout, changeSidebarVisibility } from '../../../slices/thunks';
+import { layoutTypes, sidebarVisibilitytypes } from '../../../Components/constants/layout';
 
 // const fireBaseBackend = getFirebaseBackend();
 
@@ -54,15 +54,19 @@ export const loginUser = (user, history) => async (dispatch) => {
       if (authUser.role === UserRole.ADMIN) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.HORIZONTAL));
         history('/dashboard')
       } else if (authUser.role === UserRole.DOCTOR) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
+        // Clear admin horizontal layout so page-content does not keep nav-bar gap
+        dispatch(changeLayout(layoutTypes.SEMIBOX));
         dispatch(fetchPatientBoardBackupSummary());
         history('/doctordashboard')
       } else if (authUser.role === UserRole.RECEPTION) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
+        dispatch(changeLayout(layoutTypes.SEMIBOX));
         dispatch(fetchPatientBoardBackupSummary());
         history('/doctordashboard')
       }
@@ -96,6 +100,9 @@ export const logoutUser = () => async (dispatch) => {
     dispatch(clearPatientBoardSession());
     dispatch(clearPatientBoardBackupSummary());
     sessionStorage.removeItem("authUser");
+    document.body.classList.remove('admin-layout', 'doctor-layout', 'admin-forms-ui', 'admin-dashboard-route', 'admin-mobile-topbar');
+    // Reset layout attribute so the next role does not inherit admin horizontal spacing
+    dispatch(changeLayout(layoutTypes.SEMIBOX));
     let fireBaseBackend = getFirebaseBackend();
     if (process.env.REACT_APP_DEFAULTAUTH === "firebase") {
       const response = fireBaseBackend.logout;

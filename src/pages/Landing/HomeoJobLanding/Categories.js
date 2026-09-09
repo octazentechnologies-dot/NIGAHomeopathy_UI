@@ -21,10 +21,10 @@ const Categories = () => (
                     </Col>
                 </Row>
 
-                <Row className="justify-content-center">
+                <Row className="justify-content-center homeojob-modules-row g-3">
                     {MODULE_CATEGORIES.map((item) => (
-                        <Col lg={3} md={6} key={item.label}>
-                            <Card className="shadow-none text-center py-3">
+                        <Col lg={3} md={6} key={item.label} className="d-flex">
+                            <Card className="homeojob-module-card card shadow-none text-center py-3 w-100 h-100">
                                 <CardBody className="py-4">
                                     <div className="avatar-sm position-relative mb-4 mx-auto">
                                         <div className="job-icon-effect"></div>

@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
-import LogoDark from "../../../assets/images/logo-dark.png";
+import LogoLight from "../../../assets/images/logo-light.png";
 import { SITE, FOOTER_SERVICES, ABOUT_CONTENT, SOCIAL_LINKS } from "../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../constants/landingRoutes";
 
@@ -34,7 +34,7 @@ const Footer = () => (
             <Row>
                 <Col lg={4} className="mt-4">
                     <Link to={landingPath()} className="homeojob-footer-brand">
-                        <img src={LogoDark} className="card-logo card-logo-dark" alt={SITE.name} />
+                        <img src={LogoLight} className="card-logo card-logo-light" alt={SITE.name} />
                     </Link>
                     <div className="mt-4 fs-15">
                         <p className="text-white fw-semibold">{SITE.name}</p>

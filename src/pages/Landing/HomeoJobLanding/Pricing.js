@@ -42,7 +42,7 @@ const Pricing = () => {
                                     <CardBody>
                                         <div className="d-flex">
                                             <div className="avatar-sm">
-                                                <div className="avatar-title bg-primary-subtle text-primary rounded">
+                                                <div className="avatar-title homeojob-plan-icon rounded">
                                                     <i className="ri-price-tag-3-line fs-20"></i>
                                                 </div>
                                             </div>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Alert, Button, Card, CardBody, Col, Container, Input, Modal, ModalBody, ModalHeader, ModalFooter, PopoverBody, PopoverHeader, Row, UncontrolledPopover, UncontrolledTooltip, Pagination, PaginationItem, PaginationLink, Label, Form, FormGroup, UncontrolledAlert } from 'reactstrap';
 import Swal from 'sweetalert2';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
+import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
 import Select from "react-select";
 import moment from 'moment';
@@ -114,17 +115,32 @@ const formatPatientListAppointmentDisplay = (appointment) => {
     return 'N/A';
 };
 
-const PatientListModalTitle = ({ icon, title, subtitle }) => (
-    <span className="patient-list-modal__title">
-        <span className="patient-list-modal__title-icon" aria-hidden="true">
-            <i className={icon} />
+const PatientListModalTitle = ({ icon, title, subtitle, variant = 'boxed', iconColor }) => {
+    if (variant === 'simple') {
+        return (
+            <span className="patient-list-modal__title patient-list-modal__title--simple">
+                <i
+                    className={icon}
+                    style={{ color: iconColor || '#25a0e2', fontSize: 20 }}
+                    aria-hidden="true"
+                />
+                <span className="patient-list-modal__title-text">{title}</span>
+            </span>
+        );
+    }
+
+    return (
+        <span className="patient-list-modal__title">
+            <span className="patient-list-modal__title-icon" aria-hidden="true">
+                <i className={icon} />
+            </span>
+            <span>
+                <span className="patient-list-modal__title-text">{title}</span>
+                {subtitle ? <span className="patient-list-modal__title-sub">{subtitle}</span> : null}
+            </span>
         </span>
-        <span>
-            <span className="patient-list-modal__title-text">{title}</span>
-            {subtitle ? <span className="patient-list-modal__title-sub">{subtitle}</span> : null}
-        </span>
-    </span>
-);
+    );
+};
 
 const PatientListModalSearch = ({ value, onChange, placeholder = 'Search...' }) => (
     <div className="patient-list-modal__search">
@@ -139,26 +155,10 @@ const PatientListModalSearch = ({ value, onChange, placeholder = 'Search...' }) 
     </div>
 );
 
-/** Clear labeled close — same callback as modal toggle / previous X. */
-const PatientListModalCancel = ({ onClose }) => (
-    <Button
-        type="button"
-        color="light"
-        size="sm"
-        className="patient-list-modal__cancel"
-        onClick={onClose}
-        aria-label="Cancel and close"
-        title="Cancel"
-    >
-        <i className="ri-close-line" aria-hidden="true" />
-        Cancel
-    </Button>
-);
-
-const PatientListModalHeaderActions = ({ value, onChange, onClose, placeholder }) => (
+/** Search field in patient list modal header (close uses standard modal X). */
+const PatientListModalHeaderActions = ({ value, onChange, placeholder }) => (
     <div className="patient-list-modal__header-actions">
         <PatientListModalSearch value={value} onChange={onChange} placeholder={placeholder} />
-        <PatientListModalCancel onClose={onClose} />
     </div>
 );
 
@@ -226,8 +226,8 @@ const PatientListStatusBadge = ({ status, badgeClass }) => (
     </span>
 );
 
-const PatientListEmptyCell = ({ message }) => (
-    <td colSpan={6} className="text-center text-muted">
+const PatientListEmptyCell = ({ message, colSpan = 6 }) => (
+    <td colSpan={colSpan} className="text-center text-muted">
         <div className="patient-list-modal__empty">
             <span className="patient-list-modal__empty-icon" aria-hidden="true">
                 <i className="ri-inbox-2-line" />
@@ -235,6 +235,165 @@ const PatientListEmptyCell = ({ message }) => (
             <span>{message}</span>
         </div>
     </td>
+);
+
+const getPatientListStatusBadgeClass = (status) => {
+    if (statusMatches(status, 'Waiting') || statusMatches(status, 'WAITING')) return 'bg-warning';
+    if (statusMatches(status, 'Completed') || statusMatches(status, 'COMPLETED')) return 'bg-success';
+    if (statusMatches(status, 'Not Arrived') || statusMatches(status, 'NOT ARRIVED')) return 'bg-danger';
+    if (statusMatches(status, 'Walk-in') || statusMatches(status, 'WALK-IN')) return 'bg-info';
+    if (statusMatches(status, 'E-Consult') || statusMatches(status, 'E-CONSULT')) return 'bg-purple';
+    if (statusMatches(status, 'Remaining') || statusMatches(status, 'REMAINING')) return 'bg-warning';
+    return 'bg-secondary';
+};
+
+const AppointmentListTableHead = () => (
+    <thead>
+        <tr>
+            <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-user-heart-line" aria-hidden="true" />Patient Name</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-phone-line" aria-hidden="true" />Mobile Number</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Date</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-time-line" aria-hidden="true" />Time</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-flag-line" aria-hidden="true" />Status</span>
+            </th>
+        </tr>
+    </thead>
+);
+
+const AppointmentListMobileCell = ({ appointment }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-phone-line" aria-hidden="true" />
+        {appointment.mobileNo || 'N/A'}
+    </span>
+);
+
+const AppointmentListDateCell = ({ appointment }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-calendar-line" aria-hidden="true" />
+        {appointment.appointmentDate ? moment(appointment.appointmentDate).format('DD-MM-YYYY') : 'N/A'}
+    </span>
+);
+
+const AppointmentListTimeCell = ({ appointment }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-time-line" aria-hidden="true" />
+        {appointment.appointmentTime ? moment(appointment.appointmentTime, 'HH:mm:ss').format('hh:mm A') : 'N/A'}
+    </span>
+);
+
+const PatientViewAllTableHead = () => (
+    <thead>
+        <tr>
+            <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-user-heart-line" aria-hidden="true" />Patient Name</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-phone-line" aria-hidden="true" />Mobile Number</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-map-pin-line" aria-hidden="true" />Address</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-user-line" aria-hidden="true" />Gender</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Date</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-cake-2-line" aria-hidden="true" />Date of Birth</span>
+            </th>
+            <th scope="col" className="text-center">
+                <span className="patient-list-modal__th"><i className="ri-settings-3-line" aria-hidden="true" />Action</span>
+            </th>
+        </tr>
+    </thead>
+);
+
+const PatientViewAllMobileCell = ({ patient }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-phone-line" aria-hidden="true" />
+        {patient.mobileNo || 'N/A'}
+    </span>
+);
+
+const PatientViewAllAddressCell = ({ patient }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-map-pin-line" aria-hidden="true" />
+        {patient.address || 'N/A'}
+    </span>
+);
+
+const PatientViewAllGenderCell = ({ patient }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-user-line" aria-hidden="true" />
+        {patient.gender === 0 ? 'Male' : 'Female'}
+    </span>
+);
+
+const PatientViewAllDateCell = ({ value }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-calendar-line" aria-hidden="true" />
+        {value || '-'}
+    </span>
+);
+
+const getBillingStatusBadgeClass = (status) => {
+    const normalized = status?.toLowerCase() || '';
+    if (normalized === 'success') return 'bg-success';
+    if (normalized === 'failed') return 'bg-danger';
+    return 'bg-secondary';
+};
+
+const BillingListTableHead = () => (
+    <thead>
+        <tr>
+            <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-money-rupee-circle-line" aria-hidden="true" />Bill Amount</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Bill Date</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-bank-card-line" aria-hidden="true" />Transaction Type</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-flag-line" aria-hidden="true" />Transaction Status</span>
+            </th>
+        </tr>
+    </thead>
+);
+
+const BillingListAmountCell = ({ amount }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-money-rupee-circle-line" aria-hidden="true" />
+        {amount ?? 'N/A'}
+    </span>
+);
+
+const BillingListDateCell = ({ date }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-calendar-line" aria-hidden="true" />
+        {date || 'N/A'}
+    </span>
+);
+
+const BillingListTypeCell = ({ type }) => (
+    <span className="patient-list-modal__meta">
+        <i className="ri-bank-card-line" aria-hidden="true" />
+        {type || 'N/A'}
+    </span>
 );
 
 /** react-select inside Bootstrap modals: menu must portal above modal (z-index ~1055). */
@@ -247,6 +406,9 @@ const doctorModalSelectPortalProps = {
 };
 const getDoctorModalSelectStyles = (hasError) => ({
     menuPortal: (base) => ({ ...base, zIndex: DOCTOR_MODAL_SELECT_MENU_Z }),
+    indicatorSeparator: () => ({
+        display: 'none',
+    }),
     ...(hasError
         ? {
             control: (provided) => ({
@@ -310,16 +472,16 @@ const WaitingPatientsModal = ({ isOpen, toggle }) => {
 
     return (
         <Modal size="xl" id="waitingPatientsModal" isOpen={isOpen} toggle={toggle} className="patient-list-modal">
-            <ModalHeader id="waitingPatientsModalLabel" className="patient-list-modal__header">
+            <ModalHeader id="waitingPatientsModalLabel" className="patient-list-modal__header" toggle={toggle}>
                 <PatientListModalTitle
                     icon="ri-hourglass-line"
                     title="Waiting Patients"
-                    subtitle="Patients currently in the waiting queue"
+                    variant="simple"
+                    iconColor="#25a0e2"
                 />
                 <PatientListModalHeaderActions
                     value={searchTerm}
                     onChange={handleSearch}
-                    onClose={toggle}
                 />
             </ModalHeader>
             <ModalBody>
@@ -376,7 +538,7 @@ const WaitingPatientsModal = ({ isOpen, toggle }) => {
                 </div>
 
                 {/* Footer row inside body with results count and pagination */}
-                <div className="d-flex align-items-center justify-content-between mt-3 patient-list-modal__footer">
+                <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                     <div className="text-muted patient-list-modal__footer-text">
                         {appointmentListLoading ? (
                             'Loading...'
@@ -630,38 +792,27 @@ const PatientListModal = ({ isOpen, toggle }) => {
 
     return (
         <>
-            <Modal size="xl" id="patientListModal" isOpen={isOpen} toggle={toggle}>
-                <ModalHeader id="patientListModalLabel" toggle={toggle}>
-                    <h5 className="modal-title mb-0">Patient List</h5>
-                    <div className="ms-auto me-2" style={{ width: "260px" }}>
-                        <Input
-                            size="sm"
-                            type="text"
-                            placeholder="Search..."
-                            value={searchTerm}
-                            onChange={handleSearch}
-                        />
-                    </div>
+            <Modal size="xl" id="patientListModal" isOpen={isOpen} toggle={toggle} className="patient-list-modal">
+                <ModalHeader id="patientListModalLabel" className="patient-list-modal__header" toggle={toggle}>
+                    <PatientListModalTitle
+                        icon="ri-team-line"
+                        title="Patients"
+                        variant="simple"
+                        iconColor="#25a0e2"
+                    />
+                    <PatientListModalHeaderActions
+                        value={searchTerm}
+                        onChange={handleSearch}
+                    />
                 </ModalHeader>
                 <ModalBody>
-                    <div className="table-responsive">
-                        <table className="table mb-0 align-middle">
-                            <thead>
-                                <tr>
-                                    <th scope="col" className='text-center' style={{ width: '5%' }}>#</th>
-                                    <th scope="col">Patient Name</th>
-                                    <th scope="col">Mobile Number</th>
-                                    <th scope="col">Address</th>
-                                    <th scope="col">Gender</th>
-                                    <th scope="col">Date</th>
-                                    <th scope="col">Date of Birth</th>
-                                    <th scope="col" className='text-center'>Action</th>
-                                </tr>
-                            </thead>
+                    <div className="table-responsive patient-list-modal__table-wrap">
+                        <table className="table mb-0 align-middle patient-list-modal__table">
+                            <PatientViewAllTableHead />
                             <tbody>
                                 {patientListLoading ? (
                                     <tr>
-                                        <td colSpan={8} className='text-center text-muted'>
+                                        <td colSpan={8} className="text-center text-muted">
                                             <div className="d-flex justify-content-center align-items-center">
                                                 <div className="spinner-border spinner-border-sm me-2" role="status">
                                                     <span className="visually-hidden">Loading...</span>
@@ -672,23 +823,36 @@ const PatientListModal = ({ isOpen, toggle }) => {
                                     </tr>
                                 ) : (
                                     <>
-                                        {pageItems.map((patient) => (
+                                        {pageItems.map((patient, index) => (
                                             <tr key={patient.patientID}>
-                                                <td className='text-center'>{patient.patientID}</td>
+                                                <td className="text-center patient-list-modal__index">{startIndex + index + 1}</td>
                                                 <td>
-                                                    <div className="d-flex align-items-center">
-                                                        <div className="flex-shrink-0 me-2">
-                                                            <img src={patient.avatar || img3} alt="" className="avatar-xxs rounded-circle" />
-                                                        </div>
-                                                        <div className="flex-grow-1">{patient.patientName}</div>
-                                                    </div>
+                                                    <PatientListNameCell appointment={patient} />
                                                 </td>
-                                                <td>{patient.mobileNo}</td>
-                                                <td>{patient.address}</td>
-                                                <td>{patient.gender === 0 ? 'Male' : 'Female'}</td>
-                                                <td>{patient.enteredDate ? moment(new Date(patient.enteredDate)).isValid() ? moment(patient.enteredDate).format("DD-MM-YYYY") : '-' : '-'}</td>
-                                                <td>{patient.dateOfBirth ? moment(patient.dateOfBirth).isValid() ? moment(patient.dateOfBirth).format('DD-MM-YYYY') : '-' : '-'}</td>
-                                                <td className='text-center'>
+                                                <td>
+                                                    <PatientViewAllMobileCell patient={patient} />
+                                                </td>
+                                                <td>
+                                                    <PatientViewAllAddressCell patient={patient} />
+                                                </td>
+                                                <td>
+                                                    <PatientViewAllGenderCell patient={patient} />
+                                                </td>
+                                                <td>
+                                                    <PatientViewAllDateCell
+                                                        value={patient.enteredDate && moment(new Date(patient.enteredDate)).isValid()
+                                                            ? moment(patient.enteredDate).format('DD-MM-YYYY')
+                                                            : '-'}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    <PatientViewAllDateCell
+                                                        value={patient.dateOfBirth && moment(patient.dateOfBirth).isValid()
+                                                            ? moment(patient.dateOfBirth).format('DD-MM-YYYY')
+                                                            : '-'}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
                                                     <div className="d-inline-flex gap-2">
                                                         <div className="edit">
                                                             <button
@@ -722,9 +886,10 @@ const PatientListModal = ({ isOpen, toggle }) => {
                                         ))}
                                         {pageItems.length === 0 && !patientListLoading && (
                                             <tr>
-                                                <td colSpan={8} className='text-center text-muted'>
-                                                    {searchTerm ? 'No patients found matching your search' : 'No patients available'}
-                                                </td>
+                                                <PatientListEmptyCell
+                                                    colSpan={8}
+                                                    message={searchTerm ? 'No patients found matching your search' : 'No patients available'}
+                                                />
                                             </tr>
                                         )}
                                     </>
@@ -732,12 +897,12 @@ const PatientListModal = ({ isOpen, toggle }) => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="d-flex align-items-center justify-content-between mt-3 patient-list-modal__footer">
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                         <div className="text-muted patient-list-modal__footer-text">
                             {patientListLoading ? (
                                 'Loading...'
                             ) : (
-                                `Showing ${pageItems.length} of ${filtered.length} Results ${searchTerm ? `(filtered from ${patientList.length} total)` : `(from ${patientList.length} total)`}`
+                                `Showing ${pageItems.length} of ${filtered.length} Patients ${searchTerm ? `(filtered from ${patientList.length} total)` : `(from ${patientList.length} total)`}`
                             )}
                         </div>
                         {!patientListLoading && totalPages > 1 && (
@@ -762,59 +927,106 @@ const PatientListModal = ({ isOpen, toggle }) => {
                 </ModalBody>
             </Modal>
 
-            <Modal size="lg" isOpen={editModalOpen} toggle={closeEditModal}>
-                <ModalHeader toggle={closeEditModal}>
-                    Edit Patient
+            <Modal size="lg" isOpen={editModalOpen} toggle={closeEditModal} className="patient-list-modal new-patient-modal edit-patient-modal">
+                <ModalHeader className="patient-list-modal__header" toggle={closeEditModal}>
+                    <PatientListModalTitle
+                        icon="ri-user-settings-line"
+                        title="Edit Patient"
+                        variant="simple"
+                        iconColor="#25a0e2"
+                    />
                 </ModalHeader>
                 <ModalBody>
-                    <h6 className="mb-3 fw-semibold text-primary">Patient Information</h6>
-                    <div className="row g-3">
+                    <div className="row g-3 new-patient-modal__fields">
                         <div className="col-md-6">
-                            <label className="form-label">Patient Name</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-user-line" aria-hidden="true" />
+                                Patient Name
+                            </Label>
                             <Input type="text" value={editForm.patientName} onChange={(e) => updateEditField('patientName', e.target.value)} />
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Gender</label>
-                            <div className="d-flex align-items-center gap-4 mt-2">
-                                <div className="form-check">
-                                    <Input id="patientListGenderMale" name="gender" type="radio" className="form-check-input" checked={editForm.gender === 'Male'} onChange={() => updateEditField('gender', 'Male')} />
-                                    <label className="form-check-label" htmlFor="patientListGenderMale">Male</label>
-                                </div>
-                                <div className="form-check">
-                                    <Input id="patientListGenderFemale" name="gender" type="radio" className="form-check-input" checked={editForm.gender === 'Female'} onChange={() => updateEditField('gender', 'Female')} />
-                                    <label className="form-check-label" htmlFor="patientListGenderFemale">Female</label>
-                                </div>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-group-line" aria-hidden="true" />
+                                Gender
+                            </Label>
+                            <div className="new-patient-modal__gender" role="radiogroup" aria-label="Gender">
+                                <label className={`new-patient-modal__gender-option${editForm.gender === 'Male' ? ' is-active' : ''}`}>
+                                    <Input
+                                        id="patientListGenderMale"
+                                        name="gender"
+                                        type="radio"
+                                        className="new-patient-modal__gender-input"
+                                        checked={editForm.gender === 'Male'}
+                                        onChange={() => updateEditField('gender', 'Male')}
+                                    />
+                                    <span className="new-patient-modal__gender-text">
+                                        <i className="ri-men-line" aria-hidden="true" />
+                                        Male
+                                    </span>
+                                </label>
+                                <label className={`new-patient-modal__gender-option${editForm.gender === 'Female' ? ' is-active' : ''}`}>
+                                    <Input
+                                        id="patientListGenderFemale"
+                                        name="gender"
+                                        type="radio"
+                                        className="new-patient-modal__gender-input"
+                                        checked={editForm.gender === 'Female'}
+                                        onChange={() => updateEditField('gender', 'Female')}
+                                    />
+                                    <span className="new-patient-modal__gender-text">
+                                        <i className="ri-women-line" aria-hidden="true" />
+                                        Female
+                                    </span>
+                                </label>
                             </div>
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Date of Birth</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-cake-2-line" aria-hidden="true" />
+                                Date of Birth
+                            </Label>
                             <Input type="date" value={editForm.dob} onChange={(e) => updateEditField('dob', e.target.value)} />
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Refer By</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-user-shared-line" aria-hidden="true" />
+                                Refer By
+                            </Label>
                             <Input type="text" value={editForm.referBy} onChange={(e) => updateEditField('referBy', e.target.value)} />
                         </div>
                         <div className="col-12">
-                            <label className="form-label">Address</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-map-pin-line" aria-hidden="true" />
+                                Address
+                            </Label>
                             <Input type="textarea" value={editForm.address} onChange={(e) => updateEditField('address', e.target.value)} />
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Mobile No</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-phone-line" aria-hidden="true" />
+                                Mobile No
+                            </Label>
                             <Input type="tel" value={editForm.mobile} onChange={(e) => updateEditField('mobile', e.target.value)} />
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Email</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-mail-line" aria-hidden="true" />
+                                Email
+                            </Label>
                             <Input type="email" value={editForm.email} onChange={(e) => updateEditField('email', e.target.value)} />
                         </div>
                     </div>
                 </ModalBody>
-                <ModalFooter>
-                    <Button color="secondary" onClick={closeEditModal} disabled={patientLoading}>
-                        <i className="ri-close-circle-line me-1"></i> Cancel
-                    </Button>
-                    <Button color="success" onClick={handleUpdatePatient} disabled={patientLoading}>
-                        <i className="ri-check-fill me-1"></i> {patientLoading ? 'Updating...' : 'Update'}
-                    </Button>
+                <ModalFooter className="justify-content-end">
+                    <ModalActionButton action="cancel" onClick={closeEditModal} disabled={patientLoading} />
+                    <ModalActionButton
+                        action="update"
+                        onClick={handleUpdatePatient}
+                        disabled={patientLoading}
+                        loading={patientLoading}
+                        loadingLabel="Updating..."
+                    />
                 </ModalFooter>
             </Modal>
         </>
@@ -861,36 +1073,27 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
     };
 
     return (
-        <Modal size="xl" id="appointmentListModal" isOpen={isOpen} toggle={toggle}>
-            <ModalHeader id="appointmentListModalLabel" toggle={toggle}>
-                <h5 className="modal-title mb-0">Appointment List</h5>
-                <div className="ms-auto me-2" style={{ width: "260px" }}>
-                    <Input
-                        size="sm"
-                        type="text"
-                        placeholder="Search..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                    />
-                </div>
+        <Modal size="xl" id="appointmentListModal" isOpen={isOpen} toggle={toggle} className="patient-list-modal">
+            <ModalHeader id="appointmentListModalLabel" className="patient-list-modal__header" toggle={toggle}>
+                <PatientListModalTitle
+                    icon="ri-calendar-check-line"
+                    title="Appointments"
+                    variant="simple"
+                    iconColor="#25a0e2"
+                />
+                <PatientListModalHeaderActions
+                    value={searchTerm}
+                    onChange={handleSearch}
+                />
             </ModalHeader>
             <ModalBody>
-                <div className="table-responsive">
-                    <table className="table mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th scope="col" className='text-center' style={{ width: '5%' }}>#</th>
-                                <th scope="col">Patient</th>
-                                <th scope="col">Mobile Number</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Time</th>
-                                <th scope="col">Status</th>
-                            </tr>
-                        </thead>
+                <div className="table-responsive patient-list-modal__table-wrap">
+                    <table className="table mb-0 align-middle patient-list-modal__table">
+                        <AppointmentListTableHead />
                         <tbody>
                             {appointmentListLoading ? (
                                 <tr>
-                                    <td colSpan={6} className='text-center text-muted'>
+                                    <td colSpan={6} className="text-center text-muted">
                                         <div className="d-flex justify-content-center align-items-center">
                                             <div className="spinner-border spinner-border-sm me-2" role="status">
                                                 <span className="visually-hidden">Loading...</span>
@@ -901,36 +1104,34 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                                 </tr>
                             ) : (
                                 <>
-                                    {pageItems.map((appointment) => (
-                                        <tr key={appointment.patientAppId}>
-                                            <td className='text-center'>{appointment.patientAppId}</td>
+                                    {pageItems.map((appointment, index) => (
+                                        <tr key={appointment.patientAppId || appointment.id || index}>
+                                            <td className="text-center patient-list-modal__index">{startIndex + index + 1}</td>
                                             <td>
-                                                <div className="d-flex align-items-center">
-                                                    <div className="flex-shrink-0 me-2">
-                                                        <img src={appointment.avatar || img3} alt="" className="avatar-xxs rounded-circle" />
-                                                    </div>
-                                                    <div className="flex-grow-1">{appointment.patientName}</div>
-                                                </div>
+                                                <PatientListNameCell appointment={appointment} />
                                             </td>
-                                            <td>{appointment.mobileNo}</td>
-                                            <td>{moment(appointment.appointmentDate).format('DD-MM-YYYY')}</td>
-                                            <td>{moment(appointment.appointmentTime, "HH:mm:ss").format("hh:mm A")}</td>
                                             <td>
-                                                <span className={`badge ${appointment.status === 'Waiting' ? 'bg-warning' :
-                                                    appointment.status === 'Completed' ? 'bg-success' :
-                                                        appointment.status === 'Not Arrived' ? 'bg-danger' :
-                                                            'bg-secondary'
-                                                    }`}>
-                                                    {appointment.status}
-                                                </span>
+                                                <AppointmentListMobileCell appointment={appointment} />
+                                            </td>
+                                            <td>
+                                                <AppointmentListDateCell appointment={appointment} />
+                                            </td>
+                                            <td>
+                                                <AppointmentListTimeCell appointment={appointment} />
+                                            </td>
+                                            <td>
+                                                <PatientListStatusBadge
+                                                    status={appointment.status}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
+                                                />
                                             </td>
                                         </tr>
                                     ))}
                                     {pageItems.length === 0 && !appointmentListLoading && (
                                         <tr>
-                                            <td colSpan={6} className='text-center text-muted'>
-                                                {searchTerm ? 'No appointments found matching your search' : 'No appointments available'}
-                                            </td>
+                                            <PatientListEmptyCell
+                                                message={searchTerm ? 'No appointments found matching your search' : 'No appointments available'}
+                                            />
                                         </tr>
                                     )}
                                 </>
@@ -938,12 +1139,12 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                         </tbody>
                     </table>
                 </div>
-                <div className="d-flex align-items-center justify-content-between mt-3">
-                    <div className="text-muted">
+                <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                    <div className="text-muted patient-list-modal__footer-text">
                         {appointmentListLoading ? (
                             'Loading...'
                         ) : (
-                            `Showing ${pageItems.length} of ${filtered.length} Results ${searchTerm ? `(filtered from ${appointmentList.length} total)` : `(from ${appointmentList.length} total)`}`
+                            `Showing ${pageItems.length} of ${filtered.length} Appointments ${searchTerm ? `(filtered from ${appointmentList.length} total)` : `(from ${appointmentList.length} total)`}`
                         )}
                     </div>
                     {!appointmentListLoading && totalPages > 1 && (
@@ -1007,69 +1208,77 @@ const BillingListModal = ({ isOpen, toggle }) => {
     };
 
     return (
-        <Modal size="xl" id="billingListModal" isOpen={isOpen} toggle={toggle}>
-            <ModalHeader id="billingListModalLabel" toggle={toggle}>
-                <h5 className="modal-title mb-0">Last Billing Amounts</h5>
-                <div className="ms-auto me-2" style={{ width: "260px" }}>
-                    <Input
-                        size="sm"
-                        type="text"
-                        placeholder="Search..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                    />
-                </div>
+        <Modal size="xl" id="billingListModal" isOpen={isOpen} toggle={toggle} className="patient-list-modal">
+            <ModalHeader id="billingListModalLabel" className="patient-list-modal__header" toggle={toggle}>
+                <PatientListModalTitle
+                    icon="ri-bill-line"
+                    title="Billing Details"
+                    variant="simple"
+                    iconColor="#25a0e2"
+                />
+                <PatientListModalHeaderActions
+                    value={searchTerm}
+                    onChange={handleSearch}
+                />
             </ModalHeader>
             <ModalBody>
-                <div className="table-responsive">
-                    <table className="table mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th scope="col" className='text-center' style={{ width: '5%' }}>#</th>
-                                <th scope="col">Bill Amount</th>
-                                <th scope="col">Bill Date</th>
-                                <th scope="col">Transaction Type</th>
-                                <th scope="col">Transaction Status</th>
-                            </tr>
-                        </thead>
+                <div className="table-responsive patient-list-modal__table-wrap">
+                    <table className="table mb-0 align-middle patient-list-modal__table">
+                        <BillingListTableHead />
                         <tbody>
-                            {pageItems.map((b) => (
-                                <tr key={b.id}>
-                                    <td className='text-center'>{b.id}</td>
-                                    <td>{b.amount}</td>
-                                    <td>{b.date}</td>
-                                    <td>{b.type}</td>
-                                    <td>{b.status}</td>
+                            {pageItems.map((bill, index) => (
+                                <tr key={bill.id}>
+                                    <td className="text-center patient-list-modal__index">{startIndex + index + 1}</td>
+                                    <td>
+                                        <BillingListAmountCell amount={bill.amount} />
+                                    </td>
+                                    <td>
+                                        <BillingListDateCell date={bill.date} />
+                                    </td>
+                                    <td>
+                                        <BillingListTypeCell type={bill.type} />
+                                    </td>
+                                    <td>
+                                        <PatientListStatusBadge
+                                            status={bill.status}
+                                            badgeClass={getBillingStatusBadgeClass(bill.status)}
+                                        />
+                                    </td>
                                 </tr>
                             ))}
                             {pageItems.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className='text-center text-muted'>No results</td>
+                                    <PatientListEmptyCell
+                                        colSpan={5}
+                                        message={searchTerm ? 'No billing records found matching your search' : 'No billing records available'}
+                                    />
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-                <div className="d-flex align-items-center justify-content-between mt-3">
-                    <div className="text-muted">
-                        Showing {pageItems.length} of {filtered.length} Results
+                <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                    <div className="text-muted patient-list-modal__footer-text">
+                        {`Showing ${pageItems.length} of ${filtered.length} Billing Records ${searchTerm ? `(filtered from ${allBills.length} total)` : `(from ${allBills.length} total)`}`}
                     </div>
-                    <Pagination className="pagination-separated mb-0">
-                        <PaginationItem disabled={safePage === 1}>
-                            <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
-                        </PaginationItem>
-                        {Array.from({ length: totalPages }).map((_, i) => {
-                            const page = i + 1;
-                            return (
-                                <PaginationItem active={page === safePage} key={page}>
-                                    <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
-                                </PaginationItem>
-                            );
-                        })}
-                        <PaginationItem disabled={safePage === totalPages}>
-                            <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCurrentPage(Math.min(totalPages, safePage + 1)); }} />
-                        </PaginationItem>
-                    </Pagination>
+                    {totalPages > 1 && (
+                        <Pagination className="pagination-separated mb-0">
+                            <PaginationItem disabled={safePage === 1}>
+                                <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
+                            </PaginationItem>
+                            {Array.from({ length: totalPages }).map((_, i) => {
+                                const page = i + 1;
+                                return (
+                                    <PaginationItem active={page === safePage} key={page}>
+                                        <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
+                                    </PaginationItem>
+                                );
+                            })}
+                            <PaginationItem disabled={safePage === totalPages}>
+                                <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCurrentPage(Math.min(totalPages, safePage + 1)); }} />
+                            </PaginationItem>
+                        </Pagination>
+                    )}
                 </div>
             </ModalBody>
         </Modal>
@@ -1091,7 +1300,7 @@ const SubscriptionExpirationModal = ({ isOpen, toggle, daysRemaining }) => {
                 </div>
             </ModalBody>
             <ModalFooter>
-                <Button color="danger" onClick={toggle}>Cancel</Button>
+                <ModalActionButton action="cancel" onClick={toggle}>Close</ModalActionButton>
             </ModalFooter>
         </Modal>
     );
@@ -1107,27 +1316,6 @@ const PLAN_CARD_THEMES = [
 ];
 
 const SUBSCRIPTION_PLAN_MODAL_STYLES = `
-  .subscription-plan-modal .modal-header {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding-right: 1rem;
-  }
-  .subscription-plan-modal .modal-header .modal-title {
-    flex: 1 1 auto;
-    margin: 0;
-  }
-  .subscription-plan-modal .subscription-plan-logout-btn {
-    position: absolute;
-    top: 50%;
-    right: 1rem;
-    transform: translateY(-50%);
-    z-index: 2;
-    white-space: nowrap;
-  }
-  .subscription-plan-modal .modal-body { overflow: visible; padding-bottom: 1.5rem; }
   .subscription-plan-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1145,14 +1333,13 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
     min-height: 280px;
     display: flex;
     flex-direction: column;
-    border-radius: 12px;
+    border-radius: 5px;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease;
     animation: subscriptionPlanCardIn 0.5s ease backwards;
   }
   .subscription-plan-card:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
   }
   .subscription-plan-card:nth-child(1) { animation-delay: 0.05s; }
   .subscription-plan-card:nth-child(2) { animation-delay: 0.1s; }
@@ -1168,7 +1355,7 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
     flex: 1 1 auto;
     padding: 1.25rem 1rem;
     min-height: 200px;
-    border-radius: 12px 12px 0 0;
+    border-radius: 5px 5px 0 0;
   }
   .subscription-plan-card__icon {
     width: 48px;
@@ -1186,7 +1373,7 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
     margin: 0;
     padding: 0;
     border: none;
-    border-radius: 0 0 12px 12px;
+    border-radius: 0 0 5px 5px;
     min-height: 52px;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -1223,6 +1410,33 @@ const getPlanIcon = (pkg, index) => {
 const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseable = false }) => {
     const packages = useSelector((state) => state?.DoctorDashboard?.packages) || [];
     const packagesLoading = useSelector((state) => state?.DoctorDashboard?.packagesLoading);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setSearchTerm('');
+    }, [isOpen]);
+
+    const filteredPackages = packages.filter((pkg) => {
+        const needle = searchTerm.trim().toLowerCase();
+        if (!needle) return true;
+
+        const packageName = pkg.packageName?.toLowerCase() || '';
+        const amount = String(pkg.amount ?? '');
+        const caseCount = String(pkg.caseCount ?? '');
+        const validity = String(pkg.validityInDays ?? '');
+
+        return (
+            packageName.includes(needle) ||
+            amount.includes(needle) ||
+            caseCount.includes(needle) ||
+            validity.includes(needle)
+        );
+    });
+
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value);
+    };
 
     return (
         <Modal
@@ -1232,83 +1446,110 @@ const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseabl
             toggle={isNonCloseable ? undefined : toggle}
             backdrop={isNonCloseable ? 'static' : true}
             keyboard={!isNonCloseable}
-            className="subscription-plan-modal"
+            className="patient-list-modal subscription-plan-modal"
         >
             <style>{SUBSCRIPTION_PLAN_MODAL_STYLES}</style>
-            <ModalHeader id="subscriptionListModalLabel" toggle={isNonCloseable ? undefined : toggle}>
-                <h5 className="modal-title mb-0">Purchase Plan list</h5>
+            <ModalHeader
+                id="subscriptionListModalLabel"
+                className="patient-list-modal__header"
+                toggle={isNonCloseable ? undefined : toggle}
+            >
+                <PatientListModalTitle
+                    icon="ri-vip-crown-line"
+                    title="Purchase Plans"
+                    variant="simple"
+                    iconColor="#25a0e2"
+                />
                 {isNonCloseable ? (
-                    <Link
-                        to="/logout"
-                        className="btn btn-soft-danger btn-sm subscription-plan-logout-btn"
-                        title="Logout"
-                    >
-                        <i className="ri-logout-box-r-line align-middle me-1" />
-                        Logout
-                    </Link>
-                ) : null}
-            </ModalHeader>
-            <ModalBody className="pt-2 pb-4">
-                {packagesLoading ? (
-                    <div className="text-center text-muted py-5">
-                        <div className="spinner-border spinner-border-sm me-2" role="status">
-                            <span className="visually-hidden">Loading...</span>
-                        </div>
-                        Loading packages...
+                    <div className="patient-list-modal__header-actions">
+                        <Link
+                            to="/logout"
+                            className="btn btn-soft-danger btn-sm subscription-plan-logout-btn"
+                            title="Logout"
+                        >
+                            <i className="ri-logout-box-r-line align-middle me-1" />
+                            Logout
+                        </Link>
                     </div>
-                ) : packages.length === 0 ? (
-                    <div className="text-center text-muted py-5">No packages available</div>
                 ) : (
-                    <div className="subscription-plan-row">
-                        {packages.map((pkg, index) => {
-                            const theme = PLAN_CARD_THEMES[index % PLAN_CARD_THEMES.length];
-                            const planIcon = getPlanIcon(pkg, index);
-                            return (
-                                <div key={pkg.packageId} className="subscription-plan-card">
-                                    <div
-                                        className="subscription-plan-card__body text-white d-flex flex-column"
-                                        style={{ backgroundColor: theme.top }}
-                                    >
-                                        <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-                                            <h5 className="text-white fw-bold mb-0 flex-grow-1">{pkg.packageName}</h5>
-                                            <span className="subscription-plan-card__icon" aria-hidden="true">
-                                                <i className={planIcon} />
-                                            </span>
+                    <PatientListModalHeaderActions
+                        value={searchTerm}
+                        onChange={handleSearch}
+                    />
+                )}
+            </ModalHeader>
+            <ModalBody>
+                <div className="patient-list-modal__table-wrap subscription-plan-modal__content-wrap">
+                    {packagesLoading ? (
+                        <div className="text-center text-muted py-5">
+                            <div className="spinner-border spinner-border-sm me-2" role="status">
+                                <span className="visually-hidden">Loading...</span>
+                            </div>
+                            Loading packages...
+                        </div>
+                    ) : packages.length === 0 ? (
+                        <div className="patient-list-modal__empty">
+                            <span className="patient-list-modal__empty-icon" aria-hidden="true">
+                                <i className="ri-inbox-2-line" />
+                            </span>
+                            <span>No packages available</span>
+                        </div>
+                    ) : filteredPackages.length === 0 ? (
+                        <div className="patient-list-modal__empty">
+                            <span className="patient-list-modal__empty-icon" aria-hidden="true">
+                                <i className="ri-inbox-2-line" />
+                            </span>
+                            <span>No plans found matching your search</span>
+                        </div>
+                    ) : (
+                        <div className="subscription-plan-row">
+                            {filteredPackages.map((pkg, index) => {
+                                const theme = PLAN_CARD_THEMES[index % PLAN_CARD_THEMES.length];
+                                const planIcon = getPlanIcon(pkg, index);
+                                return (
+                                    <div key={pkg.packageId} className="subscription-plan-card">
+                                        <div
+                                            className="subscription-plan-card__body text-white d-flex flex-column"
+                                            style={{ backgroundColor: theme.top }}
+                                        >
+                                            <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                                <h5 className="text-white fw-bold mb-0 flex-grow-1">{pkg.packageName}</h5>
+                                                <span className="subscription-plan-card__icon" aria-hidden="true">
+                                                    <i className={planIcon} />
+                                                </span>
+                                            </div>
+                                            <p className="mb-2 fs-4 fw-semibold">{formatPlanAmount(pkg.amount)}</p>
+                                            <p className="mb-1 opacity-90 d-flex align-items-center gap-1">
+                                                <i className="ri-briefcase-line" /> {pkg.caseCount} Cases
+                                            </p>
+                                            <p className="mb-0 opacity-90 d-flex align-items-center gap-1">
+                                                <i className="ri-time-line" /> {pkg.validityInDays} Days
+                                            </p>
                                         </div>
-                                        <p className="mb-2 fs-4 fw-semibold">{formatPlanAmount(pkg.amount)}</p>
-                                        <p className="mb-1 opacity-90 d-flex align-items-center gap-1">
-                                            <i className="ri-briefcase-line" /> {pkg.caseCount} Cases
-                                        </p>
-                                        <p className="mb-0 opacity-90 d-flex align-items-center gap-1">
-                                            <i className="ri-time-line" /> {pkg.validityInDays} Days
-                                        </p>
+                                        <button
+                                            type="button"
+                                            className="subscription-plan-card__footer btn text-white w-100"
+                                            style={{ backgroundColor: theme.bottom }}
+                                            onClick={() => handleOnBuyClick(pkg)}
+                                        >
+                                            Buy Now {'>'}
+                                        </button>
                                     </div>
-                                    <button
-                                        type="button"
-                                        className="subscription-plan-card__footer btn text-white w-100"
-                                        style={{ backgroundColor: theme.bottom }}
-                                        onClick={() => handleOnBuyClick(pkg)}
-                                    >
-                                        Buy Now {'>'}
-                                    </button>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+                <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                    <div className="text-muted patient-list-modal__footer-text">
+                        {packagesLoading ? (
+                            'Loading...'
+                        ) : (
+                            `Showing ${filteredPackages.length} of ${packages.length} Plans ${searchTerm ? `(filtered from ${packages.length} total)` : `(from ${packages.length} total)`}`
+                        )}
                     </div>
-                )}
-                {!packagesLoading && packages.length > 0 && (
-                    <p className="text-muted small mb-0 mt-2">
-                        {packages.length} plan{packages.length !== 1 ? 's' : ''} available
-                    </p>
-                )}
+                </div>
             </ModalBody>
-            {!isNonCloseable ? (
-                <ModalFooter className="justify-content-end">
-                    <Button color="light" onClick={toggle}>
-                        Close
-                    </Button>
-                </ModalFooter>
-            ) : null}
         </Modal>
     );
 };
@@ -1479,6 +1720,17 @@ const Widgets = () => {
 
     // New Patient modal
     const [modal_newPatient, setModalNewPatient] = useState(false);
+    const patientResetFormRef = useRef(null);
+
+    const closeNewPatientModal = () => {
+        tog_newPatient();
+    };
+
+    const handleNewPatientModalClosed = () => {
+        clearCreateNewButtonFocus();
+        patientResetFormRef.current?.();
+    };
+
     function tog_newPatient() {
         setModalNewPatient(!modal_newPatient);
     }
@@ -1496,6 +1748,16 @@ const Widgets = () => {
     const [scheduleModalDate, setScheduleModalDate] = useState(null);
     const [requireDailyScheduleSave, setRequireDailyScheduleSave] = useState(false);
     const appointmentSlotsRequestRef = useRef(0);
+    const appointmentResetFormRef = useRef(null);
+
+    const closeNewAppointmentModal = () => {
+        tog_newAppointment();
+    };
+
+    const handleNewAppointmentModalClosed = () => {
+        clearCreateNewButtonFocus();
+        appointmentResetFormRef.current?.();
+    };
 
     const openNewAppointmentModal = (patientOption = null) => {
         setPrefilledAppointmentPatient(patientOption);
@@ -2144,7 +2406,7 @@ const Widgets = () => {
     return (
 
         <>
-            <div className="row mb-2 doctor-dashboard-kpi-row">
+            <div className="row doctor-dashboard-kpi-row">
                 <div className="col-lg-2" onClick={() => tog_waiting()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_waiting(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
@@ -2394,16 +2656,16 @@ const Widgets = () => {
             />
 
             <Modal size="xl" id="myModal" isOpen={modal_walkin} toggle={() => { tog_walkin(); }} className="patient-list-modal">
-                <ModalHeader id="myModalLabel" className="patient-list-modal__header">
+                <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_walkin(); }}>
                     <PatientListModalTitle
                         icon="ri-walk-line"
-                        title="Walkin Patient List"
-                        subtitle="Patients who arrived without a prior booking"
+                        title="Walk-in Patients"
+                        variant="simple"
+                        iconColor="#25a0e2"
                     />
                     <PatientListModalHeaderActions
                         value={walkinSearch}
                         onChange={(e) => { setWalkinSearch(e.target.value); setWalkinPage(1); }}
-                        onClose={() => { tog_walkin(); }}
                     />
                 </ModalHeader>
                 <ModalBody>
@@ -2457,7 +2719,7 @@ const Widgets = () => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="d-flex align-items-center justify-content-between mt-3 patient-list-modal__footer">
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                         <div className="text-muted patient-list-modal__footer-text">
                             {appointmentListLoading ? (
                                 'Loading...'
@@ -2488,48 +2750,55 @@ const Widgets = () => {
             </Modal>
 
             {/* New Patient Modal */}
-            <Modal size="xl" isOpen={modal_newPatient} toggle={() => { tog_newPatient(); }} onClosed={clearCreateNewButtonFocus} className="new-patient-modal">
-                <ModalHeader toggle={() => { tog_newPatient(); }}>
-                    <span className="new-patient-modal__title">
-                        <span className="new-patient-modal__title-icon" aria-hidden="true">
-                            <i className="ri-user-add-line" />
-                        </span>
-                        <span>
-                            <span className="new-patient-modal__title-text">New Patient</span>
-                            <span className="new-patient-modal__title-sub">Add patient details to create a record</span>
-                        </span>
-                    </span>
+            <Modal
+                size="xl"
+                isOpen={modal_newPatient}
+                toggle={closeNewPatientModal}
+                onClosed={handleNewPatientModalClosed}
+                className="patient-list-modal new-patient-modal"
+            >
+                <ModalHeader className="patient-list-modal__header" toggle={closeNewPatientModal}>
+                    <PatientListModalTitle
+                        icon="ri-user-add-line"
+                        title="New Patient"
+                        variant="simple"
+                        iconColor="#25a0e2"
+                    />
                 </ModalHeader>
-                <ModalBody>
-                    <div className="p-2">
-                        {patientSuccess ? (
-                            <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                                <i className="ri-notification-off-line label-icon"></i>
-                                {typeof patientSuccess === 'string' ? patientSuccess : 'Patient created successfully!'}
-                            </UncontrolledAlert>
-                        ) : null}
-                        {patientError ? (
-                            <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                                <i className="ri-error-warning-line label-icon"></i>
-                                {patientError}
-                            </UncontrolledAlert>
-                        ) : null}
-                    </div>
-                    <Formik
-                        initialValues={patientInitialValues}
-                        validationSchema={patientValidationSchema}
-                        onSubmit={(values, formikHelpers) => {
-                            console.log("Patient Formik onSubmit triggered!");
-                            console.log("Values:", values);
-                            console.log("FormikHelpers:", formikHelpers);
-                            return handlePatientSubmit(values, formikHelpers);
-                        }}
-                        validateOnChange={true}
-                        validateOnBlur={true}
-                        enableReinitialize={true}
-                    >
-                        {({ values, errors, touched, handleChange, handleBlur, setFieldValue, setFieldTouched, isSubmitting, resetForm, setSubmitting, submitForm }) => (
-                            <Form>
+                <Formik
+                    initialValues={patientInitialValues}
+                    validationSchema={patientValidationSchema}
+                    onSubmit={(values, formikHelpers) => {
+                        console.log("Patient Formik onSubmit triggered!");
+                        console.log("Values:", values);
+                        console.log("FormikHelpers:", formikHelpers);
+                        return handlePatientSubmit(values, formikHelpers);
+                    }}
+                    validateOnChange={true}
+                    validateOnBlur={true}
+                    enableReinitialize={true}
+                >
+                    {({ values, errors, touched, handleChange, handleBlur, setFieldValue, setFieldTouched, isSubmitting, resetForm, setSubmitting, submitForm }) => {
+                        patientResetFormRef.current = resetForm;
+
+                        return (
+                        <>
+                            <ModalBody>
+                                <div className="p-2">
+                                    {patientSuccess ? (
+                                        <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
+                                            <i className="ri-notification-off-line label-icon"></i>
+                                            {typeof patientSuccess === 'string' ? patientSuccess : 'Patient created successfully!'}
+                                        </UncontrolledAlert>
+                                    ) : null}
+                                    {patientError ? (
+                                        <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
+                                            <i className="ri-error-warning-line label-icon"></i>
+                                            {patientError}
+                                        </UncontrolledAlert>
+                                    ) : null}
+                                </div>
+                                <Form>
                                 <div className="row g-3 new-patient-modal__fields">
                                     <div className="col-md-4">
                                         <Label className="form-label new-patient-modal__label">
@@ -2806,64 +3075,40 @@ const Widgets = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <ModalFooter>
-                                    <Button
-                                        type="button"
-                                        color="danger"
-                                        className="new-patient-modal__btn-cancel"
-                                        onClick={() => {
-                                            resetForm();
-                                            tog_newPatient();
-                                        }}
-                                    >
-                                        <i className="ri-close-line me-1"></i>Cancel
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        color="success"
-                                        className="new-patient-modal__btn-save"
-                                        disabled={isSubmitting}
-                                        onClick={() => {
-                                            console.log("Patient Save button clicked!");
-                                            console.log("Current values:", values);
-                                            console.log("Current errors:", errors);
-                                            console.log("isSubmitting:", isSubmitting);
-
-                                            // Use Formik's built-in submitForm method
-                                            // This will trigger validation and onSubmit if validation passes
-                                            submitForm();
-                                        }}
-                                    >
-                                        {isSubmitting ? (
-                                            <>
-                                                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <i className="ri-save-3-line me-1"></i>Save
-                                            </>
-                                        )}
-                                    </Button>
-                                </ModalFooter>
-                            </Form>
-                        )}
-                    </Formik>
-                </ModalBody>
+                                </Form>
+                            </ModalBody>
+                            <ModalFooter className="justify-content-end">
+                                <ModalActionButton
+                                    action="save"
+                                    disabled={isSubmitting}
+                                    loading={isSubmitting}
+                                    loadingLabel="Saving..."
+                                    onClick={() => {
+                                        submitForm();
+                                    }}
+                                />
+                            </ModalFooter>
+                        </>
+                        );
+                    }}
+                </Formik>
             </Modal>
 
             {/* New Appointment Modal */}
-            <Modal size="xl" isOpen={modal_newAppointment} toggle={() => { tog_newAppointment(); }} onClosed={clearCreateNewButtonFocus} className="new-appointment-modal">
-                <ModalHeader toggle={() => { tog_newAppointment(); }}>
-                    <span className="new-appointment-modal__title">
-                        <span className="new-appointment-modal__title-icon" aria-hidden="true">
-                            <i className="ri-calendar-check-line" />
-                        </span>
-                        <span>
-                            <span className="new-appointment-modal__title-text">New Appointment</span>
-                            <span className="new-appointment-modal__title-sub">Book a patient visit in a few steps</span>
-                        </span>
-                    </span>
+            <Modal
+                size="xl"
+                isOpen={modal_newAppointment}
+                toggle={closeNewAppointmentModal}
+                onClosed={handleNewAppointmentModalClosed}
+                className="patient-list-modal new-appointment-modal"
+            >
+                <ModalHeader className="patient-list-modal__header" toggle={closeNewAppointmentModal}>
+                    <PatientListModalTitle
+                        icon="ri-calendar-check-line"
+                        title="New Appointment"
+                        variant="simple"
+                        iconColor="#25a0e2"
+                    />
                 </ModalHeader>
                 <ModalBody>
                     <div className="p-2">
@@ -2892,7 +3137,10 @@ const Widgets = () => {
                         validateOnBlur={false}
                         enableReinitialize={true}
                     >
-                        {({ values, errors, touched, handleChange, handleBlur, setFieldValue, setFieldTouched, isSubmitting, resetForm, setSubmitting, submitForm }) => (
+                        {({ values, errors, touched, handleChange, handleBlur, setFieldValue, setFieldTouched, isSubmitting, resetForm, setSubmitting, submitForm }) => {
+                            appointmentResetFormRef.current = resetForm;
+
+                            return (
                             <Form>
                                 <div className="row g-3 new-appointment-form-fields">
                                     <div className="col-md-6">
@@ -3025,8 +3273,8 @@ const Widgets = () => {
                                                     </div>
                                                     <Button
                                                         type="button"
-                                                        color="primary"
                                                         size="sm"
+                                                        className="new-appointment-modal__setup-btn"
                                                         disabled={appointmentSlotsLoading}
                                                         onClick={() => openScheduleSetupModal(
                                                             values.doctor.value,
@@ -3059,37 +3307,24 @@ const Widgets = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <ModalFooter>
-                                    <Button
-                                        type="button"
-                                        color="danger"
-                                        className="new-appointment-modal__close-btn"
-                                        onClick={() => {
-                                            resetForm();
-                                            tog_newAppointment();
-                                        }}
-                                        disabled={isSubmitting}
-                                    >
-                                        <i className="ri-close-line me-1"></i>Close
-                                    </Button>
-                                </ModalFooter>
                             </Form>
-                        )}
+                            );
+                        }}
                     </Formik>
                 </ModalBody>
             </Modal>
 
             <Modal size="xl" id="myModal" isOpen={modal_notarrived} toggle={() => { tog_notarrived(); }} className="patient-list-modal">
-                <ModalHeader id="myModalLabel" className="patient-list-modal__header">
+                <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_notarrived(); }}>
                     <PatientListModalTitle
                         icon="ri-user-unfollow-line"
-                        title="Not Arrived Patient List"
-                        subtitle="Patients who have not arrived for their appointment"
+                        title="Not Arrived Patients"
+                        variant="simple"
+                        iconColor="#25a0e2"
                     />
                     <PatientListModalHeaderActions
                         value={notArrivedSearch}
                         onChange={(e) => { setNotArrivedSearch(e.target.value); setNotArrivedPage(1); }}
-                        onClose={() => { tog_notarrived(); }}
                     />
                 </ModalHeader>
                 <ModalBody>
@@ -3143,7 +3378,7 @@ const Widgets = () => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="d-flex align-items-center justify-content-between mt-3 patient-list-modal__footer">
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                         <div className="text-muted patient-list-modal__footer-text">
                             {appointmentListLoading ? (
                                 'Loading...'
@@ -3174,16 +3409,16 @@ const Widgets = () => {
             </Modal>
 
             <Modal size="xl" id="myModal" isOpen={modal_econsult} toggle={() => { tog_econsult(); }} className="patient-list-modal">
-                <ModalHeader id="myModalLabel" className="patient-list-modal__header">
+                <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_econsult(); }}>
                     <PatientListModalTitle
                         icon="ri-vidicon-line"
-                        title="E-Consult Patient List"
-                        subtitle="Patients booked for video or remote consultation"
+                        title="E-Consult Patients"
+                        variant="simple"
+                        iconColor="#25a0e2"
                     />
                     <PatientListModalHeaderActions
                         value={econsultSearch}
                         onChange={(e) => { setEconsultSearch(e.target.value); setEconsultPage(1); }}
-                        onClose={() => { tog_econsult(); }}
                     />
                 </ModalHeader>
                 <ModalBody>
@@ -3237,7 +3472,7 @@ const Widgets = () => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="d-flex align-items-center justify-content-between mt-3 patient-list-modal__footer">
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                         <div className="text-muted patient-list-modal__footer-text">
                             {appointmentListLoading ? (
                                 'Loading...'
@@ -3268,16 +3503,16 @@ const Widgets = () => {
             </Modal>
 
             <Modal size="xl" id="myModal" isOpen={modal_remaining} toggle={() => { tog_remaining(); }} className="patient-list-modal">
-                <ModalHeader id="myModalLabel" className="patient-list-modal__header">
+                <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_remaining(); }}>
                     <PatientListModalTitle
                         icon="ri-list-check-2"
-                        title="Remaining Patient List"
-                        subtitle="Patients still pending for today"
+                        title="Remaining Patients"
+                        variant="simple"
+                        iconColor="#25a0e2"
                     />
                     <PatientListModalHeaderActions
                         value={remainingSearch}
                         onChange={(e) => { setRemainingSearch(e.target.value); setRemainingPage(1); }}
-                        onClose={() => { tog_remaining(); }}
                     />
                 </ModalHeader>
                 <ModalBody>
@@ -3331,7 +3566,7 @@ const Widgets = () => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="d-flex align-items-center justify-content-between mt-3 patient-list-modal__footer">
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                         <div className="text-muted patient-list-modal__footer-text">
                             {appointmentListLoading ? (
                                 'Loading...'
@@ -3362,16 +3597,16 @@ const Widgets = () => {
             </Modal>
 
             <Modal size="xl" id="myModal" isOpen={modal_completed} toggle={() => { tog_completed(); }} className="patient-list-modal">
-                <ModalHeader id="myModalLabel" className="patient-list-modal__header">
+                <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_completed(); }}>
                     <PatientListModalTitle
                         icon="ri-checkbox-circle-line"
-                        title="Completed Patient List"
-                        subtitle="Patients who have completed their visit"
+                        title="Completed Patients"
+                        variant="simple"
+                        iconColor="#25a0e2"
                     />
                     <PatientListModalHeaderActions
                         value={completedSearch}
                         onChange={(e) => { setCompletedSearch(e.target.value); setCompletedPage(1); }}
-                        onClose={() => { tog_completed(); }}
                     />
                 </ModalHeader>
                 <ModalBody>
@@ -3425,7 +3660,7 @@ const Widgets = () => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="d-flex align-items-center justify-content-between mt-3 patient-list-modal__footer">
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                         <div className="text-muted patient-list-modal__footer-text">
                             {appointmentListLoading ? (
                                 'Loading...'

@@ -55,7 +55,9 @@ const BlogPage = () => {
                                                 </ul>
                                             )}
                                             <h5>
-                                                <Link to={landingPath(`blog/${blog.blogId}`)}>{blog.blogHead}</Link>
+                                                <Link to={landingPath(`blog/${blog.blogId}`)} className="text-body">
+                                                    {blog.blogHead}
+                                                </Link>
                                             </h5>
                                             <p className="text-muted fs-14 ff-secondary">
                                                 {blog.blogSubHead || blog.blogDescription || ""}

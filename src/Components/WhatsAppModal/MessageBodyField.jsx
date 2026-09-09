@@ -1,5 +1,6 @@
 import React from "react";
-import { Col, Label } from "reactstrap";
+import { Col } from "reactstrap";
+import WhatsAppFormLabel from "./WhatsAppFormLabel";
 import WhatsAppMessageEditor from "./WhatsAppMessageEditor";
 
 export default function MessageBodyField({
@@ -8,11 +9,12 @@ export default function MessageBodyField({
   onEditorReady,
   placeholder,
   label = "Message Body",
+  labelIcon = "ri-message-2-line",
   hint,
 }) {
   return (
     <Col md={12}>
-      <Label className="form-label">{label}</Label>
+      <WhatsAppFormLabel icon={labelIcon}>{label}</WhatsAppFormLabel>
       {hint ? <div className="text-muted small mb-1">{hint}</div> : null}
       <WhatsAppMessageEditor
         value={compose.messageBody || ""}

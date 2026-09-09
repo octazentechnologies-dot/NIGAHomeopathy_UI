@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, Input, Label, Row, Form, FormFeedback, Button, UncontrolledAlert } from 'reactstrap';
-import { Link } from 'react-router-dom';
-import { Spinner } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, Input, Label, Row, Form, FormFeedback, UncontrolledAlert } from 'reactstrap';
+import { Link, useLocation } from 'react-router-dom';
 import Select from "react-select";
-import makeAnimated from "react-select/animated";
 
 // Formik Validation
 import * as Yup from "yup";
@@ -24,7 +21,7 @@ import {
 } from "../../../../slices/thunks";
 
 import { setQuestionError, setQuestionSuccess } from '../../../../slices/admin/existancequestions/clinicalquestions/reducer';
-import { useLocation } from 'react-router-dom';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const EditClinicalQuestion = () => {
   const location = useLocation();
@@ -759,6 +756,15 @@ const EditClinicalQuestion = () => {
     };
   };
 
+  const existanceInvalid = Boolean(formik.touched.existance && formik.errors.existance);
+  const questionGroupInvalid = Boolean(formik.touched.questionGroup && formik.errors.questionGroup);
+  const subQuestionGroupInvalid = Boolean(formik.touched.subQuestionGroup && formik.errors.subQuestionGroup);
+  const sectionForBodyPartInvalid = Boolean(formik.touched.sectionForBodyPart && formik.errors.sectionForBodyPart);
+  const bodyPartInvalid = Boolean(formik.touched.bodyPart && formik.errors.bodyPart);
+  const sectionInvalid = Boolean(formik.touched.section && formik.errors.section);
+  const subSectionInvalid = Boolean(formik.touched.subSection && formik.errors.subSection);
+  const isLocation = formik.values?.subQuestionGroup?.label?.toLowerCase() === "location";
+
   document.title = "Edit Clinical Question";
   return (
     <React.Fragment>
@@ -766,127 +772,172 @@ const EditClinicalQuestion = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {questionSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {questionSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {questionError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {questionError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-                <Form onSubmit={formik.handleSubmit}>
-                  <CardHeader className="align-items-center d-flex">
-                    <h4 className="card-title mb-0 flex-grow-1">Edit Clinical Question</h4>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
+                <Form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    formik.handleSubmit();
+                    return false;
+                  }}
+                >
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">Edit Clinical Question</h5>
+                    </div>
                   </CardHeader>
 
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Existance Name</Label>
-                            <Select
-                              name="existance"
-                              value={formik.values.existance}
-                              onChange={(selectedOption) => formik.setFieldValue("existance", selectedOption)}
-                              options={SectionDDLOptions}
-                              onBlur={() => formik.setFieldTouched("existance", true)}
-                              className={formik.touched.existance && formik.errors.existance ? "is-invalid" : ""}
-                            />
-                            {formik.touched.existance && formik.errors.existance ? (
-                              <FormFeedback>{formik.errors.existance}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Question Group</Label>
-                            <Select
-                              name="questionGroup"
-                              value={formik.values.questionGroup}
-                              onChange={(selectedOption) => {
-                                formik.setFieldValue("questionGroup", selectedOption);
-                                dispatch(getSubQuestionGroupDll({ questionGroupId: selectedOption.value, questionSectionId: formik.values.existance.value }));
-                              }}
-                              options={QuestionGroupDDLOptions}
-                              onBlur={() => formik.setFieldTouched("questionGroup", true)}
-                              className={formik.touched.questionGroup && formik.errors.questionGroup ? "is-invalid" : ""}
-                            />
-                            {formik.touched.questionGroup && formik.errors.questionGroup ? (
-                              <FormFeedback>{formik.errors.questionGroup}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Sub Question Group</Label>
-                            <Select
-                              name="subQuestionGroup"
-                              value={formik.values.subQuestionGroup}
-                              onChange={(selectedOption) => {
-                                if (selectedOption.label === "location") {
-                                  setIsLocationSelected(true);
-                                } else {
-                                  setIsLocationSelected(false);
-                                }
-                                if (tableData.length > 0) {
-                                  dispatch(setQuestionError(`You already filled data in tabel for ${selectedSubQuestionGroup} sub question group.`));
-                                  setTimeout(() => {
-                                    dispatch(setQuestionError(null));
-                                  }, 2000);
-                                } else {
-                                  setSelectedSubQuestionGroup(selectedOption.label);
-                                  formik.setFieldValue("subQuestionGroup", selectedOption);
-                                }
-                              }}
-                              options={SubSectionDDLOptions}
-                              onBlur={() => formik.setFieldTouched("subQuestionGroup", true)}
-                              className={formik.touched.subQuestionGroup && formik.errors.subQuestionGroup ? "is-invalid" : ""}
-                            />
-                            {formik.touched.subQuestionGroup && formik.errors.subQuestionGroup ? (
-                              <FormFeedback>{formik.errors.subQuestionGroup}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
+                  <CardBody>
+                    {(questionSuccess || questionError) ? (
+                      <div className="admin-form-alerts">
+                        {questionSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {questionSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {questionError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {questionError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="existance" className="form-label">
+                            Existance Name <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="existance"
+                            inputId="existance"
+                            value={formik.values.existance}
+                            onChange={(selectedOption) => formik.setFieldValue("existance", selectedOption)}
+                            options={SectionDDLOptions}
+                            onBlur={() => formik.setFieldTouched("existance", true)}
+                            className={existanceInvalid ? "is-invalid" : ""}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: existanceInvalid })}
+                            placeholder="Select..."
+                          />
+                          {existanceInvalid ? (
+                            <div className="invalid-feedback d-block">
+                              {typeof formik.errors.existance === "string"
+                                ? formik.errors.existance
+                                : "Please Select Existance Name"}
+                            </div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="questionGroup" className="form-label">
+                            Question Group <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="questionGroup"
+                            inputId="questionGroup"
+                            value={formik.values.questionGroup}
+                            onChange={(selectedOption) => {
+                              formik.setFieldValue("questionGroup", selectedOption);
+                              dispatch(getSubQuestionGroupDll({ questionGroupId: selectedOption.value, questionSectionId: formik.values.existance.value }));
+                            }}
+                            options={QuestionGroupDDLOptions}
+                            onBlur={() => formik.setFieldTouched("questionGroup", true)}
+                            className={questionGroupInvalid ? "is-invalid" : ""}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: questionGroupInvalid })}
+                            placeholder="Select..."
+                          />
+                          {questionGroupInvalid ? (
+                            <div className="invalid-feedback d-block">
+                              {typeof formik.errors.questionGroup === "string"
+                                ? formik.errors.questionGroup
+                                : "Please Select Question Group"}
+                            </div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="subQuestionGroup" className="form-label">
+                            Sub Question Group <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="subQuestionGroup"
+                            inputId="subQuestionGroup"
+                            value={formik.values.subQuestionGroup}
+                            onChange={(selectedOption) => {
+                              if (selectedOption.label === "location") {
+                                setIsLocationSelected(true);
+                              } else {
+                                setIsLocationSelected(false);
+                              }
+                              if (tableData.length > 0) {
+                                dispatch(setQuestionError(`You already filled data in tabel for ${selectedSubQuestionGroup} sub question group.`));
+                                setTimeout(() => {
+                                  dispatch(setQuestionError(null));
+                                }, 2000);
+                              } else {
+                                setSelectedSubQuestionGroup(selectedOption.label);
+                                formik.setFieldValue("subQuestionGroup", selectedOption);
+                              }
+                            }}
+                            options={SubSectionDDLOptions}
+                            onBlur={() => formik.setFieldTouched("subQuestionGroup", true)}
+                            className={subQuestionGroupInvalid ? "is-invalid" : ""}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: subQuestionGroupInvalid })}
+                            placeholder="Select..."
+                          />
+                          {subQuestionGroupInvalid ? (
+                            <div className="invalid-feedback d-block">
+                              {typeof formik.errors.subQuestionGroup === "string"
+                                ? formik.errors.subQuestionGroup
+                                : "Please Select Sub Question Group"}
+                            </div>
+                          ) : null}
+                        </div>
+                      </Col>
 
                       {console.log("Sub question group value:", formik.values?.subQuestionGroup?.label)}
-                      {formik.values?.subQuestionGroup?.label?.toLowerCase() !== "location" ? (
-                        <Row className='mt-3'>
-                          <Col xxl={12} md={12}>
-                            <div>
-                              <Label htmlFor="placeholderInput" className="form-label">Question</Label>
-                              <Input
-                                name='question'
-                                type="input"
-                                value={formik.values.question}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                className="form-control"
-                                id="placeholderInput"
-                                placeholder="Enter Question"
-                                invalid={formik.touched.question && formik.errors.question ? true : false}
-                              />
-                              {formik.touched.question && formik.errors.question ? (
-                                <FormFeedback>{formik.errors.question}</FormFeedback>
-                              ) : null}
-                            </div>
-                          </Col>
-                        </Row>
+                      {!isLocation ? (
+                        <Col xxl={12} md={12}>
+                          <div>
+                            <Label htmlFor="question" className="form-label">
+                              Question <span className="required">*</span>
+                            </Label>
+                            <Input
+                              name="question"
+                              type="input"
+                              value={formik.values.question}
+                              onChange={formik.handleChange}
+                              onBlur={formik.handleBlur}
+                              className="form-control"
+                              id="question"
+                              placeholder="Enter Question"
+                              invalid={Boolean(formik.touched.question && formik.errors.question)}
+                            />
+                            {formik.touched.question && formik.errors.question ? (
+                              <FormFeedback>{formik.errors.question}</FormFeedback>
+                            ) : null}
+                          </div>
+                        </Col>
                       ) : (
-                        <Row className='mt-3'>
+                        <>
                           <Col xxl={4} md={4}>
                             <div>
-                              <Label htmlFor="placeholderInput" className="form-label">Section</Label>
+                              <Label htmlFor="sectionForBodyPart" className="form-label">
+                                Section <span className="required">*</span>
+                              </Label>
                               <Select
                                 name="sectionForBodyPart"
+                                inputId="sectionForBodyPart"
                                 value={formik.values.sectionForBodyPart}
                                 onChange={(selectedOption) => {
                                   formik.setFieldValue("sectionForBodyPart", selectedOption);
@@ -894,89 +945,125 @@ const EditClinicalQuestion = () => {
                                 }}
                                 options={SectionListOptions}
                                 onBlur={() => formik.setFieldTouched("sectionForBodyPart", true)}
-                                className={formik.touched.sectionForBodyPart && formik.errors.sectionForBodyPart ? "is-invalid" : ""}
+                                className={sectionForBodyPartInvalid ? "is-invalid" : ""}
+                                classNamePrefix="admin-form-select"
+                                theme={neutralSelectTheme}
+                                styles={getAdminFormSelectStyles({ invalid: sectionForBodyPartInvalid })}
+                                placeholder="Select..."
                               />
-                              {formik.touched.sectionForBodyPart && formik.errors.sectionForBodyPart ? (
-                                <FormFeedback>{formik.errors.sectionForBodyPart}</FormFeedback>
+                              {sectionForBodyPartInvalid ? (
+                                <div className="invalid-feedback d-block">
+                                  {typeof formik.errors.sectionForBodyPart === "string"
+                                    ? formik.errors.sectionForBodyPart
+                                    : "Please Select Section"}
+                                </div>
                               ) : null}
                             </div>
                           </Col>
                           <Col xxl={4} md={4}>
                             <div>
-                              <Label htmlFor="placeholderInput" className="form-label">Body Part Name</Label>
+                              <Label htmlFor="bodyPart" className="form-label">
+                                Body Part Name <span className="required">*</span>
+                              </Label>
                               <Select
                                 name="bodyPart"
+                                inputId="bodyPart"
                                 value={formik.values.bodyPart}
                                 onChange={(selectedOption) => formik.setFieldValue("bodyPart", selectedOption)}
                                 options={BodyPartDDLOptions}
                                 onBlur={() => formik.setFieldTouched("bodyPart", true)}
-                                className={formik.touched.bodyPart && formik.errors.bodyPart ? "is-invalid" : ""}
+                                className={bodyPartInvalid ? "is-invalid" : ""}
+                                classNamePrefix="admin-form-select"
+                                theme={neutralSelectTheme}
+                                styles={getAdminFormSelectStyles({ invalid: bodyPartInvalid })}
+                                placeholder="Select..."
                               />
-                              {formik.touched.bodyPart && formik.errors.bodyPart ? (
-                                <FormFeedback>{formik.errors.bodyPart}</FormFeedback>
+                              {bodyPartInvalid ? (
+                                <div className="invalid-feedback d-block">
+                                  {typeof formik.errors.bodyPart === "string"
+                                    ? formik.errors.bodyPart
+                                    : "Please Select Body Part"}
+                                </div>
                               ) : null}
                             </div>
                           </Col>
-                        </Row>
+                        </>
                       )}
 
-                      <Row className='mt-3'>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Section</Label>
-                            <Select
-                              name="section"
-                              value={formik.values.section}
-                              onChange={(selectedOption) => {
-                                formik.setFieldValue("section", selectedOption);
-                                dispatch(getSubSectionForClinicalQuestion(selectedOption.value))
-                              }}
-                              options={SectionListOptions}
-                              onBlur={() => formik.setFieldTouched("section", true)}
-                              className={formik.touched.section && formik.errors.section ? "is-invalid" : ""}
-                            />
-                            {formik.touched.section && formik.errors.section ? (
-                              <FormFeedback>{formik.errors.section}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label" data-choices data-choices-limit="Required Limit" data-choices-removeItem>Sub Section</Label>
-                            <Select
-                              name="subSection"
-                              value={formik.values.subSection}
-                              isMulti={true}
-                              isClearable={true}
-                              closeMenuOnSelect={false}
-                              isLoading={formik.values.section ? SubSectionListOptions.length > 0 ? false : true : false}
-                              onChange={(selectedOptions) => formik.setFieldValue("subSection", selectedOptions)}
-                              options={SubSectionListOptions}
-                              onBlur={() => formik.setFieldTouched("subSection", true)}
-                              className={formik.touched.subSection && formik.errors.subSection ? "is-invalid" : ""}
-                            />
-                            {formik.touched.subSection && formik.errors.subSection ? (
-                              <FormFeedback>{formik.errors.subSection}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div className="d-inline-flex gap-2 mt-4">
-                            <button
-                              type="button"
-                              onClick={addSelectedSubSectionQuestions}
-                              disabled={formik.values?.subSection?.length === 0}
-                              className="btn btn-soft-info btn-sm mt-2"
-                            >
-                              <i className="ri-add-line align-middle"></i> Add Sub Section
-                            </button>
-                          </div>
-                        </Col>
-                      </Row>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="section" className="form-label">
+                            Section <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="section"
+                            inputId="section"
+                            value={formik.values.section}
+                            onChange={(selectedOption) => {
+                              formik.setFieldValue("section", selectedOption);
+                              dispatch(getSubSectionForClinicalQuestion(selectedOption.value))
+                            }}
+                            options={SectionListOptions}
+                            onBlur={() => formik.setFieldTouched("section", true)}
+                            className={sectionInvalid ? "is-invalid" : ""}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: sectionInvalid })}
+                            placeholder="Select..."
+                          />
+                          {sectionInvalid ? (
+                            <div className="invalid-feedback d-block">
+                              {typeof formik.errors.section === "string"
+                                ? formik.errors.section
+                                : "Please Select Section"}
+                            </div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div>
+                          <Label htmlFor="subSection" className="form-label">
+                            Sub Section <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="subSection"
+                            inputId="subSection"
+                            value={formik.values.subSection}
+                            isMulti={true}
+                            isClearable={true}
+                            closeMenuOnSelect={false}
+                            isLoading={formik.values.section ? SubSectionListOptions.length > 0 ? false : true : false}
+                            onChange={(selectedOptions) => formik.setFieldValue("subSection", selectedOptions)}
+                            options={SubSectionListOptions}
+                            onBlur={() => formik.setFieldTouched("subSection", true)}
+                            className={subSectionInvalid ? "is-invalid" : ""}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: subSectionInvalid, isMulti: true })}
+                            placeholder="Select..."
+                          />
+                          {subSectionInvalid ? (
+                            <div className="invalid-feedback d-block">{formik.errors.subSection}</div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={4} md={4}>
+                        <div className="d-inline-flex gap-2 mt-4">
+                          <button
+                            type="button"
+                            onClick={addSelectedSubSectionQuestions}
+                            disabled={formik.values?.subSection?.length === 0}
+                            className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                          >
+                            <i className="ri-add-line align-middle me-1" aria-hidden="true" />
+                            Add Sub Section
+                          </button>
+                        </div>
+                      </Col>
 
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <table className="table table-responsive table-bordered table-nowrap">
+                      <Col xxl={12} md={12}>
+                        <div className="table-responsive patient-list-modal__table-wrap">
+                          <table className="table mb-0 align-middle patient-list-modal__table table-bordered table-nowrap">
                             <thead>
                               <tr>
                                 <th scope="col">Question</th>
@@ -995,10 +1082,10 @@ const EditClinicalQuestion = () => {
                                           <td rowSpan={row.subSections.length}>{formik.values.subQuestionGroup?.label?.toLowerCase() !== "location" ? row.question : row.bodyPartName}</td>
                                         ) : null}
                                         {subIndex === 0 ? (
-                                          <td rowSpan={row.subSections.length} className='text-center'>
+                                          <td rowSpan={row.subSections.length} className="text-center">
                                             <button
                                               type="button"
-                                              className="btn btn-sm btn-primary"
+                                              className="btn btn-sm btn-soft-success edit-item-btn"
                                               onClick={async () => {
                                                 console.log('Edit item:', row);
                                                 await handleEditItem(row);
@@ -1010,7 +1097,7 @@ const EditClinicalQuestion = () => {
                                           </td>
                                         ) : null}
                                         <td>{subSection}</td>
-                                        <td className='text-center'>
+                                        <td className="text-center">
                                           <div className="remove">
                                             <button
                                               type="button"
@@ -1032,30 +1119,26 @@ const EditClinicalQuestion = () => {
                               }
                             </tbody>
                           </table>
-                        </Col>
-                      </Row>
-                    </div>
-                  </CardBody>
-
-                  <CardFooter className="gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
-                        </div>
-                      </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listclinincalquestion">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button color="success" className="btn-label" type="submit">
-                            <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Update
-                          </Button>
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listclinicalquestion" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          Update
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

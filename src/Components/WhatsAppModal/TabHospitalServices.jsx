@@ -1,7 +1,7 @@
 import React from "react";
-import { Col, Input, Label, Row } from "reactstrap";
+import { Col, Input, Row } from "reactstrap";
 import MessageBodyField from "./MessageBodyField";
-
+import WhatsAppFormLabel from "./WhatsAppFormLabel";
 export default function TabHospitalServices({
   compose,
   onChange,
@@ -10,8 +10,7 @@ export default function TabHospitalServices({
   isMarathi = false,
 }) {
   return (
-    <div>
-      <Row className="g-3">
+    <Row className="g-3">
         {/* Template Name — disabled for now
         <Col md={6}>
           <Label className="form-label">Template Name</Label>
@@ -28,7 +27,7 @@ export default function TabHospitalServices({
           onChange={onChange}
           onEditorReady={onEditorReady}
           label="Message for {{Message}}"
-          hint={
+          labelIcon="ri-message-3-line"          hint={
             isMarathi
               ? "मराठी भाषेत फक्त अतिरिक्त संदेश लिहा — संपूर्ण पत्र नाही (डुप्लिकेट टाळण्यासाठी)."
               : "Enter only the extra text for the template — not the full letter (avoids duplicate content)."
@@ -40,13 +39,11 @@ export default function TabHospitalServices({
           }
         />
         <Col md={12}>
-          <Label className="form-label">Attach PDF/Image (optional)</Label>
-          <Input
+          <WhatsAppFormLabel icon="ri-file-upload-line">Attach PDF/Image (optional)</WhatsAppFormLabel>          <Input
             type="file"
             onChange={(e) => onChange({ attachment: e.target.files?.[0] || null })}
           />
         </Col>
-      </Row>
-    </div>
+    </Row>
   );
 }

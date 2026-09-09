@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
+import ModalActionButton from './ModalActionButton';
+import { Input, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
 import Swal from 'sweetalert2';
+import WhatsAppFormLabel from '../WhatsAppModal/WhatsAppFormLabel';
+import '../WhatsAppModal/WhatsAppModal.css';
 import {
   APPOINTMENT_SLOT_INTERVALS,
   CUSTOM_INTERVAL_VALUE,
@@ -139,18 +142,23 @@ const DailyScheduleSetupModal = ({
       backdrop={requireSave ? 'static' : true}
       keyboard={!requireSave}
       centered
-      className="daily-schedule-setup-modal"
+      className="whatsapp-modal daily-schedule-setup-modal"
     >
       <ModalHeader toggle={requireSave ? undefined : onClose}>
-        Set Appointment Slots
+        <div className="whatsapp-modal__header">
+          <div className="whatsapp-modal__title">
+            <i className="ri-calendar-check-line" style={{ color: '#25a0e2', fontSize: 20 }} />
+            Set Appointment Slots
+          </div>
+        </div>
       </ModalHeader>
-      <ModalBody>
+      <ModalBody className="whatsapp-modal__body">
         <div className="daily-schedule-setup-form">
-          <p className="text-muted mb-3">
+          <p className="whatsapp-modal__subtle mb-3">
             Choose the slot interval and working hours for this day. Once saved, the schedule is locked for the day.
           </p>
           <div className="mb-3">
-            <Label className="form-label">Slot interval (minutes)</Label>
+            <WhatsAppFormLabel icon="ri-timer-line">Slot interval (minutes)</WhatsAppFormLabel>
             <Input
               type="select"
               value={intervalSelection}
@@ -164,7 +172,7 @@ const DailyScheduleSetupModal = ({
           </div>
           {isCustomInterval && (
             <div className="mb-3">
-              <Label className="form-label">Custom interval (minutes)</Label>
+              <WhatsAppFormLabel icon="ri-edit-line">Custom interval (minutes)</WhatsAppFormLabel>
               <Input
                 type="number"
                 min={1}
@@ -174,14 +182,14 @@ const DailyScheduleSetupModal = ({
                 value={customIntervalMinutes}
                 onChange={(event) => setCustomIntervalMinutes(event.target.value.replace(/\D/g, '').slice(0, 3))}
               />
-              <div className="text-muted mt-1" style={{ fontSize: '0.875rem' }}>
+              <div className="whatsapp-modal__subtle mt-1">
                 Enter any whole number from 1 to 180 minutes.
               </div>
             </div>
           )}
           <div className="row g-3">
             <div className="col-md-6">
-              <Label className="form-label">Work start</Label>
+              <WhatsAppFormLabel icon="ri-time-line">Work start</WhatsAppFormLabel>
               <Input
                 type="time"
                 value={workStartTime}
@@ -189,7 +197,7 @@ const DailyScheduleSetupModal = ({
               />
             </div>
             <div className="col-md-6">
-              <Label className="form-label">Work end</Label>
+              <WhatsAppFormLabel icon="ri-time-line">Work end</WhatsAppFormLabel>
               <Input
                 type="time"
                 value={workEndTime}
@@ -199,15 +207,19 @@ const DailyScheduleSetupModal = ({
           </div>
         </div>
       </ModalBody>
-      <ModalFooter>
+      <ModalFooter className="whatsapp-modal__footer justify-content-end">
         {!requireSave && (
-          <Button color="light" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
+          <ModalActionButton action="cancel" onClick={onClose} disabled={saving} />
         )}
-        <Button color="success" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Schedule'}
-        </Button>
+        <ModalActionButton
+          action="save"
+          onClick={handleSave}
+          disabled={saving}
+          loading={saving}
+          loadingLabel="Saving..."
+        >
+          Save Schedule
+        </ModalActionButton>
       </ModalFooter>
     </Modal>
   );

@@ -1,21 +1,17 @@
 import React, { useEffect, useMemo } from 'react';
-import { Card, CardHeader, CardBody, CardFooter, Col, Container, UncontrolledAlert, Input, Label, Row, Button, Form, FormFeedback } from 'reactstrap';
+import { Card, CardHeader, CardBody, CardFooter, Col, Container, UncontrolledAlert, Input, Label, Row, Form, FormFeedback } from 'reactstrap';
 import { Link, useLocation } from 'react-router-dom';
-// Formik Validation
-import * as Yup from "yup";
-import { useFormik } from "formik";
-import Select from "react-select";
-
-//redux
-import { useSelector, useDispatch } from "react-redux";
+import * as Yup from 'yup';
+import { useFormik } from 'formik';
+import Select from 'react-select';
+import { useSelector, useDispatch } from 'react-redux';
 import { setSubQuestionGroupError, setSubQuestionGroupSuccess } from '../../../../slices/admin/existancequestions/subquestiongroup/reducer';
-import { createUpdateSubQuestionGroup, getQuestionGroupsForSubQuestionGroup, getSectionsForSubQuestionGroup } from "../../../../slices/admin/existancequestions/subquestiongroup/thunk";
+import { createUpdateSubQuestionGroup, getQuestionGroupsForSubQuestionGroup, getSectionsForSubQuestionGroup } from '../../../../slices/admin/existancequestions/subquestiongroup/thunk';
+import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const EditSubQuestionGroup = () => {
   const location = useLocation();
   const dispatch = useDispatch();
-
-  // Redux state
   const { subQuestionGroupSuccess, subQuestionGroupError, questionGroups, sections } = useSelector((state) => state?.SubQuestionGroup);
   const selectedSubQuestionGroup = location.state?.selectedSubQuestionGroup || {};
 
@@ -55,30 +51,30 @@ const EditSubQuestionGroup = () => {
       questionGroup: selectedSubQuestionGroup.questionGroupId
         ? {
             value: selectedSubQuestionGroup.questionGroupId,
-            label: selectedSubQuestionGroup.questionGroupName
+            label: selectedSubQuestionGroup.questionGroupName,
           }
         : null,
       sections: initialSections,
-      description: selectedSubQuestionGroup.description || ''
+      description: selectedSubQuestionGroup.description || '',
     },
     validationSchema: Yup.object({
-      subQuestionGroupName: Yup.string().required("Please Enter Sub Question Group Name"),
+      subQuestionGroupName: Yup.string().required('Please Enter Sub Question Group Name'),
       questionGroup: Yup.object().shape({
-        value: Yup.string().required("Please Select Question Group"),
-      }).nullable().required("Please Select Question Group"),
-      sections: Yup.array().min(1, "Please Select at least one Section").required("Please Select Section"),
+        value: Yup.string().required('Please Select Question Group'),
+      }).nullable().required('Please Select Question Group'),
+      sections: Yup.array().min(1, 'Please Select at least one Section').required('Please Select Section'),
     }),
     onSubmit: (values) => {
       dispatch(createUpdateSubQuestionGroup({
-        "questionSubgroupId": selectedSubQuestionGroup.questionSubgroupId,
-        "questionSubGroupName": values.subQuestionGroupName,
-        "questionGroupId": values.questionGroup.value,
-        "questionGroupName": values.questionGroup.label,
-        "description": values.description,
-        "sectionIds": (values.sections || []).map((s) => s.value),
-        "deleteStatus": false
+        questionSubgroupId: selectedSubQuestionGroup.questionSubgroupId,
+        questionSubGroupName: values.subQuestionGroupName,
+        questionGroupId: values.questionGroup.value,
+        questionGroupName: values.questionGroup.label,
+        description: values.description,
+        sectionIds: (values.sections || []).map((s) => s.value),
+        deleteStatus: false,
       }));
-    }
+    },
   });
 
   useEffect(() => {
@@ -91,186 +87,166 @@ const EditSubQuestionGroup = () => {
       setTimeout(() => {
         dispatch(setSubQuestionGroupSuccess(null));
       }, 2000);
-      if (subQuestionGroupError) {
-        setTimeout(() => {
-          dispatch(setSubQuestionGroupError(null));
-        }, 2000);
-      }
+    }
+    if (subQuestionGroupError) {
+      setTimeout(() => {
+        dispatch(setSubQuestionGroupError(null));
+      }, 2000);
     }
   }, [subQuestionGroupSuccess, subQuestionGroupError]);
 
-  document.title = "Edit Sub Question Group";
+  const questionGroupInvalid = Boolean(formik.touched.questionGroup && formik.errors.questionGroup);
+  const sectionsInvalid = Boolean(formik.touched.sections && formik.errors.sections);
+
+  document.title = 'Edit Sub Question Group';
+
   return (
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
           <Row>
             <Col lg={12}>
-              <Card>
-                <div className="p-2">
-                  {subQuestionGroupSuccess ? (
-                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
-                      <i className="ri-notification-off-line label-icon"></i>
-                      {subQuestionGroupSuccess}
-                    </UncontrolledAlert>
-                  ) : null}
-                  {subQuestionGroupError ? (
-                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                      <i className="ri-error-warning-line label-icon"></i>
-                      {subQuestionGroupError}
-                    </UncontrolledAlert>
-                  ) : null}
-                </div>
-
-                <Form onSubmit={(e) => {
-                  e.preventDefault();
-                  formik.handleSubmit();
-                  return false;
-                }}>
-                  <CardHeader className="align-items-center d-flex">
-                    <h4 className="card-title mb-0 flex-grow-1">Edit Sub Question Group</h4>
+              <Card className="patient-list-modal admin-existance-list admin-form-card">
+                <Form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    formik.handleSubmit();
+                    return false;
+                  }}
+                >
+                  <CardHeader className="border-0">
+                    <div className="admin-form-toolbar">
+                      <h5 className="admin-form-title">Edit Sub Question Group</h5>
+                    </div>
                   </CardHeader>
 
-                  <CardBody className="card-body">
-                    <div className="live-preview">
-                      <Row className="gy-4">
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Question Group <span className="text-danger">*</span></Label>
-                            <Select
-                              name="questionGroup"
-                              value={formik.values.questionGroup}
-                              onChange={(selectedOption) => {
-                                formik.setFieldValue("questionGroup", selectedOption);
-                              }}
-                              options={QuestionGroupDDLOptions}
-                              onBlur={() => formik.setFieldTouched("questionGroup", true)}
-                              className={formik.touched.questionGroup && formik.errors.questionGroup ? "is-invalid" : ""}
-                              styles={{
-                                control: (base) => ({
-                                  ...base,
-                                  borderColor: formik.touched.questionGroup && formik.errors.questionGroup ? "red" : base.borderColor,
-                                  "&:hover": {
-                                    borderColor: formik.touched.questionGroup && formik.errors.questionGroup ? "red" : base.borderColor,
-                                  },
-                                }),
-                              }}
-                            />
-                            {formik.touched.questionGroup && formik.errors.questionGroup ? (
-                              <FormFeedback>{formik.errors.questionGroup}</FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                        <Col xxl={4} md={4}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Sub Question Group Name <span className="text-danger">*</span></Label>
-                            <Input
-                              name='subQuestionGroupName'
-                              type="input"
-                              value={formik.values.subQuestionGroupName || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="placeholderInput"
-                              placeholder="Enter Sub Question Group Name"
-                              invalid={
-                                formik.touched.subQuestionGroupName && formik.errors.subQuestionGroupName ? true : false
-                              } />
-                            {formik.touched.subQuestionGroupName && formik.errors.subQuestionGroupName ? (
-                              <FormFeedback type="invalid"><div>{formik.errors.subQuestionGroupName}</div></FormFeedback>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
+                  <CardBody>
+                    {(subQuestionGroupSuccess || subQuestionGroupError) ? (
+                      <div className="admin-form-alerts">
+                        {subQuestionGroupSuccess ? (
+                          <UncontrolledAlert color="success" className="alert-label-icon label-arrow">
+                            <i className="ri-checkbox-circle-line label-icon" />
+                            {subQuestionGroupSuccess}
+                          </UncontrolledAlert>
+                        ) : null}
+                        {subQuestionGroupError ? (
+                          <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                            <i className="ri-error-warning-line label-icon" />
+                            {subQuestionGroupError}
+                          </UncontrolledAlert>
+                        ) : null}
+                      </div>
+                    ) : null}
 
-                      <Row className='mt-3'>
-                        <Col xxl={8} md={8}>
-                          <div>
-                            <Label htmlFor="sections" className="form-label">Section <span className="text-danger">*</span></Label>
-                            <Select
-                              name="sections"
-                              isMulti
-                              isClearable
-                              closeMenuOnSelect={false}
-                              value={formik.values.sections}
-                              onChange={(selectedOptions) => {
-                                formik.setFieldValue("sections", selectedOptions || []);
-                              }}
-                              options={SectionDDLOptions}
-                              onBlur={() => formik.setFieldTouched("sections", true)}
-                              placeholder="Select Section(s)..."
-                              className={formik.touched.sections && formik.errors.sections ? "is-invalid" : ""}
-                              styles={{
-                                control: (base) => ({
-                                  ...base,
-                                  borderColor: formik.touched.sections && formik.errors.sections ? "red" : base.borderColor,
-                                  "&:hover": {
-                                    borderColor: formik.touched.sections && formik.errors.sections ? "red" : base.borderColor,
-                                  },
-                                }),
-                                multiValue: (base) => ({
-                                  ...base,
-                                  backgroundColor: "#e9ecef",
-                                }),
-                                multiValueLabel: (base) => ({
-                                  ...base,
-                                  color: "#212529",
-                                }),
-                                multiValueRemove: (base) => ({
-                                  ...base,
-                                  color: "#495057",
-                                  ":hover": {
-                                    backgroundColor: "#ced4da",
-                                    color: "#212529",
-                                  },
-                                }),
-                              }}
-                            />
-                            {formik.touched.sections && formik.errors.sections ? (
-                              <div className="invalid-feedback d-block">{formik.errors.sections}</div>
-                            ) : null}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      <Row className='mt-3'>
-                        <Col xxl={12} md={12}>
-                          <div>
-                            <Label htmlFor="placeholderInput" className="form-label">Description</Label>
-                            <textarea
-                              name='description'
-                              value={formik.values.description || ""}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                              className="form-control"
-                              id="exampleFormControlTextarea5"
-                              rows="1"
-                              placeholder="Enter Description" ></textarea>
-                          </div>
-                        </Col>
-                      </Row>
-                    </div>
-                  </CardBody>
-
-                  <CardFooter className="gap-2">
-                    <Row className="g-4">
-                      <Col className="col-sm">
-                        <div className="d-flex justify-content-sm-start">
+                    <Row className="gy-3 admin-form-fields">
+                      <Col xxl={6} md={6}>
+                        <div>
+                          <Label htmlFor="questionGroup" className="form-label">
+                            Question Group <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="questionGroup"
+                            inputId="questionGroup"
+                            value={formik.values.questionGroup}
+                            onChange={(selectedOption) => formik.setFieldValue('questionGroup', selectedOption)}
+                            options={QuestionGroupDDLOptions}
+                            onBlur={() => formik.setFieldTouched('questionGroup', true)}
+                            className={questionGroupInvalid ? 'is-invalid' : ''}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: questionGroupInvalid })}
+                            placeholder="Select..."
+                          />
+                          {questionGroupInvalid ? (
+                            <div className="invalid-feedback d-block">
+                              {typeof formik.errors.questionGroup === 'string'
+                                ? formik.errors.questionGroup
+                                : 'Please Select Question Group'}
+                            </div>
+                          ) : null}
                         </div>
                       </Col>
-                      <Col className="col-sm-auto">
-                        <div className="d-inline-flex gap-2">
-                          <Link to="/admin/listsubquestiongroup">
-                            <Button color="danger" className="btn-label">
-                              <i className="ri-close-fill label-icon align-middle fs-16 me-2"></i> Cancel
-                            </Button>
-                          </Link>
-                          <Button color="success" className="btn-label" type='submit'>
-                            <i className="ri-save-2-line label-icon align-middle fs-16 me-2"></i> Update
-                          </Button>
+                      <Col xxl={6} md={6}>
+                        <div>
+                          <Label htmlFor="subQuestionGroupName" className="form-label">
+                            Sub Question Group Name <span className="required">*</span>
+                          </Label>
+                          <Input
+                            name="subQuestionGroupName"
+                            type="text"
+                            value={formik.values.subQuestionGroupName || ''}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="subQuestionGroupName"
+                            placeholder="Enter Sub Question Group Name"
+                            invalid={Boolean(formik.touched.subQuestionGroupName && formik.errors.subQuestionGroupName)}
+                          />
+                          {formik.touched.subQuestionGroupName && formik.errors.subQuestionGroupName ? (
+                            <FormFeedback type="invalid">{formik.errors.subQuestionGroupName}</FormFeedback>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="sections" className="form-label">
+                            Section <span className="required">*</span>
+                          </Label>
+                          <Select
+                            name="sections"
+                            inputId="sections"
+                            isMulti
+                            isClearable
+                            closeMenuOnSelect={false}
+                            value={formik.values.sections}
+                            onChange={(selectedOptions) => formik.setFieldValue('sections', selectedOptions || [])}
+                            options={SectionDDLOptions}
+                            onBlur={() => formik.setFieldTouched('sections', true)}
+                            placeholder="Select Section(s)..."
+                            className={sectionsInvalid ? 'is-invalid' : ''}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles({ invalid: sectionsInvalid, isMulti: true })}
+                          />
+                          {sectionsInvalid ? (
+                            <div className="invalid-feedback d-block">{formik.errors.sections}</div>
+                          ) : null}
+                        </div>
+                      </Col>
+                      <Col xxl={12} md={12}>
+                        <div>
+                          <Label htmlFor="description" className="form-label">Description</Label>
+                          <Input
+                            name="description"
+                            type="textarea"
+                            rows={3}
+                            value={formik.values.description || ''}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            className="form-control"
+                            id="description"
+                            placeholder="Enter Description"
+                          />
                         </div>
                       </Col>
                     </Row>
+                  </CardBody>
+
+                  <CardFooter className="border-0">
+                    <div className="d-flex justify-content-end">
+                      <div className="admin-form-actions">
+                        <Link to="/admin/listsubquestiongroup" className="d-inline-flex">
+                          <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                            Cancel
+                          </button>
+                        </Link>
+                        <button type="submit" className="btn btn-sm admin-list-btn admin-list-btn--new">
+                          <i className="ri-save-2-line align-middle me-1" aria-hidden="true" />
+                          Update
+                        </button>
+                      </div>
+                    </div>
                   </CardFooter>
                 </Form>
               </Card>

@@ -1,6 +1,5 @@
 import React from 'react';
 import CountUp from "react-countup";
-import { Link } from 'react-router-dom';
 import { Card, CardBody, Col } from 'reactstrap';
 import { ecomWidgets } from "../../common/data";
 
@@ -9,7 +8,7 @@ const Widgets = () => {
         <React.Fragment>
             {ecomWidgets.map((item, key) => (
                 <Col xl={3} md={6} key={key}>
-                    <Card className="card-animate">
+                    <Card className="card-animate admin-dash-card">
                         <CardBody>
                             <div className="d-flex align-items-center">
                                 <div className="flex-grow-1 overflow-hidden">
@@ -17,7 +16,7 @@ const Widgets = () => {
                                 </div>
                                 <div className="flex-shrink-0">
                                     <h5 className={"fs-14 mb-0 text-" + item.badgeClass}>
-                                        {item.badge ? <i className={"fs-13 align-middle " + item.badge}></i> : null} {item.percentage} %
+                                        {item.badge ? <i className={"fs-13 align-middle " + item.badge}></i> : null} {item.percentage}%
                                     </h5>
                                 </div>
                             </div>
@@ -34,11 +33,11 @@ const Widgets = () => {
                                             duration={4}
                                         />
                                     </span></h4>
-                                    <Link to="#" className="text-decoration-underline">{item.link}</Link>
+                                    <span className="text-muted">{item.link}</span>
                                 </div>
                                 <div className="avatar-sm flex-shrink-0">
-                                    <span className={"avatar-title rounded fs-3 bg-" + item.bgcolor+"-subtle"}>
-                                        <i className={`text-${item.bgcolor} ${item.icon}`}></i>
+                                    <span className="avatar-title rounded fs-3 bg-info-subtle border border-info border-opacity-25">
+                                        <i className={`text-info ${item.icon}`}></i>
                                     </span>
                                 </div>
                             </div>
