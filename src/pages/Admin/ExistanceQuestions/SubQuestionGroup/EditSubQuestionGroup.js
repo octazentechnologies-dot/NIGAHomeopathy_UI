@@ -7,7 +7,7 @@ import Select from 'react-select';
 import { useSelector, useDispatch } from 'react-redux';
 import { setSubQuestionGroupError, setSubQuestionGroupSuccess } from '../../../../slices/admin/existancequestions/subquestiongroup/reducer';
 import { createUpdateSubQuestionGroup, getQuestionGroupsForSubQuestionGroup, getSectionsForSubQuestionGroup } from '../../../../slices/admin/existancequestions/subquestiongroup/thunk';
-import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
+import { getAdminFormSelectClassNames, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const EditSubQuestionGroup = () => {
   const location = useLocation();
@@ -205,6 +205,7 @@ const EditSubQuestionGroup = () => {
                             placeholder="Select Section(s)..."
                             className={sectionsInvalid ? 'is-invalid' : ''}
                             classNamePrefix="admin-form-select"
+                            classNames={getAdminFormSelectClassNames({ isMulti: true })}
                             theme={neutralSelectTheme}
                             styles={getAdminFormSelectStyles({ invalid: sectionsInvalid, isMulti: true })}
                           />

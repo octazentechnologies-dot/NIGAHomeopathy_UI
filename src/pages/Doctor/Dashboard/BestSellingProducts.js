@@ -66,7 +66,6 @@ import {
     setPatientLoading, setPatient, setPatientError, setPatientSuccess
 } from "../../../slices/doctor/dashboard/reducer";
 import { useDispatch, useSelector } from 'react-redux';
-import userAvatarBlue from "../../../assets/images/user-avatar-blue.png";
 import img4 from "../../../assets/images/small/img-4.jpg";
 import img5 from "../../../assets/images/small/img-5.jpg";
 import img6 from "../../../assets/images/small/img-6.jpg";
@@ -110,7 +109,7 @@ const PatientDashboardActionButton = ({
 };
 
 const PatientDashboardActionGroup = ({ children }) => (
-    <div className="d-inline-flex gap-2 align-items-center justify-content-center flex-nowrap">
+    <div className="dashboard-patient-action-group d-inline-flex align-items-center justify-content-center flex-nowrap">
         {children}
     </div>
 );
@@ -250,20 +249,18 @@ const AppointmentTimeCell = ({
         <>
             <div className="appointment-time-cell">
                 <span className="appointment-time-value">{displayTime}</span>
-                <div className="edit">
-                    <button
-                        type="button"
-                        id={editButtonId}
-                        className="btn btn-sm btn-soft-success edit-item-btn"
-                        onClick={onStartEdit}
-                        aria-label="Edit appointment time"
-                    >
-                        <i className="ri-pencil-fill" />
-                    </button>
-                    <UncontrolledTooltip placement="top" target={editButtonId}>
-                        Edit appointment time
-                    </UncontrolledTooltip>
-                </div>
+                <button
+                    type="button"
+                    id={editButtonId}
+                    className="btn btn-sm btn-soft-success edit-item-btn appointment-time-edit-btn"
+                    onClick={onStartEdit}
+                    aria-label="Edit appointment time"
+                >
+                    <i className="ri-pencil-fill" aria-hidden="true" />
+                </button>
+                <UncontrolledTooltip placement="top" target={editButtonId}>
+                    Edit appointment time
+                </UncontrolledTooltip>
             </div>
 
             <Modal
@@ -276,7 +273,7 @@ const AppointmentTimeCell = ({
             >
                 <ModalHeader className="patient-list-modal__header" toggle={onCancelEdit}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-time-line" style={{ color: '#25a0e2', fontSize: 20 }} />
+                        <i className="ri-time-line" style={{ color: '#25a0e2', fontSize: 15 }} />
                         <span className="patient-list-modal__title-text">Update Appointment Time</span>
                     </span>
                 </ModalHeader>
@@ -441,7 +438,7 @@ const BestSellingProducts = () => {
     // Pagination state
     const [todayPage, setTodayPage] = useState(1);
     const [allPage, setAllPage] = useState(1);
-    const pageSize = 15; // Show 15 items per page
+    const pageSize = 12; // Show 12 items per page
 
     // Export modal state
     const [exportModal, setExportModal] = useState(false);
@@ -1060,7 +1057,6 @@ const BestSellingProducts = () => {
             ageSex: getAgeSexDisplay(appointment.dateOfBirth, appointment.gender),
             place: appointment.address || '-',
             appStatus: appointment.status || '-',
-            avatar: userAvatarBlue,
         };
     });
 
@@ -1070,7 +1066,6 @@ const BestSellingProducts = () => {
         name: patient.patientName,
         ageSex: getAgeSexDisplay(patient.dateOfBirth, patient.gender),
         place: patient.address || 'N/A',
-        avatar: userAvatarBlue,
         ...patient // Include all original patient data
     }));
 
@@ -1357,7 +1352,7 @@ const BestSellingProducts = () => {
     const formatDobForInput = (dateOfBirth) => {
         if (!dateOfBirth) return '';
         const parsed = moment(dateOfBirth);
-        return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '';
+        return parsed.isValid() ? parsed.format(DOB_DISPLAY_FORMAT) : '';
     };
 
     const openEditModal = (patient) => {
@@ -1646,13 +1641,8 @@ const BestSellingProducts = () => {
             <tr key={patient.id}>
                 <td className="text-center dashboard-patient-col-index">{startIndex + index + 1}</td>
                 <td className="dashboard-patient-col-name">
-                    <div className="d-flex align-items-center dashboard-patient-name-wrap">
-                        <div className="flex-shrink-0 me-1">
-                            <img src={userAvatarBlue} alt="" className="avatar-xxs rounded-circle object-fit-cover" />
-                        </div>
-                        <div className="flex-grow-1 min-w-0 text-truncate">
-                            {renderPatientBoardNameLink(patient, idPrefix)}
-                        </div>
+                    <div className="dashboard-patient-name-wrap text-truncate">
+                        {renderPatientBoardNameLink(patient, idPrefix)}
                     </div>
                 </td>
                 <td className="dashboard-patient-col-agesex text-nowrap text-muted small">{patient.ageSex}</td>
@@ -1665,27 +1655,36 @@ const BestSellingProducts = () => {
                             <DropdownToggle
                                 tag="button"
                                 className="btn btn-sm btn-link text-decoration-none p-0 border-0 d-flex align-items-center text-nowrap"
-                                style={{ cursor: 'pointer', color: 'inherit', fontSize: '0.78rem' }}
+                                style={{ cursor: 'pointer', color: 'inherit', fontSize: '0.6875rem' }}
                             >
                                 <span className="me-1">{patient.appStatus}</span>
                                 <i className="ri-arrow-down-s-line"></i>
                             </DropdownToggle>
                             <DropdownMenu
+                                className="dashboard-patient-status-dropdown"
+                                container="body"
+                                strategy="fixed"
                                 style={{
-                                    zIndex: 1050,
-                                    minWidth: '150px'
+                                    zIndex: 2000,
                                 }}
                                 modifiers={[
                                     {
                                         name: 'preventOverflow',
                                         options: {
                                             boundary: 'viewport',
+                                            padding: 8,
                                         },
                                     },
                                     {
                                         name: 'flip',
                                         options: {
-                                            fallbackPlacements: ['bottom', 'top', 'right', 'left'],
+                                            fallbackPlacements: ['top-start', 'bottom-start', 'top-end', 'bottom-end'],
+                                        },
+                                    },
+                                    {
+                                        name: 'offset',
+                                        options: {
+                                            offset: [0, 4],
                                         },
                                     },
                                 ]}
@@ -1734,7 +1733,7 @@ const BestSellingProducts = () => {
                 </td>
                 ) : null}
                 {isTodayTab ? (
-                    <td className="appointment-time-column text-nowrap">
+                    <td className="dashboard-patient-col-apptime appointment-time-column text-nowrap">
                         <AppointmentTimeCell
                             patient={patient}
                             appStatus={patient.appStatus}
@@ -1952,43 +1951,90 @@ const BestSellingProducts = () => {
         });
     };
 
+    // Compact list: ← 1 2 … [current] … last → (current always visible)
+    const getVisiblePageItems = (currentPage, totalPages) => {
+        const total = Math.max(0, Number(totalPages) || 0);
+        const current = Math.min(Math.max(1, Number(currentPage) || 1), Math.max(total, 1));
+        if (total <= 0) return [];
+        if (total <= 3) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+        }
+
+        const pages = new Set([1, 2, total, current]);
+        const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+        const items = [];
+        let prev = 0;
+        sorted.forEach((page) => {
+            if (prev && page - prev > 1) {
+                items.push('ellipsis');
+            }
+            items.push(page);
+            prev = page;
+        });
+        return items;
+    };
+
     // Helper function to render pagination
     const renderPagination = (currentPage, totalPages, onPageChange, totalResults) => {
+        const safeTotalPages = Math.max(1, Number(totalPages) || 1);
+        const safeCurrentPage = Math.min(Math.max(1, Number(currentPage) || 1), safeTotalPages);
+        const pageItems = getVisiblePageItems(safeCurrentPage, safeTotalPages);
+        let ellipsisKey = 0;
+
+        if (!totalResults) {
+            return null;
+        }
+
         return (
             <div className="align-items-center px-3 py-2 my-2 justify-content-between row text-center text-sm-start">
                 <div className="col-sm">
                     <div className="text-muted">
-                        Showing <span className="fw-semibold">{Math.min((currentPage - 1) * pageSize + 1, totalResults)}</span> to{' '}
-                        <span className="fw-semibold">{Math.min(currentPage * pageSize, totalResults)}</span> of{' '}
+                        Showing <span className="fw-semibold">{Math.min((safeCurrentPage - 1) * pageSize + 1, totalResults)}</span> to{' '}
+                        <span className="fw-semibold">{Math.min(safeCurrentPage * pageSize, totalResults)}</span> of{' '}
                         <span className="fw-semibold">{totalResults}</span> Results
                     </div>
                 </div>
                 <div className="col-sm-auto mt-3 mt-sm-0">
                     <ul className="pagination pagination-separated pagination-sm mb-0 justify-content-center doctor-dashboard-pagination">
-                        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                        <li className={`page-item ${safeCurrentPage === 1 ? 'disabled' : ''}`}>
                             <button
                                 className="page-link"
-                                onClick={() => onPageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
+                                onClick={() => onPageChange(safeCurrentPage - 1)}
+                                disabled={safeCurrentPage === 1}
+                                type="button"
+                                aria-label="Previous page"
                             >
                                 ←
                             </button>
                         </li>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                            <li key={page} className={`page-item ${page === currentPage ? 'active' : ''}`}>
-                                <button
-                                    className="page-link"
-                                    onClick={() => onPageChange(page)}
-                                >
-                                    {page}
-                                </button>
-                            </li>
-                        ))}
-                        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                        {pageItems.map((item) => {
+                            if (item === 'ellipsis') {
+                                ellipsisKey += 1;
+                                return (
+                                    <li key={`ellipsis-${ellipsisKey}`} className="page-item disabled">
+                                        <span className="page-link">…</span>
+                                    </li>
+                                );
+                            }
+                            return (
+                                <li key={item} className={`page-item ${item === safeCurrentPage ? 'active' : ''}`}>
+                                    <button
+                                        className="page-link"
+                                        onClick={() => onPageChange(item)}
+                                        type="button"
+                                    >
+                                        {item}
+                                    </button>
+                                </li>
+                            );
+                        })}
+                        <li className={`page-item ${safeCurrentPage === safeTotalPages ? 'disabled' : ''}`}>
                             <button
                                 className="page-link"
-                                onClick={() => onPageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
+                                onClick={() => onPageChange(safeCurrentPage + 1)}
+                                disabled={safeCurrentPage === safeTotalPages}
+                                type="button"
+                                aria-label="Next page"
                             >
                                 →
                             </button>
@@ -2006,6 +2052,14 @@ const BestSellingProducts = () => {
                     table-layout: fixed;
                     width: 100%;
                 }
+                @media (max-width: 767.98px) {
+                    .dashboard-patient-table,
+                    .dashboard-patient-table--today {
+                        table-layout: auto !important;
+                        width: max-content !important;
+                        min-width: 56rem !important;
+                    }
+                }
                 .dashboard-patient-table .dashboard-patient-col-index {
                     width: 2rem;
                 }
@@ -2014,11 +2068,14 @@ const BestSellingProducts = () => {
                     min-width: 10rem;
                 }
                 .dashboard-patient-table .dashboard-patient-col-agesex {
-                    width: 4.5rem;
+                    width: 6.75rem;
+                    min-width: 6.75rem;
+                    padding-right: 0.75rem !important;
                 }
                 .dashboard-patient-table .dashboard-patient-col-place {
-                    width: 9%;
-                    min-width: 5.75rem;
+                    width: 10%;
+                    min-width: 6.25rem;
+                    padding-left: 0.55rem !important;
                 }
                 .dashboard-patient-table .dashboard-patient-col-mobile {
                     width: 5.75rem;
@@ -2027,7 +2084,9 @@ const BestSellingProducts = () => {
                     width: 6.25rem;
                 }
                 .dashboard-patient-table .dashboard-patient-col-apptime {
-                    width: 5.75rem;
+                    width: 4.4rem;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.2rem !important;
                 }
                 .dashboard-patient-table .dashboard-patient-col-actions-combined {
                     width: 12.5rem;
@@ -2043,9 +2102,15 @@ const BestSellingProducts = () => {
                     width: 20%;
                     min-width: 10.5rem;
                 }
+                .dashboard-patient-table--today .dashboard-patient-col-agesex {
+                    width: 6.75rem;
+                    min-width: 6.75rem;
+                    padding-right: 0.75rem !important;
+                }
                 .dashboard-patient-table--today .dashboard-patient-col-place {
-                    width: 9%;
-                    min-width: 6rem;
+                    width: 10%;
+                    min-width: 6.5rem;
+                    padding-left: 0.55rem !important;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-mobile {
                     width: 5.5rem;
@@ -2054,7 +2119,9 @@ const BestSellingProducts = () => {
                     width: 5.75rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-apptime {
-                    width: 5.5rem;
+                    width: 4.4rem;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.2rem !important;
                 }
                 .dashboard-patient-actions-header span {
                     flex: 1 1 0;
@@ -2091,6 +2158,67 @@ const BestSellingProducts = () => {
                     display: flex;
                     justify-content: center;
                     min-width: 0;
+                }
+                .dashboard-patient-action-group {
+                    display: inline-flex !important;
+                    align-items: center;
+                    justify-content: center;
+                    flex-wrap: nowrap;
+                    gap: 0.12rem !important;
+                    width: auto !important;
+                    max-width: 100%;
+                }
+                .dashboard-patient-action-group .edit,
+                .dashboard-patient-action-group .remove {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    flex: 0 0 auto !important;
+                }
+                .dashboard-patient-action-group .edit-item-btn,
+                .dashboard-patient-action-group .remove-item-btn {
+                    margin: 0 !important;
+                    padding: 0.15rem 0.25rem !important;
+                    min-width: 1.35rem !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    background-color: transparent !important;
+                    background-image: none !important;
+                }
+                .dashboard-patient-action-group .edit-item-btn:hover:not(:disabled):not(.disabled),
+                .dashboard-patient-action-group .remove-item-btn:hover:not(:disabled):not(.disabled),
+                .dashboard-patient-action-group .edit-item-btn:focus:not(:disabled):not(.disabled),
+                .dashboard-patient-action-group .remove-item-btn:focus:not(:disabled):not(.disabled) {
+                    background-color: rgba(37, 160, 226, 0.1) !important;
+                }
+                .dashboard-patient-action-group .btn-soft-success:hover:not(:disabled):not(.disabled),
+                .dashboard-patient-action-group .btn-soft-success:focus:not(:disabled):not(.disabled) {
+                    background-color: rgba(10, 179, 156, 0.12) !important;
+                }
+                .dashboard-patient-action-group .btn-soft-danger:hover:not(:disabled):not(.disabled),
+                .dashboard-patient-action-group .btn-soft-danger:focus:not(:disabled):not(.disabled) {
+                    background-color: rgba(240, 101, 72, 0.12) !important;
+                }
+                .dashboard-patient-action-group .btn-soft-info:hover:not(:disabled):not(.disabled),
+                .dashboard-patient-action-group .btn-soft-info:focus:not(:disabled):not(.disabled) {
+                    background-color: rgba(41, 156, 219, 0.12) !important;
+                }
+                .dashboard-patient-action-group .btn-soft-dark:hover:not(:disabled):not(.disabled),
+                .dashboard-patient-action-group .btn-soft-dark:focus:not(:disabled):not(.disabled) {
+                    background-color: rgba(33, 37, 41, 0.08) !important;
+                }
+                .dashboard-patient-actions-section--history .btn-soft-warning.edit-item-btn,
+                .dashboard-patient-actions-section--history .btn-soft-warning.edit-item-btn:disabled,
+                .dashboard-patient-actions-section--history .btn-soft-warning.edit-item-btn.disabled,
+                .dashboard-patient-actions-section--history .btn-soft-warning.edit-item-btn:hover,
+                .dashboard-patient-actions-section--history .btn-soft-warning.edit-item-btn:focus {
+                    border: none !important;
+                    border-color: transparent !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    outline: none !important;
                 }
                 .dashboard-patient-name-wrap {
                     min-width: 0;
@@ -2133,19 +2261,82 @@ const BestSellingProducts = () => {
                     text-overflow: ellipsis;
                     white-space: nowrap;
                 }
+                .dashboard-patient-status-dropdown.dropdown-menu {
+                    min-width: 0 !important;
+                    width: max-content !important;
+                    padding: 0.15rem 0 !important;
+                    border: 1px solid #e2ebf3 !important;
+                    border-radius: 0.35rem !important;
+                    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12) !important;
+                    z-index: 2000 !important;
+                    max-height: none !important;
+                    overflow: visible !important;
+                }
+                .dashboard-patient-status-dropdown .dropdown-item {
+                    padding: 0.3rem 0.65rem !important;
+                    font-size: 0.6875rem !important;
+                    line-height: 1.25 !important;
+                    white-space: nowrap !important;
+                    border-bottom: 1px solid #eef2f6 !important;
+                    border-radius: 0 !important;
+                }
+                .dashboard-patient-status-dropdown .dropdown-item:last-child {
+                    border-bottom: none !important;
+                }
+                .dashboard-patient-status-dropdown .dropdown-item.active,
+                .dashboard-patient-status-dropdown .dropdown-item:active {
+                    color: #25a0e2 !important;
+                    background-color: #f0f7ff !important;
+                }
                 .appointment-time-column {
                     min-width: 0;
-                    vertical-align: middle;
+                    vertical-align: middle !important;
                 }
                 .appointment-time-cell {
-                    display: inline-flex;
+                    display: inline-grid;
+                    grid-template-columns: 7.5ch 1.1rem;
+                    column-gap: 0;
                     align-items: center;
-                    justify-content: flex-start;
-                    gap: 0.1rem;
-                }
-                .appointment-time-cell .edit {
-                    flex: 0 0 auto;
+                    justify-items: start;
                     line-height: 1;
+                    vertical-align: middle;
+                }
+                .appointment-time-value {
+                    color: #495057;
+                    font-weight: 400;
+                    font-size: 0.6875rem;
+                    line-height: 1;
+                    display: block;
+                    width: 100%;
+                    min-width: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: clip;
+                    letter-spacing: 0;
+                }
+                .appointment-time-edit-btn.edit-item-btn {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    min-width: 1.1rem !important;
+                    width: 1.1rem !important;
+                    min-height: 1.1rem !important;
+                    height: 1.1rem !important;
+                    line-height: 1 !important;
+                    transform: none !important;
+                    vertical-align: middle;
+                    justify-self: start;
+                }
+                .appointment-time-edit-btn.edit-item-btn i {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    font-size: 0.8125rem !important;
+                    line-height: 1 !important;
+                    transform: none !important;
+                    margin: 0 !important;
                 }
                 .appointment-time-edit-modal .modal-dialog {
                     width: auto;
@@ -2238,14 +2429,6 @@ const BestSellingProducts = () => {
                 .appointment-time-selected-badge i {
                     font-size: 0.9rem;
                 }
-                .appointment-time-value {
-                    color: #495057;
-                    font-weight: 500;
-                    font-size: 0.8rem;
-                    display: inline-block;
-                    width: 4.25rem;
-                    white-space: nowrap;
-                }
             `}</style>
             <Col xl={9} className="d-flex">
                 <Card className="card-height-100 flex-grow-1 doctor-appointments-card">
@@ -2253,7 +2436,8 @@ const BestSellingProducts = () => {
 
 
 
-                    <CardHeader className="align-items-center d-flex flex-nowrap gap-1 doctor-dashboard-card-header doctor-patient-nav-tabs">
+                    <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header doctor-patient-nav-tabs doctor-appointments-toolbar">
+                        <div className="d-flex align-items-center gap-2 flex-wrap doctor-appointments-toolbar__primary">
                         <Nav pills className="nav-customs doctor-patient-custom-nav mb-0 flex-shrink-0">
                             <NavItem>
                                 <NavLink
@@ -2261,7 +2445,6 @@ const BestSellingProducts = () => {
                                     className={classnames({ active: customHoverTab === "1" })}
                                     onClick={() => { customHovertoggle("1"); }}
                                 >
-                                    <i className="ri-user-fill doctor-patient-tab-icon" aria-hidden="true" />
                                     <span className="doctor-patient-tab-label">Today</span>
                                 </NavLink>
                             </NavItem>
@@ -2272,7 +2455,6 @@ const BestSellingProducts = () => {
                                     onClick={() => { customHovertoggle("2"); }}
                                     aria-disabled={isReceptionUser}
                                 >
-                                    <i className="ri-file-text-line doctor-patient-tab-icon" aria-hidden="true" />
                                     <span className="doctor-patient-tab-label">All</span>
                                 </NavLink>
                             </NavItem>
@@ -2290,8 +2472,9 @@ const BestSellingProducts = () => {
                                 }}
                             />
                         </div>
-                        <div className="d-flex align-items-center flex-nowrap gap-2 ms-sm-auto flex-shrink-0">
-                            <div className="search-box">
+                        </div>
+                        <div className="d-flex align-items-center flex-wrap gap-2 ms-sm-auto doctor-appointments-toolbar__actions">
+                            <div className="search-box doctor-appointments-toolbar__search">
                                 <input
                                     type="text"
                                     className="form-control form-control-sm search"
@@ -2301,7 +2484,7 @@ const BestSellingProducts = () => {
                                 />
                                 <i className="ri-search-line search-icon"></i>
                             </div>
-                            <div className="d-inline-flex gap-2">
+                            <div className="d-inline-flex gap-2 doctor-appointments-toolbar__btns">
                                 <button type="button" className="btn btn-sm doctor-dashboard-toolbar-btn" onClick={openImportModal}><i className="ri-newspaper-line align-middle"></i> Import</button>
                                 <button type="button" className="btn btn-sm doctor-dashboard-toolbar-btn" onClick={openExportModal}><i className="ri-file-list-3-line align-middle"></i> Export</button>
                             </div>
@@ -2423,7 +2606,7 @@ const BestSellingProducts = () => {
                     >
                         <ModalHeader className="patient-list-modal__header" toggle={() => !importLoading && setImportModal(false)}>
                             <span className="patient-list-modal__title patient-list-modal__title--simple">
-                                <i className="ri-upload-2-line" style={{ color: '#25a0e2', fontSize: 20 }} aria-hidden="true" />
+                                <i className="ri-upload-2-line" style={{ color: '#25a0e2', fontSize: 15 }} aria-hidden="true" />
                                 <span className="patient-list-modal__title-text">Import Patients</span>
                             </span>
                         </ModalHeader>
@@ -2493,7 +2676,7 @@ const BestSellingProducts = () => {
                     >
                         <ModalHeader className="patient-list-modal__header" toggle={() => !exportLoading && setExportModal(false)}>
                             <span className="patient-list-modal__title patient-list-modal__title--simple">
-                                <i className="ri-download-2-line" style={{ color: '#25a0e2', fontSize: 20 }} aria-hidden="true" />
+                                <i className="ri-download-2-line" style={{ color: '#25a0e2', fontSize: 15 }} aria-hidden="true" />
                                 <span className="patient-list-modal__title-text">Export Data</span>
                             </span>
                         </ModalHeader>
@@ -2571,7 +2754,7 @@ const BestSellingProducts = () => {
             <Modal size="lg" isOpen={historyModalOpen} toggle={closeHistoryModal} className="patient-list-modal history-patient-modal">
                 <ModalHeader className="patient-list-modal__header" toggle={closeHistoryModal}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-history-line" style={{ color: '#25a0e2', fontSize: 20 }} />
+                        <i className="ri-history-line" style={{ color: '#25a0e2', fontSize: 15 }} />
                         <span className="patient-list-modal__title-text">
                             {selectedPatientForHistory
                                 ? `${selectedPatientForHistory.patientName || selectedPatientForHistory.name || 'Patient'}'s History`
@@ -2674,7 +2857,7 @@ const BestSellingProducts = () => {
             <Modal size="xl" isOpen={caseNotesModalOpen} toggle={closeCaseNotesModal} className="patient-list-modal case-notes-modal">
                 <ModalHeader className="patient-list-modal__header" toggle={closeCaseNotesModal}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-file-text-line" style={{ color: '#25a0e2', fontSize: 20 }} />
+                        <i className="ri-file-text-line" style={{ color: '#25a0e2', fontSize: 15 }} />
                         <span className="patient-list-modal__title-text">
                             {selectedPatientForCaseNotes ? `${selectedPatientForCaseNotes.name}'s Case Notes` : 'Case Notes'}
                         </span>
@@ -2755,7 +2938,7 @@ const BestSellingProducts = () => {
             <Modal size="lg" isOpen={editModalOpen} toggle={closeEditModal} className="patient-list-modal new-patient-modal edit-patient-modal">
                 <ModalHeader className="patient-list-modal__header" toggle={closeEditModal}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-user-settings-line" style={{ color: '#25a0e2', fontSize: 20 }} />
+                        <i className="ri-user-settings-line" style={{ color: '#25a0e2', fontSize: 15 }} />
                         <span className="patient-list-modal__title-text">Edit Patient</span>
                     </span>
                 </ModalHeader>
@@ -2809,7 +2992,13 @@ const BestSellingProducts = () => {
                                 <i className="ri-cake-2-line" aria-hidden="true" />
                                 Date of Birth
                             </Label>
-                            <Input type="date" value={editForm.dob} onChange={(e) => updateEditField('dob', e.target.value)} />
+                            <DateOfBirthPicker
+                                name="editPatientDob"
+                                value={editForm.dob}
+                                className="doctor-modal-date-picker"
+                                placeholder={DOB_DISPLAY_FORMAT}
+                                onChange={(dateStr) => updateEditField('dob', dateStr)}
+                            />
                         </div>
                         <div className="col-md-6">
                             <Label className="form-label new-patient-modal__label">

@@ -170,30 +170,34 @@ const Login = (props) => {
                               Forgot password?
                             </Link>
                           </div>
-                          <div className="position-relative auth-pass-inputgroup mt-2">
-                            <Input
-                              id="password-input"
-                              name="password"
-                              value={validation.values.password || ""}
-                              type={passwordShow ? "text" : "password"}
-                              className="form-control auth-login-input pe-5"
-                              placeholder="Enter your password"
-                              autoComplete="current-password"
-                              onChange={validation.handleChange}
-                              onBlur={validation.handleBlur}
-                              invalid={validation.touched.password && !!validation.errors.password}
-                            />
-                            <button
-                              className="btn btn-link position-absolute end-0 top-0 text-decoration-none text-muted"
-                              type="button"
-                              id="password-addon"
-                              aria-label={passwordShow ? "Hide password" : "Show password"}
-                              onClick={() => setPasswordShow((v) => !v)}
-                            >
-                              <i className="ri-eye-fill align-middle" />
-                            </button>
+                          <div className="auth-pass-inputgroup mt-2">
+                            <div className="auth-pass-inputgroup__control">
+                              <Input
+                                id="password-input"
+                                name="password"
+                                value={validation.values.password || ""}
+                                type={passwordShow ? "text" : "password"}
+                                className="form-control auth-login-input"
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                onChange={validation.handleChange}
+                                onBlur={validation.handleBlur}
+                                invalid={validation.touched.password && !!validation.errors.password}
+                              />
+                              <button
+                                className="auth-pass-inputgroup__toggle"
+                                type="button"
+                                id="password-addon"
+                                aria-label={passwordShow ? "Hide password" : "Show password"}
+                                onClick={() => setPasswordShow((v) => !v)}
+                              >
+                                <i className={passwordShow ? "ri-eye-off-fill" : "ri-eye-fill"} aria-hidden="true" />
+                              </button>
+                            </div>
                             {validation.touched.password && validation.errors.password ? (
-                              <FormFeedback type="invalid">{validation.errors.password}</FormFeedback>
+                              <FormFeedback type="invalid" className="d-block">
+                                {validation.errors.password}
+                              </FormFeedback>
                             ) : null}
                           </div>
                         </div>

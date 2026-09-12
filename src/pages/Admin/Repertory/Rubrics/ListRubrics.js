@@ -9,6 +9,7 @@ import Swal from "sweetalert2";
 
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 //import { DefaultModalExample, CenteredModalExample, GridsModalExample, StaticBackdropModalExample, TogglebetweenExample, TooltipModalExample, ScrollableModalExample, VaryingModalExample, OptionalModalExample, FullscreenResponsiveExample, AnimationModalExample, PositionModalExample } from './UiModalCode';
 
 import { getSectionForSubSection, getRubricsList, importRubricsFromExcel, getGradeDetails, exportRubricsToExcelThunk } from '../../../../slices/thunks';
@@ -284,6 +285,10 @@ const RubricList = () => {
                           value={selectedSection}
                           onChange={(item) => { handleSelectSection(item); }}
                           options={SectionForSubSectionOptions}
+                          classNamePrefix="admin-form-select"
+                          theme={neutralSelectTheme}
+                          styles={getAdminFormSelectStyles()}
+                          {...adminFormSelectPortalProps}
                         />
                       </div>
                     </Col>
@@ -500,6 +505,8 @@ const RubricList = () => {
         isOpen={modal_standard}
         toggle={tog_standard}
         size="lg"
+        zIndex={2100}
+        modalClassName="rubric-details-modal-root"
         className="whatsapp-modal rubric-details-modal"
       >
         <ModalHeader className="whatsapp-modal__header" id="myModalLabel" toggle={tog_standard}>

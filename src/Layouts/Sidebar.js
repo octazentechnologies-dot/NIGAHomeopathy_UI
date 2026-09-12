@@ -13,12 +13,16 @@ import { Container } from "reactstrap";
 import HorizontalLayout from "./HorizontalLayout";
 import { useProfile } from "../Components/Hooks/UserHooks";
 import { getHomeDashboardPath } from "../helpers/dashboard_helper";
-import { resolveUserRole, usesAdminDashboardLayout } from "../Components/constants/roles";
+import { resolveUserRole, usesAdminDashboardLayout, UserRole } from "../Components/constants/roles";
 
 const Sidebar = ({ layoutType }) => {
   const { userProfile } = useProfile();
   const homeDashboardPath = getHomeDashboardPath(userProfile?.role);
-  const moreMenuInTopbar = usesAdminDashboardLayout(resolveUserRole(userProfile));
+  const role = resolveUserRole(userProfile);
+  const moreMenuInTopbar =
+    usesAdminDashboardLayout(role) &&
+    role !== UserRole.ACCOUNT &&
+    role !== UserRole.PHARMACY;
 
   useEffect(() => {
     var verticalOverlay = document.getElementsByClassName("vertical-overlay");

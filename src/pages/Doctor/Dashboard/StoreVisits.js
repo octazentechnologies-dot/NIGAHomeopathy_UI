@@ -104,7 +104,7 @@ const StoreVisits = () => {
     return (
         <Col xl={4} className="d-flex">
             <Card className="card-height-100 flex-grow-1 w-100 doctor-stats-card">
-                <CardHeader className="align-items-center d-flex doctor-dashboard-card-header">
+                <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header">
                     <h4 className="card-title mb-0 flex-grow-1">Patient Stats</h4>
                     <PatientStatsPeriodFilter filter={filter} onFilterChange={setFilter} />
                 </CardHeader>

@@ -121,7 +121,7 @@ const PatientListModalTitle = ({ icon, title, subtitle, variant = 'boxed', iconC
             <span className="patient-list-modal__title patient-list-modal__title--simple">
                 <i
                     className={icon}
-                    style={{ color: iconColor || '#25a0e2', fontSize: 20 }}
+                    style={{ color: iconColor || '#25a0e2', fontSize: 15 }}
                     aria-hidden="true"
                 />
                 <span className="patient-list-modal__title-text">{title}</span>
@@ -419,6 +419,67 @@ const getDoctorModalSelectStyles = (hasError) => ({
         : {}),
 });
 
+const renderNewPatientFieldError = (show, message) => (
+    <div
+        className="new-patient-modal__error"
+        role={show ? 'alert' : undefined}
+        title={show ? message : undefined}
+    >
+        {show ? message : null}
+    </div>
+);
+
+// Compact modal pagination: ← 1 2 … [current] … last →
+const getModalVisiblePageItems = (currentPage, totalPages) => {
+    const total = Math.max(0, Number(totalPages) || 0);
+    const current = Math.min(Math.max(1, Number(currentPage) || 1), Math.max(total, 1));
+    if (total <= 0) return [];
+    if (total <= 3) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    const pages = new Set([1, 2, total, current]);
+    const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+    const items = [];
+    let prev = 0;
+    sorted.forEach((page) => {
+        if (prev && page - prev > 1) {
+            items.push('ellipsis');
+        }
+        items.push(page);
+        prev = page;
+    });
+    return items;
+};
+
+const CompactModalPaginationPages = ({ currentPage, totalPages, onPageChange }) => {
+    const items = getModalVisiblePageItems(currentPage, totalPages);
+    let ellipsisKey = 0;
+    return items.map((item) => {
+        if (item === 'ellipsis') {
+            ellipsisKey += 1;
+            return (
+                <PaginationItem key={`ellipsis-${ellipsisKey}`} disabled>
+                    <PaginationLink href="#" onClick={(e) => e.preventDefault()}>…</PaginationLink>
+                </PaginationItem>
+            );
+        }
+        return (
+            <PaginationItem active={item === currentPage} key={item}>
+                <PaginationLink
+                    href="#"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        onPageChange(item);
+                    }}
+                >
+                    {item}
+                </PaginationLink>
+            </PaginationItem>
+        );
+    });
+};
+
 // Reusable modal for Waiting Patients with search, pagination and row actions
 const WaitingPatientsModal = ({ isOpen, toggle }) => {
     // Get appointment list from Redux state
@@ -547,18 +608,11 @@ const WaitingPatientsModal = ({ isOpen, toggle }) => {
                         )}
                     </div>
                     {!appointmentListLoading && totalPages > 1 && (
-                        <Pagination className="pagination-separated mb-0">
+                        <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                             <PaginationItem disabled={safePage === 1}>
                                 <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
                             </PaginationItem>
-                            {Array.from({ length: totalPages }).map((_, i) => {
-                                const page = i + 1;
-                                return (
-                                    <PaginationItem active={page === safePage} key={page}>
-                                        <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
-                                    </PaginationItem>
-                                );
-                            })}
+                            <CompactModalPaginationPages currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
                             <PaginationItem disabled={safePage === totalPages}>
                                 <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCurrentPage(Math.min(totalPages, safePage + 1)); }} />
                             </PaginationItem>
@@ -576,7 +630,7 @@ const FLATPICKR_DATE_DISPLAY_FORMAT = 'd-m-Y';
 const formatDobForInput = (dateOfBirth) => {
     if (!dateOfBirth) return '';
     const parsed = moment(dateOfBirth);
-    return parsed.isValid() ? parsed.format(DASHBOARD_DATE_DISPLAY_FORMAT) : '';
+    return parsed.isValid() ? parsed.format(DOB_DISPLAY_FORMAT) : '';
 };
 
 const resolveCreatedPatientOption = (createResponse, patientName, patientListData = []) => {
@@ -906,18 +960,11 @@ const PatientListModal = ({ isOpen, toggle }) => {
                             )}
                         </div>
                         {!patientListLoading && totalPages > 1 && (
-                            <Pagination className="pagination-separated mb-0">
+                            <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                                 <PaginationItem disabled={safePage === 1}>
                                     <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
                                 </PaginationItem>
-                                {Array.from({ length: totalPages }).map((_, i) => {
-                                    const page = i + 1;
-                                    return (
-                                        <PaginationItem active={page === safePage} key={page}>
-                                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
-                                        </PaginationItem>
-                                    );
-                                })}
+                                <CompactModalPaginationPages currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
                                 <PaginationItem disabled={safePage === totalPages}>
                                     <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCurrentPage(Math.min(totalPages, safePage + 1)); }} />
                                 </PaginationItem>
@@ -986,7 +1033,13 @@ const PatientListModal = ({ isOpen, toggle }) => {
                                 <i className="ri-cake-2-line" aria-hidden="true" />
                                 Date of Birth
                             </Label>
-                            <Input type="date" value={editForm.dob} onChange={(e) => updateEditField('dob', e.target.value)} />
+                            <DateOfBirthPicker
+                                name="editPatientDob"
+                                value={editForm.dob}
+                                className="doctor-modal-date-picker"
+                                placeholder={DOB_DISPLAY_FORMAT}
+                                onChange={(dateStr) => updateEditField('dob', dateStr)}
+                            />
                         </div>
                         <div className="col-md-6">
                             <Label className="form-label new-patient-modal__label">
@@ -1148,18 +1201,11 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                         )}
                     </div>
                     {!appointmentListLoading && totalPages > 1 && (
-                        <Pagination className="pagination-separated mb-0">
+                        <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                             <PaginationItem disabled={safePage === 1}>
                                 <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
                             </PaginationItem>
-                            {Array.from({ length: totalPages }).map((_, i) => {
-                                const page = i + 1;
-                                return (
-                                    <PaginationItem active={page === safePage} key={page}>
-                                        <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
-                                    </PaginationItem>
-                                );
-                            })}
+                            <CompactModalPaginationPages currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
                             <PaginationItem disabled={safePage === totalPages}>
                                 <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCurrentPage(Math.min(totalPages, safePage + 1)); }} />
                             </PaginationItem>
@@ -1262,18 +1308,11 @@ const BillingListModal = ({ isOpen, toggle }) => {
                         {`Showing ${pageItems.length} of ${filtered.length} Billing Records ${searchTerm ? `(filtered from ${allBills.length} total)` : `(from ${allBills.length} total)`}`}
                     </div>
                     {totalPages > 1 && (
-                        <Pagination className="pagination-separated mb-0">
+                        <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                             <PaginationItem disabled={safePage === 1}>
                                 <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
                             </PaginationItem>
-                            {Array.from({ length: totalPages }).map((_, i) => {
-                                const page = i + 1;
-                                return (
-                                    <PaginationItem active={page === safePage} key={page}>
-                                        <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
-                                    </PaginationItem>
-                                );
-                            })}
+                            <CompactModalPaginationPages currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
                             <PaginationItem disabled={safePage === totalPages}>
                                 <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCurrentPage(Math.min(totalPages, safePage + 1)); }} />
                             </PaginationItem>
@@ -2407,7 +2446,7 @@ const Widgets = () => {
 
         <>
             <div className="row doctor-dashboard-kpi-row">
-                <div className="col-lg-2" onClick={() => tog_waiting()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_waiting(); } }}>
+                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_waiting()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_waiting(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -2422,7 +2461,7 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-lg-2" onClick={() => tog_walkin()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_walkin(); } }}>
+                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_walkin()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_walkin(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -2437,7 +2476,7 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-lg-2" onClick={() => tog_notarrived()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_notarrived(); } }}>
+                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_notarrived()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_notarrived(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -2452,7 +2491,7 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-lg-2" onClick={() => tog_econsult()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_econsult(); } }}>
+                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_econsult()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_econsult(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -2467,7 +2506,7 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-lg-2" onClick={() => tog_remaining()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_remaining(); } }}>
+                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_remaining()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_remaining(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -2482,7 +2521,7 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-lg-2" onClick={() => tog_completed()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_completed(); } }}>
+                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_completed()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_completed(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -2728,18 +2767,11 @@ const Widgets = () => {
                             )}
                         </div>
                         {!appointmentListLoading && walkinTotalPages > 1 && (
-                            <Pagination className="pagination-separated mb-0">
+                            <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                                 <PaginationItem disabled={walkinSafePage === 1}>
                                     <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setWalkinPage(Math.max(1, walkinSafePage - 1)); }} />
                                 </PaginationItem>
-                                {Array.from({ length: walkinTotalPages }).map((_, i) => {
-                                    const page = i + 1;
-                                    return (
-                                        <PaginationItem active={page === walkinSafePage} key={page}>
-                                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setWalkinPage(page); }}>{page}</PaginationLink>
-                                        </PaginationItem>
-                                    );
-                                })}
+                                <CompactModalPaginationPages currentPage={walkinSafePage} totalPages={walkinTotalPages} onPageChange={setWalkinPage} />
                                 <PaginationItem disabled={walkinSafePage === walkinTotalPages}>
                                     <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setWalkinPage(Math.min(walkinTotalPages, walkinSafePage + 1)); }} />
                                 </PaginationItem>
@@ -2784,23 +2816,25 @@ const Widgets = () => {
                         return (
                         <>
                             <ModalBody>
-                                <div className="p-2">
-                                    {patientSuccess ? (
-                                        <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                                            <i className="ri-notification-off-line label-icon"></i>
-                                            {typeof patientSuccess === 'string' ? patientSuccess : 'Patient created successfully!'}
-                                        </UncontrolledAlert>
-                                    ) : null}
-                                    {patientError ? (
-                                        <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                                            <i className="ri-error-warning-line label-icon"></i>
-                                            {patientError}
-                                        </UncontrolledAlert>
-                                    ) : null}
-                                </div>
+                                {(patientSuccess || patientError) && (
+                                    <div className="new-patient-modal__alerts">
+                                        {patientSuccess ? (
+                                            <UncontrolledAlert color="success" className="alert-label-icon label-arrow mb-0">
+                                                <i className="ri-notification-off-line label-icon"></i>
+                                                {typeof patientSuccess === 'string' ? patientSuccess : 'Patient created successfully!'}
+                                            </UncontrolledAlert>
+                                        ) : null}
+                                        {patientError ? (
+                                            <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                                                <i className="ri-error-warning-line label-icon"></i>
+                                                {patientError}
+                                            </UncontrolledAlert>
+                                        ) : null}
+                                    </div>
+                                )}
                                 <Form>
                                 <div className="row g-3 new-patient-modal__fields">
-                                    <div className="col-md-4">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-user-line" aria-hidden="true" />
                                             First Name <span className="text-danger">*</span>
@@ -2813,13 +2847,9 @@ const Widgets = () => {
                                             onBlur={handleBlur}
                                             className={errors.firstName && touched.firstName ? 'is-invalid' : ''}
                                         />
-                                        {errors.firstName && touched.firstName && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.firstName}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.firstName && touched.firstName), errors.firstName)}
                                     </div>
-                                    <div className="col-md-4">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-user-3-line" aria-hidden="true" />
                                             Last Name <span className="text-danger">*</span>
@@ -2832,13 +2862,9 @@ const Widgets = () => {
                                             onBlur={handleBlur}
                                             className={errors.lastName && touched.lastName ? 'is-invalid' : ''}
                                         />
-                                        {errors.lastName && touched.lastName && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.lastName}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.lastName && touched.lastName), errors.lastName)}
                                     </div>
-                                    <div className="col-md-4">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-group-line" aria-hidden="true" />
                                             Gender <span className="text-danger">*</span>
@@ -2877,14 +2903,10 @@ const Widgets = () => {
                                                 </span>
                                             </label>
                                         </div>
-                                        {errors.gender && touched.gender && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.gender}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.gender && touched.gender), errors.gender)}
                                     </div>
 
-                                    <div className="col-md-4">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-calendar-event-line" aria-hidden="true" />
                                             Date of Birth <span className="text-danger">*</span>
@@ -2901,13 +2923,9 @@ const Widgets = () => {
                                             }}
                                             onBlur={() => setFieldTouched('dateOfBirth', true, true)}
                                         />
-                                        {errors.dateOfBirth && touched.dateOfBirth && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.dateOfBirth}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.dateOfBirth && touched.dateOfBirth), errors.dateOfBirth)}
                                     </div>
-                                    <div className="col-md-8">
+                                    <div className="col-md-8 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-map-pin-line" aria-hidden="true" />
                                             Address <span className="text-danger">*</span>
@@ -2920,14 +2938,10 @@ const Widgets = () => {
                                             onBlur={handleBlur}
                                             className={errors.address && touched.address ? 'is-invalid' : ''}
                                         />
-                                        {errors.address && touched.address && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.address}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.address && touched.address), errors.address)}
                                     </div>
 
-                                    <div className="col-md-6">
+                                    <div className="col-md-6 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-global-line" aria-hidden="true" />
                                             Country <span className="text-danger">*</span>
@@ -2951,13 +2965,9 @@ const Widgets = () => {
                                             />
                                             <i className="ri-search-line search-icon" aria-hidden={true} />
                                         </div>
-                                        {errors.countryId && touched.countryId && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.countryId}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.countryId && touched.countryId), errors.countryId)}
                                     </div>
-                                    <div className="col-md-6">
+                                    <div className="col-md-6 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-map-2-line" aria-hidden="true" />
                                             State <span className="text-danger">*</span>
@@ -2985,14 +2995,10 @@ const Widgets = () => {
                                             />
                                             <i className="ri-search-line search-icon" aria-hidden={true} />
                                         </div>
-                                        {errors.stateId && touched.stateId && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.stateId}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.stateId && touched.stateId), errors.stateId)}
                                     </div>
 
-                                    <div className="col-md-4">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-smartphone-line" aria-hidden="true" />
                                             Mobile No. <span className="text-danger">*</span>
@@ -3005,13 +3011,9 @@ const Widgets = () => {
                                             onBlur={handleBlur}
                                             className={errors.mobileNo && touched.mobileNo ? 'is-invalid' : ''}
                                         />
-                                        {errors.mobileNo && touched.mobileNo && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.mobileNo}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.mobileNo && touched.mobileNo), errors.mobileNo)}
                                     </div>
-                                    <div className="col-md-4">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-phone-line" aria-hidden="true" />
                                             Phone No.
@@ -3024,7 +3026,7 @@ const Widgets = () => {
                                             onBlur={handleBlur}
                                         />
                                     </div>
-                                    <div className="col-md-4">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-mail-line" aria-hidden="true" />
                                             Email
@@ -3038,11 +3040,7 @@ const Widgets = () => {
                                             onBlur={handleBlur}
                                             className={errors.email && touched.email ? 'is-invalid' : ''}
                                         />
-                                        {errors.email && touched.email && (
-                                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                                                {errors.email}
-                                            </div>
-                                        )}
+                                        {renderNewPatientFieldError(Boolean(errors.email && touched.email), errors.email)}
                                     </div>
 
                                     <div className="col-md-6">
@@ -3387,18 +3385,11 @@ const Widgets = () => {
                             )}
                         </div>
                         {!appointmentListLoading && notArrivedTotalPages > 1 && (
-                            <Pagination className="pagination-separated mb-0">
+                            <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                                 <PaginationItem disabled={notArrivedSafePage === 1}>
                                     <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setNotArrivedPage(Math.max(1, notArrivedSafePage - 1)); }} />
                                 </PaginationItem>
-                                {Array.from({ length: notArrivedTotalPages }).map((_, i) => {
-                                    const page = i + 1;
-                                    return (
-                                        <PaginationItem active={page === notArrivedSafePage} key={page}>
-                                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setNotArrivedPage(page); }}>{page}</PaginationLink>
-                                        </PaginationItem>
-                                    );
-                                })}
+                                <CompactModalPaginationPages currentPage={notArrivedSafePage} totalPages={notArrivedTotalPages} onPageChange={setNotArrivedPage} />
                                 <PaginationItem disabled={notArrivedSafePage === notArrivedTotalPages}>
                                     <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setNotArrivedPage(Math.min(notArrivedTotalPages, notArrivedSafePage + 1)); }} />
                                 </PaginationItem>
@@ -3481,18 +3472,11 @@ const Widgets = () => {
                             )}
                         </div>
                         {!appointmentListLoading && econsultTotalPages > 1 && (
-                            <Pagination className="pagination-separated mb-0">
+                            <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                                 <PaginationItem disabled={econsultSafePage === 1}>
                                     <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setEconsultPage(Math.max(1, econsultSafePage - 1)); }} />
                                 </PaginationItem>
-                                {Array.from({ length: econsultTotalPages }).map((_, i) => {
-                                    const page = i + 1;
-                                    return (
-                                        <PaginationItem active={page === econsultSafePage} key={page}>
-                                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setEconsultPage(page); }}>{page}</PaginationLink>
-                                        </PaginationItem>
-                                    );
-                                })}
+                                <CompactModalPaginationPages currentPage={econsultSafePage} totalPages={econsultTotalPages} onPageChange={setEconsultPage} />
                                 <PaginationItem disabled={econsultSafePage === econsultTotalPages}>
                                     <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setEconsultPage(Math.min(econsultTotalPages, econsultSafePage + 1)); }} />
                                 </PaginationItem>
@@ -3575,18 +3559,11 @@ const Widgets = () => {
                             )}
                         </div>
                         {!appointmentListLoading && remainingTotalPages > 1 && (
-                            <Pagination className="pagination-separated mb-0">
+                            <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                                 <PaginationItem disabled={remainingSafePage === 1}>
                                     <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setRemainingPage(Math.max(1, remainingSafePage - 1)); }} />
                                 </PaginationItem>
-                                {Array.from({ length: remainingTotalPages }).map((_, i) => {
-                                    const page = i + 1;
-                                    return (
-                                        <PaginationItem active={page === remainingSafePage} key={page}>
-                                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setRemainingPage(page); }}>{page}</PaginationLink>
-                                        </PaginationItem>
-                                    );
-                                })}
+                                <CompactModalPaginationPages currentPage={remainingSafePage} totalPages={remainingTotalPages} onPageChange={setRemainingPage} />
                                 <PaginationItem disabled={remainingSafePage === remainingTotalPages}>
                                     <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setRemainingPage(Math.min(remainingTotalPages, remainingSafePage + 1)); }} />
                                 </PaginationItem>
@@ -3669,18 +3646,11 @@ const Widgets = () => {
                             )}
                         </div>
                         {!appointmentListLoading && completedTotalPages > 1 && (
-                            <Pagination className="pagination-separated mb-0">
+                            <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                                 <PaginationItem disabled={completedSafePage === 1}>
                                     <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCompletedPage(Math.max(1, completedSafePage - 1)); }} />
                                 </PaginationItem>
-                                {Array.from({ length: completedTotalPages }).map((_, i) => {
-                                    const page = i + 1;
-                                    return (
-                                        <PaginationItem active={page === completedSafePage} key={page}>
-                                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCompletedPage(page); }}>{page}</PaginationLink>
-                                        </PaginationItem>
-                                    );
-                                })}
+                                <CompactModalPaginationPages currentPage={completedSafePage} totalPages={completedTotalPages} onPageChange={setCompletedPage} />
                                 <PaginationItem disabled={completedSafePage === completedTotalPages}>
                                     <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCompletedPage(Math.min(completedTotalPages, completedSafePage + 1)); }} />
                                 </PaginationItem>

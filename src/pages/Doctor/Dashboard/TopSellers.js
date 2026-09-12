@@ -4,7 +4,7 @@ import DateOfBirthPicker from '../../../Components/Common/DateOfBirthPicker';
 import { Card, CardBody, CardHeader, Col, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Label } from 'reactstrap';
 
 const TopSellers = () => {
-    // Reminders state (with default 10th item)
+    // Reminders state (10 items)
     const [reminders, setReminders] = useState([
         { title: 'Medicine Restoration', time: '08.00 AM' },
         { title: 'Hospital Cleanup', time: '08.30 AM' },
@@ -83,6 +83,15 @@ const TopSellers = () => {
     );
 
     const calendarStyles = `
+        .doctor-reminders-card {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        .doctor-reminders-card > .card-body {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
         .doctor-reminders-card .calendar-grid {
             border: 1px solid #e3e8ee;
             border-radius: 5px;
@@ -97,12 +106,12 @@ const TopSellers = () => {
         .doctor-reminders-card .calendar-day-header {
             flex: 1;
             text-align: center;
-            font-size: 11px;
+            font-size: 0.625rem;
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
             color: #868e96;
-            padding: 8px 0;
+            padding: 0.35rem 0;
             border-right: 1px solid #eef1f4;
         }
         .doctor-reminders-card .calendar-day-header:last-child {
@@ -112,17 +121,23 @@ const TopSellers = () => {
             list-style: none;
             counter-reset: reminder-counter;
             padding-left: 0;
-            padding-bottom: 0.5rem;
+            padding-bottom: 0;
             margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 0;
         }
         .doctor-reminders-card .reminders-list li {
             counter-increment: reminder-counter;
             display: grid;
-            grid-template-columns: 28px 1fr;
-            column-gap: 8px;
-            padding: 10px 10px;
-            border-radius: 10px;
-            margin-bottom: 4px;
+            grid-template-columns: 22px 1fr;
+            column-gap: 0.4rem;
+            padding: 0.28rem 0.35rem;
+            border-radius: 6px;
+            margin-bottom: 0;
+            flex: 1 1 0;
+            align-content: center;
             transition: background-color 0.15s ease;
         }
         .doctor-reminders-card .reminders-list li:hover {
@@ -130,12 +145,12 @@ const TopSellers = () => {
         }
         .doctor-reminders-card .reminders-list li::before {
             content: counter(reminder-counter);
-            width: 22px;
-            height: 22px;
+            width: 1.15rem;
+            height: 1.15rem;
             border-radius: 50%;
             background: #e8f5ff;
             color: #25a0e2;
-            font-size: 11px;
+            font-size: 0.625rem;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
@@ -143,13 +158,18 @@ const TopSellers = () => {
             margin-top: 1px;
         }
         .doctor-reminders-card .reminders-list .reminder-time {
-            font-size: 12px;
+            font-size: 0.625rem;
             font-weight: 600;
             color: #6c757d;
             white-space: nowrap;
-            padding: 2px 8px;
+            padding: 0.1rem 0.4rem;
             border-radius: 999px;
             background: #f1f3f5;
+        }
+        .doctor-reminders-card .reminders-list p {
+            font-size: 0.6875rem !important;
+            line-height: 1.25 !important;
+            margin-bottom: 0 !important;
         }
         .doctor-reminders-card .calendar-row {
             border-bottom: 1px solid #eef1f4;
@@ -160,10 +180,10 @@ const TopSellers = () => {
         .doctor-reminders-card .calendar-day {
             flex: 1;
             text-align: center;
-            font-size: 13px;
+            font-size: 0.6875rem;
             color: #212529;
             border-right: 1px solid #eef1f4;
-            min-height: 34px;
+            min-height: 1.65rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -181,9 +201,9 @@ const TopSellers = () => {
             color: #25a0e2;
             font-weight: 700;
             border: 1px solid #cfe9ff;
-            border-radius: 5px;
-            margin: 3px;
-            min-height: 28px;
+            border-radius: 4px;
+            margin: 2px;
+            min-height: 1.4rem;
         }
         .doctor-reminders-card .calendar-day.empty {
             background-color: #fafbfc;
@@ -198,9 +218,9 @@ const TopSellers = () => {
     return (
         <React.Fragment>
             <style>{calendarStyles}</style>
-            <Col xl={3}>
-                <Card className="card-height-100 doctor-reminders-card">
-                    <CardHeader className="align-items-center d-flex doctor-dashboard-card-header">
+            <Col xl={3} className="d-flex">
+                <Card className="card-height-100 doctor-reminders-card w-100">
+                    <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header">
                         <h4 className="card-title mb-0 flex-grow-1">Today's Reminders ({remindersCountLabel})</h4>
                         <Button
                             type="button"
@@ -214,8 +234,8 @@ const TopSellers = () => {
                             Create New
                         </Button>
                     </CardHeader>
-                    <CardBody className="pb-3">
-                        <div className="calendar-grid mb-3">
+                    <CardBody className="pb-2 pt-2 d-flex flex-column">
+                        <div className="calendar-grid mb-2 flex-shrink-0">
                             <div className="calendar-header d-flex">
                                 <div className="calendar-day-header">Sun</div>
                                 <div className="calendar-day-header">Mon</div>
@@ -242,7 +262,7 @@ const TopSellers = () => {
                             </div>
                         </div>
 
-                        <ol className="mb-0 reminders-list">
+                        <ol className="mb-0 reminders-list flex-grow-1">
                             {reminders.map((item, idx) => (
                                 <li key={`${item.title}-${idx}`}>
                                     <div className="d-flex align-items-center">
@@ -269,7 +289,7 @@ const TopSellers = () => {
                         >
                             <ModalHeader className="patient-list-modal__header" toggle={closeModal}>
                                 <span className="patient-list-modal__title patient-list-modal__title--simple">
-                                    <i className="ri-notification-3-line" style={{ color: '#25a0e2', fontSize: 20 }} aria-hidden="true" />
+                                    <i className="ri-notification-3-line" style={{ color: '#25a0e2', fontSize: 15 }} aria-hidden="true" />
                                     <span className="patient-list-modal__title-text">Create New Reminder</span>
                                 </span>
                             </ModalHeader>

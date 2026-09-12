@@ -390,7 +390,7 @@ export default function AnatomyViewer({ onAddToRepertorization, repertorizationR
                   aria-pressed={gender === "male"}
                   onClick={() => handleGenderChange("male")}
                 >
-                  <i className="ri-men-line fs-20" />
+                  <i className="ri-men-line" />
                 </button>
                 <button
                   type="button"
@@ -401,7 +401,7 @@ export default function AnatomyViewer({ onAddToRepertorization, repertorizationR
                   aria-pressed={gender === "female"}
                   onClick={() => handleGenderChange("female")}
                 >
-                  <i className="ri-women-line fs-20" />
+                  <i className="ri-women-line" />
                 </button>
               </div>
               <div className="anatomy-canvas-overlay__right">
@@ -412,7 +412,7 @@ export default function AnatomyViewer({ onAddToRepertorization, repertorizationR
                   aria-label="Reset sections and hotspots"
                   onClick={resetSectionsAndHotspots}
                 >
-                  <i className="ri-refresh-line fs-20" />
+                  <i className="ri-refresh-line" />
                 </button>
                 <button
                   type="button"
@@ -424,8 +424,8 @@ export default function AnatomyViewer({ onAddToRepertorization, repertorizationR
                   <i
                     className={
                       viewerFullscreen
-                        ? "ri-fullscreen-exit-line fs-20"
-                        : "ri-fullscreen-line fs-20"
+                        ? "ri-fullscreen-exit-line"
+                        : "ri-fullscreen-line"
                     }
                   />
                 </button>

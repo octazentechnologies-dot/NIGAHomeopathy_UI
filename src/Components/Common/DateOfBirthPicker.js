@@ -8,7 +8,7 @@ export const DOB_DISPLAY_FORMAT = DATE_DISPLAY_FORMAT;
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const YEARS_PER_PAGE = 24;
-const POPOVER_WIDTH = 320;
+const POPOVER_WIDTH = 248;
 
 const parseDateValue = (value) => {
     if (!value) return null;

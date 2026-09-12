@@ -10,6 +10,7 @@ import ReactHtmlParser from 'html-react-parser';
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
 
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import { getDiagnosisForClinicalPatternList, getDiagnosisTherapeuticsList, getDiagnosisTherapeuticsById } from '../../../../slices/thunks';
 import { setDiagnosisTherapeuticsList } from '../../../../slices/admin/clinicalpattern/diagnosistherapeutics/reducer';
 import { useDispatch, useSelector } from 'react-redux';
@@ -106,21 +107,23 @@ const DiagnosisTherapeuticsList = () => {
               <Card className="patient-list-modal admin-existance-list admin-list-filter-card">
                 <CardBody>
                   <div className="live-preview">
-                    <Row className="gy-3 align-items-end">
-                      <Col xxl={4} md={4}>
+                    <Row className="gy-3 align-items-end admin-list-filter-row">
+                      <Col xs={12} md={5} lg={4} xl={4}>
                         <div className="mb-0">
-                          <Label htmlFor="placeholderInput" className="form-label">Diagnosis Name</Label>
+                          <Label htmlFor="diagnosisFilter" className="form-label">Diagnosis Name</Label>
                           <Select
+                            inputId="diagnosisFilter"
                             value={selectedDiagnosis}
                             onChange={(item) => { handleSelectDiagnosis(item); }}
                             options={DiagnosisForClinicalPatternOptions}
+                            classNamePrefix="admin-form-select"
+                            theme={neutralSelectTheme}
+                            styles={getAdminFormSelectStyles()}
+                            {...adminFormSelectPortalProps}
                           />
                         </div>
                       </Col>
-                      <Col xxl={4} md={4}>
-                        <Label className="form-label mb-0 opacity-0 user-select-none" aria-hidden="true">
-                          Reset
-                        </Label>
+                      <Col xs="auto" className="admin-list-filter-reset-col">
                         <div className="admin-list-filter-reset">
                           <button
                             type="button"

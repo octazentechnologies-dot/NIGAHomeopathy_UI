@@ -5,20 +5,29 @@
 @import"./shepherd.css";
 @import "./mermaid.min.css";
 
-// Matches .form-control (0.8rem font + Bootstrap padding) — use for react-select / select2 height parity
-$app-form-field-font-size: 0.8rem;
-$app-form-field-height: calc(0.8rem * 1.5 + 0.5rem * 2 + 2px);
+// Matches .form-control — compact field type for app-wide density
+$app-form-field-font-size: 0.6875rem; // ~11px
+$app-form-field-height: 1.75rem; // 28px — shared height for search + all admin inputs
+$app-form-field-padding-y: 0.22rem;
+// Match react-select / Bootstrap $input-padding-x so text inset matches dropdowns
+$app-form-field-padding-x: 0.9rem;
 // Actual rendered topbar height (.navbar-header override); differs from Velzon $header-height (70px)
 $app-topbar-height: 60px;
-$app-horizontal-nav-height: calc(#{$horizontal-menu-item-padding-y} * 2 + 1.25rem);
+// Match compacted horizontal menu-link padding (0.45rem y) + label/icon line
+$app-horizontal-nav-height: 2.05rem;
 
 :root {
   --app-form-field-font-size: #{$app-form-field-font-size};
   --app-form-field-height: #{$app-form-field-height};
+  --app-form-field-padding-y: #{$app-form-field-padding-y};
+  --app-form-field-padding-x: #{$app-form-field-padding-x};
   --app-topbar-height: #{$app-topbar-height};
   --app-modal-padding: 0.5rem;
   --app-modal-header-padding: 0.7rem;
   --app-modal-body-padding: 0.7rem;
+  --app-icon-size: 1.0625rem; // ~17px default icons
+  --app-icon-size-sm: 0.9375rem; // ~15px
+  --app-icon-size-lg: 1.25rem; // ~20px
 
   /* Compact scrollbars app-wide */
   --app-scrollbar-size: 3px;
@@ -26,6 +35,354 @@ $app-horizontal-nav-height: calc(#{$horizontal-menu-item-padding-y} * 2 + 1.25re
   --app-scrollbar-track: #e6eff5;
   --app-scrollbar-thumb: #045c8b;
   --app-scrollbar-thumb-hover: #034a70;
+}
+
+// ---------------------------------------------------------------------------
+// App-wide compact typography + icons (sizes only — colors unchanged)
+// ---------------------------------------------------------------------------
+body {
+  font-size: $font-size-base !important;
+}
+
+.navbar-header {
+  .user-name-text {
+    font-size: 0.75rem !important;
+  }
+
+  .user-name-sub-text {
+    font-size: 0.625rem !important;
+  }
+
+  .header-item,
+  .btn-topbar,
+  .btn-icon {
+    i,
+    [class^="ri-"],
+    [class*=" ri-"],
+    [class^="mdi-"],
+    [class*=" mdi-"],
+    [class^="bx"],
+    [class*=" bx"] {
+      font-size: var(--app-icon-size) !important;
+    }
+  }
+}
+
+.navbar-menu,
+.topnav {
+  .navbar-nav {
+    > .nav-item > .nav-link,
+    > li > .nav-link {
+      font-size: 0.6875rem !important;
+      line-height: 1.25 !important;
+      align-items: center !important;
+
+      i,
+      .nav-icon,
+      [class^="ri-"],
+      [class*=" ri-"],
+      [class^="mdi-"],
+      [class*=" mdi-"],
+      [class^="bx"],
+      [class*=" bx"] {
+        font-size: var(--app-icon-size-sm) !important;
+        line-height: 1 !important;
+      }
+    }
+
+    .nav-sm .nav-link,
+    .menu-dropdown .nav-link {
+      font-size: 0.625rem !important;
+    }
+  }
+}
+
+.table,
+.table th,
+.table td,
+.patient-list-modal__table th,
+.patient-list-modal__table td {
+  font-size: 0.6875rem !important;
+}
+
+// Doctor popup modals: match admin list table density (padding + type)
+.modal.patient-list-modal,
+.modal-dialog.patient-list-modal,
+.patient-list-modal.modal {
+  .patient-list-modal__table {
+    thead th,
+    tbody td {
+      padding: 0.55rem 0.75rem !important;
+      vertical-align: middle !important;
+      line-height: 1.25 !important;
+      font-size: 0.6875rem !important;
+    }
+  }
+
+  .patient-list-modal__footer-text {
+    font-size: 0.6875rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .patient-list-modal__footer {
+    .pagination {
+      gap: 0.35rem;
+      --#{$prefix}pagination-color: #495057;
+      --#{$prefix}pagination-hover-color: #25a0e2;
+      --#{$prefix}pagination-focus-color: #25a0e2;
+      --#{$prefix}pagination-active-color: #ffffff;
+      --#{$prefix}pagination-active-bg: #25a0e2;
+      --#{$prefix}pagination-active-border-color: #25a0e2;
+
+      .page-item .page-link {
+        width: 1.5rem;
+        height: 1.5rem;
+        min-width: 1.5rem;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25rem !important;
+        line-height: 1 !important;
+        font-size: 0.75rem !important;
+        font-weight: 400;
+        border: 1px solid #cfe9ff !important;
+        color: #495057 !important;
+        background-color: #ffffff !important;
+        box-shadow: none !important;
+      }
+
+      .page-item.active .page-link {
+        background-color: #25a0e2 !important;
+        border-color: #25a0e2 !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+      }
+
+      .page-item:not(.active):not(.disabled) .page-link:hover {
+        background-color: #e8f5ff !important;
+        border-color: #cfe9ff !important;
+        color: #25a0e2 !important;
+      }
+
+      .page-item.disabled .page-link {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+    }
+  }
+
+  .patient-list-modal__title-text {
+    font-size: 0.75rem !important;
+  }
+
+  .patient-list-modal__meta,
+  .patient-list-modal__status,
+  .patient-list-modal__name-text {
+    font-size: 0.6875rem !important;
+  }
+
+  // Catch remaining large body copy in doctor popup shells
+  .modal-body p,
+  .modal-body .text-muted,
+  .modal-body .form-label,
+  .modal-body label {
+    font-size: 0.6875rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .modal-body .form-control,
+  .modal-body .form-select {
+    font-size: var(--app-form-field-font-size, 0.6875rem) !important;
+  }
+}
+
+// Table body icons only — keep smaller than global icon scale
+.table tbody td,
+table.table tbody td,
+.patient-list-modal__table tbody td,
+.table-responsive tbody td,
+.dataTables_wrapper tbody td {
+  i,
+  i[class^="ri-"],
+  i[class*=" ri-"],
+  i[class^="mdi-"],
+  i[class*=" mdi-"],
+  i[class^="bx"],
+  i[class*=" bx"],
+  span[class^="ri-"],
+  span[class*=" ri-"],
+  span[class^="mdi-"],
+  span[class*=" mdi-"],
+  .btn i,
+  .btn [class^="ri-"],
+  .btn [class*=" ri-"],
+  .btn-icon i,
+  .btn-sm i,
+  .doctor-action-icon,
+  .admin-list-btn i {
+    font-size: 0.8125rem !important; // 13px
+    line-height: 1 !important;
+  }
+
+  .btn.btn-icon,
+  .btn-icon {
+    width: 1.55rem !important;
+    height: 1.55rem !important;
+    min-width: 1.55rem !important;
+    padding: 0 !important;
+  }
+
+  svg {
+    width: 0.8125rem !important;
+    height: 0.8125rem !important;
+  }
+}
+
+.card-title,
+.card-header h4,
+.card-header h5,
+.card-header .card-title {
+  font-size: 0.8125rem !important;
+}
+
+.badge,
+.badge-soft,
+.badge-label {
+  font-size: 0.6rem !important;
+}
+
+.dropdown-menu {
+  font-size: 0.6875rem !important;
+
+  .dropdown-item {
+    font-size: 0.6875rem !important;
+
+    i,
+    [class^="ri-"],
+    [class*=" ri-"] {
+      font-size: var(--app-icon-size-sm) !important;
+    }
+  }
+}
+
+.breadcrumb {
+  font-size: 0.6875rem !important;
+}
+
+.form-label,
+.col-form-label {
+  font-size: 0.6875rem !important;
+}
+
+.form-control,
+.form-select,
+.input-group-text,
+.form-control-sm,
+.form-select-sm {
+  font-size: $app-form-field-font-size !important;
+}
+
+.form-select:not([multiple]) {
+  font-size: $app-form-field-font-size !important;
+  line-height: 1.25 !important;
+  padding-top: $app-form-field-padding-y !important;
+  padding-bottom: $app-form-field-padding-y !important;
+  padding-left: $app-form-field-padding-x !important;
+  padding-right: $app-form-field-padding-x !important;
+  height: $app-form-field-height !important;
+  min-height: $app-form-field-height !important;
+  max-height: $app-form-field-height !important;
+}
+
+.btn:not(.btn-lg):not(.btn-sm) {
+  font-size: 0.6875rem !important;
+
+  i,
+  [class^="ri-"],
+  [class*=" ri-"] {
+    font-size: var(--app-icon-size-sm) !important;
+  }
+}
+
+.btn-sm,
+.admin-list-btn {
+  font-size: 0.625rem !important;
+
+  i,
+  [class^="ri-"],
+  [class*=" ri-"] {
+    font-size: 0.875rem !important;
+  }
+}
+
+.modal-title {
+  font-size: 0.8125rem !important;
+}
+
+.modal-body,
+.offcanvas-body {
+  font-size: 0.75rem !important;
+}
+
+.pagination {
+  font-size: 0.6875rem !important;
+}
+
+.fs-12 { font-size: 0.625rem !important; }
+.fs-13 { font-size: 0.6875rem !important; }
+.fs-14 { font-size: 0.75rem !important; }
+.fs-15 { font-size: 0.75rem !important; }
+.fs-16 { font-size: 0.8125rem !important; }
+.fs-17 { font-size: 0.8125rem !important; }
+.fs-18 { font-size: 0.875rem !important; }
+.fs-20 { font-size: 0.9375rem !important; }
+.fs-22 { font-size: 1rem !important; }
+.fs-24 { font-size: 1.0625rem !important; }
+
+// Global icon scale (Remix / Material / Boxicons / Line Awesome)
+// Skip when an explicit fs-* size class is present on the same element
+i[class^="ri-"]:not([class*="fs-"]),
+i[class*=" ri-"]:not([class*="fs-"]),
+span[class^="ri-"]:not([class*="fs-"]),
+span[class*=" ri-"]:not([class*="fs-"]),
+i[class^="mdi-"]:not([class*="fs-"]),
+i[class*=" mdi-"]:not([class*="fs-"]),
+span[class^="mdi-"]:not([class*="fs-"]),
+span[class*=" mdi-"]:not([class*="fs-"]),
+i[class^="bx"]:not([class*="fs-"]),
+i[class*=" bx"]:not([class*="fs-"]),
+span[class^="bx"]:not([class*="fs-"]),
+span[class*=" bx"]:not([class*="fs-"]),
+i.las:not([class*="fs-"]),
+i.lab:not([class*="fs-"]),
+i.lar:not([class*="fs-"]),
+span.las:not([class*="fs-"]),
+span.lab:not([class*="fs-"]),
+span.lar:not([class*="fs-"]) {
+  font-size: var(--app-icon-size) !important;
+  line-height: 1 !important;
+}
+
+.avatar-title {
+  i:not([class*="fs-"]),
+  [class^="ri-"]:not([class*="fs-"]),
+  [class*=" ri-"]:not([class*="fs-"]),
+  [class^="mdi-"]:not([class*="fs-"]),
+  [class*=" mdi-"]:not([class*="fs-"]) {
+    font-size: var(--app-icon-size) !important;
+  }
+}
+
+.avatar-xs .avatar-title i:not([class*="fs-"]),
+.avatar-sm .avatar-title i:not([class*="fs-"]) {
+  font-size: var(--app-icon-size-sm) !important;
+}
+
+.fs-1 i,
+.display-5 i,
+.display-6 i {
+  font-size: 1.15em !important;
 }
 
 // Modal / offcanvas: compact padding (all themes)
@@ -397,8 +754,9 @@ $value in $theme-colors {
 }
 
 // react-select (Emotion hashes + classNamePrefix): neutral borders + compact height
-[class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]),
-[class$="__control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]) {
+// Single-select only — multi must grow with chips (see --is-multi rules below)
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not(:has([class*="value-container--is-multi"])):not([class*="--is-focused"]):not([class*="--menu-is-open"]),
+[class$="__control"]:not(:has([class*="value-container--is-multi"])):not([class*="--is-focused"]):not([class*="--menu-is-open"]) {
   min-height: var(--app-form-field-height) !important;
   height: var(--app-form-field-height) !important;
   max-height: var(--app-form-field-height) !important;
@@ -413,8 +771,8 @@ $value in $theme-colors {
   }
 }
 
-[class*="css-"][class*="-container"] [class*="css-"][class*="-control"],
-[class$="__control"] {
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not(:has([class*="value-container--is-multi"])),
+[class$="__control"]:not(:has([class*="value-container--is-multi"])) {
   min-height: var(--app-form-field-height) !important;
   height: var(--app-form-field-height) !important;
   max-height: var(--app-form-field-height) !important;
@@ -436,47 +794,102 @@ $value in $theme-colors {
   box-shadow: none !important;
 }
 
-[class*="css-"][class*="-control--is-multi"],
-[class*="__control--is-multi"] {
-  min-height: var(--app-form-field-height) !important;
+// Never lock multi-select height — chips must wrap inside a growing control
+// (--is-multi lives on value-container in react-select v5, not on control)
+[class*="__control"]:has([class*="value-container--is-multi"]),
+[class*="__control"]:has([class*="__multi-value"]),
+[class*="__control--is-multi"],
+.admin-form-select__control--is-multi,
+.select__control--is-multi,
+div[class*="-control"][class*="--is-multi"] {
   height: auto !important;
   max-height: none !important;
-  align-items: flex-start !important;
+  min-height: var(--app-form-field-height) !important;
+  align-items: center !important;
+  overflow: visible !important;
 }
 
-[class*="css-"][class*="-container"] [class*="css-"][class*="-control"] [class*="css-"][class*="-ValueContainer"],
-[class$="__value-container"],
-[class*="__value-container"] {
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not(:has([class*="value-container--is-multi"])) [class*="css-"][class*="-ValueContainer"],
+[class$="__control"]:not(:has([class*="value-container--is-multi"])) [class$="__value-container"],
+[class$="__control"]:not(:has([class*="value-container--is-multi"])) [class*="__value-container"] {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-  padding-left: $input-padding-x !important;
-  padding-right: $input-padding-x !important;
+  padding-left: $app-form-field-padding-x !important;
+  padding-right: $app-form-field-padding-x !important;
   height: 100% !important;
   min-height: 0 !important;
   font-size: var(--app-form-field-font-size) !important;
+  line-height: 1.25 !important;
 }
 
-// Multi-select: class attr ends with --is-multi so $=__value-container never matched
-[class*="__value-container--is-multi"] {
+// react-select text: same font as .form-control everywhere (prefix + Emotion)
+[class*="__placeholder"],
+[class*="__single-value"],
+[class*="__input"],
+[class*="__input-container"],
+[class*="css-"][class*="-placeholder"],
+[class*="css-"][class*="-singleValue"],
+[class*="css-"][class*="-input"],
+.admin-form-select__placeholder,
+.admin-form-select__single-value,
+.admin-form-select__input,
+.select__placeholder,
+.select__single-value,
+.select__input {
+  font-size: var(--app-form-field-font-size) !important;
+  line-height: 1.25 !important;
+}
+
+[class*="__option"],
+[class*="css-"][class*="-option"],
+.admin-form-select__option,
+.select__option {
+  font-size: var(--app-form-field-font-size) !important;
+  line-height: 1.25 !important;
+}
+
+// Multi-select: chips wrap; container grows with content
+[class*="css-"][class*="-container"] [class*="__value-container--is-multi"],
+[class*="__value-container--is-multi"],
+.admin-form-select__value-container--is-multi {
   height: auto !important;
+  max-height: none !important;
   min-height: calc(#{$app-form-field-height} - 2px) !important;
-  padding-top: 0.25rem !important;
-  padding-bottom: 0.25rem !important;
-  padding-left: $input-padding-x !important;
-  padding-right: $input-padding-x !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: $app-form-field-padding-x !important;
+  padding-right: $app-form-field-padding-x !important;
   align-items: center !important;
+  align-content: center !important;
   flex-wrap: wrap !important;
+  flex: 1 1 auto !important;
   gap: 0.25rem;
+  overflow: visible !important;
 }
 
-[class*="__multi-value"] {
+[class*="__multi-value"],
+.admin-form-select__multi-value {
   margin: 0 !important;
+  max-width: 100%;
 }
 
-[class*="css-"][class*="-container"] [class*="css-"][class*="-control"] [class*="css-"][class*="-IndicatorsContainer"],
-[class$="__indicators"] {
+[class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not(:has([class*="value-container--is-multi"])) [class*="css-"][class*="-IndicatorsContainer"],
+[class$="__control"]:not(:has([class*="value-container--is-multi"])) [class$="__indicators"] {
   height: 100% !important;
   align-self: stretch !important;
+}
+
+[class*="__control"]:has([class*="value-container--is-multi"]) [class$="__indicators"],
+[class*="__control"]:has([class*="value-container--is-multi"]) [class*="__indicators"],
+[class*="__control--is-multi"] [class$="__indicators"],
+[class*="__control--is-multi"] [class*="__indicators"],
+.admin-form-select__control--is-multi .admin-form-select__indicators {
+  height: auto !important;
+  min-height: calc(#{$app-form-field-height} - 2px) !important;
+  max-height: none !important;
+  align-self: stretch !important;
+  align-items: center !important;
+  padding-top: 0 !important;
 }
 
 [class*="css-"][class*="-container"] [class*="css-"][class*="-control"] [class*="css-"][class*="-indicator"],
@@ -528,7 +941,7 @@ html[data-layout="horizontal"] {
 }
 
 body {
-  font-size: 0.8rem !important;
+  font-size: $font-size-base !important;
 }
 
 .text-info {
@@ -536,18 +949,78 @@ body {
   color: #25a0e2 !important;
 }
 
-.form-control:not(textarea) {
+.form-control:not(textarea),
+.form-select:not([multiple]),
+select.form-select:not([multiple]),
+select.form-control:not([multiple]) {
   font-size: $app-form-field-font-size !important;
-  line-height: $input-line-height;
-  padding-top: $input-padding-y;
-  padding-bottom: $input-padding-y;
+  line-height: 1.25 !important;
+  padding-top: $app-form-field-padding-y !important;
+  padding-bottom: $app-form-field-padding-y !important;
+  padding-left: $app-form-field-padding-x !important;
+  padding-right: $app-form-field-padding-x !important;
   height: $app-form-field-height !important;
   min-height: $app-form-field-height !important;
   max-height: $app-form-field-height !important;
 }
 
-textarea.form-control {
-  font-size: 0.8rem !important;
+// Textarea: same font as inputs; start at input height; allow vertical resize
+textarea.form-control,
+textarea {
+  font-size: $app-form-field-font-size !important;
+  line-height: 1.25 !important;
+  box-sizing: border-box !important;
+  padding-left: $app-form-field-padding-x !important;
+  padding-right: $app-form-field-padding-x !important;
+  // Optical vertical align with input/select text (textarea sits slightly high by default)
+  padding-top: calc((#{$app-form-field-height} - #{$app-form-field-font-size} * 1.25 - 2px) / 2 + 0.1rem) !important;
+  padding-bottom: calc((#{$app-form-field-height} - #{$app-form-field-font-size} * 1.25 - 2px) / 2 - 0.06rem) !important;
+  min-height: $app-form-field-height !important;
+  // height without !important so browser resize (inline style) can override it
+  height: $app-form-field-height;
+  max-height: none !important;
+  resize: vertical !important;
+  overflow-y: auto !important;
+  vertical-align: middle;
+}
+
+.form-select,
+select.form-select,
+select.form-control {
+  font-size: $app-form-field-font-size !important;
+}
+
+// Compact toggles app-wide + align with adjacent input height
+.form-switch,
+.form-switch-md,
+.form-switch-lg {
+  min-height: $app-form-field-height !important;
+  height: $app-form-field-height !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 2.35rem !important;
+  display: flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+
+  .form-check-input {
+    width: 2rem !important; // 32px
+    height: 1.05rem !important; // ~17px
+    margin-top: 0 !important;
+    margin-left: -2.35rem !important;
+    position: relative !important;
+    left: 0 !important;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .form-check-label {
+    margin-bottom: 0 !important;
+    line-height: 1.2 !important;
+    font-size: $app-form-field-font-size !important;
+  }
 }
 
 .navbar-menu .navbar-nav .nav-link {
@@ -632,11 +1105,18 @@ html:not([data-bs-theme="dark"]) {
   }
 
   .btn-soft-primary {
-    color: #000000 !important;
+    color: #25a0e2 !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
   }
 
-  .btn-soft-primary:hover {
-    color: #ffffff !important;
+  .btn-soft-primary:hover,
+  .btn-soft-primary:focus,
+  .btn-soft-primary:active,
+  .btn-soft-primary.active {
+    color: #25a0e2 !important;
+    background-color: rgba(37, 160, 226, 0.12) !important;
+    border-color: transparent !important;
   }
 
   // Modal footers: soft button sizing
@@ -652,13 +1132,26 @@ html:not([data-bs-theme="dark"]) {
       padding-bottom: $input-padding-y !important;
     }
 
-    .btn-soft-primary {
-      color: var(--#{$prefix}primary) !important;
+    .btn-soft-primary,
+    .modal-action-btn.btn-soft-primary {
+      color: #25a0e2 !important;
+      background-color: rgba(37, 160, 226, 0.12) !important;
+      border-color: transparent !important;
 
-      &:hover,
-      &:focus,
-      &:active {
-        color: #{$white} !important;
+      &:hover:not(:disabled):not(.disabled),
+      &:focus:not(:disabled):not(.disabled),
+      &:active:not(:disabled):not(.disabled) {
+    color: #ffffff !important;
+        background-color: #25a0e2 !important;
+        border-color: #25a0e2 !important;
+      }
+
+      &:disabled,
+      &.disabled {
+        color: #25a0e2 !important;
+        background-color: rgba(37, 160, 226, 0.12) !important;
+        border-color: transparent !important;
+        opacity: 0.55;
       }
     }
   }
@@ -739,12 +1232,16 @@ html:not([data-bs-theme="dark"]) {
     }
 
     .menu-dropdown {
-      min-width: 16.5rem;
+      min-width: 0;
       width: max-content;
-      max-width: 22rem;
+      max-width: 18rem;
+      padding: 0.35rem 0.2rem;
 
       .nav-link {
         white-space: nowrap;
+        width: auto !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
       }
     }
   }
@@ -777,7 +1274,7 @@ html:not([data-bs-theme="dark"]) {
     box-shadow: none !important;
   }
 
-  [class$="__control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]):not([class*="--is-multi"]) {
+  [class$="__control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]):not(:has([class*="value-container--is-multi"])) {
     min-height: var(--app-form-field-height) !important;
     height: var(--app-form-field-height) !important;
     max-height: var(--app-form-field-height) !important;
@@ -796,8 +1293,8 @@ html:not([data-bs-theme="dark"]) {
     }
   }
 
-  [class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not([class*="--is-multi"]),
-  [class$="__control"]:not([class*="--is-multi"]) {
+  [class*="css-"][class*="-container"] [class*="css-"][class*="-control"]:not(:has([class*="value-container--is-multi"])),
+  [class$="__control"]:not(:has([class*="value-container--is-multi"])) {
     min-height: var(--app-form-field-height) !important;
     height: var(--app-form-field-height) !important;
     max-height: var(--app-form-field-height) !important;
@@ -819,21 +1316,24 @@ html:not([data-bs-theme="dark"]) {
     box-shadow: none !important;
   }
 
-  // Multi-select may grow vertically when chips are present
+  // Multi-select may grow vertically when chips wrap
+  [class*="__control"]:has([class*="value-container--is-multi"]),
+  [class*="css-"][class*="-container"] [class*="css-"][class*="-control"][class*="--is-multi"],
   [class*="__control--is-multi"],
   .admin-form-select__control--is-multi {
     min-height: var(--app-form-field-height) !important;
     height: auto !important;
     max-height: none !important;
-    align-items: flex-start !important;
+    align-items: center !important;
+    overflow: visible !important;
   }
 
-  [class$="__value-container"],
-  [class*="__value-container"] {
+  [class$="__control"]:not(:has([class*="value-container--is-multi"])) [class$="__value-container"],
+  [class$="__control"]:not(:has([class*="value-container--is-multi"])) [class*="__value-container"] {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
-    padding-left: $input-padding-x !important;
-    padding-right: $input-padding-x !important;
+    padding-left: $app-form-field-padding-x !important;
+    padding-right: $app-form-field-padding-x !important;
     height: 100% !important;
     min-height: 0 !important;
     display: flex !important;
@@ -841,18 +1341,22 @@ html:not([data-bs-theme="dark"]) {
     font-size: var(--app-form-field-font-size) !important;
   }
 
-  // Multi-select chips: allow wrap + comfortable inner padding (match .form-control)
+  // Multi-select chips: allow wrap + grow with content
   [class*="__value-container--is-multi"],
   .admin-form-select__value-container--is-multi {
     height: auto !important;
+    max-height: none !important;
     min-height: calc(var(--app-form-field-height) - 2px) !important;
-    padding-top: 0.25rem !important;
-    padding-bottom: 0.25rem !important;
-    padding-left: $input-padding-x !important;
-    padding-right: $input-padding-x !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: $app-form-field-padding-x !important;
+    padding-right: $app-form-field-padding-x !important;
     align-items: center !important;
+    align-content: center !important;
     flex-wrap: wrap !important;
+    flex: 1 1 auto !important;
     gap: 0.25rem;
+    overflow: visible !important;
   }
 
   [class*="__multi-value"],
@@ -862,23 +1366,40 @@ html:not([data-bs-theme="dark"]) {
 
   [class$="__single-value"],
   [class$="__placeholder"],
-  [class$="__input-container"] {
+  [class$="__input-container"],
+  [class*="__single-value"],
+  [class*="__placeholder"],
+  [class*="__input-container"] {
     font-size: var(--app-form-field-font-size) !important;
-    line-height: $input-line-height !important;
+    line-height: 1.25 !important;
     margin: 0 !important;
   }
 
-  [class$="__input"] {
+  [class$="__input"],
+  [class*="__input"] {
     font-size: var(--app-form-field-font-size) !important;
-    line-height: $input-line-height !important;
+    line-height: 1.25 !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  [class$="__indicators"] {
+  [class$="__control"]:not(:has([class*="value-container--is-multi"])) [class$="__indicators"],
+  [class$="__control"]:not(:has([class*="value-container--is-multi"])) [class*="__indicators"] {
     align-self: stretch !important;
     height: 100% !important;
     max-height: var(--app-form-field-height) !important;
+  }
+
+  [class*="__control"]:has([class*="value-container--is-multi"]) [class$="__indicators"],
+  [class*="__control"]:has([class*="value-container--is-multi"]) [class*="__indicators"],
+  [class*="__control--is-multi"] [class$="__indicators"],
+  [class*="__control--is-multi"] [class*="__indicators"],
+  .admin-form-select__control--is-multi .admin-form-select__indicators {
+    align-self: stretch !important;
+    height: auto !important;
+    min-height: calc(var(--app-form-field-height) - 2px) !important;
+    max-height: none !important;
+    align-items: center !important;
   }
 
   [class$="__indicator"],
@@ -929,8 +1450,8 @@ html:not([data-bs-theme="dark"]) {
     font-size: var(--app-form-field-font-size) !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
-    padding-left: $input-padding-x !important;
-    padding-right: $input-padding-x !important;
+    padding-left: $app-form-field-padding-x !important;
+    padding-right: $app-form-field-padding-x !important;
   }
 
   .select2-container--default .select2-selection--single .select2-selection__arrow {
@@ -1113,9 +1634,38 @@ html:not([data-bs-theme="dark"]) {
   }
 
   // react-select: all classPrefix values (select__, react-select__, pb-ae-select__, etc.) + portaled menus
+  [class*="__menu"],
+  [class*="__menu-list"],
+  [id^="react-select-"][id$="-listbox"],
+  .admin-form-select__menu,
+  .admin-form-select__menu-list {
+    font-size: var(--app-form-field-font-size) !important;
+    z-index: 9999 !important;
+  }
+
+  // Portaled menus must sit above sticky thead / card sections / list search icons
+  .admin-form-select__menu-portal,
+  [class*="__menu-portal"],
+  div[class*="-menu"] {
+    z-index: 9999 !important;
+  }
+
+  .admin-form-select__menu,
+  [class$="__menu"],
+  [class*="css-"][class*="-menu"] {
+    z-index: 9999 !important;
+    background-color: #fff !important;
+  }
+
   [class*="__menu"] [role="option"],
-  [id^="react-select-"] [role="option"] {
+  [class*="__option"],
+  [id^="react-select-"] [role="option"],
+  .admin-form-select__option {
     background-color: transparent !important;
+    font-size: var(--app-form-field-font-size) !important;
+    line-height: 1.25 !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
 
     &[aria-selected="true"],
     &[class*="__option--is-selected"] {
@@ -1141,11 +1691,31 @@ html:not([data-bs-theme="dark"]) {
     background-color: transparent !important;
     color: $dropdown-option-active-color !important;
     font-weight: 500;
+    font-size: var(--app-form-field-font-size) !important;
   }
 
   [class*="__option--is-focused"]:not([class*="__option--is-selected"]) {
     background-color: transparent !important;
     color: $dropdown-option-active-color !important;
+    font-size: var(--app-form-field-font-size) !important;
+  }
+
+  // Native <select> option list + Select2 / Choices
+  .form-select option,
+  select option {
+    font-size: var(--app-form-field-font-size) !important;
+  }
+
+  .select2-results__option,
+  .select2-container--default .select2-results__option {
+    font-size: var(--app-form-field-font-size) !important;
+    line-height: 1.25 !important;
+  }
+
+  .choices__list--dropdown .choices__item,
+  .choices__list[aria-expanded] .choices__item {
+    font-size: var(--app-form-field-font-size) !important;
+    line-height: 1.25 !important;
   }
 
   // Bootstrap dropdown menus
@@ -1511,6 +2081,13 @@ body.doctor-layout .doctor-dashboard-stats-row {
     padding-right: $doctor-dashboard-header-px !important;
     box-sizing: border-box;
 
+    @media (max-width: 767.98px) {
+      height: auto !important;
+      min-height: $doctor-dashboard-header-min-h;
+      flex-wrap: wrap !important;
+      row-gap: 0.4rem;
+    }
+
     .card-title {
       font-size: 0.875rem;
       line-height: 1.2;
@@ -1557,9 +2134,11 @@ body.doctor-layout .doctor-dashboard-stats-row {
       font-weight: 600;
       text-transform: none;
       max-width: 100%;
-      color: #25a0e2 !important;
-      border-color: #25a0e2 !important;
-      background-color: transparent !important;
+      color: #0369a1 !important;
+      border: 1px solid #7dd3fc !important;
+      background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+      background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+      box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
 
       i {
         font-size: 14px;
@@ -1569,27 +2148,30 @@ body.doctor-layout .doctor-dashboard-stats-row {
       &:hover,
       &:focus-visible,
       &:active {
-        color: #2099d4 !important;
-        border-color: #2099d4 !important;
-        background-color: rgba(37, 160, 226, 0.1) !important;
+        color: #0c4a6e !important;
+        border-color: #38bdf8 !important;
+        background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+        background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
       }
 
       &:focus:not(:focus-visible) {
-        color: #25a0e2 !important;
-        border-color: #25a0e2 !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
+        color: #0369a1 !important;
+        border-color: #7dd3fc !important;
+        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12) !important;
       }
     }
   }
 }
 
-/* Import / Export — same light blue as Waiting / Completed KPI boxes */
+/* Import / Export — same light blue gradient as Add Rubric / KPI icon boxes */
 .doctor-dashboard-toolbar-btn {
-  background: #e8f5ff !important;
-  border: 1px solid #cfe9ff !important;
-  color: #25a0e2 !important;
-  box-shadow: none !important;
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+  background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+  border: 1px solid #7dd3fc !important;
+  color: #0369a1 !important;
+  box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12) !important;
   font-weight: 600;
 
   i {
@@ -1600,10 +2182,11 @@ body.doctor-layout .doctor-dashboard-stats-row {
   &:focus,
   &:active,
   &.active {
-    background: #cfe9ff !important;
-    border-color: #b3dbff !important;
-    color: #25a0e2 !important;
-    box-shadow: none !important;
+    background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+    background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+    border-color: #38bdf8 !important;
+    color: #0c4a6e !important;
+    box-shadow: 0 1px 2px rgba(14, 165, 233, 0.16) !important;
   }
 }
 
@@ -1653,7 +2236,8 @@ body.doctor-layout .doctor-dashboard-stats-row {
     }
 
     .dob-picker__popover {
-      width: 280px;
+      width: 248px;
+      padding: 0.55rem;
     }
   }
 
@@ -1962,6 +2546,22 @@ body.doctor-layout {
     overflow-x: clip;
   }
 
+  @media (max-width: 767.98px) {
+    #layout-wrapper {
+      overflow-x: hidden;
+    }
+
+    .main-content,
+    .page-content.doctor-dashboard-page,
+    .doctor-dashboard-page .container-fluid,
+    .doctor-dashboard-shell,
+    .doctor-dashboard-patient-row,
+    .doctor-dashboard-patient-row > [class*="col"] {
+      max-width: 100%;
+      min-width: 0 !important;
+    }
+  }
+
   .main-content {
     width: 100% !important;
     max-width: 100% !important;
@@ -2243,13 +2843,15 @@ body.doctor-layout {
       }
 
       .table > :not(caption) > * > * {
-        padding: 0.66rem 0.6rem !important;
+        padding: 0.45rem 0.4rem !important;
         line-height: 1.2 !important;
         vertical-align: middle;
+        font-size: 0.6875rem !important;
       }
 
       .table thead th {
-        padding: 0.66rem 0.6rem !important;
+        padding: 0.45rem 0.4rem !important;
+        font-size: 0.6875rem !important;
       }
 
       .btn.btn-sm {
@@ -2276,7 +2878,7 @@ body.doctor-layout {
         line-height: 1.15 !important;
         vertical-align: middle;
         box-shadow: none;
-        font-size: 0.8125rem;
+        font-size: 0.6875rem !important;
         background-color: #ffffff;
         --bs-table-accent-bg: #ffffff;
       }
@@ -2290,13 +2892,13 @@ body.doctor-layout {
       thead th {
         padding: 0.45rem 0.4rem !important;
         font-weight: 600;
-        font-size: 0.78rem;
+        font-size: 0.6875rem !important;
         border-bottom: 1px solid var(--#{$prefix}border-color);
         white-space: nowrap;
       }
 
       .dashboard-patient-col-agesex {
-        font-size: 0.75rem;
+        font-size: 0.6875rem !important;
       }
 
       &.table-hover > tbody > tr:hover > * {
@@ -2319,8 +2921,8 @@ body.doctor-layout {
         justify-content: center;
         border-radius: 0.25rem;
         line-height: 1;
-        font-size: 0.8rem;
-        font-weight: 600;
+        font-size: 0.75rem;
+        font-weight: 400;
         border: 1px solid #cfe9ff !important;
         color: #495057 !important;
         background-color: #ffffff !important;
@@ -2414,10 +3016,11 @@ body.doctor-layout {
         width: 2.5rem !important;
         height: 2.5rem !important;
         border-radius: 10px !important;
-        background: linear-gradient(180deg, #eef7ff 0%, #e8f5ff 100%) !important;
-        border: 1px solid #cfe9ff !important;
-        color: #25a0e2 !important;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        border: 1px solid #7dd3fc !important;
+        color: #0369a1 !important;
+        box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
       }
 
       &:hover {
@@ -2431,7 +3034,9 @@ body.doctor-layout {
         }
 
         .doctor-kpi-icon {
-          background: #dff0fa !important;
+          background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+          background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+          border-color: #38bdf8 !important;
         }
       }
 
@@ -2501,12 +3106,19 @@ body.doctor-layout {
       }
 
       .doctor-action-title {
-        font-size: 1.15rem !important;
+        font-size: 1.05rem !important;
         font-weight: 700 !important;
         letter-spacing: -0.01em;
         margin-bottom: 0.65rem !important;
         color: #111827 !important;
         line-height: 1.25;
+
+        .counter-value,
+        .counter-value span {
+          font-size: inherit !important;
+          font-weight: inherit !important;
+          line-height: inherit !important;
+        }
       }
 
       .doctor-action-eyebrow {
@@ -2536,29 +3148,37 @@ body.doctor-layout {
       }
 
       .doctor-action-metric-pill {
-        background: #e8f5ff !important;
-        border: 1px solid #cfe9ff;
-        color: #25a0e2 !important;
+        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        border: 1px solid #7dd3fc;
+        color: #0369a1 !important;
+        box-shadow: 0 1px 2px rgba(14, 165, 233, 0.1);
       }
 
       .doctor-action-status-pill.text-success,
       .doctor-action-status-pill {
         &.text-success {
-          background: rgba(10, 179, 156, 0.12) !important;
-          border: 1px solid rgba(10, 179, 156, 0.22);
-          color: #0ab39c !important;
+          background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+          background-image: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+          border: 1px solid #a7f3d0;
+          color: #047857 !important;
+          box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
         }
 
         &.text-warning {
-          background: rgba(247, 184, 75, 0.14) !important;
-          border: 1px solid rgba(247, 184, 75, 0.28);
-          color: #d29d00 !important;
+          background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%) !important;
+          background-image: linear-gradient(180deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%) !important;
+          border: 1px solid #fcd34d;
+          color: #b45309 !important;
+          box-shadow: 0 1px 2px rgba(245, 158, 11, 0.12);
         }
 
         &.text-danger {
-          background: rgba(240, 101, 72, 0.12) !important;
-          border: 1px solid rgba(240, 101, 72, 0.24);
-          color: #f06548 !important;
+          background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 55%, #fecdd3 100%) !important;
+          background-image: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 55%, #fecdd3 100%) !important;
+          border: 1px solid #fda4af;
+          color: #be123c !important;
+          box-shadow: 0 1px 2px rgba(244, 63, 94, 0.1);
         }
       }
 
@@ -2566,9 +3186,11 @@ body.doctor-layout {
         width: 2.65rem !important;
         height: 2.65rem !important;
         border-radius: 12px !important;
-        background: linear-gradient(180deg, #eef7ff 0%, #e8f5ff 100%) !important;
-        border: 1px solid #cfe9ff;
-        color: #25a0e2 !important;
+        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        border: 1px solid #7dd3fc;
+        color: #0369a1 !important;
+        box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
       }
 
       .doctor-dashboard-action-link {
@@ -2613,7 +3235,9 @@ body.doctor-layout {
         }
 
         .doctor-action-icon {
-          background: #dff0fa !important;
+          background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+          background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+          border-color: #38bdf8 !important;
         }
       }
 
@@ -2643,6 +3267,17 @@ body.doctor-layout {
       .doctor-patient-table-body {
         border-bottom-left-radius: 12px;
         border-bottom-right-radius: 12px;
+        overflow: visible;
+      }
+
+      .doctor-patient-table-body .tab-content,
+      .doctor-patient-table-body .tab-pane {
+        overflow: visible;
+      }
+
+      .doctor-patient-table-body .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
       }
 
       .dashboard-patient-table {
@@ -2664,6 +3299,323 @@ body.doctor-layout {
 
     .doctor-dashboard-toolbar-btn {
       border-radius: 8px !important;
+    }
+
+    /* ===== Doctor Dashboard mobile responsive (admin-style) ===== */
+    @media (max-width: 1199.98px) {
+      .doctor-dashboard-patient-row > [class*="col"],
+      .doctor-dashboard-stats-row > [class*="col"] {
+        margin-bottom: 0.5rem;
+      }
+
+      .doctor-appointments-card,
+      .doctor-reminders-card,
+      .doctor-stats-card {
+        min-height: 0 !important;
+      }
+    }
+
+    @media (max-width: 991.98px) {
+      .doctor-kpi-card .card-body {
+        padding: 0.7rem 0.75rem !important;
+        gap: 0.65rem !important;
+      }
+
+      .doctor-kpi-card .doctor-kpi-count {
+        font-size: 1.15rem !important;
+      }
+
+      .doctor-kpi-card .doctor-kpi-icon {
+        width: 2.15rem !important;
+        height: 2.15rem !important;
+        border-radius: 8px !important;
+      }
+
+      .doctor-kpi-card .doctor-kpi-icon i {
+        font-size: 1.1rem !important;
+      }
+
+      .doctor-action-card .card-body {
+        padding: 0.75rem !important;
+      }
+
+      .doctor-action-card .doctor-dashboard-create-new-btn,
+      .doctor-action-card .doctor-dashboard-action-link {
+        white-space: normal;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 767.98px) {
+      .doctor-dashboard-shell {
+        gap: 0;
+      }
+
+      .doctor-dashboard-kpi-row.row {
+        --bs-gutter-x: 0.5rem;
+        --bs-gutter-y: 0.5rem;
+        margin-top: 0.35rem !important;
+      }
+
+      .doctor-dashboard-action-row.row {
+        --bs-gutter-x: 0.5rem;
+        --bs-gutter-y: 0.5rem;
+      }
+
+      .doctor-dashboard-card-header {
+        height: auto !important;
+        min-height: 2.35rem;
+        flex-wrap: wrap !important;
+        row-gap: 0.45rem;
+        padding-top: 0.45rem !important;
+        padding-bottom: 0.45rem !important;
+      }
+
+      .doctor-appointments-toolbar {
+        align-items: stretch !important;
+
+        .doctor-appointments-toolbar__primary,
+        .doctor-appointments-toolbar__actions {
+          width: 100%;
+          margin-left: 0 !important;
+        }
+
+        .doctor-appointments-toolbar__actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+          justify-content: stretch;
+        }
+
+        .doctor-appointments-toolbar__search {
+          flex: 1 1 100%;
+          min-width: 0;
+          max-width: none;
+          width: 100%;
+        }
+
+        .doctor-appointments-toolbar__search .form-control {
+          width: 100%;
+        }
+
+        .doctor-appointments-toolbar__btns {
+          flex: 1 1 auto;
+          display: flex;
+          gap: 0.4rem;
+          width: 100%;
+        }
+
+        .doctor-appointments-toolbar__btns .doctor-dashboard-toolbar-btn {
+          flex: 1 1 0;
+          justify-content: center;
+          white-space: nowrap;
+        }
+      }
+
+      .doctor-stats-card .doctor-dashboard-card-header {
+        .d-flex.gap-1 {
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          max-width: 100%;
+        }
+      }
+
+      .doctor-appointments-card,
+      .doctor-patient-table-body,
+      .doctor-patient-table-body .tab-content,
+      .doctor-patient-table-body .tab-pane {
+        max-width: 100%;
+        min-width: 0 !important;
+        overflow: visible;
+      }
+
+      .doctor-patient-table-body .table-responsive {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+      }
+
+      .dashboard-patient-table,
+      .dashboard-patient-table--today {
+        table-layout: auto !important;
+        width: max-content !important;
+        min-width: 56rem !important;
+        max-width: none !important;
+      }
+
+      .dashboard-patient-table th,
+      .dashboard-patient-table td {
+        white-space: nowrap !important;
+      }
+
+      .dashboard-patient-table .dashboard-patient-col-name,
+      .dashboard-patient-table .dashboard-patient-name-wrap,
+      .dashboard-patient-table .dashboard-patient-name-text,
+      .dashboard-patient-table .dashboard-patient-name-link {
+        max-width: 10rem;
+      }
+
+      .patient-stats-bar-chart {
+        min-height: 260px !important;
+      }
+
+      .doctor-dashboard-pagination {
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        justify-content: center;
+        padding: 0.5rem 0.65rem !important;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .doctor-kpi-card .card-body {
+        padding: 0.6rem 0.55rem !important;
+        gap: 0.45rem !important;
+      }
+
+      .doctor-kpi-card .doctor-kpi-count {
+        font-size: 1.05rem !important;
+      }
+
+      .doctor-kpi-card .doctor-kpi-label {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.04em;
+      }
+
+      .doctor-kpi-card .doctor-kpi-icon {
+        width: 1.9rem !important;
+        height: 1.9rem !important;
+      }
+
+      .doctor-action-card .doctor-action-metric-pill,
+      .doctor-action-card .doctor-action-status-pill {
+        white-space: normal;
+      }
+
+      .doctor-appointments-toolbar__btns .doctor-dashboard-toolbar-btn {
+        padding-left: 0.45rem;
+        padding-right: 0.45rem;
+      }
+
+      .doctor-reminders-card .doctor-dashboard-create-new-btn {
+        font-size: 0.68rem !important;
+        padding-left: 0.45rem !important;
+        padding-right: 0.45rem !important;
+      }
+
+      .patient-stats-bar-chart {
+        min-height: 220px !important;
+      }
+    }
+
+    @media (max-width: 499.98px) {
+      padding-top: 0.45rem;
+
+      .doctor-dashboard-kpi-row.row,
+      .doctor-dashboard-action-row.row {
+        --bs-gutter-x: 0.4rem;
+        --bs-gutter-y: 0.4rem;
+      }
+
+      .doctor-dashboard-toolbar-btn {
+        font-size: 0.68rem !important;
+      }
+    }
+  }
+
+  /* Compact doctor dashboard topbar (<500px) — mirrors admin-mobile-topbar */
+  &.doctor-dashboard-route,
+  &.doctor-patient-board-route {
+    @media (max-width: 499.98px) {
+      #page-topbar {
+        .layout-width {
+          padding-left: 0.85rem !important;
+          padding-right: 0.55rem !important;
+        }
+
+        .navbar-header {
+          display: flex !important;
+          align-items: center;
+          width: 100%;
+          gap: 0.55rem;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+
+        .header-brand-divider,
+        .header-topbar-actions-extra,
+        .header-whatsapp-item,
+        .header-doctor-session-tools,
+        .header-profile-separator-group > .header-topbar-divider {
+          display: none !important;
+        }
+
+        .horizontal-logo .logo-sm {
+          display: none !important;
+        }
+
+        .horizontal-logo .logo-lg {
+          display: inline-block !important;
+
+          img {
+            height: 26px !important;
+            width: auto;
+            max-width: 140px;
+            object-fit: contain;
+          }
+        }
+
+        .header-icon-rail {
+          flex: 1 1 auto;
+          display: flex !important;
+          align-items: center;
+          justify-content: space-evenly;
+          min-width: 0;
+          margin-left: 0 !important;
+        }
+
+        .header-home-dashboard-item,
+        .vertical-menu-btn.topnav-hamburger,
+        .header-notification-item,
+        .header-profile-separator-group {
+          flex: 0 0 auto;
+          display: flex !important;
+          align-items: center;
+          justify-content: center;
+          margin: 0 !important;
+        }
+
+        .header-home-dashboard-item .btn-topbar,
+        .header-notification-item .btn-topbar {
+          width: 36px;
+          height: 36px;
+        }
+
+        .topbar-user .btn {
+          padding: 0.1rem !important;
+        }
+
+        .header-profile-user {
+          height: 32px;
+          width: 32px;
+        }
+
+        .user-name-text,
+        .user-name-sub-text,
+        .text-start.ms-xl-2 {
+          display: none !important;
+        }
+      }
+
+      .page-content.doctor-dashboard-page,
+      .page-content:has(.patient-board-page) {
+        margin-top: $app-topbar-height !important;
+        padding-top: 0.45rem !important;
+      }
     }
   }
 }
@@ -2861,7 +3813,82 @@ body.admin-layout {
     border-radius: 0 !important;
     padding-top: 0 !important;
 
-    // Equal-width top-level menu items across the bar
+    // Mobile drawer: restore left inset (Velzon sets padding-left: 0 below 1024)
+    @media (max-width: 1024px) {
+      padding-left: 0.85rem !important;
+      padding-right: 0.85rem !important;
+      padding-top: 0.35rem !important;
+      padding-bottom: 0.5rem !important;
+      box-sizing: border-box !important;
+
+      .container-fluid {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+
+      .navbar-nav {
+        flex-direction: column !important;
+        align-items: stretch !important;
+
+        > .nav-item,
+        > li {
+          width: 100% !important;
+        }
+
+        > .nav-item > .nav-link.menu-link,
+        > li > .nav-link.menu-link,
+        // Override Velzon “only 2nd item gets padding” quirk
+        > li:nth-of-type(2) > .nav-link.menu-link {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+          gap: 0.5rem !important;
+          width: 100% !important;
+          text-align: left !important;
+          padding-top: 0.55rem !important;
+          padding-bottom: 0.55rem !important;
+          padding-left: 0.5rem !important;
+          padding-right: 0.5rem !important;
+        }
+
+        .nav-sm .nav-link,
+        .menu-dropdown .nav-link {
+          padding-left: 0.35rem !important;
+          padding-right: 0.5rem !important;
+          text-align: left !important;
+        }
+
+        // Submenu marker: "-  Author" — extra gap after dash
+        .nav-sm .nav-link::before {
+          content: "-" !important;
+          position: static !important;
+          display: inline-block !important;
+          width: auto !important;
+          height: auto !important;
+          background: none !important;
+          border: none !important;
+          opacity: 1 !important;
+          margin: 0 0.45rem 0 0 !important;
+          padding: 0 !important;
+          top: auto !important;
+          left: auto !important;
+          color: inherit !important;
+          font-weight: 600;
+          letter-spacing: 0;
+        }
+      }
+
+      .menu-dropdown {
+        padding-left: 1.15rem !important;
+        padding-right: 0.25rem !important;
+      }
+
+      .nav-item .nav-link[data-bs-toggle="collapse"]::after {
+        right: 0.5rem !important;
+      }
+    }
+
+    // Top-level menu: content-sized items + distributed gaps (no "..." truncation)
     @media (min-width: 1024.1px) {
       .navbar-nav {
         display: flex !important;
@@ -2869,31 +3896,47 @@ body.admin-layout {
         flex-wrap: nowrap !important;
         width: 100% !important;
         align-items: stretch;
+        justify-content: space-between !important;
+        column-gap: 0.35rem;
+        overflow: visible !important;
 
         > .nav-item {
-          flex: 1 1 0 !important;
-          min-width: 0;
+          flex: 1 1 auto !important;
+          min-width: max-content;
+          max-width: none;
           position: relative;
+          overflow: visible !important;
+          z-index: 1;
+
+          // Raise open/hovered item so its dropdown paints above neighbors
+          &:hover,
+          &:focus-within {
+            z-index: 1060;
+          }
 
           > .nav-link.menu-link {
             display: flex !important;
-            align-items: center;
+            align-items: center !important;
             justify-content: center;
-            gap: 0.35rem;
+            gap: 0.4rem;
             width: 100% !important;
             box-sizing: border-box;
+            padding-top: 0.45rem !important;
+            padding-bottom: 0.45rem !important;
             padding-left: 0.4rem !important;
             padding-right: 0.4rem !important;
             white-space: nowrap;
             text-align: center;
+            overflow: visible;
+            line-height: 1.25 !important;
 
             > i {
               flex: 0 0 auto !important;
-              min-width: 1.1rem !important;
-              width: 1.1rem !important;
+              min-width: 1rem !important;
+              width: 1rem !important;
               margin-right: 0 !important;
-              font-size: 16px;
-              line-height: 1;
+              font-size: 0.875rem !important;
+              line-height: 1 !important;
               display: inline-flex !important;
               align-items: center;
               justify-content: center;
@@ -2901,9 +3944,47 @@ body.admin-layout {
 
             > span {
               margin-left: 0 !important;
-              flex: 0 1 auto;
+              flex: 0 0 auto;
+              min-width: max-content;
+              overflow: visible;
+              text-overflow: clip;
+              white-space: nowrap;
+              line-height: 1.25 !important;
+            }
+          }
+
+          // Dropdown: align under this item, fit content width (no wide empty box / no left overlap)
+          > .menu-dropdown {
+            position: absolute !important;
+            left: 0 !important;
+            right: auto !important;
+            top: 100% !important;
+            margin: 0 !important;
+            min-width: 0 !important;
+            width: max-content !important;
+            max-width: min(18rem, 90vw) !important;
+            padding: 0.35rem 0.2rem !important;
+            z-index: 1065 !important;
+            box-sizing: border-box;
+
+            .nav-item {
+              width: auto !important;
               min-width: 0;
             }
+
+            .nav-link {
+              white-space: nowrap !important;
+              width: auto !important;
+              display: block !important;
+              padding: 0.4rem 0.85rem !important;
+              text-align: left !important;
+            }
+          }
+
+          // Near the right edge: open dropdown aligned to the right so it stays on-screen
+          &:nth-last-child(-n+3) > .menu-dropdown {
+            left: auto !important;
+            right: 0 !important;
           }
 
           // Hide dropdown chevrons on top-level horizontal menu
@@ -2915,7 +3996,7 @@ body.admin-layout {
 
         // Undo Velzon uneven padding on 2nd item
         > li:nth-of-type(2) > .nav-link.menu-link {
-          padding-left: 0.4rem !important;
+          padding-left: 0.35rem !important;
         }
       }
     }
@@ -2927,7 +4008,8 @@ body.admin-layout {
     max-width: 100% !important;
     overflow-x: clip;
     margin-top: calc(#{$app-topbar-height} + #{$app-horizontal-nav-height}) !important;
-    padding-top: $doctor-card-gap !important;
+    // Tight gap between horizontal menu and first card
+    padding-top: 0.15rem !important;
     padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
     padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
     padding-bottom: 33px;
@@ -2935,12 +4017,12 @@ body.admin-layout {
     // Horizontal nav is hidden below 1024 — don't reserve its height (was extra white gap)
     @media (max-width: 1024px) {
       margin-top: $app-topbar-height !important;
-      padding-top: $doctor-card-gap !important;
+      padding-top: 0.35rem !important;
     }
 
     @media (min-width: 1024.1px) {
       margin-top: calc(#{$app-topbar-height} + #{$app-horizontal-nav-height}) !important;
-      padding-top: $doctor-card-gap !important;
+      padding-top: 0.15rem !important;
     }
 
     > .container-fluid,
@@ -3119,13 +4201,17 @@ body.admin-layout {
   .modal .admin-list-btn {
     border-radius: 4px !important;
     font-weight: 600;
-    font-size: 0.8125rem !important;
-    line-height: 1.25 !important;
-    padding: 0.4rem 0.85rem !important;
+    font-size: 0.6875rem !important; // ~11px
+    line-height: 1.2 !important;
+    padding: 0.3rem 0.65rem !important;
+    min-height: 0 !important;
+    height: auto !important;
     box-shadow: none !important;
 
     i {
-      font-size: 0.95rem;
+      font-size: 0.85rem !important;
+      line-height: 1;
+      vertical-align: -0.05em;
     }
 
     &--import {
@@ -3190,22 +4276,88 @@ body.admin-layout {
         padding: 0.7rem !important;
       }
 
+      // Keep open select menus above the list card search icon below
+      // Emotion hashes often omit "--menu-is-open"; match the menu node itself.
+      &:has([class*="-menu"]),
+      &:has([class*="__menu"]),
+      &:has([class*="--menu-is-open"]),
+      &:has([class*="menu-is-open"]) {
+        position: relative;
+        z-index: 50;
+      }
+
+      > .card-body > .row {
+        --bs-gutter-x: 0.5rem !important;
+        column-gap: 0.5rem !important;
+        align-items: flex-end !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+
+        > [class*="col"],
+        > [class^="col"] {
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+
+        // Reset sits tight next to the filter control (not a full 1/3 column)
+        > [class*="col"]:has(.admin-list-filter-reset),
+        > [class^="col"]:has(.admin-list-filter-reset) {
+          flex: 0 0 auto !important;
+          width: auto !important;
+          max-width: none !important;
+        }
+      }
+
       .admin-list-filter-select,
       .form-select.admin-list-filter-select {
-        min-height: 34px !important;
-        height: 34px !important;
-        padding: 0.4rem 2rem 0.4rem 0.85rem !important;
-        font-size: 0.8125rem !important;
+        min-height: var(--app-form-field-height) !important;
+        height: var(--app-form-field-height) !important;
+        padding: var(--app-form-field-padding-y) 2rem var(--app-form-field-padding-y) var(--app-form-field-padding-x) !important;
+        font-size: var(--app-form-field-font-size) !important;
         font-weight: 500;
         line-height: 1.25 !important;
         border-radius: 4px !important;
+      }
+
+      // Match react-select control height to Reset (single-select only)
+      [class$="__control"]:not(:has([class*="value-container--is-multi"])),
+      [class*="__control"]:not(:has([class*="value-container--is-multi"])) {
+        min-height: var(--app-form-field-height) !important;
+        height: var(--app-form-field-height) !important;
+        max-height: var(--app-form-field-height) !important;
+      }
+
+      [class*="__control"]:has([class*="value-container--is-multi"]),
+      [class*="__control--is-multi"] {
+        min-height: var(--app-form-field-height) !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
       }
 
       .admin-list-filter-reset {
         margin-top: 0;
         display: flex;
         align-items: center;
-        min-height: 34px;
+        min-height: var(--app-form-field-height);
+        height: var(--app-form-field-height);
+      }
+
+      .admin-list-btn--reset {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: var(--app-form-field-height) !important;
+        min-height: var(--app-form-field-height) !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        box-sizing: border-box !important;
+      }
+
+      [class$="__menu"],
+      [class*="__menu"]:not([class*="__menu-list"]):not([class*="__menu-notice"]) {
+        z-index: 9999 !important;
+        background-color: #fff !important;
       }
     }
 
@@ -3268,6 +4420,39 @@ body.admin-layout {
       .admin-form-fields.row + hr,
       hr + .admin-form-fields.row {
         margin-top: #{$admin-form-gap} !important;
+      }
+
+      // Keep fields top-aligned so validation errors don't pull "+ Add" buttons down
+      .admin-form-fields.row {
+        align-items: flex-start !important;
+      }
+
+      // "+ Add …" action beside selects — offset past .form-label to match the control
+      .admin-form-add-row {
+        // Matches .form-label font-size/line-height + margin-bottom in this card
+        margin-top: calc(0.8125rem * 1.5 + 0.35rem) !important;
+        margin-bottom: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        min-height: var(--app-form-field-height) !important;
+        height: var(--app-form-field-height) !important;
+        width: auto !important;
+        max-width: 100%;
+
+        > .btn,
+        > .admin-list-btn,
+        .btn,
+        .admin-list-btn {
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          height: var(--app-form-field-height) !important;
+          min-height: var(--app-form-field-height) !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          white-space: nowrap;
+          box-sizing: border-box !important;
+        }
       }
 
       .admin-form-fields.row,
@@ -3352,6 +4537,18 @@ body.admin-layout {
         }
       }
 
+      // Shrink "+ Add …" columns after width rules so they sit tight beside fields
+      .admin-form-fields.row > [class*="col"]:has(> .admin-form-add-row),
+      .admin-form-fields.row > [class^="col"]:has(> .admin-form-add-row),
+      .admin-form-fields.row > [class*="col"]:has(.admin-form-add-row),
+      .admin-form-fields.row > [class^="col"]:has(.admin-form-add-row) {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        max-width: none !important;
+        display: flex !important;
+        align-items: flex-start !important;
+      }
+
       .form-label {
         font-size: 0.8125rem;
         font-weight: 600;
@@ -3364,33 +4561,125 @@ body.admin-layout {
         color: #dc3545;
       }
 
-      // Keep text / select / textarea content inset identical
+      // Keep text / select / textarea content inset + type identical
       .form-control,
-      textarea.form-control {
-        padding-left: $input-padding-x !important;
-        padding-right: $input-padding-x !important;
+      .form-select,
+      textarea.form-control,
+      textarea {
+        font-size: var(--app-form-field-font-size) !important;
+        line-height: 1.25 !important;
+        padding-left: $app-form-field-padding-x !important;
+        padding-right: $app-form-field-padding-x !important;
+      }
+
+      .form-control:not(textarea),
+      .form-select:not([multiple]) {
+        height: var(--app-form-field-height) !important;
+        min-height: var(--app-form-field-height) !important;
+        max-height: var(--app-form-field-height) !important;
+        padding-top: var(--app-form-field-padding-y) !important;
+        padding-bottom: var(--app-form-field-padding-y) !important;
+      }
+
+      textarea.form-control,
+      textarea {
+        box-sizing: border-box !important;
+        min-height: var(--app-form-field-height) !important;
+        // no height:!important — lets mouse resize set inline height
+        height: var(--app-form-field-height);
+        max-height: none !important;
+        padding-top: calc((var(--app-form-field-height) - var(--app-form-field-font-size) * 1.25 - 2px) / 2 + 0.1rem) !important;
+        padding-bottom: calc((var(--app-form-field-height) - var(--app-form-field-font-size) * 1.25 - 2px) / 2 - 0.06rem) !important;
+        resize: vertical !important;
+        overflow-y: auto !important;
+      }
+
+      // Toggle: compact + vertically align with text inputs in the same row
+      .form-switch,
+      .form-switch-md,
+      .form-switch-lg {
+        margin-top: 0 !important;
+        min-height: var(--app-form-field-height) !important;
+        height: var(--app-form-field-height) !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+
+      .form-switch .form-check-input,
+      .form-switch-md .form-check-input,
+      .form-switch-lg .form-check-input {
+        width: 2rem !important;
+        height: 1.05rem !important;
+        margin-top: 0 !important;
+      }
+
+      .admin-form-select__control:not(.admin-form-select__control--is-multi),
+      [class$="__control"]:not(:has([class*="value-container--is-multi"])) {
+        font-size: var(--app-form-field-font-size) !important;
+      }
+
+      .admin-form-select__single-value,
+      .admin-form-select__placeholder,
+      .admin-form-select__input,
+      [class$="__single-value"],
+      [class$="__placeholder"],
+      [class$="__input"] {
+        font-size: var(--app-form-field-font-size) !important;
+        line-height: 1.25 !important;
+      }
+
+      .admin-form-select__menu,
+      .admin-form-select__menu-list,
+      .admin-form-select__option,
+      [class*="admin-form-select__option"] {
+        font-size: var(--app-form-field-font-size) !important;
+        line-height: 1.25 !important;
+      }
+
+      .admin-form-select__option {
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.35rem !important;
       }
 
       .admin-form-select__value-container,
       .admin-form-select__value-container--is-multi {
-        padding-left: $input-padding-x !important;
-        padding-right: $input-padding-x !important;
+        padding-left: $app-form-field-padding-x !important;
+        padding-right: $app-form-field-padding-x !important;
       }
 
-      .admin-form-select__control--is-multi {
+      .admin-form-select__control--is-multi,
+      [class*="__control"]:has([class*="value-container--is-multi"]),
+      [class*="__control--is-multi"] {
+        min-height: var(--app-form-field-height) !important;
         height: auto !important;
         max-height: none !important;
-        align-items: flex-start !important;
+        align-items: center !important;
+        overflow: visible !important;
       }
 
-      .admin-form-select__value-container--is-multi {
+      .admin-form-select__value-container--is-multi,
+      [class*="__value-container--is-multi"] {
         height: auto !important;
+        max-height: none !important;
         min-height: calc(var(--app-form-field-height) - 2px) !important;
-        padding-top: 0.25rem !important;
-        padding-bottom: 0.25rem !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
         flex-wrap: wrap !important;
         align-items: center !important;
+        align-content: center !important;
+        flex: 1 1 auto !important;
         gap: 0.25rem;
+        overflow: visible !important;
+      }
+
+      .admin-form-select__control--is-multi .admin-form-select__indicators,
+      [class*="__control"]:has([class*="value-container--is-multi"]) [class*="__indicators"],
+      [class*="__control--is-multi"] [class*="__indicators"] {
+        height: auto !important;
+        min-height: calc(var(--app-form-field-height) - 2px) !important;
+        max-height: none !important;
+        align-self: stretch !important;
+        align-items: center !important;
       }
 
       .admin-form-select__multi-value {
@@ -3436,9 +4725,10 @@ body.admin-layout {
 
       // Soft teal pills (not the same green as Save / admin-list-btn--new)
       .admin-form-tabs.nav-pills {
-        gap: 0.35rem;
+        gap: 0.2rem;
         flex-wrap: wrap;
-        margin-bottom: 0.85rem !important;
+        margin-bottom: 0.5rem !important;
+        row-gap: 0.2rem;
 
         .nav-item {
           margin: 0;
@@ -3446,10 +4736,13 @@ body.admin-layout {
 
         .nav-link {
           border-radius: 4px !important;
-          font-weight: 600 !important;
-          font-size: 0.8125rem !important;
+          font-weight: 500 !important;
+          font-size: var(--app-form-field-font-size, 0.6875rem) !important;
           line-height: 1.25 !important;
-          padding: 0.4rem 0.85rem !important;
+          padding: 0.2rem 0.5rem !important;
+          min-height: var(--app-form-field-height, 1.75rem) !important;
+          display: inline-flex !important;
+          align-items: center !important;
           color: #475569 !important;
           background: transparent !important;
           border: 1px solid transparent !important;
@@ -3473,8 +4766,9 @@ body.admin-layout {
   }
 
   // Admin list/table cards: 0.7rem side padding; tighter header↔table gap
-  .page-content .card:has(table),
-  .page-content .card:has(.table) {
+  // (skip dashboard cards — toolbar buttons need full header padding)
+  .page-content:not(.admin-dashboard-page) .card:has(table),
+  .page-content:not(.admin-dashboard-page) .card:has(.table) {
     > .card-header {
       padding: 0.7rem 0.7rem 0.3rem !important;
     }
@@ -3504,6 +4798,19 @@ body.admin-layout {
           .form-control {
             width: 100%;
             min-width: 0;
+            height: var(--app-form-field-height) !important;
+            min-height: var(--app-form-field-height) !important;
+            max-height: var(--app-form-field-height) !important;
+            font-size: var(--app-form-field-font-size) !important;
+            line-height: 1.25 !important;
+            padding-top: var(--app-form-field-padding-y) !important;
+            padding-bottom: var(--app-form-field-padding-y) !important;
+            padding-left: 1.85rem !important;
+          }
+
+          .patient-list-modal__search-icon,
+          i {
+            font-size: 0.8rem !important;
           }
         }
 
@@ -3639,16 +4946,16 @@ body.admin-layout {
       }
 
       .page-item .page-link {
-        width: 1.75rem;
-        height: 1.75rem;
-        min-width: 1.75rem;
+        width: 1.55rem;
+        height: 1.55rem;
+        min-width: 1.55rem;
         padding: 0 !important;
         display: inline-flex !important;
         align-items: center;
         justify-content: center;
         border-radius: 4px !important;
         line-height: 1;
-        font-size: 0.8rem;
+        font-size: 0.6875rem;
         font-weight: 600;
         border: 1px solid transparent !important;
         color: #495057 !important;
@@ -3677,10 +4984,16 @@ body.admin-layout {
       .page-item .page-link.page-link--nav {
         width: auto;
         min-width: 0;
-        height: 1.75rem;
-        padding: 0 0.65rem !important;
+        height: 1.55rem;
+        padding: 0 0.5rem !important;
         border-radius: 4px !important;
+        font-size: 0.6875rem !important;
       }
+    }
+
+    .patient-list-modal__footer-text {
+      font-size: 0.6875rem !important;
+      line-height: 1.3 !important;
     }
   }
 
@@ -3691,22 +5004,99 @@ body.admin-layout {
   }
 
   // Admin dashboard: minimal blue card headers + period filters (doctor pattern)
-  .admin-dashboard-page,
-  .page-content {
+  .admin-dashboard-page {
     .admin-dash-card {
       border: 0;
       box-shadow: 0 1px 2px rgba(56, 65, 74, 0.06);
+      overflow: hidden;
+      transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 
-      .admin-dash-card-header {
+      // Don't use the list-page "tight header↔table" padding — it overlaps toolbar buttons
+      > .card-header.admin-dash-card-header,
+      > .admin-dash-card-header {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+        min-height: 2.75rem !important;
+        padding: 0.75rem 1rem !important;
         background: #fff;
         border-bottom: 1px solid #eff3f7 !important;
-        padding-top: 0.85rem;
-        padding-bottom: 0.85rem;
+        position: relative;
+        z-index: 2;
+        transition: background-color 0.18s ease;
 
         .card-title {
           font-weight: 600;
           color: #212529;
+          margin-bottom: 0 !important;
+          line-height: 1.25 !important;
         }
+
+        .btn,
+        .doctor-dashboard-toolbar-btn {
+          flex-shrink: 0;
+          position: relative;
+          z-index: 1;
+        }
+      }
+
+      > .card-body {
+        padding: 0.85rem 1rem 1rem !important;
+        position: relative;
+        z-index: 1;
+      }
+
+      // Keep table under the header; avoid sticky thead climbing into the toolbar
+      .table-responsive,
+      .table-card {
+        max-height: none !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        margin-top: 0 !important;
+      }
+
+      table.table {
+        margin-bottom: 0 !important;
+
+        thead th {
+          position: static !important;
+          z-index: auto !important;
+        }
+      }
+
+      // Same light-blue hover as doctor dashboard cards
+      &:hover {
+        background-color: #f7fbff !important;
+        border-color: #b3dbff !important;
+        box-shadow: 0 8px 20px rgba(37, 160, 226, 0.1) !important;
+        transform: none !important;
+
+        .admin-dash-card-header,
+        .card-header,
+        .card-body {
+          background-color: transparent !important;
+        }
+
+        .avatar-title.bg-info-subtle {
+          background-color: #dff0fa !important;
+        }
+      }
+    }
+
+    .card.card-animate:not(.admin-dash-card):hover,
+    .card-animate:not(.admin-dash-card):hover {
+      background-color: #f7fbff !important;
+      border-color: #b3dbff !important;
+      box-shadow: 0 8px 20px rgba(37, 160, 226, 0.1) !important;
+      transform: none !important;
+
+      .card-body,
+      .card-header {
+        background-color: transparent !important;
+      }
+
+      .avatar-title.bg-info-subtle {
+        background-color: #dff0fa !important;
       }
     }
 
@@ -3728,6 +5118,23 @@ body.admin-layout {
     .avatar-title.bg-info-subtle {
       background-color: #e8f5ff !important;
       color: #25a0e2 !important;
+    }
+  }
+
+  // Keep period/toolbar styling on generic page-content if used outside dashboard shell
+  .page-content {
+    .doctor-dashboard-toolbar-btn {
+      border-radius: 8px !important;
+      padding: 0.28rem 0.65rem !important;
+      font-size: 0.75rem !important;
+      line-height: 1.2 !important;
+    }
+
+    .admin-period-btn.active,
+    .admin-period-filter .doctor-dashboard-toolbar-btn.active {
+      background: #25a0e2 !important;
+      border-color: #25a0e2 !important;
+      color: #fff !important;
     }
   }
 
@@ -3829,6 +5236,7 @@ $app-card-radius: 5px;
 .anatomy-viewer-card,
 .anatomy-panel-card,
 .anatomy-panel,
+.anatomy-canvas-wrap,
 .ac-workbench-card,
 .ac-col-card,
 .ac-status-card,
@@ -3887,6 +5295,327 @@ body.doctor-layout .doctor-dashboard-page {
 
   .subscription-plan-card:hover {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14) !important;
+  }
+}
+
+// Doctor UI compact density — align type/padding with admin (0.6875rem)
+body.doctor-layout {
+  .page-content {
+    .card-title,
+    .card-header .card-title,
+    .card-header h4,
+    .card-header h5 {
+      font-size: 0.75rem !important;
+      line-height: 1.25 !important;
+    }
+
+    .card-header {
+      padding: 0.55rem 0.7rem !important;
+    }
+
+    .card-body {
+      padding: 0.7rem !important;
+    }
+
+    .nav-tabs .nav-link,
+    .nav-pills .nav-link {
+      font-size: 0.6875rem !important;
+      padding: 0.35rem 0.65rem !important;
+    }
+
+    .btn:not(.btn-lg):not(.btn-icon) {
+      font-size: 0.6875rem !important;
+    }
+
+    .form-label,
+    label.form-label {
+      font-size: 0.6875rem !important;
+    }
+
+    .text-muted,
+    .small,
+    small {
+      font-size: 0.6875rem !important;
+    }
+  }
+
+  // Patient Board — keep clear of topbar; side gutters on the page itself
+  .page-content:has(.patient-board-page) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: calc(#{$app-topbar-height} + 0.35rem) !important;
+    padding-bottom: 0 !important;
+  }
+
+  .page-content:has(.patient-board-page) .patient-board-page.container-fluid,
+  body.doctor-layout .page-content .patient-board-page.container-fluid,
+  .page-content .patient-board-page.container-fluid {
+    padding-left: 0.375rem !important;
+    padding-right: 0.375rem !important;
+    padding-bottom: 0.375rem !important;
+    box-sizing: border-box !important;
+  }
+
+  .patient-board-page {
+    font-size: 0.6875rem !important;
+    line-height: 1.3 !important;
+
+    .pb-header,
+    .pb-info {
+      padding: 0.4rem 0.55rem !important;
+    }
+
+    .pb-info {
+      padding: 8px 3px 0 3px !important;
+      margin-bottom: 0 !important;
+    }
+
+    .pb-info__name {
+      font-size: 0.75rem !important;
+    }
+
+    .pb-info__meta {
+      font-size: 0.6875rem !important;
+      padding: 0.15rem 0.4rem !important;
+    }
+
+    .pb-info__meta i {
+      font-size: 0.75rem !important;
+    }
+
+    .pb-main-toolbar {
+      min-height: 2rem !important;
+      margin-top: 0.25rem !important;
+      margin-bottom: 0.25rem !important;
+      gap: 0.35rem !important;
+      justify-content: space-between !important;
+    }
+
+    .pb-tab {
+      font-size: 0.6875rem !important;
+      padding: 0.2rem 0.5rem !important;
+      gap: 0.3rem !important;
+      min-height: 28px !important;
+      height: 28px !important;
+      border-radius: 5px !important;
+    }
+
+    .pb-tab i {
+      font-size: 0.8125rem !important;
+    }
+
+    .pb-repertorize-tab-btn,
+    .pb-prescription-tab-btn,
+    .pb-main-toolbar .btn,
+    .pb-main-toolbar button {
+      font-size: 0.6875rem !important;
+      min-height: 28px !important;
+      height: 28px !important;
+      padding: 0.2rem 0.5rem !important;
+      border-radius: 5px !important;
+    }
+
+    .pb-repertorize-tab-btn i,
+    .pb-prescription-tab-btn i {
+      font-size: 0.8125rem !important;
+    }
+
+    .pb-repertorize-panel-header,
+    .pb-repertory-panel-header,
+    .pb-mm-panel-header,
+    .pb-ae-panel-header {
+      height: 2rem !important;
+      min-height: 2rem !important;
+      padding-left: 0.55rem !important;
+      padding-right: 0.55rem !important;
+    }
+
+    .pb-section-title,
+    .pb-repertorize-panel-title {
+      font-size: 0.625rem !important;
+      letter-spacing: 0.04em !important;
+    }
+
+    .pb-remedy-list-row,
+    .pb-repertorize-section-row,
+    .pb-repertorization-rubric-row,
+    .pb-repertory-section-item,
+    .pb-repertory-subsection-item,
+    .pb-repertory-rubric-item,
+    .pb-keyword-tab {
+      padding-top: 0.35rem !important;
+      padding-bottom: 0.35rem !important;
+      font-size: 0.6875rem !important;
+    }
+
+    .pb-remedy-list-row__name,
+    .pb-repertorize-section-row__label,
+    .pb-repertorization-rubric-label,
+    .pb-repertory-section-item__label {
+      font-size: 0.6875rem !important;
+    }
+
+    .form-control,
+    .form-select,
+    input[type="text"],
+    input[type="search"] {
+      font-size: 0.6875rem !important;
+    }
+
+    .table th,
+    .table td,
+    .pb-clinical-table th,
+    .pb-clinical-table td {
+      font-size: 0.6875rem !important;
+      padding: 0.4rem 0.55rem !important;
+      line-height: 1.25 !important;
+    }
+
+    .da-container {
+      padding: 0.75rem !important;
+    }
+
+    .da-text {
+      font-size: 0.75rem !important;
+    }
+
+    .da-icon-wrapper {
+      width: 3rem !important;
+      height: 3rem !important;
+      margin-bottom: 0.65rem !important;
+    }
+
+    .da-pulse {
+      width: 1.75rem !important;
+      height: 1.75rem !important;
+    }
+
+    .da-spin {
+      width: 2.25rem !important;
+      height: 2.25rem !important;
+    }
+
+    .modal .modal-title,
+    .modal .patient-list-modal__title-text {
+      font-size: 0.75rem !important;
+    }
+
+    .modal .modal-body p,
+    .modal .modal-body .form-label,
+    .modal .modal-body label,
+    .modal .text-muted {
+      font-size: 0.6875rem !important;
+      line-height: 1.35 !important;
+    }
+  }
+
+  .anatomy-title {
+    font-size: 0.8125rem !important;
+  }
+
+  .anatomy-subtitle,
+  .anatomy-section-item,
+  .anatomy-mesh-key-loading,
+  .anatomy-section-loading {
+    font-size: 0.6875rem !important;
+  }
+
+  .anatomy-header {
+    padding: 0.45rem 0.55rem !important;
+    margin-bottom: 0.5rem !important;
+    border-radius: 8px !important;
+  }
+
+  .anatomy-section-item {
+    padding: 0.4rem 0.55rem !important;
+    border-radius: 8px !important;
+  }
+
+  .anatomy-section-list {
+    gap: 0.35rem !important;
+  }
+
+  // Doctor dashboard cards / stats
+  .doctor-dashboard-page,
+  .doctor-kpi-card,
+  .doctor-action-card,
+  .doctor-appointments-card,
+  .doctor-reminders-card,
+  .doctor-stats-card {
+    .card-title,
+    h4,
+    h5,
+    h6,
+    .counter-value,
+    p,
+    .text-muted,
+    .text-uppercase {
+      font-size: 0.6875rem !important;
+      line-height: 1.3 !important;
+    }
+
+    h4.fs-15,
+    h5.fs-15,
+    .fs-15,
+    .fs-16 {
+      font-size: 0.75rem !important;
+    }
+
+    // Action card titles (Patient / Appointment / Billings / Subscription)
+    h4.doctor-action-title,
+    .doctor-action-title,
+    .doctor-action-title .counter-value,
+    .doctor-action-title .counter-value span {
+      font-size: 1.05rem !important;
+      line-height: 1.25 !important;
+      font-weight: 700 !important;
+    }
+  }
+
+  // Doctor popup shells beyond patient-list-modal
+  .modal.new-patient-modal,
+  .modal.new-appointment-modal,
+  .modal.ctm-modal,
+  .modal-dialog.new-patient-modal,
+  .modal-dialog.new-appointment-modal,
+  .modal-dialog.ctm-modal {
+    .modal-title,
+    .new-patient-modal__title-text,
+    .new-appointment-modal__title-text,
+    .patient-list-modal__title-text {
+      font-size: 0.75rem !important;
+    }
+
+    .form-label,
+    label,
+    p,
+    .text-muted {
+      font-size: 0.6875rem !important;
+    }
+
+    .form-control,
+    .form-select {
+      font-size: var(--app-form-field-font-size, 0.6875rem) !important;
+    }
+  }
+
+  // Compact modal close (X) on all doctor popups
+  .modal .btn-close,
+  .modal-header .btn-close,
+  .offcanvas-header .btn-close {
+    width: 0.7rem !important;
+    height: 0.7rem !important;
+    padding: 0.12rem !important;
+    margin: 0 !important;
+    background-size: 0.7rem !important;
+    opacity: 0.55 !important;
+    box-shadow: none !important;
+
+    &:hover,
+    &:focus {
+      opacity: 0.85 !important;
+      box-shadow: none !important;
+    }
   }
 }
 
@@ -4025,18 +5754,71 @@ html:not([data-bs-theme="dark"]) {
 }
 
 // Rubric Remedy Details popup (WhatsApp-like + wider, no footer)
-.whatsapp-modal.rubric-details-modal .modal-dialog {
+// className lands on .modal-dialog; modalClassName on outer .modal
+.modal.rubric-details-modal-root {
+  z-index: 2100 !important;
+}
+
+.modal-backdrop.show:has(+ .modal.rubric-details-modal-root),
+body:has(.modal.rubric-details-modal-root.show) .modal-backdrop {
+  z-index: 2090 !important;
+}
+
+.modal-dialog.whatsapp-modal.rubric-details-modal {
   max-width: 720px !important;
   width: calc(100vw - 2rem) !important;
+  margin-top: 1.75rem !important;
+  margin-bottom: 1.75rem !important;
 }
 
-.whatsapp-modal.rubric-details-modal .modal-content {
+.modal-dialog.whatsapp-modal.rubric-details-modal .modal-content {
   width: 100% !important;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
 }
 
+.modal-dialog.whatsapp-modal.rubric-details-modal .whatsapp-modal__header.modal-header,
+.whatsapp-modal.rubric-details-modal .whatsapp-modal__header.modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  min-height: 2.75rem !important;
+  border-bottom: 1px solid #eef2f6 !important;
+  position: relative;
+  z-index: 2;
+  background: #fff !important;
+
+  .whatsapp-modal__title {
+    display: flex;
+    align-items: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    color: #0f172a !important;
+  }
+
+  .btn-close {
+    margin: 0 !important;
+    padding: 0.35rem !important;
+    align-self: center !important;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+  }
+}
+
+.modal-dialog.whatsapp-modal.rubric-details-modal .whatsapp-modal__body,
 .whatsapp-modal.rubric-details-modal .whatsapp-modal__body {
   padding: 0.75rem 1rem !important;
   text-align: left !important;
+  position: relative;
+  z-index: 1;
+  background: #fff;
 }
 
 .view-remedial-details-table {
@@ -4132,10 +5914,42 @@ html:not([data-bs-theme="dark"]) {
     border-color: #e9ecef;
   }
 
+  .accordion-header {
+    margin: 0 !important;
+  }
+
   .accordion-button {
-    padding: 0.65rem 0.85rem !important;
-    font-weight: 600;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.4rem 0.65rem !important;
+    font-size: var(--app-form-field-font-size, 0.6875rem) !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    min-height: var(--app-form-field-height, 1.75rem) !important;
     box-shadow: none !important;
+
+    &::after {
+      margin-left: auto !important;
+      width: 0.85rem;
+      height: 0.85rem;
+      background-size: 0.85rem;
+    }
+
+    .edit-item-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0.15rem 0.35rem !important;
+      min-height: 1.35rem !important;
+      height: 1.35rem !important;
+      line-height: 1 !important;
+
+      i {
+        font-size: 0.8rem !important;
+        line-height: 1 !important;
+      }
+    }
 
     &:not(.collapsed) {
       background: #f8fbff !important;
@@ -4152,9 +5966,48 @@ html:not([data-bs-theme="dark"]) {
 
     th,
     td {
-      padding: 0.45rem 0.75rem !important;
+      padding: 0.4rem 0.65rem !important;
+      font-size: var(--app-form-field-font-size, 0.6875rem) !important;
+      vertical-align: middle !important;
     }
   }
+}
+
+// While any modal is open, keep fixed chrome under the backdrop/dialog.
+// Horizontal nav items use z-index 1060 on hover — above reactstrap's default 1050.
+body.modal-open {
+  #page-topbar {
+    z-index: 1030 !important;
+  }
+
+  .navbar-menu,
+  .topnav {
+    z-index: 1020 !important;
+    // Fully hide so menu can't paint through the modal header
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .navbar-menu .navbar-nav > .nav-item,
+  .navbar-menu .navbar-nav > .nav-item:hover,
+  .navbar-menu .navbar-nav > .nav-item:focus-within {
+    z-index: 1020 !important;
+  }
+
+  .navbar-menu .navbar-nav > .nav-item > .menu-dropdown {
+    z-index: 1020 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+// App-wide: ensure Bootstrap/reactstrap modals beat horizontal nav (1060/1065)
+.modal {
+  z-index: 2100 !important;
+}
+
+.modal-backdrop {
+  z-index: 2090 !important;
 }
 
 // Import Reference Rubrics popup (WhatsApp-like)
@@ -4170,4 +6023,71 @@ html:not([data-bs-theme="dark"]) {
 .whatsapp-modal.ref-rubric-import-modal .whatsapp-modal__footer {
   padding: 0.75rem 1.25rem !important;
   border-top: 1px solid #eef2f6;
+}
+
+// ---------------------------------------------------------------------------
+// FINAL: multi-select must grow with wrapped chips (overrides compact fixed height)
+// react-select puts --is-multi on value-container, NOT control — use :has()
+// ---------------------------------------------------------------------------
+.admin-form-card [class*="__control"]:has([class*="value-container--is-multi"]),
+.admin-form-card [class*="__control"]:has([class*="__multi-value"]),
+.admin-list-filter-card [class*="__control"]:has([class*="value-container--is-multi"]),
+[class*="__control"]:has([class*="value-container--is-multi"]),
+[class*="__control"]:has([class*="__multi-value"]),
+[class*="__container"]:has([class*="value-container--is-multi"]) > [class*="__control"],
+[class*="-container"]:has([class*="value-container--is-multi"]) > [class*="__control"],
+.admin-form-select__control--is-multi,
+.select__control--is-multi,
+.react-select__control--is-multi,
+[class*="__control--is-multi"] {
+  height: auto !important;
+  max-height: none !important;
+  min-height: var(--app-form-field-height, 1.75rem) !important;
+  align-items: center !important;
+  overflow: visible !important;
+}
+
+.admin-form-card [class*="value-container--is-multi"],
+.admin-list-filter-card [class*="value-container--is-multi"],
+[class*="__value-container--is-multi"],
+[class*="value-container--is-multi"],
+.admin-form-select__value-container--is-multi,
+.select__value-container--is-multi {
+  height: auto !important;
+  max-height: none !important;
+  min-height: calc(var(--app-form-field-height, 1.75rem) - 2px) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  flex-wrap: wrap !important;
+  align-content: center !important;
+  align-items: center !important;
+  overflow: visible !important;
+  flex: 1 1 auto !important;
+}
+
+.admin-form-card [class*="__control"]:has([class*="value-container--is-multi"]) [class*="__indicators"],
+[class*="__control"]:has([class*="value-container--is-multi"]) [class*="__indicators"],
+.admin-form-select__control--is-multi .admin-form-select__indicators,
+[class*="__control--is-multi"] [class*="__indicators"] {
+  height: auto !important;
+  max-height: none !important;
+  min-height: calc(var(--app-form-field-height, 1.75rem) - 2px) !important;
+  align-self: stretch !important;
+  align-items: center !important;
+}
+
+[class*="value-container--is-multi"] [class*="__placeholder"],
+[class*="value-container--is-multi"] [class*="__input-container"],
+[class*="value-container--is-multi"] [class*="__input"],
+.admin-form-select__value-container--is-multi .admin-form-select__placeholder,
+.admin-form-select__value-container--is-multi .admin-form-select__input {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+  transform: none !important;
+}
+
+[class*="__multi-value"],
+.admin-form-select__multi-value {
+  max-width: 100%;
 }
