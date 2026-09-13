@@ -28,8 +28,8 @@ const nigahomeoMultipart = apiHelpers.nigahomeoMultipart;
 
 export const login = data => api.post(url.LOGIN, data);
 export const getSubscriptionStatus = () => api.get(url.SUBSCRIPTION_STATUS, null);
-/** M01 SEC-03 — classic Logout; New-API also has POST /Account/Logout with JWT denylist */
-export const logoutApi = () => api.post("/Account/Logout");
+/** M01 SEC-03 — prefer New-API Logout (JWT denylist). Best-effort if classic login token is not accepted. */
+export const logoutApi = () => nigahomeoAPI.post("/Account/Logout");
 export const forgotPasswordSecure = (email) =>
   nigahomeoAPI.post("/Account/ForgotPassword", { email });
 export const resetPasswordSecure = (payload) =>

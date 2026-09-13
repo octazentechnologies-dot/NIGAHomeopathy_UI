@@ -9,6 +9,7 @@ import VerticalLayout from "../Layouts/index";
 import { authProtectedRoutes, publicRoutes } from "./allRoutes";
 import { AuthProtected } from './AuthProtected';
 import { AdminProtected } from './AdminProtected';
+import { RoleProtected } from './RoleProtected';
 import { isAdminRoutePath } from '../Components/constants/roles';
 
 const Index = () => {
@@ -37,16 +38,21 @@ const Index = () => {
                         const page = (
                             <VerticalLayout>{route.component}</VerticalLayout>
                         );
+                        const roleGuarded = (
+                            <RoleProtected allowedRoles={route.allowedRoles}>
+                                {requireAdmin ? (
+                                    <AdminProtected>{page}</AdminProtected>
+                                ) : (
+                                    page
+                                )}
+                            </RoleProtected>
+                        );
                         return (
                             <Route
                                 path={route.path}
                                 element={
                                     <AuthProtected>
-                                        {requireAdmin ? (
-                                            <AdminProtected>{page}</AdminProtected>
-                                        ) : (
-                                            page
-                                        )}
+                                        {roleGuarded}
                                     </AuthProtected>
                                 }
                                 key={idx}

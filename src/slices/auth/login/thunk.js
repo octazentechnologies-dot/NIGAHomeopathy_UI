@@ -69,6 +69,16 @@ export const loginUser = (user, history) => async (dispatch) => {
         dispatch(changeLayout(layoutTypes.SEMIBOX));
         dispatch(fetchPatientBoardBackupSummary());
         history('/doctordashboard')
+      } else if (authUser.role === UserRole.ACCOUNT) {
+        dispatch(loginLoading(false));
+        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.SEMIBOX));
+        history('/account/home')
+      } else if (authUser.role === UserRole.PHARMACY_PARTNER) {
+        dispatch(loginLoading(false));
+        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.SEMIBOX));
+        history('/pharmacy/home')
       }
 
       /*  if (process.env.REACT_APP_DEFAULTAUTH === "fake") {
@@ -99,6 +109,12 @@ export const logoutUser = () => async (dispatch) => {
   try {
     dispatch(clearPatientBoardSession());
     dispatch(clearPatientBoardBackupSummary());
+    try {
+      const { logoutApi } = await import("../../../helpers/realbackend_helper");
+      await logoutApi();
+    } catch {
+      // Best-effort New-API revoke
+    }
     sessionStorage.removeItem("authUser");
     document.body.classList.remove('admin-layout', 'doctor-layout', 'admin-forms-ui', 'admin-dashboard-route', 'admin-mobile-topbar');
     // Reset layout attribute so the next role does not inherit admin horizontal spacing

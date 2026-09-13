@@ -50,6 +50,12 @@ export const getHomeDashboardPath = (role) => {
   if (userRole === UserRole.ADMIN) {
     return "/dashboard";
   }
+  if (userRole === UserRole.ACCOUNT) {
+    return "/account/home";
+  }
+  if (userRole === UserRole.PHARMACY_PARTNER) {
+    return "/pharmacy/home";
+  }
   return "/dashboard";
 };
 

@@ -2,6 +2,8 @@ import React from "react";
 import RoleBasedHomeRedirect from "../Components/Common/RoleBasedHomeRedirect";
 import { LANDING_SPLAT_PATH } from "../constants/landingRoutes";
 import LandingLegacyRedirect from "../pages/Landing/HomeoJobLanding/LandingLegacyRedirect";
+import AccountPlaceholder from "../pages/Account/AccountPlaceholder";
+import PharmacyPlaceholder from "../pages/Pharmacy/PharmacyPlaceholder";
 
 //Admin Start
 import AdminDashboard from "../pages/Admin/Dashboard";
@@ -339,6 +341,7 @@ import APIKey from "../pages/APIKey/index";
 //login
 import Login from "../pages/Authentication/Login";
 import ForgetPasswordPage from "../pages/Authentication/ForgetPassword";
+import ResetPassword from "../pages/Authentication/ResetPassword";
 import Logout from "../pages/Authentication/Logout";
 import Register from "../pages/Authentication/Register";
 
@@ -548,6 +551,19 @@ const authProtectedRoutes = [
 
 
   // Doctor Side End //
+
+  // FND-02.01 — Account portal stubs (M08 screens later)
+  { path: "account", component: <AccountPlaceholder title="Account Home" />, allowedRoles: ["Account"] },
+  { path: "account/home", component: <AccountPlaceholder title="Account Home" />, allowedRoles: ["Account"] },
+  { path: "account/ledger", component: <AccountPlaceholder title="Ledger" />, allowedRoles: ["Account"] },
+  { path: "account/earnings", component: <AccountPlaceholder title="Doctor Earnings" />, allowedRoles: ["Account"] },
+  { path: "account/payouts", component: <AccountPlaceholder title="Payouts" />, allowedRoles: ["Account"] },
+  { path: "account/invoices", component: <AccountPlaceholder title="Invoices" />, allowedRoles: ["Account"] },
+  { path: "account/reports", component: <AccountPlaceholder title="Reports" />, allowedRoles: ["Account"] },
+
+  // FND-02.01 — Pharmacy / HomeoMeds stub
+  { path: "pharmacy", component: <PharmacyPlaceholder title="Pharmacy Home" />, allowedRoles: ["PharmacyPartner"] },
+  { path: "pharmacy/home", component: <PharmacyPlaceholder title="Pharmacy Home" />, allowedRoles: ["PharmacyPartner"] },
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },
@@ -774,6 +790,8 @@ const publicRoutes = [
   { path: "/logout", component: <Logout /> },
   { path: "/login", component: <Login /> },
   { path: "/forgot-password", component: <ForgetPasswordPage /> },
+  { path: "/reset-password", component: <ResetPassword /> },
+  { path: "/reset-password/:token", component: <ResetPassword /> },
   { path: "/register", component: <Register /> },
 
   //AuthenticationInner pages

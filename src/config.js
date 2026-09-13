@@ -22,9 +22,7 @@ module.exports = {
 
 // module.exports = {
 //   api: {
-//     //API_URL_NIGAHOMEOPATHY: "https://api.nigahomeopathy.com/api", // this is for production use 
-//     API_URL_NIGAHOMEOPATHY: "http://localhost:5038/api", // this is for development use 
-//     API_URL: "http://localhost:5000/api",  // api1 use for production only 
-//     //API_URL: "https://api-node.themesbrand.website",
+//     API_URL_NIGAHOMEOPATHY: "https://devapi2.homeocentrum.com/api", // this is for development use 
+//     API_URL: "https://devapi1.homeocentrum.com/api",  // api1 use for production only 
 //   }
 // };
