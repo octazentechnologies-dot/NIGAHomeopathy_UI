@@ -150,6 +150,10 @@ import ListRubricBenchmarkDashboard from "../pages/Admin/RubricIntelligence/List
 import DoctorDashboard from "../pages/Doctor/Dashboard";
 import PatientBoardRoute from "./PatientBoardRoute";
 import AnatomyPage from "../pages/AnatomyPage";
+import AccountDashboard from "../pages/Account/Dashboard";
+import AccountComingSoon from "../pages/Account/components/AccountComingSoon";
+import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
+import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -548,6 +552,24 @@ const authProtectedRoutes = [
 
 
   // Doctor Side End //
+
+  // Account Side //
+  { path: "accountdashboard", component: <AccountDashboard /> },
+  { path: "account/ledger", component: <AccountComingSoon title="Ledger" /> },
+  { path: "account/doctor-earnings", component: <AccountComingSoon title="Doctor Earnings" /> },
+  { path: "account/payouts", component: <AccountComingSoon title="Payouts" /> },
+  { path: "account/invoices", component: <AccountComingSoon title="Invoices" /> },
+  { path: "account/reports", component: <AccountComingSoon title="Reports" /> },
+  // Account Side End //
+
+  // Pharmacy Side //
+  { path: "pharmacydashboard", component: <PharmacyDashboard /> },
+  { path: "pharmacy/onboarding", component: <PharmacyComingSoon title="Onboarding" /> },
+  { path: "pharmacy/orders", component: <PharmacyComingSoon title="Orders" /> },
+  { path: "pharmacy/quotes", component: <PharmacyComingSoon title="Quotes" /> },
+  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" /> },
+  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" /> },
+  // Pharmacy Side End //
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },

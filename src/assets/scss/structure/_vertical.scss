@@ -57,12 +57,12 @@
             i {
                 display: inline-block;
                 min-width: $vertical-menu-item-icon-width;
-                font-size: 18px;
+                font-size: 17px;
                 line-height: inherit;
             }
 
             svg {
-                width: 18px;
+                width: 17px;
                 margin-right: 0.665rem;
                 color: var(--#{$prefix}vertical-menu-item-color);
             }
@@ -395,12 +395,12 @@
                     }
 
                     i {
-                        font-size: 22px;
+                        font-size: 18px;
 
                         &.las,
                         &.lar,
                         &.lab {
-                            font-size: 24px;
+                            font-size: 20px;
                         }
                     }
 
@@ -441,12 +441,12 @@
                 .nav-link {
 
                     i {
-                        font-size: 18px;
+                        font-size: 17px;
 
                         &.las,
                         &.lar,
                         &.lab {
-                            font-size: 20px;
+                            font-size: 18px;
                         }
                     }
 
@@ -587,7 +587,7 @@
                     }
 
                     i {
-                        font-size: 22px;
+                        font-size: 18px;
                     }
 
                     svg {

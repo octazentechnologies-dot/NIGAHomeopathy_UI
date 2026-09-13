@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardHeader, CardBody, Col, Container, Label, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import Select from 'react-select';
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import Swal from 'sweetalert2';
 import { useSelector, useDispatch } from 'react-redux';
 import {
@@ -179,6 +180,10 @@ const ClinicalQuestionList = () => {
                         options={questionGroupOptions}
                         placeholder="Select..."
                         isClearable
+                        classNamePrefix="admin-form-select"
+                        theme={neutralSelectTheme}
+                        styles={getAdminFormSelectStyles()}
+                        {...adminFormSelectPortalProps}
                       />
                     </Col>
                     <Col xxl={4} md={4}>
@@ -189,6 +194,10 @@ const ClinicalQuestionList = () => {
                         options={questionSubGroupOptions}
                         placeholder="Select..."
                         isClearable
+                        classNamePrefix="admin-form-select"
+                        theme={neutralSelectTheme}
+                        styles={getAdminFormSelectStyles()}
+                        {...adminFormSelectPortalProps}
                       />
                     </Col>
                     <Col xxl={4} md={4}>

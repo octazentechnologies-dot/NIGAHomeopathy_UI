@@ -40,6 +40,45 @@ export const loginUser = (user, history) => async (dispatch) => {
 
     console.log("user :", user);
     dispatch(loginLoading(true));
+
+    // Dummy Account portal login (UI scaffold until Account API is ready)
+    const dummyUserName = String(user?.userName || "").trim();
+    const dummyPassword = String(user?.password || "");
+    if (dummyUserName === "Account" && dummyPassword === "Account") {
+      const authUser = {
+        token: "dummy-account-token",
+        userName: "Desai K.",
+        displayName: "Desai K.",
+        role: UserRole.ACCOUNT,
+        daysRemaining: null,
+      };
+      sessionStorage.setItem("authUser", JSON.stringify(authUser));
+      dispatch(loginSuccess(authUser));
+      dispatch(loginLoading(false));
+      dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+      dispatch(changeLayout(layoutTypes.HORIZONTAL));
+      history("/accountdashboard");
+      return;
+    }
+
+    // Dummy Pharmacy portal login (UI scaffold until Pharmacy API is ready)
+    if (dummyUserName === "Pharmacy" && dummyPassword === "Pharmacy") {
+      const authUser = {
+        token: "dummy-pharmacy-token",
+        userName: "Shaha P.",
+        displayName: "Shaha P.",
+        role: UserRole.PHARMACY,
+        daysRemaining: null,
+      };
+      sessionStorage.setItem("authUser", JSON.stringify(authUser));
+      dispatch(loginSuccess(authUser));
+      dispatch(loginLoading(false));
+      dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+      dispatch(changeLayout(layoutTypes.HORIZONTAL));
+      history("/pharmacydashboard");
+      return;
+    }
+
     const response = await loginApi(user);
     const body = response?.data ?? response;
     const data = body?.data ?? body?.resultObject ?? body;
@@ -69,6 +108,16 @@ export const loginUser = (user, history) => async (dispatch) => {
         dispatch(changeLayout(layoutTypes.SEMIBOX));
         dispatch(fetchPatientBoardBackupSummary());
         history('/doctordashboard')
+      } else if (authUser.role === UserRole.ACCOUNT) {
+        dispatch(loginLoading(false));
+        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.HORIZONTAL));
+        history('/accountdashboard')
+      } else if (authUser.role === UserRole.PHARMACY) {
+        dispatch(loginLoading(false));
+        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.HORIZONTAL));
+        history('/pharmacydashboard')
       }
 
       /*  if (process.env.REACT_APP_DEFAULTAUTH === "fake") {

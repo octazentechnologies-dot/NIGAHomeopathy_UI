@@ -8,7 +8,7 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { getSectionForSubSectionList, getSubSectionBySectionList, createSubSection, getLanguages } from '../../../../slices/admin/repertory/subsection/thunk';
 import { setSubSectionError, setSubSectionSuccess } from '../../../../slices/admin/repertory/subsection/reducer';
-import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const AddSubSection = () => {
 
@@ -311,6 +311,7 @@ const AddSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                               <ErrorMessage name="sectionName" component="div" className="text-danger" />
                             </div>
@@ -362,6 +363,7 @@ const AddSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                             </div>
                           </Col>
@@ -415,6 +417,7 @@ const AddSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                             </div>
                           </Col>
@@ -438,14 +441,15 @@ const AddSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles({ isMulti: true })}
+                                {...adminFormSelectPortalProps}
                               />
                             </div>
                           </Col>
                           <Col xxl={4} md={4}>
-                            <div className="d-inline-flex gap-2 mt-4">
+                            <div className="admin-form-add-row">
                               <button
                                 type="button"
-                                className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                className="btn btn-sm admin-list-btn admin-list-btn--import"
                                 onClick={handleAddReferenceRubric}
                               >
                                 <i className="ri-add-line align-middle me-1" aria-hidden="true" /> Add Reference Rubrics
@@ -516,6 +520,7 @@ const AddSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                               {languageError && <div className="text-danger mt-1">{languageError}</div>}
                             </div>
@@ -532,10 +537,10 @@ const AddSubSection = () => {
                             </div>
                           </Col>
                           <Col xxl={4} md={4}>
-                            <div className="d-inline-flex gap-2 mt-4">
+                            <div className="admin-form-add-row">
                               <button
                                 type="button"
-                                className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                className="btn btn-sm admin-list-btn admin-list-btn--import"
                                 onClick={handleAddLanguageReference}
                               >
                                 <i className="ri-add-line align-middle me-1" aria-hidden="true" /> Add Language Reference

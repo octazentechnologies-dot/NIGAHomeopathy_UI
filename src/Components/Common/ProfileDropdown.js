@@ -60,7 +60,10 @@ const ProfileDropdown = () => {
                     setUserData(userInfo);
                     setUserName(userInfo.userName || "Admin");
                     setUserRole(userInfo.role || "Admin");
-                    setDisplayName(formatNameToInitials(userInfo.userName || "Admin"));
+                    setDisplayName(
+                        userInfo.displayName ||
+                        formatNameToInitials(userInfo.userName || "Admin")
+                    );
                 }
             } catch (error) {
                 console.error("Error parsing authUser:", error);

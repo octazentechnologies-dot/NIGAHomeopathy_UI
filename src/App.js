@@ -8,6 +8,9 @@ installDocumentTitleBrand();
 
 //imoprt Route
 import Route from './Routes';
+import { ensureMultiSelectGrowStyles } from './helpers/neutralSelectStyles';
+
+ensureMultiSelectGrowStyles();
 
 // Import Firebase Configuration file
 // import { initFirebaseBackend } from "./helpers/firebase_helper";

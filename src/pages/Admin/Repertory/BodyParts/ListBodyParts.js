@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CardHeader, Card, CardBody, Col, Container, Row, Label, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import Select from 'react-select';
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import { getBodyPartsList, deleteBodyPart, getSectionForBodyPart } from '../../../../slices/thunks';
 import { useDispatch, useSelector } from 'react-redux';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
@@ -99,6 +100,10 @@ const ListBodyParts = () => {
                           value={selectedSection}
                           onChange={(item) => { handleSelectSection(item); }}
                           options={SectionForSubSectionOptions}
+                          classNamePrefix="admin-form-select"
+                          theme={neutralSelectTheme}
+                          styles={getAdminFormSelectStyles()}
+                          {...adminFormSelectPortalProps}
                         />
                       </div>
                     </Col>

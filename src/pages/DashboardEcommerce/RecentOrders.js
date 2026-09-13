@@ -44,10 +44,10 @@ const RecentOrders = () => {
                                                 <div className="flex-grow-1">{item.name}</div>
                                             </div>
                                         </td>
-                                        <td>{item.product}</td>
                                         <td>
                                             <span className="text-muted">{item.amount}</span>
                                         </td>
+                                        <td>{item.product}</td>
                                         <td>{item.vendor}</td>
                                         <td>
                                             <span className={"badge bg-" + item.statusClass+"-subtle text-"+ item.statusClass}>{item.status}</span>

@@ -1,0 +1,85 @@
+/* Account dashboard — match admin/doctor blue UI (#25a0e2), not maroon primary */
+.account-dashboard-page {
+  --account-blue: #25a0e2;
+  --account-blue-hover: #2099d4;
+  --account-navy: #000000;
+  --account-muted: #6c757d;
+  --account-card-border: #eff3f7;
+}
+
+.account-dashboard-page .account-kpi-label {
+  color: #000 !important;
+  font-weight: 700 !important;
+}
+
+.account-dashboard-page .account-kpi-link {
+  color: var(--account-blue) !important;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.account-dashboard-page .account-kpi-link:hover {
+  color: var(--account-blue-hover) !important;
+  text-decoration: underline;
+}
+
+.account-page-title {
+  margin: 0;
+  color: #000 !important;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.account-page-subtitle {
+  margin: 0;
+  color: var(--account-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.account-primary-btn {
+  --bs-btn-color: #fff !important;
+  --bs-btn-bg: var(--account-blue) !important;
+  --bs-btn-border-color: var(--account-blue) !important;
+  --bs-btn-hover-color: #fff !important;
+  --bs-btn-hover-bg: var(--account-blue-hover) !important;
+  --bs-btn-hover-border-color: var(--account-blue-hover) !important;
+  --bs-btn-active-color: #fff !important;
+  --bs-btn-active-bg: var(--account-blue-hover) !important;
+  --bs-btn-active-border-color: var(--account-blue-hover) !important;
+  --bs-btn-disabled-color: #fff !important;
+  --bs-btn-disabled-bg: var(--account-blue) !important;
+  --bs-btn-disabled-border-color: var(--account-blue) !important;
+  background-color: var(--account-blue) !important;
+  border-color: var(--account-blue) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: 0.25rem;
+  padding: 0.45rem 1rem;
+  box-shadow: none !important;
+}
+
+.account-primary-btn:hover,
+.account-primary-btn:focus,
+.account-primary-btn:active {
+  background-color: var(--account-blue-hover) !important;
+  border-color: var(--account-blue-hover) !important;
+  color: #fff !important;
+}
+
+.account-notice-card {
+  border: 1px solid var(--account-card-border) !important;
+  border-radius: 0.25rem !important;
+  box-shadow: 0 1px 2px rgba(56, 65, 74, 0.06) !important;
+  background: #fff !important;
+}
+
+/* Five equal KPI cards in one row on desktop */
+@media (min-width: 992px) {
+  .account-dashboard-widgets > .account-kpi-col {
+    flex: 0 0 20% !important;
+    max-width: 20% !important;
+    width: 20% !important;
+  }
+}

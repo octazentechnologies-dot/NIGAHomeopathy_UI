@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import Select from "react-select";
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import Swal from "sweetalert2";
 
@@ -545,6 +546,10 @@ const ListSubSection = () => {
                           value={selectedSection}
                           onChange={(item) => { handleSelectSection(item); }}
                           options={SectionForSubSectionOptions}
+                          classNamePrefix="admin-form-select"
+                          theme={neutralSelectTheme}
+                          styles={getAdminFormSelectStyles()}
+                          {...adminFormSelectPortalProps}
                         />
                       </div>
                     </Col>

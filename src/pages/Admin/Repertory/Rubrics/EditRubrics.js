@@ -417,10 +417,10 @@ const EditRubrics = () => {
                       </Col>
 
                       <Col xxl={4} md={4}>
-                        <div className="d-inline-flex gap-2 mt-4">
+                        <div className="admin-form-add-row">
                           <button
                             type="button"
-                            className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                            className="btn btn-sm admin-list-btn admin-list-btn--import"
                             onClick={handleAddAuthorRemedy}
                             disabled={!formik.values.remedy || formik.values.authors.length === 0}
                           >

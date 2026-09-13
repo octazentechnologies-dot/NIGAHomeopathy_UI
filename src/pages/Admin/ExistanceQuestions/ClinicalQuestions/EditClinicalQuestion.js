@@ -1048,12 +1048,12 @@ const EditClinicalQuestion = () => {
                         </div>
                       </Col>
                       <Col xxl={4} md={4}>
-                        <div className="d-inline-flex gap-2 mt-4">
+                        <div className="admin-form-add-row">
                           <button
                             type="button"
                             onClick={addSelectedSubSectionQuestions}
                             disabled={formik.values?.subSection?.length === 0}
-                            className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                            className="btn btn-sm admin-list-btn admin-list-btn--import"
                           >
                             <i className="ri-add-line align-middle me-1" aria-hidden="true" />
                             Add Sub Section
