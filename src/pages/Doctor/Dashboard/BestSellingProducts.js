@@ -1261,7 +1261,8 @@ const BestSellingProducts = () => {
 
     const loadAppointmentListForDate = (displayDateStr) => {
         const { userId } = getPatientAuthContext();
-        if (!userId || !displayDateStr) return;
+        const parsed = moment(displayDateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+        if (!userId || !parsed.isValid()) return;
         dispatch(getAppointmentList({
             userId,
             appointmentDate: toDashboardAppointmentDateIso(displayDateStr),

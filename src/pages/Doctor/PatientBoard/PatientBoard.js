@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense } fr
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
+import InfiniteScrollContainer from '../../../Components/Common/InfiniteScrollContainer';
 import { Button, Input, UncontrolledTooltip, Tooltip, Modal, ModalHeader, ModalBody, ModalFooter, Col, Row, Label, Spinner } from 'reactstrap';
 import Select from "react-select";
 import Swal from 'sweetalert2';
@@ -20,6 +21,7 @@ import RemedyScoreBar from "../../../Components/RemedyScoreBar";
 import "../../../styles/anatomy.css";
 import { useDispatch, useSelector } from 'react-redux';
 import usePatientBoardSessionPersistence from '../../../hooks/usePatientBoardSessionPersistence';
+import useContainerInfiniteLoad, { isElementScrollable } from '../../../hooks/useContainerInfiniteLoad';
 import { collectPatientBoardSnapshot, buildPatientBoardKey, canOpenPatientSession, showPatientSessionLimitAlert } from '../../../helpers/patientBoardSessionHelper';
 import AudioCasePanel from '../../../Components/CaseTaking/AudioCasePanel';
 import { buildSummaryHistoryNoteText } from '../../../helpers/audioCaseTakingHelper';
@@ -157,6 +159,37 @@ const thermalCircles = [
 ];
 
 const ACCORDION_PAGE_SIZE = 10;
+const SECTION_PAGE_SIZE = 20;
+
+const getSectionPageItems = (response) => {
+  const items = response?.resultObject ?? response?.ResultObject;
+  return Array.isArray(items) ? items : [];
+};
+
+const getSectionTotalPages = (response, pageSize = SECTION_PAGE_SIZE) => {
+  const totalPages = Number(response?.totalPageCount ?? response?.TotalPageCount);
+  if (Number.isFinite(totalPages) && totalPages > 0) {
+    return totalPages;
+  }
+  const totalCount = Number(
+    response?.totalCount
+    ?? response?.TotalCount
+    ?? response?.totalRecordCount
+    ?? response?.TotalRecordCount
+  );
+  if (Number.isFinite(totalCount) && totalCount > 0) {
+    return Math.max(1, Math.ceil(totalCount / pageSize));
+  }
+  return 1;
+};
+
+const computeSectionHasMore = (pageNumber, pageSize, response) => {
+  const items = getSectionPageItems(response);
+  if (items.length < pageSize) {
+    return false;
+  }
+  return pageNumber < getSectionTotalPages(response, pageSize);
+};
 const MODAL_SELECT_MENU_Z = 10600;
 const modalSelectPortalProps = {
   menuPortalTarget: typeof document !== 'undefined' ? document.body : null,
@@ -448,33 +481,17 @@ const AdverseEffectColumn = ({
   onToggleSearch,
   searchDisabled = false,
 }) => {
-  const loadLockRef = useRef(false);
-  const listRef = useRef(null);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
-    if (loading || !hasMore) return;
+    inFlightRef.current = false;
+  }, [items.length, hasMore]);
 
-    const element = listRef.current;
-    if (!element) return;
-
-    if (element.scrollHeight <= element.clientHeight + 1) {
-      onLoadMore();
-    }
-  }, [items.length, hasMore, loading, onLoadMore]);
-
-  const handleScroll = (event) => {
-    if (!hasMore || loading) return;
-
-    const element = event.currentTarget;
-    const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
-    if (distanceFromBottom > 64 || loadLockRef.current) return;
-
-    loadLockRef.current = true;
+  const handleLoadMore = useCallback(() => {
+    if (!hasMore || loading || inFlightRef.current) return;
+    inFlightRef.current = true;
     onLoadMore();
-    window.setTimeout(() => {
-      loadLockRef.current = false;
-    }, 200);
-  };
+  }, [hasMore, loading, onLoadMore]);
 
   return (
     <div className={`pb-ae-column pb-ae-column--${variant}`}>
@@ -529,41 +546,40 @@ const AdverseEffectColumn = ({
           </div>
         </div>
       )}
-      <div ref={listRef} className="pb-ae-column-list custom-scrollbar" onScroll={handleScroll}>
+      <InfiniteScrollContainer
+        className="pb-ae-column-list custom-scrollbar"
+        enabled={!loading && items.length > 0}
+        hasMore={!loading && hasMore}
+        loading={loading}
+        itemCount={items.length}
+        onLoadMore={handleLoadMore}
+      >
         {loading ? (
           <div className="pb-ae-column-state">
             <Spinner size="sm" className="me-2" />
             Loading effects...
           </div>
         ) : items.length > 0 ? (
-          <>
-            {items.map((item) => (
-              <div key={getItemId(item)} className="pb-ae-effect-row">
-                <span className="pb-ae-effect-name">{getItemName(item)}</span>
-              </div>
-            ))}
-            {hasMore && (
-              <div className="pb-ae-scroll-hint">
-                <Spinner size="sm" className="me-2" />
-                Scroll for more...
-              </div>
-            )}
-          </>
+          items.map((item) => (
+            <div key={getItemId(item)} className="pb-ae-effect-row">
+              <span className="pb-ae-effect-name">{getItemName(item)}</span>
+            </div>
+          ))
         ) : (
           <div className="pb-ae-column-state">
             {search ? emptySearchMessage : emptyMessage}
           </div>
         )}
-      </div>
+      </InfiniteScrollContainer>
       <div className="pb-ae-column-footer">
         <span className="pb-ae-item-count">
           <i className="ri-information-line" aria-hidden="true" />
           Showing {items.length} of {totalItems}
         </span>
-        {hasMore && (
+        {hasMore && !loading && (
           <span className="pb-ae-scroll-indicator">
             <i className="ri-arrow-down-s-line" aria-hidden="true" />
-            Scroll for more
+            More available
           </span>
         )}
       </div>
@@ -1135,6 +1151,8 @@ const PatientBoard = () => {
   const [accordionLoadingMoreRemedyId, setAccordionLoadingMoreRemedyId] = useState(null);
   const lastAccordionRequestRef = useRef({ remedyId: null, pageNumber: 1, append: false });
   const accordionSearchDebounceRef = useRef(null);
+  const accordionInFlightRef = useRef(new Set());
+  const accordionLoadFailedRef = useRef(new Set());
   // ###### Dj UI Code End - Keynote Method and Small Rubrics Toggle States ######
 
   // Repertorize SECTION column: filter COMMON / UNCOMMON by section + intensity
@@ -1845,6 +1863,7 @@ const PatientBoard = () => {
   const [globalSubSectionSearchTreeResults, setGlobalSubSectionSearchTreeResults] = useState([]);
   const [globalSubSectionSearchTreeLoadingMore, setGlobalSubSectionSearchTreeLoadingMore] = useState(false);
   const globalSubSectionSearchRequestRef = useRef(0);
+  const globalSubSectionSearchInFlightRef = useRef(false);
   const globalSubSectionSearchAnchorRef = useRef(null);
   const globalSubSectionSearchInputRef = useRef(null);
   const globalSubSectionSearchFocusedRef = useRef(false);
@@ -1866,6 +1885,7 @@ const PatientBoard = () => {
     childrenMap: new Map(),
     expanded: new Set(),
   });
+  const subSectionSearchInFlightRef = useRef(false);
   const subSectionSearchRequestRef = useRef(0);
   const subSectionSearchAnchorRef = useRef(null);
   const subSectionSearchInputRef = useRef(null);
@@ -1877,6 +1897,8 @@ const PatientBoard = () => {
   const [clinicalPatternRubricPage, setClinicalPatternRubricPage] = useState(1);
   const [clinicalPatternRubricHasMore, setClinicalPatternRubricHasMore] = useState(false);
   const [clinicalPatternRubricLoadingMore, setClinicalPatternRubricLoadingMore] = useState(false);
+  const clinicalPatternRubricInFlightRef = useRef(false);
+  const clinicalPatternRubricLoadFailedRef = useRef(false);
   const [selectedRubricRemedy, setSelectedRubricRemedy] = useState(null);
   const [selectedQuestionRubric, setSelectedQuestionRubric] = useState(null);
   const [therapeuticsFontSize, setTherapeuticsFontSize] = useState(11);
@@ -1923,6 +1945,17 @@ const PatientBoard = () => {
   const [sectionPageNumber, setSectionPageNumber] = useState(1);
   const [accumulatedSections, setAccumulatedSections] = useState([]);
   const [sectionLoadingMore, setSectionLoadingMore] = useState(false);
+  const [sectionHasMore, setSectionHasMore] = useState(false);
+  const [sectionLoadError, setSectionLoadError] = useState(null);
+  const [sectionScrollEl, setSectionScrollEl] = useState(null);
+  const [sectionSentinelEl, setSectionSentinelEl] = useState(null);
+  const sectionRequestSeqRef = useRef(0);
+  const sectionInFlightRef = useRef(false);
+  const sectionPageNumberRef = useRef(1);
+  const sectionHasMoreRef = useRef(false);
+  const sectionLoadErrorRef = useRef(null);
+  const accumulatedSectionsRef = useRef([]);
+  const skipSectionTabFetchRef = useRef(false);
   const [subSectionPageNumber, setSubSectionPageNumber] = useState(1);
   // Multi-level tree state
   const [subSectionTreeData, setSubSectionTreeData] = useState([]);
@@ -2008,8 +2041,11 @@ const PatientBoard = () => {
     }
   }, [prescriptionModalOpen, repertorizationRubrics, dispatch]);
 
-  const sectionPageSize = 20;
   const subSectionPageSize = 10;
+  sectionPageNumberRef.current = sectionPageNumber;
+  sectionHasMoreRef.current = sectionHasMore;
+  sectionLoadErrorRef.current = sectionLoadError;
+  accumulatedSectionsRef.current = accumulatedSections;
 
   // Helper function to get CSS style for remedyAlias / rubric labels based on API response
   const getRemedyAliasStyle = (remedy, options = {}) => {
@@ -2294,17 +2330,142 @@ const PatientBoard = () => {
     console.log('therapeuticsFontSize changed to:', therapeuticsFontSize);
   }, [therapeuticsFontSize]);
 
-  // Reset section pagination when entering Repertory / Repertorize
+  const bindSectionScrollEl = useCallback((node) => {
+    setSectionScrollEl((prev) => (prev === node ? prev : node));
+  }, []);
+
+  const bindSectionSentinelEl = useCallback((node) => {
+    setSectionSentinelEl((prev) => (prev === node ? prev : node));
+  }, []);
+
+  const fetchSectionPageOne = useCallback(() => {
+    const seq = ++sectionRequestSeqRef.current;
+    sectionInFlightRef.current = true;
+    sectionHasMoreRef.current = false;
+    sectionLoadErrorRef.current = null;
+    setSectionHasMore(false);
+    setSectionLoadError(null);
+    setSectionLoadingMore(false);
+    setSectionPageNumber(1);
+    setAccumulatedSections([]);
+
+    dispatch(getSectionList({ PageNumber: 1, PageSize: SECTION_PAGE_SIZE }))
+      .then((response) => {
+        if (seq !== sectionRequestSeqRef.current) {
+          return;
+        }
+        if (!response) {
+          setAccumulatedSections([]);
+          setSectionPageNumber(1);
+          sectionHasMoreRef.current = false;
+          setSectionHasMore(false);
+          const message = 'Failed to load sections';
+          sectionLoadErrorRef.current = message;
+          setSectionLoadError(message);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            showCancelButton: true,
+            confirmButtonText: 'Retry',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              fetchSectionPageOne();
+            }
+          });
+          return;
+        }
+
+        const items = getSectionPageItems(response);
+        setAccumulatedSections(items);
+        setSectionPageNumber(1);
+        const more = computeSectionHasMore(1, SECTION_PAGE_SIZE, response);
+        sectionHasMoreRef.current = more;
+        setSectionHasMore(more);
+      })
+      .finally(() => {
+        if (seq === sectionRequestSeqRef.current) {
+          sectionInFlightRef.current = false;
+        }
+      });
+  }, [dispatch]);
+
+  const loadNextSectionPage = useCallback(() => {
+    if (sectionInFlightRef.current || sectionLoadErrorRef.current || !sectionHasMoreRef.current) {
+      return;
+    }
+
+    const nextPage = sectionPageNumberRef.current + 1;
+    if (nextPage <= 1) {
+      return;
+    }
+
+    const seq = sectionRequestSeqRef.current;
+    sectionInFlightRef.current = true;
+    setSectionLoadingMore(true);
+
+    dispatch(getSectionList({ PageNumber: nextPage, PageSize: SECTION_PAGE_SIZE }))
+      .then((response) => {
+        if (seq !== sectionRequestSeqRef.current) {
+          return;
+        }
+        if (!response) {
+          const message = 'Failed to load more sections';
+          sectionLoadErrorRef.current = message;
+          setSectionLoadError(message);
+          sectionHasMoreRef.current = false;
+          setSectionHasMore(false);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            showCancelButton: true,
+            confirmButtonText: 'Retry',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              sectionLoadErrorRef.current = null;
+              setSectionLoadError(null);
+              sectionHasMoreRef.current = true;
+              setSectionHasMore(true);
+              loadNextSectionPage();
+            }
+          });
+          return;
+        }
+
+        const items = getSectionPageItems(response);
+        const existingIds = new Set(accumulatedSectionsRef.current.map((section) => section.sectionId));
+        const nextItems = items.filter((section) => !existingIds.has(section.sectionId));
+        if (nextItems.length > 0) {
+          setAccumulatedSections((prev) => [...prev, ...nextItems]);
+        }
+        setSectionPageNumber(nextPage);
+        const more = nextItems.length > 0 && computeSectionHasMore(nextPage, SECTION_PAGE_SIZE, response);
+        sectionHasMoreRef.current = more;
+        setSectionHasMore(more);
+      })
+      .finally(() => {
+        if (seq === sectionRequestSeqRef.current) {
+          sectionInFlightRef.current = false;
+          setSectionLoadingMore(false);
+        }
+      });
+  }, [dispatch]);
+
+  // Reset and fetch page 1 when entering Repertory / Repertorize
   useEffect(() => {
     if (isRestoringPatientBoardSessionRef.current) {
       return;
     }
-    if (activeTab === 'Repertory' || activeTab === 'Repertorize') {
-      setSectionPageNumber(1);
-      setAccumulatedSections([]);
-      setSectionLoadingMore(false);
+    if (activeTab !== 'Repertory' && activeTab !== 'Repertorize') {
+      return;
     }
-  }, [activeTab]);
+    if (skipSectionTabFetchRef.current) {
+      skipSectionTabFetchRef.current = false;
+      return;
+    }
+    fetchSectionPageOne();
+  }, [activeTab, fetchSectionPageOne]);
 
   const prevActiveTabRef = useRef(activeTab);
   useEffect(() => {
@@ -2314,62 +2475,17 @@ const PatientBoard = () => {
     prevActiveTabRef.current = activeTab;
   }, [activeTab, clearRepertoryRubricDetails]);
 
-  // Call getSectionList when Repertory or Repertorize tab is active
-  useEffect(() => {
-    if (activeTab === 'Repertory' || activeTab === 'Repertorize') {
-      dispatch(getSectionList({ PageNumber: sectionPageNumber, PageSize: sectionPageSize }));
-    }
-  }, [activeTab, sectionPageNumber, dispatch]);
+  const sectionInfiniteLoading = sectionLoadingMore || (sectionLoading && accumulatedSections.length === 0);
 
-  // Append paginated section results for infinite scroll
-  useEffect(() => {
-    const sections = sectionList?.resultObject;
-    if (!Array.isArray(sections)) {
-      if (sectionPageNumber === 1) {
-        setAccumulatedSections([]);
-      }
-      setSectionLoadingMore(false);
-      return;
-    }
-
-    setAccumulatedSections((prev) => {
-      if (sectionPageNumber === 1) {
-        return sections;
-      }
-      const existingIds = new Set(prev.map((section) => section.sectionId));
-      const nextSections = sections.filter((section) => !existingIds.has(section.sectionId));
-      return [...prev, ...nextSections];
-    });
-    setSectionLoadingMore(false);
-  }, [sectionList, sectionPageNumber]);
-
-  const sectionTotalPages = useMemo(() => {
-    const totalPages = Number(sectionList?.totalPageCount);
-    if (Number.isFinite(totalPages) && totalPages > 0) {
-      return totalPages;
-    }
-    const totalCount = Number(sectionList?.totalCount);
-    if (Number.isFinite(totalCount) && totalCount > 0) {
-      return Math.ceil(totalCount / sectionPageSize);
-    }
-    return 1;
-  }, [sectionList, sectionPageSize]);
-
-  const hasMoreSections = sectionPageNumber < sectionTotalPages;
-
-  const handleSectionScroll = useCallback((event) => {
-    const target = event?.target;
-    if (!target || sectionLoadingMore || !hasMoreSections) {
-      return;
-    }
-
-    if (target.scrollTop + target.clientHeight < target.scrollHeight - 12) {
-      return;
-    }
-
-    setSectionLoadingMore(true);
-    setSectionPageNumber((prev) => prev + 1);
-  }, [sectionLoadingMore, hasMoreSections]);
+  useContainerInfiniteLoad({
+    enabled: (activeTab === 'Repertory' || activeTab === 'Repertorize') && accumulatedSections.length > 0,
+    hasMore: sectionHasMore,
+    loading: sectionInfiniteLoading,
+    itemCount: accumulatedSections.length,
+    onLoadMore: loadNextSectionPage,
+    root: sectionScrollEl,
+    sentinel: sectionSentinelEl,
+  });
 
   const repertorizeSectionMetaById = useMemo(() => {
     const map = new Map();
@@ -2443,6 +2559,8 @@ const PatientBoard = () => {
     setAccordionDataMap(new Map());
     setLastRequestedRemedyId(null);
     setAccordionLoadingMoreRemedyId(null);
+    accordionInFlightRef.current.clear();
+    accordionLoadFailedRef.current.clear();
     dispatch(setRepertorizarionRemedyForAccordionList(null));
   }, [dispatch]);
 
@@ -2718,9 +2836,13 @@ const PatientBoard = () => {
   const [questionsRubricHasMore, setQuestionsRubricHasMore] = useState(false);
   const [questionsRubricLoadingMore, setQuestionsRubricLoadingMore] = useState(false);
   const questionsRubricFetchSeqRef = useRef(0);
+  const questionsRubricInFlightRef = useRef(false);
+  const questionsRubricLoadFailedRef = useRef(false);
 
   const resetQuestionsRubricsResults = useCallback(() => {
     questionsRubricFetchSeqRef.current += 1;
+    questionsRubricInFlightRef.current = false;
+    questionsRubricLoadFailedRef.current = false;
     setQuestionsRubricList([]);
     setSelectedSubGroupName('');
     setSelectedSubGroupId(null);
@@ -2879,6 +3001,12 @@ const PatientBoard = () => {
       ? questionsRubricFetchSeqRef.current
       : ++questionsRubricFetchSeqRef.current;
 
+    if (!append) {
+      questionsRubricLoadFailedRef.current = false;
+    }
+
+    questionsRubricInFlightRef.current = true;
+
     if (append) {
       setQuestionsRubricLoadingMore(true);
     } else {
@@ -2923,9 +3051,20 @@ const PatientBoard = () => {
           title: 'Error',
           text: 'Failed to fetch rubrics for the selected sub-group',
         });
+      } else if (append && requestSeq === questionsRubricFetchSeqRef.current) {
+        questionsRubricLoadFailedRef.current = true;
+        setQuestionsRubricHasMore(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load more rubrics',
+        });
       }
       throw error;
     } finally {
+      if (requestSeq === questionsRubricFetchSeqRef.current) {
+        questionsRubricInFlightRef.current = false;
+      }
       if (append) {
         if (requestSeq === questionsRubricFetchSeqRef.current) {
           setQuestionsRubricLoadingMore(false);
@@ -2946,6 +3085,8 @@ const PatientBoard = () => {
     const isNewSubGroup = selectedSubGroupId !== subGroupId;
     if (isNewSubGroup) {
       questionsRubricFetchSeqRef.current += 1;
+      questionsRubricLoadFailedRef.current = false;
+      questionsRubricInFlightRef.current = false;
       setQuestionsRubricList([]);
       setRubricSearch('');
       setQuestionsRubricPage(1);
@@ -2973,16 +3114,22 @@ const PatientBoard = () => {
       || !questionsRubricHasMore
       || questionsRubricLoadingMore
       || questionsRubricLoading
+      || questionsRubricInFlightRef.current
+      || questionsRubricLoadFailedRef.current
     ) {
       return;
     }
 
     const validSectionIds = Array.isArray(selectedSubGroupSectionIds) && selectedSubGroupSectionIds.length > 0 ? selectedSubGroupSectionIds : undefined;
-    await fetchQuestionsRubricsBySubgroup(trimmedKeyword, {
-      pageNumber: questionsRubricPage + 1,
-      append: true,
-      sectionIds: validSectionIds,
-    });
+    try {
+      await fetchQuestionsRubricsBySubgroup(trimmedKeyword, {
+        pageNumber: questionsRubricPage + 1,
+        append: true,
+        sectionIds: validSectionIds,
+      });
+    } catch {
+      /* error already surfaced in fetchQuestionsRubricsBySubgroup */
+    }
   }, [
     selectedSubGroupName,
     selectedSubGroupSectionIds,
@@ -2992,16 +3139,6 @@ const PatientBoard = () => {
     questionsRubricPage,
     fetchQuestionsRubricsBySubgroup,
   ]);
-
-  const handleQuestionsRubricsScroll = useCallback((event) => {
-    const target = event.currentTarget;
-    if (!target) return;
-
-    const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 80;
-    if (nearBottom) {
-      loadMoreQuestionsRubrics();
-    }
-  }, [loadMoreQuestionsRubrics]);
 
   // Handle question rubric click to fetch rubric details
   const handleQuestionRubricClick = async (rubric) => {
@@ -3244,10 +3381,14 @@ const PatientBoard = () => {
           </div>
         )}
 
-        <div
+        <InfiniteScrollContainer
           className="custom-scrollbar"
           style={{ maxHeight: "220px", overflowY: "auto" }}
-          onScroll={(event) => handleAccordionScroll(remedyId, event)}
+          enabled={visibleEntries.length > 0}
+          hasMore={hasMoreEntries}
+          loading={isLoadingMore}
+          itemCount={visibleEntries.length}
+          onLoadMore={() => handleAccordionLoadMore(remedyId)}
         >
           {visibleEntries.length > 0 ? (
             visibleEntries.map((item, index) => renderAccordionSublistEntryRow(item, index))
@@ -3264,7 +3405,7 @@ const PatientBoard = () => {
               </p>
             </div>
           )}
-        </div>
+        </InfiniteScrollContainer>
 
         {(hasMoreEntries || isAtEnd) && (
           <div className="text-center py-2 border-top mt-1">
@@ -3277,6 +3418,7 @@ const PatientBoard = () => {
                   className="btn btn-link btn-sm p-0"
                   onClick={(e) => {
                     e.stopPropagation();
+                    accordionLoadFailedRef.current.delete(remedyId);
                     handleAccordionLoadMore(remedyId);
                   }}
                 >
@@ -3572,6 +3714,10 @@ const PatientBoard = () => {
   const handleAccordionLoadMore = useCallback(
     (remedyId) => {
       const normalizedRemedyId = normalizeAccordionRemedyId(remedyId);
+      if (accordionInFlightRef.current.has(normalizedRemedyId) || accordionLoadFailedRef.current.has(normalizedRemedyId)) {
+        return;
+      }
+
       const currentState = accordionDataMap.get(normalizedRemedyId);
       if (!currentState) {
         return;
@@ -3604,6 +3750,7 @@ const PatientBoard = () => {
         !repertorizarionRemedyForAccordionLoading &&
         accordionLoadingMoreRemedyId !== normalizedRemedyId
       ) {
+        accordionInFlightRef.current.add(normalizedRemedyId);
         fetchAccordionData(normalizedRemedyId, {
           pageNumber: (currentState.pageNumber ?? 1) + 1,
           append: true,
@@ -3618,22 +3765,6 @@ const PatientBoard = () => {
       repertorizarionRemedyForAccordionLoading,
       repertorizeAccordionGlobalFilters,
     ]
-  );
-
-  const handleAccordionScroll = useCallback(
-    (remedyId, event) => {
-      const target = event?.target;
-      if (!target) {
-        return;
-      }
-
-      if (target.scrollTop + target.clientHeight < target.scrollHeight - 12) {
-        return;
-      }
-
-      handleAccordionLoadMore(remedyId);
-    },
-    [handleAccordionLoadMore]
   );
 
   const handleAccordionSearchChange = useCallback(
@@ -3651,6 +3782,9 @@ const PatientBoard = () => {
         });
         return newMap;
       });
+
+      accordionLoadFailedRef.current.delete(remedyId);
+      accordionInFlightRef.current.delete(remedyId);
 
       if (accordionSearchDebounceRef.current) {
         clearTimeout(accordionSearchDebounceRef.current);
@@ -3759,7 +3893,12 @@ const PatientBoard = () => {
     }
 
     const { remedyId, append } = lastAccordionRequestRef.current || {};
+    if (remedyId != null) {
+      accordionInFlightRef.current.delete(remedyId);
+    }
+
     if (!remedyId || !repertorizarionRemedyForAccordionList) {
+      setAccordionLoadingMoreRemedyId(null);
       return;
     }
 
@@ -4028,6 +4167,7 @@ const PatientBoard = () => {
 
   const clearSubSectionLocalSearch = useCallback(() => {
     subSectionSearchRequestRef.current += 1;
+    subSectionSearchInFlightRef.current = false;
     setSubSectionSearch('');
     setSubSectionSearchResults([]);
     setSubSectionSearchTreeResults([]);
@@ -4041,6 +4181,7 @@ const PatientBoard = () => {
 
   const clearGlobalSubSectionSearch = useCallback(() => {
     globalSubSectionSearchRequestRef.current += 1;
+    globalSubSectionSearchInFlightRef.current = false;
     setGlobalSubSectionSearch('');
     setGlobalSubSectionSearchResults([]);
     setGlobalSubSectionSearchTreeResults([]);
@@ -4309,6 +4450,7 @@ const PatientBoard = () => {
       || !globalSubSectionSearchTreeHasMore
       || globalSubSectionSearchTreeLoadingMore
       || globalSubSectionSearchLoading
+      || globalSubSectionSearchInFlightRef.current
     ) {
       return;
     }
@@ -4316,6 +4458,7 @@ const PatientBoard = () => {
     const requestId = globalSubSectionSearchRequestRef.current;
     const nextPage = globalSubSectionSearchTreePage + 1;
 
+    globalSubSectionSearchInFlightRef.current = true;
     setGlobalSubSectionSearchTreeLoadingMore(true);
     try {
       const response = await searchSubSectionsGlobalPaged({
@@ -4340,8 +4483,10 @@ const PatientBoard = () => {
       applySubSectionSearchResultsToTree(mergedResults);
     } catch (error) {
       console.error('Error loading more global subsection search results:', error);
+      setGlobalSubSectionSearchTreeHasMore(false);
     } finally {
       if (requestId === globalSubSectionSearchRequestRef.current) {
+        globalSubSectionSearchInFlightRef.current = false;
         setGlobalSubSectionSearchTreeLoadingMore(false);
       }
     }
@@ -4362,6 +4507,7 @@ const PatientBoard = () => {
       || !subSectionSearchTreeHasMore
       || subSectionSearchTreeLoadingMore
       || subSectionSearchTreeLoading
+      || subSectionSearchInFlightRef.current
     ) {
       return;
     }
@@ -4369,6 +4515,7 @@ const PatientBoard = () => {
     const requestId = subSectionSearchRequestRef.current;
     const nextPage = subSectionSearchTreePage + 1;
 
+    subSectionSearchInFlightRef.current = true;
     setSubSectionSearchTreeLoadingMore(true);
     try {
       const response = await searchSubSectionsBySectionPaged({
@@ -4394,8 +4541,10 @@ const PatientBoard = () => {
       applySubSectionSearchResultsToTree(mergedResults);
     } catch (error) {
       console.error('Error loading more section subsection search results:', error);
+      setSubSectionSearchTreeHasMore(false);
     } finally {
       if (requestId === subSectionSearchRequestRef.current) {
+        subSectionSearchInFlightRef.current = false;
         setSubSectionSearchTreeLoadingMore(false);
       }
     }
@@ -4409,13 +4558,7 @@ const PatientBoard = () => {
     subSectionSearchTreeResults,
   ]);
 
-  const handleSubSectionTreeScroll = useCallback((event) => {
-    const target = event.currentTarget;
-    if (!target) return;
-
-    const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 80;
-    if (!nearBottom) return;
-
+  const loadMoreSubSectionSearchTree = useCallback(() => {
     if (isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore) {
       loadMoreGlobalSubSectionSearchTree();
       return;
@@ -4697,6 +4840,8 @@ const PatientBoard = () => {
     setClinicalPatternRubricPage(1);
     setClinicalPatternRubricHasMore(false);
     setClinicalPatternRubricLoadingMore(false);
+    clinicalPatternRubricInFlightRef.current = false;
+    clinicalPatternRubricLoadFailedRef.current = false;
 
     const trimmedKeyword = keyword?.trim();
     if (!trimmedKeyword) {
@@ -4734,11 +4879,14 @@ const PatientBoard = () => {
       || !clinicalPatternRubricHasMore
       || clinicalPatternRubricLoadingMore
       || rubricByKeywordIdLoading
+      || clinicalPatternRubricInFlightRef.current
+      || clinicalPatternRubricLoadFailedRef.current
     ) {
       return;
     }
 
     const nextPage = clinicalPatternRubricPage + 1;
+    clinicalPatternRubricInFlightRef.current = true;
     setClinicalPatternRubricLoadingMore(true);
     try {
       const validSectionIds = Array.isArray(activeKeywordSectionIds) && activeKeywordSectionIds.length > 0 ? activeKeywordSectionIds : undefined;
@@ -4752,10 +4900,26 @@ const PatientBoard = () => {
       if (result?.payload) {
         setClinicalPatternRubricPage(result.payload.pageNumber ?? nextPage);
         setClinicalPatternRubricHasMore(result.payload.hasMore ?? false);
+      } else {
+        clinicalPatternRubricLoadFailedRef.current = true;
+        setClinicalPatternRubricHasMore(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load more rubrics',
+        });
       }
     } catch (error) {
       console.error('Error loading more clinical pattern rubrics:', error);
+      clinicalPatternRubricLoadFailedRef.current = true;
+      setClinicalPatternRubricHasMore(false);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to load more rubrics',
+      });
     } finally {
+      clinicalPatternRubricInFlightRef.current = false;
       setClinicalPatternRubricLoadingMore(false);
     }
   }, [
@@ -4767,16 +4931,6 @@ const PatientBoard = () => {
     rubricByKeywordIdLoading,
     dispatch,
   ]);
-
-  const handleClinicalPatternRubricsScroll = useCallback((event) => {
-    const target = event.currentTarget;
-    if (!target) return;
-
-    const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 80;
-    if (nearBottom) {
-      loadMoreClinicalPatternRubrics();
-    }
-  }, [loadMoreClinicalPatternRubrics]);
 
   // Create options from real allopathic drug data
   const adverseTypeOptions = useMemo(() => {
@@ -5062,6 +5216,17 @@ const PatientBoard = () => {
   );
 
   sessionAfterRestoreRef.current = async (snapshot) => {
+    sectionRequestSeqRef.current += 1;
+    sectionInFlightRef.current = false;
+    skipSectionTabFetchRef.current = true;
+    setSectionLoadingMore(false);
+    const restoredItems = Array.isArray(snapshot.accumulatedSections) ? snapshot.accumulatedSections : [];
+    const restoredHasMore = restoredItems.length > 0 && restoredItems.length % SECTION_PAGE_SIZE === 0;
+    sectionHasMoreRef.current = restoredHasMore;
+    setSectionHasMore(restoredHasMore);
+    sectionLoadErrorRef.current = null;
+    setSectionLoadError(null);
+
     if (snapshot.selectedSubSection?.subSectionId) {
       await dispatch(getRubricDetails({ subSectionId: snapshot.selectedSubSection.subSectionId }));
     }
@@ -9222,6 +9387,13 @@ const PatientBoard = () => {
       padding-left:2px;
       scrollbar-gutter:stable;
     }
+    .pb-infinite-sentinel {
+      display:block;
+      width:100%;
+      height:1px;
+      overflow:hidden;
+      pointer-events:none;
+    }
     .pb-tab-panel--repertory .pb-repertory-details-card .pb-tab-card-content {
       padding:4px 6px 6px 8px;
     }
@@ -12547,7 +12719,14 @@ const PatientBoard = () => {
                             </div>
                           </div>
                           <div className="pb-tab-card-divider flex-shrink-0"></div>
-                          <div className="pb-tab-card-scroll custom-scrollbar pb-clinical-rubrics-scroll" onScroll={handleClinicalPatternRubricsScroll}>
+                          <InfiniteScrollContainer
+                            className="pb-tab-card-scroll custom-scrollbar pb-clinical-rubrics-scroll"
+                            enabled={filteredRubricRemedies.length > 0}
+                            hasMore={clinicalPatternRubricHasMore}
+                            loading={clinicalPatternRubricLoadingMore || rubricByKeywordIdLoading}
+                            itemCount={filteredRubricRemedies.length}
+                            onLoadMore={loadMoreClinicalPatternRubrics}
+                          >
                             {rubricByKeywordIdLoading ? (
                               <div className="text-center p-4">
                                 <div className="spinner-border text-primary" role="status">
@@ -12587,7 +12766,7 @@ const PatientBoard = () => {
                                 <p className="text-muted mb-0">No rubrics available. Select a keyword to see rubrics.</p>
                               </div>
                             )}
-                          </div>
+                          </InfiniteScrollContainer>
                         </div>
                       </div>
                     </div>
@@ -12763,7 +12942,7 @@ const PatientBoard = () => {
                         <div className="pb-tab-card-divider"></div>
                         <div
                           className="pb-tab-card-scroll custom-scrollbar pb-repertory-section-scroll"
-                          onScroll={handleSectionScroll}
+                          ref={bindSectionScrollEl}
                         >
                             {sectionLoading && sectionPageNumber === 1 && sectionOptions.length === 0 ? (
                               <div className="text-center p-4">
@@ -12791,15 +12970,50 @@ const PatientBoard = () => {
                                   </div>
                                   );
                                 })}
-                                {sectionLoadingMore && (
+                                {sectionLoadingMore && isElementScrollable(sectionScrollEl) && (
                                   <div className="text-center p-2">
                                     <Spinner size="sm" color="primary" />
                                   </div>
                                 )}
+                                {sectionLoadError && !sectionLoadingMore && (
+                                  <div className="text-center p-2">
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-link text-muted p-0"
+                                      onClick={() => {
+                                        sectionLoadErrorRef.current = null;
+                                        setSectionLoadError(null);
+                                        sectionHasMoreRef.current = true;
+                                        setSectionHasMore(true);
+                                        loadNextSectionPage();
+                                      }}
+                                    >
+                                      Retry loading sections
+                                    </button>
+                                  </div>
+                                )}
+                                {sectionHasMore && !sectionLoadError && (
+                                  <span
+                                    ref={bindSectionSentinelEl}
+                                    className="pb-infinite-sentinel"
+                                    aria-hidden="true"
+                                  />
+                                )}
                               </>
                             ) : (
                               <div className="text-center p-4">
-                                <p className="text-muted">No sections available</p>
+                                <p className="text-muted mb-0">
+                                  {sectionLoadError ? sectionLoadError : 'No sections available'}
+                                </p>
+                                {sectionLoadError && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-link p-0 mt-2"
+                                    onClick={fetchSectionPageOne}
+                                  >
+                                    Retry
+                                  </button>
+                                )}
                               </div>
                             )}
                         </div>
@@ -12855,10 +13069,26 @@ const PatientBoard = () => {
                           </div>
                         </div>
                         <div className="pb-tab-card-divider"></div>
-                        <div
+                        <InfiniteScrollContainer
                           className="pb-tab-card-scroll custom-scrollbar pb-repertory-subsection-scroll"
-                          ref={subSectionTreeScrollRef}
-                          onScroll={handleSubSectionTreeScroll}
+                          innerRef={subSectionTreeScrollRef}
+                          enabled={
+                            (isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore)
+                            || (isSubSectionSearchActive && subSectionSearchTreeHasMore)
+                          }
+                          hasMore={
+                            (isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore)
+                            || (isSubSectionSearchActive && subSectionSearchTreeHasMore)
+                          }
+                          loading={
+                            globalSubSectionSearchTreeLoadingMore
+                            || subSectionSearchTreeLoadingMore
+                            || globalSubSectionSearchLoading
+                            || subSectionSearchTreeLoading
+                            || subSectionTreeLoading
+                          }
+                          itemCount={subSectionTreeData.length}
+                          onLoadMore={loadMoreSubSectionSearchTree}
                         >
                             {globalSubSectionSearchLoading || subSectionSearchTreeLoading ? (
                               <div className="text-center p-4">
@@ -12881,14 +13111,9 @@ const PatientBoard = () => {
                                     <p className="text-muted">No subsections match your search</p>
                                   </div>
                                 )}
-                                {((isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore)
-                                  || (isSubSectionSearchActive && subSectionSearchTreeHasMore)) && (
+                                {(globalSubSectionSearchTreeLoadingMore || subSectionSearchTreeLoadingMore) && (
                                   <div className="text-center p-2">
-                                    {globalSubSectionSearchTreeLoadingMore || subSectionSearchTreeLoadingMore ? (
-                                      <Spinner size="sm" color="primary" />
-                                    ) : (
-                                      <p className="text-muted small mb-0">Scroll for more results</p>
-                                    )}
+                                    <Spinner size="sm" color="primary" />
                                   </div>
                                 )}
                               </div>
@@ -12906,7 +13131,7 @@ const PatientBoard = () => {
                                 <p className="text-muted mb-0">Select a section or use global search above</p>
                               </div>
                             )}
-                        </div>
+                        </InfiniteScrollContainer>
                       </div>
                     </div>
 
@@ -13935,7 +14160,7 @@ const PatientBoard = () => {
                       <div className="pb-section-divider"></div>
                       <div
                         className="flex-grow-1 custom-scrollbar pb-tab-card-scroll"
-                        onScroll={handleSectionScroll}
+                        ref={bindSectionScrollEl}
                       >
                         {sectionLoading && sectionPageNumber === 1 && sectionOptions.length === 0 ? (
                           <div className="text-center p-4">
@@ -13985,15 +14210,50 @@ const PatientBoard = () => {
                                 </div>
                               );
                             })}
-                            {sectionLoadingMore && (
+                            {sectionLoadingMore && isElementScrollable(sectionScrollEl) && (
                               <div className="text-center p-2">
                                 <Spinner size="sm" color="primary" />
                               </div>
                             )}
+                            {sectionLoadError && !sectionLoadingMore && (
+                              <div className="text-center p-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-muted p-0"
+                                  onClick={() => {
+                                    sectionLoadErrorRef.current = null;
+                                    setSectionLoadError(null);
+                                    sectionHasMoreRef.current = true;
+                                    setSectionHasMore(true);
+                                    loadNextSectionPage();
+                                  }}
+                                >
+                                  Retry loading sections
+                                </button>
+                              </div>
+                            )}
+                            {sectionHasMore && !sectionLoadError && (
+                              <span
+                                ref={bindSectionSentinelEl}
+                                className="pb-infinite-sentinel"
+                                aria-hidden="true"
+                              />
+                            )}
                           </>
                         ) : (
                           <div className="text-center p-4">
-                            <p className="text-muted">No sections available</p>
+                            <p className="text-muted mb-0">
+                              {sectionLoadError ? sectionLoadError : 'No sections available'}
+                            </p>
+                            {sectionLoadError && (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-link p-0 mt-2"
+                                onClick={fetchSectionPageOne}
+                              >
+                                Retry
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -14364,7 +14624,14 @@ const PatientBoard = () => {
                             </div>
                           </div>
                           <div className="pb-tab-card-divider flex-shrink-0"></div>
-                          <div className="pb-tab-card-scroll custom-scrollbar pb-questions-rubrics-scroll" onScroll={handleQuestionsRubricsScroll}>
+                          <InfiniteScrollContainer
+                            className="pb-tab-card-scroll custom-scrollbar pb-questions-rubrics-scroll"
+                            enabled={filteredRubrics.length > 0}
+                            hasMore={questionsRubricHasMore}
+                            loading={questionsRubricLoadingMore || questionsRubricLoading}
+                            itemCount={filteredRubrics.length}
+                            onLoadMore={loadMoreQuestionsRubrics}
+                          >
                             {questionsRubricLoading ? (
                               <div className="text-center p-4">
                                 <div className="spinner-border text-primary" role="status">
@@ -14394,11 +14661,6 @@ const PatientBoard = () => {
                                     <span className="text-muted small ms-2">Loading more rubrics...</span>
                                   </div>
                                 )}
-                                {!questionsRubricLoadingMore && questionsRubricHasMore && (
-                                  <div className="pb-questions-rubrics-list__status">
-                                    <span className="text-muted small">Scroll down to load more</span>
-                                  </div>
-                                )}
                               </div>
                             ) : selectedSubGroupName && rubricSearch.trim() ? (
                               <div className="text-center p-4">
@@ -14417,7 +14679,7 @@ const PatientBoard = () => {
                                 <p className="text-muted small mb-0">Choose section → group → sub-group to search rubrics.</p>
                               </div>
                             )}
-                          </div>
+                          </InfiniteScrollContainer>
                           {selectedSubGroupName && !questionsRubricLoading && rubrics.length > 0 && (
                             <div className="pb-questions-rubrics-footer">
                               <span>
@@ -14429,7 +14691,7 @@ const PatientBoard = () => {
                                 {questionsRubricLoadingMore
                                   ? 'Loading page...'
                                   : questionsRubricHasMore
-                                    ? `Page ${questionsRubricPage} · scroll for more`
+                                    ? `Page ${questionsRubricPage} · more available`
                                     : `Page ${questionsRubricPage} · end`}
                               </span>
                             </div>

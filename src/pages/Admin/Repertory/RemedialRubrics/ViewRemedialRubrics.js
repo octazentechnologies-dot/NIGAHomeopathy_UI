@@ -4,12 +4,12 @@ import { Card, CardHeader, CardBody, Col, Container, Input, Row, Spinner } from 
 import { Link, useLocation } from 'react-router-dom';
 import { getRubricRemedyDetails, updateIsSmallRubricStatus, updateIsConfirmationRubricStatus } from '../../../../slices/admin/repertory/remedialrubrics/thunk';
 import { setRubricRemedyDetails } from '../../../../slices/admin/repertory/remedialrubrics/reducer';
+import InfiniteScrollContainer from '../../../../Components/Common/InfiniteScrollContainer';
 import Select from "react-select";
 import { getRemedyGrades } from '../../../../slices/admin/repertory/rubric/thunk';
 
 const PAGE_SIZE = 50;
 const SEARCH_DEBOUNCE_MS = 300;
-const SCROLL_LOAD_THRESHOLD_PX = 120;
 
 const renderHtmlContent = (html) => {
   if (html == null || html === '') {
@@ -34,10 +34,9 @@ const ViewRemedialRubrics = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [updatingRubricId, setUpdatingRubricId] = useState(null);
   const listScrollRef = useRef(null);
-  const loadMoreLockRef = useRef(false);
+  const inFlightRef = useRef(false);
 
   const remedyId = location.state?.selectedRemedy?.remedyId;
 
@@ -55,6 +54,7 @@ const ViewRemedialRubrics = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery.trim());
+      inFlightRef.current = false;
       setVisibleCount(PAGE_SIZE);
       if (listScrollRef.current) {
         listScrollRef.current.scrollTop = 0;
@@ -64,6 +64,7 @@ const ViewRemedialRubrics = () => {
   }, [searchQuery]);
 
   useEffect(() => {
+    inFlightRef.current = false;
     setVisibleCount(PAGE_SIZE);
     if (listScrollRef.current) {
       listScrollRef.current.scrollTop = 0;
@@ -106,29 +107,18 @@ const ViewRemedialRubrics = () => {
     [filteredRubrics, visibleCount]
   );
 
+  useEffect(() => {
+    inFlightRef.current = false;
+  }, [visibleRubrics.length, hasMore]);
+
   const loadMoreRubrics = useCallback(() => {
-    if (loadMoreLockRef.current || !hasMore) {
+    if (inFlightRef.current || !hasMore) {
       return;
     }
 
-    loadMoreLockRef.current = true;
-    setIsLoadingMore(true);
-
-    // Keep UI responsive while appending the next chunk
-    window.setTimeout(() => {
-      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredRubrics.length));
-      setIsLoadingMore(false);
-      loadMoreLockRef.current = false;
-    }, 0);
+    inFlightRef.current = true;
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredRubrics.length));
   }, [filteredRubrics.length, hasMore]);
-
-  const handleListScroll = useCallback((event) => {
-    const target = event.currentTarget;
-    const remaining = target.scrollHeight - target.scrollTop - target.clientHeight;
-    if (remaining <= SCROLL_LOAD_THRESHOLD_PX) {
-      loadMoreRubrics();
-    }
-  }, [loadMoreRubrics]);
 
   const patchRubricInStore = useCallback((rubricRemedyId, patch) => {
     if (!rubricRemedyDetails?.rubricRemedyViewsList) {
@@ -300,11 +290,15 @@ const ViewRemedialRubrics = () => {
                     </div>
                   </CardHeader>
                   <CardBody>
-                    <div
-                      ref={listScrollRef}
+                    <InfiniteScrollContainer
+                      innerRef={listScrollRef}
                       className="table-responsive patient-list-modal__table-wrap"
                       style={{ maxHeight: '520px', overflowY: 'auto' }}
-                      onScroll={handleListScroll}
+                      enabled={visibleRubrics.length > 0}
+                      hasMore={hasMore}
+                      loading={false}
+                      itemCount={visibleRubrics.length}
+                      onLoadMore={loadMoreRubrics}
                     >
                       <table className="table mb-0 align-middle patient-list-modal__table" id="customerTable">
                         <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
@@ -352,20 +346,13 @@ const ViewRemedialRubrics = () => {
                           )}
                         </tbody>
                       </table>
-                    </div>
+                    </InfiniteScrollContainer>
 
                     <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                       <div className="text-muted patient-list-modal__footer-text">
-                        {isLoadingMore ? (
-                          <>
-                            <Spinner size="sm" className="me-2" />
-                            Loading more...
-                          </>
-                        ) : hasMore ? (
-                          `Showing ${visibleRubrics.length} of ${filteredRubrics.length} Results — scroll for more`
-                        ) : (
-                          `Showing ${visibleRubrics.length} of ${filteredRubrics.length} Results`
-                        )}
+                        {hasMore
+                          ? `Showing ${visibleRubrics.length} of ${filteredRubrics.length} Results — more available`
+                          : `Showing ${visibleRubrics.length} of ${filteredRubrics.length} Results`}
                       </div>
                     </div>
                   </CardBody>

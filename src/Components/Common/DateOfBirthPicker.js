@@ -174,6 +174,43 @@ const DateOfBirthPicker = ({
         setView('day');
     };
 
+    const commitTypedDate = (rawValue) => {
+        const typed = String(rawValue || '').trim();
+        if (!typed) {
+            if (value) onChange?.('');
+            return;
+        }
+
+        const parsed = parseDateValue(typed);
+        if (!parsed || isDayDisabled(parsed)) return;
+
+        const formatted = formatDateValue(parsed);
+        if (formatted !== value) onChange?.(formatted);
+        setViewDate(parsed.clone());
+    };
+
+    const handleInputChange = (event) => {
+        onChange?.(event.target.value);
+    };
+
+    const handleInputBlur = (event) => {
+        commitTypedDate(event.target.value);
+        onBlur?.(event);
+    };
+
+    const handleInputKeyDown = (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            commitTypedDate(event.target.value);
+            setIsOpen(false);
+            setView('day');
+        }
+        if (event.key === 'ArrowDown' && !isOpen) {
+            event.preventDefault();
+            openPicker();
+        }
+    };
+
     const yearPageEnd = yearPageStart + YEARS_PER_PAGE - 1;
     const years = Array.from({ length: YEARS_PER_PAGE }, (_, index) => yearPageStart + index);
 
@@ -424,18 +461,25 @@ const DateOfBirthPicker = ({
     return (
         <div className={`dob-picker ${className}`.trim()} ref={wrapperRef}>
             <div className={`dob-picker__input-group ${hasError ? 'is-invalid' : ''}`}>
-                <span className="dob-picker__icon">
-                    <i className="ri-calendar-line" />
-                </span>
+                <button
+                    type="button"
+                    className="dob-picker__icon"
+                    onClick={openPicker}
+                    aria-label="Open calendar"
+                >
+                    <i className="ri-calendar-line" aria-hidden="true" />
+                </button>
                 <input
                     type="text"
                     name={name}
                     className={`form-control dob-picker__input ${hasError ? 'is-invalid' : ''}`}
                     value={value}
                     placeholder={placeholder}
-                    readOnly
-                    onClick={openPicker}
-                    onFocus={openPicker}
+                    autoComplete="off"
+                    inputMode="numeric"
+                    onChange={handleInputChange}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleInputKeyDown}
                 />
             </div>
             {typeof document !== 'undefined' && popoverContent

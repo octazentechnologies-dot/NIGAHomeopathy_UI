@@ -11,11 +11,16 @@ import {
 /* Get Section List Api Call */
 export const getSectionList = (data) => async (dispatch) => {
     try {
+        dispatch(setSectionError(null));
+        dispatch(setSectionLoading(true));
         const response = await getSectionListApi(data);
-        dispatch(setSectionLoading(false));
         dispatch(setSectionList(response));
+        dispatch(setSectionLoading(false));
+        return response;
     } catch (sectionError) {
-        dispatch(setSectionError(sectionError.message));
+        dispatch(setSectionError(sectionError.message || sectionError));
+        dispatch(setSectionLoading(false));
+        return null;
     }
 }
 

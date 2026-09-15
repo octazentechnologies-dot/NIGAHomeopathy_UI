@@ -33,8 +33,10 @@ import {
     buildPatientApiPayload,
     formatCalendarDateForApi,
     formatDateOfBirthForApi,
+    getPatientAuthContext,
     getPatientEmailForEdit,
 } from '../../../helpers/patient_payload_helper';
+import { extractApiList } from '../../../helpers/patient_history_helper';
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import {
     buildPatientSelectOption,
@@ -52,6 +54,7 @@ import {
     normalizeAppointmentSlotsResponse,
 } from '../../../helpers/appointmentSlotHelper';
 import {
+    getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentSlots,
     getDailySchedule,
 } from '../../../helpers/realbackend_helper';
@@ -156,11 +159,24 @@ const PatientListModalSearch = ({ value, onChange, placeholder = 'Search...' }) 
 );
 
 /** Search field in patient list modal header (close uses standard modal X). */
-const PatientListModalHeaderActions = ({ value, onChange, placeholder }) => (
+const PatientListModalHeaderActions = ({ value, onChange, placeholder, extra }) => (
     <div className="patient-list-modal__header-actions">
+        {extra}
         <PatientListModalSearch value={value} onChange={onChange} placeholder={placeholder} />
     </div>
 );
+
+const toAppointmentListDateIso = (displayDateStr) => {
+    const parsed = moment(displayDateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+    if (!parsed.isValid()) return '';
+    const now = moment();
+    return parsed
+        .hour(now.hour())
+        .minute(now.minute())
+        .second(now.second())
+        .millisecond(now.millisecond())
+        .toISOString();
+};
 
 const PatientListTableHead = () => (
     <thead>
@@ -1088,15 +1104,62 @@ const PatientListModal = ({ isOpen, toggle }) => {
 
 // Appointment List modal with search, pagination, and Date/Time columns
 const AppointmentListModal = ({ isOpen, toggle }) => {
-    const appointmentList = useSelector((state) => state?.DoctorDashboard?.appointmentList) || [];
-    const appointmentListLoading = useSelector((state) => state?.DoctorDashboard?.appointmentListLoading);
-
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [filterDate, setFilterDate] = useState(() => moment().format(DOB_DISPLAY_FORMAT));
+    const [dateAppointments, setDateAppointments] = useState([]);
+    const [dateLoading, setDateLoading] = useState(false);
     const pageSize = 10;
 
-    // Filter appointments based on search term
-    const filtered = appointmentList.filter((appointment) => {
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchTerm("");
+            setCurrentPage(1);
+            setFilterDate(moment().format(DOB_DISPLAY_FORMAT));
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const iso = toAppointmentListDateIso(filterDate);
+        if (!iso) {
+            setDateLoading(false);
+            return undefined;
+        }
+
+        const { userId } = getPatientAuthContext();
+        if (!userId) return undefined;
+
+        let cancelled = false;
+        setDateLoading(true);
+
+        fetchAppointmentListByDateApi({
+            userId,
+            appointmentDate: iso,
+        })
+            .then((response) => {
+                if (!cancelled) {
+                    setDateAppointments(extractApiList(response));
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setDateAppointments([]);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setDateLoading(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, filterDate]);
+
+    const filtered = dateAppointments.filter((appointment) => {
         const needle = searchTerm.trim().toLowerCase();
         if (!needle) return true;
 
@@ -1125,6 +1188,11 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
         setCurrentPage(1);
     };
 
+    const handleFilterDateChange = (dateStr) => {
+        setFilterDate(dateStr);
+        setCurrentPage(1);
+    };
+
     return (
         <Modal size="xl" id="appointmentListModal" isOpen={isOpen} toggle={toggle} className="patient-list-modal">
             <ModalHeader id="appointmentListModalLabel" className="patient-list-modal__header" toggle={toggle}>
@@ -1137,6 +1205,18 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                 <PatientListModalHeaderActions
                     value={searchTerm}
                     onChange={handleSearch}
+                    extra={(
+                        <div className="patient-list-modal__date-filter">
+                            <DateOfBirthPicker
+                                name="appointmentListFilterDate"
+                                value={filterDate}
+                                minDate={null}
+                                maxDate={null}
+                                placeholder={DOB_DISPLAY_FORMAT}
+                                onChange={handleFilterDateChange}
+                            />
+                        </div>
+                    )}
                 />
             </ModalHeader>
             <ModalBody>
@@ -1144,7 +1224,7 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                     <table className="table mb-0 align-middle patient-list-modal__table">
                         <AppointmentListTableHead />
                         <tbody>
-                            {appointmentListLoading ? (
+                            {dateLoading ? (
                                 <tr>
                                     <td colSpan={6} className="text-center text-muted">
                                         <div className="d-flex justify-content-center align-items-center">
@@ -1180,7 +1260,7 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {pageItems.length === 0 && !appointmentListLoading && (
+                                    {pageItems.length === 0 && !dateLoading && (
                                         <tr>
                                             <PatientListEmptyCell
                                                 message={searchTerm ? 'No appointments found matching your search' : 'No appointments available'}
@@ -1194,13 +1274,13 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                 </div>
                 <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                     <div className="text-muted patient-list-modal__footer-text">
-                        {appointmentListLoading ? (
+                        {dateLoading ? (
                             'Loading...'
                         ) : (
-                            `Showing ${pageItems.length} of ${filtered.length} Appointments ${searchTerm ? `(filtered from ${appointmentList.length} total)` : `(from ${appointmentList.length} total)`}`
+                            `Showing ${pageItems.length} of ${filtered.length} Appointments ${searchTerm ? `(filtered from ${dateAppointments.length} total)` : `(from ${dateAppointments.length} total)`}`
                         )}
                     </div>
-                    {!appointmentListLoading && totalPages > 1 && (
+                    {!dateLoading && totalPages > 1 && (
                         <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                             <PaginationItem disabled={safePage === 1}>
                                 <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
@@ -2918,7 +2998,7 @@ const Widgets = () => {
                                             hasError={Boolean(errors.dateOfBirth && touched.dateOfBirth)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('dateOfBirth', dateStr, true);
+                                                setFieldValue('dateOfBirth', dateStr, false);
                                                 setFieldTouched('dateOfBirth', true, false);
                                             }}
                                             onBlur={() => setFieldTouched('dateOfBirth', true, true)}
@@ -3214,9 +3294,12 @@ const Widgets = () => {
                                             hasError={Boolean(errors.appointmentDate && touched.appointmentDate)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('appointmentDate', dateStr, true);
+                                                setFieldValue('appointmentDate', dateStr, false);
                                                 setFieldTouched('appointmentDate', true, false);
-                                                loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
+                                                const parsed = moment(dateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+                                                if (parsed.isValid()) {
+                                                    loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
+                                                }
                                             }}
                                             onBlur={() => setFieldTouched('appointmentDate', true, true)}
                                         />
