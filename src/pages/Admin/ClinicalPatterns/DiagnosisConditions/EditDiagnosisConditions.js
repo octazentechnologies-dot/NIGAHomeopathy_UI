@@ -1882,10 +1882,10 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
+                                    <div className="admin-form-add-row">
                                       <button
                                         type="button"
-                                        className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                        className="btn btn-sm admin-list-btn admin-list-btn--import"
                                         onClick={addSelectedSubSectionQuestions}
                                       >
                                         <i className="ri-add-line align-middle"></i> Add Sub Section
@@ -1998,10 +1998,10 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
+                                    <div className="admin-form-add-row">
                                       <button
                                         type="button"
-                                        className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                        className="btn btn-sm admin-list-btn admin-list-btn--import"
                                         onClick={addSymptoms}
                                       >
                                         <i className="ri-add-line align-middle"></i> Add Symptoms
@@ -2093,10 +2093,10 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
+                                    <div className="admin-form-add-row">
                                       <button
                                         type="button"
-                                        className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                        className="btn btn-sm admin-list-btn admin-list-btn--import"
                                         onClick={addMonogram}
                                       >
                                         <i className="ri-add-line align-middle"></i> Add Monogram
@@ -2175,8 +2175,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                    <div className="admin-form-add-row">
+                                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"
                                         onClick={addCausations}><i className="ri-add-line align-middle"></i> Add Causations</button>
                                     </div>
                                   </Col>
@@ -2252,8 +2252,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addPathology} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Pathology</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addPathology} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Pathology</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2355,8 +2355,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addEmergencies} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Emergencies</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addEmergencies} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Emergencies</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2476,8 +2476,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addOnset} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Onset/Duration/Progress</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addOnset} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Onset/Duration/Progress</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2552,8 +2552,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addPatterns} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Patterns</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addPatterns} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Patterns</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2628,8 +2628,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addLocationExtention} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Location-Extension</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addLocationExtention} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Location-Extension</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2704,8 +2704,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addSensation} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Sensation</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addSensation} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Sensation</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2780,8 +2780,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addModalities} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Modalities</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addModalities} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Modalities</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2856,8 +2856,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addAccompanied} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Accompanied</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addAccompanied} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Accompanied</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -2932,8 +2932,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addObservations} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Observations</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addObservations} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Observations</button>
                                     </div>
                                   </Col>
                                 </Row>
@@ -3008,8 +3008,8 @@ const EditDiagnosisConditions = () => {
                                   </Col>
 
                                   <Col xxl={4} md={4}>
-                                    <div className="d-inline-flex gap-2  mt-4">
-                                      <button onClick={addBeforeAfterDuring} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"><i className="ri-add-line align-middle"></i> Add Before/After/During</button>
+                                    <div className="admin-form-add-row">
+                                      <button onClick={addBeforeAfterDuring} type="button" className="btn btn-sm admin-list-btn admin-list-btn--import"><i className="ri-add-line align-middle"></i> Add Before/After/During</button>
                                     </div>
                                   </Col>
                                 </Row>

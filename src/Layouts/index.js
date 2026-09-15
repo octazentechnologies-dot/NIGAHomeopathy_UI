@@ -253,12 +253,20 @@ const Layout = (props) => {
         };
     }, [userProfile?.role, dispatch]);
 
-    // Admin mobile topbar (<500px): dashboard + all admin menus (Existance → Rubric Intelligence)
+    // Admin mobile topbar (<500px): dashboard + all admin menus
+    // Doctor dashboard / patient board: compact topbar on small phones
     useEffect(() => {
         const path = props.router?.location?.pathname || '';
         const isAdminPath = path === '/admin' || path.startsWith('/admin/');
         const isAdminDashboard = path === '/dashboard' || path === '/dashboard/';
-        const useMobileTopbar = isAdminDashboard || isAdminPath;
+        const isDoctorDashboard =
+            path === '/index' ||
+            path === '/index/' ||
+            path === '/doctordashboard' ||
+            path === '/doctordashboard/';
+        const isPatientBoard =
+            path === '/doctor/patientboard' ||
+            path.startsWith('/doctor/patientboard');
 
         if (isAdminPath) {
             document.body.classList.add('admin-forms-ui');
@@ -266,7 +274,7 @@ const Layout = (props) => {
             document.body.classList.remove('admin-forms-ui');
         }
 
-        if (useMobileTopbar) {
+        if (isAdminDashboard || isAdminPath) {
             document.body.classList.add('admin-mobile-topbar');
             document.body.classList.add('admin-dashboard-route');
         } else {
@@ -274,10 +282,24 @@ const Layout = (props) => {
             document.body.classList.remove('admin-dashboard-route');
         }
 
+        if (isDoctorDashboard) {
+            document.body.classList.add('doctor-dashboard-route');
+        } else {
+            document.body.classList.remove('doctor-dashboard-route');
+        }
+
+        if (isPatientBoard) {
+            document.body.classList.add('doctor-patient-board-route');
+        } else {
+            document.body.classList.remove('doctor-patient-board-route');
+        }
+
         return () => {
             document.body.classList.remove('admin-forms-ui');
             document.body.classList.remove('admin-mobile-topbar');
             document.body.classList.remove('admin-dashboard-route');
+            document.body.classList.remove('doctor-dashboard-route');
+            document.body.classList.remove('doctor-patient-board-route');
         };
     }, [props.router?.location?.pathname]);
 

@@ -12,7 +12,7 @@ import { setSubSectionError, setSubSectionSuccess } from '../../../../slices/adm
 import { getSubSectionBySection } from '../../../../helpers/realbackend_helper';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const SUB_SECTION_OPTIONS_PAGE_SIZE = 20;
 
@@ -448,6 +448,7 @@ const EditSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                               <ErrorMessage name="sectionName" component="div" className="text-danger" />
                             </div>
@@ -502,6 +503,7 @@ const EditSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                             </div>
                           </Col>
@@ -561,6 +563,7 @@ const EditSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                             </div>
                           </Col>
@@ -581,14 +584,15 @@ const EditSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                             </div>
                           </Col>
                           <Col xxl={4} md={4}>
-                            <div className="d-inline-flex gap-2 mt-4">
+                            <div className="admin-form-add-row">
                               <button
                                 type="button"
-                                className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                className="btn btn-sm admin-list-btn admin-list-btn--import"
                                 onClick={() => {
                                   if (formik.values.referenceSection && formik.values.referenceSubSections) {
                                     const currentDate = new Date().toISOString();
@@ -688,6 +692,7 @@ const EditSubSection = () => {
                                 classNamePrefix="admin-form-select"
                                 theme={neutralSelectTheme}
                                 styles={getAdminFormSelectStyles()}
+                                {...adminFormSelectPortalProps}
                               />
                               {languageError && <div className="text-danger mt-1">{languageError}</div>}
                             </div>
@@ -707,10 +712,10 @@ const EditSubSection = () => {
                             </div>
                           </Col>
                           <Col xxl={4} md={4}>
-                            <div className="d-inline-flex gap-2 mt-4">
+                            <div className="admin-form-add-row">
                               <button
                                 type="button"
-                                className="btn btn-sm admin-list-btn admin-list-btn--import mt-2"
+                                className="btn btn-sm admin-list-btn admin-list-btn--import"
                                 onClick={() => {
                                   if (formik.values.languageName && formik.values.languageDetails) {
                                     const languageExists = languageReferences.some(

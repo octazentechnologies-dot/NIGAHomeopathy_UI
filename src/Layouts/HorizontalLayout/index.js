@@ -15,7 +15,7 @@ const HorizontalLayout = (props) => {
     const { menuItems: baseMenuItems, moreMenuItems } = useLayoutMenu();
     const menuItems = [...baseMenuItems];
 
-    if (!props.moreMenuInTopbar) {
+    if (!props.moreMenuInTopbar && (moreMenuItems || []).length > 0) {
         menuItems.push({
             id: 'more',
             label: 'More',

@@ -1,7 +1,12 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 
 import Navdata from './LayoutMenuData';
-import { getHorizontalMenuSplit } from '../helpers/horizontalMenuSplit';
+import {
+  getAccountHorizontalMenuItems,
+  getPharmacyHorizontalMenuItems,
+  getHorizontalMenuSplit,
+} from '../helpers/horizontalMenuSplit';
+import { resolveUserRole, UserRole } from '../Components/constants/roles';
 
 const LayoutMenuContext = createContext({
   navChildren: [],
@@ -12,7 +17,23 @@ const LayoutMenuContext = createContext({
 /** Calls Navdata hooks once per layout tree — shared by sidebar + header menus. */
 export const LayoutMenuProvider = ({ children }) => {
   const navChildren = Navdata().props.children;
-  const { menuItems, moreMenuItems } = getHorizontalMenuSplit(navChildren);
+  const role = resolveUserRole();
+
+  const { menuItems, moreMenuItems } = useMemo(() => {
+    if (role === UserRole.ACCOUNT) {
+      return {
+        menuItems: getAccountHorizontalMenuItems(),
+        moreMenuItems: [],
+      };
+    }
+    if (role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER) {
+      return {
+        menuItems: getPharmacyHorizontalMenuItems(),
+        moreMenuItems: [],
+      };
+    }
+    return getHorizontalMenuSplit(navChildren);
+  }, [navChildren, role]);
 
   return (
     <LayoutMenuContext.Provider value={{ navChildren, menuItems, moreMenuItems }}>

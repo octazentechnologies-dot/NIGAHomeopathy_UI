@@ -195,7 +195,7 @@ export const collectPatientBoardSnapshot = (state) => ({
   activeKeyword: state.activeKeyword ?? null,
   keywordSearch: state.keywordSearch ?? '',
   rubricRemedySearch: state.rubricRemedySearch ?? '',
-  therapeuticsFontSize: state.therapeuticsFontSize ?? 14,
+  therapeuticsFontSize: state.therapeuticsFontSize ?? 11,
 
   filledPyramidIcons: serializeSet(state.filledPyramidIcons),
   isKeynoteMethodActive: Boolean(state.isKeynoteMethodActive),
@@ -237,7 +237,7 @@ export const collectPatientBoardSnapshot = (state) => ({
 
   selectedRemedy: state.selectedRemedy ?? null,
   selectedAuthor: state.selectedAuthor ?? null,
-  mmFontSize: state.mmFontSize ?? 14,
+  mmFontSize: state.mmFontSize ?? 11,
 
   selectedAdverseType: state.selectedAdverseType ?? null,
   seriousEffectsSearch: state.seriousEffectsSearch ?? '',
@@ -301,7 +301,7 @@ export const applyPatientBoardSnapshot = (snapshot, setters) => {
   if (setters.setActiveKeyword) setters.setActiveKeyword(snapshot.activeKeyword ?? null);
   if (setters.setKeywordSearch) setters.setKeywordSearch(snapshot.keywordSearch ?? '');
   if (setters.setRubricRemedySearch) setters.setRubricRemedySearch(snapshot.rubricRemedySearch ?? '');
-  if (setters.setTherapeuticsFontSize) setters.setTherapeuticsFontSize(snapshot.therapeuticsFontSize ?? 14);
+  if (setters.setTherapeuticsFontSize) setters.setTherapeuticsFontSize(snapshot.therapeuticsFontSize ?? 11);
 
   if (setters.setFilledPyramidIcons) setters.setFilledPyramidIcons(deserializeSet(snapshot.filledPyramidIcons));
   if (setters.setIsKeynoteMethodActive) setters.setIsKeynoteMethodActive(Boolean(snapshot.isKeynoteMethodActive));
@@ -363,7 +363,7 @@ export const applyPatientBoardSnapshot = (snapshot, setters) => {
 
   if (setters.setSelectedRemedy) setters.setSelectedRemedy(snapshot.selectedRemedy ?? null);
   if (setters.setSelectedAuthor) setters.setSelectedAuthor(snapshot.selectedAuthor ?? null);
-  if (setters.setMmFontSize) setters.setMmFontSize(snapshot.mmFontSize ?? 14);
+  if (setters.setMmFontSize) setters.setMmFontSize(snapshot.mmFontSize ?? 11);
 
   if (setters.setSelectedAdverseType) setters.setSelectedAdverseType(snapshot.selectedAdverseType ?? null);
   if (setters.setSeriousEffectsSearch) setters.setSeriousEffectsSearch(snapshot.seriousEffectsSearch ?? '');

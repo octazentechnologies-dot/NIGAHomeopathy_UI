@@ -8,6 +8,15 @@
 //   }
 // };
 
+// module.exports = {
+//   api: {
+//     //API_URL_NIGAHOMEOPATHY: "https://api.nigahomeopathy.com/api",
+//     API_URL_NIGAHOMEOPATHY: "https://api1.homeocentrum.com/api",
+//     API_URL: "https://api.homeocentrum.com/api",
+//     //API_URL: "https://api-node.themesbrand.website",
+//   }
+// };
+
 module.exports = {
   api: {
     //API_URL_NIGAHOMEOPATHY: "https://api.nigahomeopathy.com/api",

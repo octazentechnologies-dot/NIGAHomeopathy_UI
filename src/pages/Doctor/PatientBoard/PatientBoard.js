@@ -2,7 +2,8 @@ import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense } fr
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
-import { Card, CardBody, Button, Input, UncontrolledTooltip, Tooltip, Modal, ModalHeader, ModalBody, ModalFooter, Col, Row, Label, Spinner } from 'reactstrap';
+import InfiniteScrollContainer from '../../../Components/Common/InfiniteScrollContainer';
+import { Button, Input, UncontrolledTooltip, Tooltip, Modal, ModalHeader, ModalBody, ModalFooter, Col, Row, Label, Spinner } from 'reactstrap';
 import Select from "react-select";
 import Swal from 'sweetalert2';
 import ReactHtmlParser from 'html-react-parser';
@@ -20,6 +21,7 @@ import RemedyScoreBar from "../../../Components/RemedyScoreBar";
 import "../../../styles/anatomy.css";
 import { useDispatch, useSelector } from 'react-redux';
 import usePatientBoardSessionPersistence from '../../../hooks/usePatientBoardSessionPersistence';
+import useContainerInfiniteLoad, { isElementScrollable } from '../../../hooks/useContainerInfiniteLoad';
 import { collectPatientBoardSnapshot, buildPatientBoardKey, canOpenPatientSession, showPatientSessionLimitAlert } from '../../../helpers/patientBoardSessionHelper';
 import AudioCasePanel from '../../../Components/CaseTaking/AudioCasePanel';
 import { buildSummaryHistoryNoteText } from '../../../helpers/audioCaseTakingHelper';
@@ -157,6 +159,37 @@ const thermalCircles = [
 ];
 
 const ACCORDION_PAGE_SIZE = 10;
+const SECTION_PAGE_SIZE = 20;
+
+const getSectionPageItems = (response) => {
+  const items = response?.resultObject ?? response?.ResultObject;
+  return Array.isArray(items) ? items : [];
+};
+
+const getSectionTotalPages = (response, pageSize = SECTION_PAGE_SIZE) => {
+  const totalPages = Number(response?.totalPageCount ?? response?.TotalPageCount);
+  if (Number.isFinite(totalPages) && totalPages > 0) {
+    return totalPages;
+  }
+  const totalCount = Number(
+    response?.totalCount
+    ?? response?.TotalCount
+    ?? response?.totalRecordCount
+    ?? response?.TotalRecordCount
+  );
+  if (Number.isFinite(totalCount) && totalCount > 0) {
+    return Math.max(1, Math.ceil(totalCount / pageSize));
+  }
+  return 1;
+};
+
+const computeSectionHasMore = (pageNumber, pageSize, response) => {
+  const items = getSectionPageItems(response);
+  if (items.length < pageSize) {
+    return false;
+  }
+  return pageNumber < getSectionTotalPages(response, pageSize);
+};
 const MODAL_SELECT_MENU_Z = 10600;
 const modalSelectPortalProps = {
   menuPortalTarget: typeof document !== 'undefined' ? document.body : null,
@@ -240,7 +273,7 @@ const MATERIA_MEDICA_HEADING_ICON_KEYWORDS = [
   ['SKIN', 'ri-contrast-drop-2-line'],
   ['SLEEP', 'ri-moon-clear-line'],
   ['FEVER', 'ri-temp-hot-line'],
-  ['VERTIGO', 'ri-rotate-lock-line'],
+  ['VERTIGO', 'ri-loop-left-line'],
   ['VISION', 'ri-eye-2-line'],
   ['HEARING', 'ri-sound-module-line'],
   ['EXTREMIT', 'ri-run-line'],
@@ -448,33 +481,17 @@ const AdverseEffectColumn = ({
   onToggleSearch,
   searchDisabled = false,
 }) => {
-  const loadLockRef = useRef(false);
-  const listRef = useRef(null);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
-    if (loading || !hasMore) return;
+    inFlightRef.current = false;
+  }, [items.length, hasMore]);
 
-    const element = listRef.current;
-    if (!element) return;
-
-    if (element.scrollHeight <= element.clientHeight + 1) {
-      onLoadMore();
-    }
-  }, [items.length, hasMore, loading, onLoadMore]);
-
-  const handleScroll = (event) => {
-    if (!hasMore || loading) return;
-
-    const element = event.currentTarget;
-    const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
-    if (distanceFromBottom > 64 || loadLockRef.current) return;
-
-    loadLockRef.current = true;
+  const handleLoadMore = useCallback(() => {
+    if (!hasMore || loading || inFlightRef.current) return;
+    inFlightRef.current = true;
     onLoadMore();
-    window.setTimeout(() => {
-      loadLockRef.current = false;
-    }, 200);
-  };
+  }, [hasMore, loading, onLoadMore]);
 
   return (
     <div className={`pb-ae-column pb-ae-column--${variant}`}>
@@ -529,41 +546,40 @@ const AdverseEffectColumn = ({
           </div>
         </div>
       )}
-      <div ref={listRef} className="pb-ae-column-list custom-scrollbar" onScroll={handleScroll}>
+      <InfiniteScrollContainer
+        className="pb-ae-column-list custom-scrollbar"
+        enabled={!loading && items.length > 0}
+        hasMore={!loading && hasMore}
+        loading={loading}
+        itemCount={items.length}
+        onLoadMore={handleLoadMore}
+      >
         {loading ? (
           <div className="pb-ae-column-state">
             <Spinner size="sm" className="me-2" />
             Loading effects...
           </div>
         ) : items.length > 0 ? (
-          <>
-            {items.map((item) => (
-              <div key={getItemId(item)} className="pb-ae-effect-row">
-                <span className="pb-ae-effect-name">{getItemName(item)}</span>
-              </div>
-            ))}
-            {hasMore && (
-              <div className="pb-ae-scroll-hint">
-                <Spinner size="sm" className="me-2" />
-                Scroll for more...
-              </div>
-            )}
-          </>
+          items.map((item) => (
+            <div key={getItemId(item)} className="pb-ae-effect-row">
+              <span className="pb-ae-effect-name">{getItemName(item)}</span>
+            </div>
+          ))
         ) : (
           <div className="pb-ae-column-state">
             {search ? emptySearchMessage : emptyMessage}
           </div>
         )}
-      </div>
+      </InfiniteScrollContainer>
       <div className="pb-ae-column-footer">
         <span className="pb-ae-item-count">
           <i className="ri-information-line" aria-hidden="true" />
           Showing {items.length} of {totalItems}
         </span>
-        {hasMore && (
+        {hasMore && !loading && (
           <span className="pb-ae-scroll-indicator">
             <i className="ri-arrow-down-s-line" aria-hidden="true" />
-            Scroll for more
+            More available
           </span>
         )}
       </div>
@@ -1135,6 +1151,8 @@ const PatientBoard = () => {
   const [accordionLoadingMoreRemedyId, setAccordionLoadingMoreRemedyId] = useState(null);
   const lastAccordionRequestRef = useRef({ remedyId: null, pageNumber: 1, append: false });
   const accordionSearchDebounceRef = useRef(null);
+  const accordionInFlightRef = useRef(new Set());
+  const accordionLoadFailedRef = useRef(new Set());
   // ###### Dj UI Code End - Keynote Method and Small Rubrics Toggle States ######
 
   // Repertorize SECTION column: filter COMMON / UNCOMMON by section + intensity
@@ -1787,7 +1805,7 @@ const PatientBoard = () => {
     return repertorized?.intensityNo ?? null;
   };
 
-  const [mmFontSize, setMmFontSize] = useState(14);
+  const [mmFontSize, setMmFontSize] = useState(11);
 
   const handleMateriaMedicaHeadingSelect = useCallback((headingId) => {
     if (!Number.isFinite(headingId)) {
@@ -1845,6 +1863,7 @@ const PatientBoard = () => {
   const [globalSubSectionSearchTreeResults, setGlobalSubSectionSearchTreeResults] = useState([]);
   const [globalSubSectionSearchTreeLoadingMore, setGlobalSubSectionSearchTreeLoadingMore] = useState(false);
   const globalSubSectionSearchRequestRef = useRef(0);
+  const globalSubSectionSearchInFlightRef = useRef(false);
   const globalSubSectionSearchAnchorRef = useRef(null);
   const globalSubSectionSearchInputRef = useRef(null);
   const globalSubSectionSearchFocusedRef = useRef(false);
@@ -1866,6 +1885,7 @@ const PatientBoard = () => {
     childrenMap: new Map(),
     expanded: new Set(),
   });
+  const subSectionSearchInFlightRef = useRef(false);
   const subSectionSearchRequestRef = useRef(0);
   const subSectionSearchAnchorRef = useRef(null);
   const subSectionSearchInputRef = useRef(null);
@@ -1877,9 +1897,11 @@ const PatientBoard = () => {
   const [clinicalPatternRubricPage, setClinicalPatternRubricPage] = useState(1);
   const [clinicalPatternRubricHasMore, setClinicalPatternRubricHasMore] = useState(false);
   const [clinicalPatternRubricLoadingMore, setClinicalPatternRubricLoadingMore] = useState(false);
+  const clinicalPatternRubricInFlightRef = useRef(false);
+  const clinicalPatternRubricLoadFailedRef = useRef(false);
   const [selectedRubricRemedy, setSelectedRubricRemedy] = useState(null);
   const [selectedQuestionRubric, setSelectedQuestionRubric] = useState(null);
-  const [therapeuticsFontSize, setTherapeuticsFontSize] = useState(14);
+  const [therapeuticsFontSize, setTherapeuticsFontSize] = useState(11);
   const [selectedSubSection, setSelectedSubSection] = useState(null);
   const rubricDetailsPrefetchObserverRef = useRef(null);
   const rubricDetailsScrollPrefetchTimerRef = useRef(null);
@@ -1923,6 +1945,17 @@ const PatientBoard = () => {
   const [sectionPageNumber, setSectionPageNumber] = useState(1);
   const [accumulatedSections, setAccumulatedSections] = useState([]);
   const [sectionLoadingMore, setSectionLoadingMore] = useState(false);
+  const [sectionHasMore, setSectionHasMore] = useState(false);
+  const [sectionLoadError, setSectionLoadError] = useState(null);
+  const [sectionScrollEl, setSectionScrollEl] = useState(null);
+  const [sectionSentinelEl, setSectionSentinelEl] = useState(null);
+  const sectionRequestSeqRef = useRef(0);
+  const sectionInFlightRef = useRef(false);
+  const sectionPageNumberRef = useRef(1);
+  const sectionHasMoreRef = useRef(false);
+  const sectionLoadErrorRef = useRef(null);
+  const accumulatedSectionsRef = useRef([]);
+  const skipSectionTabFetchRef = useRef(false);
   const [subSectionPageNumber, setSubSectionPageNumber] = useState(1);
   // Multi-level tree state
   const [subSectionTreeData, setSubSectionTreeData] = useState([]);
@@ -2008,8 +2041,11 @@ const PatientBoard = () => {
     }
   }, [prescriptionModalOpen, repertorizationRubrics, dispatch]);
 
-  const sectionPageSize = 20;
   const subSectionPageSize = 10;
+  sectionPageNumberRef.current = sectionPageNumber;
+  sectionHasMoreRef.current = sectionHasMore;
+  sectionLoadErrorRef.current = sectionLoadError;
+  accumulatedSectionsRef.current = accumulatedSections;
 
   // Helper function to get CSS style for remedyAlias / rubric labels based on API response
   const getRemedyAliasStyle = (remedy, options = {}) => {
@@ -2294,17 +2330,142 @@ const PatientBoard = () => {
     console.log('therapeuticsFontSize changed to:', therapeuticsFontSize);
   }, [therapeuticsFontSize]);
 
-  // Reset section pagination when entering Repertory / Repertorize
+  const bindSectionScrollEl = useCallback((node) => {
+    setSectionScrollEl((prev) => (prev === node ? prev : node));
+  }, []);
+
+  const bindSectionSentinelEl = useCallback((node) => {
+    setSectionSentinelEl((prev) => (prev === node ? prev : node));
+  }, []);
+
+  const fetchSectionPageOne = useCallback(() => {
+    const seq = ++sectionRequestSeqRef.current;
+    sectionInFlightRef.current = true;
+    sectionHasMoreRef.current = false;
+    sectionLoadErrorRef.current = null;
+    setSectionHasMore(false);
+    setSectionLoadError(null);
+    setSectionLoadingMore(false);
+    setSectionPageNumber(1);
+    setAccumulatedSections([]);
+
+    dispatch(getSectionList({ PageNumber: 1, PageSize: SECTION_PAGE_SIZE }))
+      .then((response) => {
+        if (seq !== sectionRequestSeqRef.current) {
+          return;
+        }
+        if (!response) {
+          setAccumulatedSections([]);
+          setSectionPageNumber(1);
+          sectionHasMoreRef.current = false;
+          setSectionHasMore(false);
+          const message = 'Failed to load sections';
+          sectionLoadErrorRef.current = message;
+          setSectionLoadError(message);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            showCancelButton: true,
+            confirmButtonText: 'Retry',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              fetchSectionPageOne();
+            }
+          });
+          return;
+        }
+
+        const items = getSectionPageItems(response);
+        setAccumulatedSections(items);
+        setSectionPageNumber(1);
+        const more = computeSectionHasMore(1, SECTION_PAGE_SIZE, response);
+        sectionHasMoreRef.current = more;
+        setSectionHasMore(more);
+      })
+      .finally(() => {
+        if (seq === sectionRequestSeqRef.current) {
+          sectionInFlightRef.current = false;
+        }
+      });
+  }, [dispatch]);
+
+  const loadNextSectionPage = useCallback(() => {
+    if (sectionInFlightRef.current || sectionLoadErrorRef.current || !sectionHasMoreRef.current) {
+      return;
+    }
+
+    const nextPage = sectionPageNumberRef.current + 1;
+    if (nextPage <= 1) {
+      return;
+    }
+
+    const seq = sectionRequestSeqRef.current;
+    sectionInFlightRef.current = true;
+    setSectionLoadingMore(true);
+
+    dispatch(getSectionList({ PageNumber: nextPage, PageSize: SECTION_PAGE_SIZE }))
+      .then((response) => {
+        if (seq !== sectionRequestSeqRef.current) {
+          return;
+        }
+        if (!response) {
+          const message = 'Failed to load more sections';
+          sectionLoadErrorRef.current = message;
+          setSectionLoadError(message);
+          sectionHasMoreRef.current = false;
+          setSectionHasMore(false);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            showCancelButton: true,
+            confirmButtonText: 'Retry',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              sectionLoadErrorRef.current = null;
+              setSectionLoadError(null);
+              sectionHasMoreRef.current = true;
+              setSectionHasMore(true);
+              loadNextSectionPage();
+            }
+          });
+          return;
+        }
+
+        const items = getSectionPageItems(response);
+        const existingIds = new Set(accumulatedSectionsRef.current.map((section) => section.sectionId));
+        const nextItems = items.filter((section) => !existingIds.has(section.sectionId));
+        if (nextItems.length > 0) {
+          setAccumulatedSections((prev) => [...prev, ...nextItems]);
+        }
+        setSectionPageNumber(nextPage);
+        const more = nextItems.length > 0 && computeSectionHasMore(nextPage, SECTION_PAGE_SIZE, response);
+        sectionHasMoreRef.current = more;
+        setSectionHasMore(more);
+      })
+      .finally(() => {
+        if (seq === sectionRequestSeqRef.current) {
+          sectionInFlightRef.current = false;
+          setSectionLoadingMore(false);
+        }
+      });
+  }, [dispatch]);
+
+  // Reset and fetch page 1 when entering Repertory / Repertorize
   useEffect(() => {
     if (isRestoringPatientBoardSessionRef.current) {
       return;
     }
-    if (activeTab === 'Repertory' || activeTab === 'Repertorize') {
-      setSectionPageNumber(1);
-      setAccumulatedSections([]);
-      setSectionLoadingMore(false);
+    if (activeTab !== 'Repertory' && activeTab !== 'Repertorize') {
+      return;
     }
-  }, [activeTab]);
+    if (skipSectionTabFetchRef.current) {
+      skipSectionTabFetchRef.current = false;
+      return;
+    }
+    fetchSectionPageOne();
+  }, [activeTab, fetchSectionPageOne]);
 
   const prevActiveTabRef = useRef(activeTab);
   useEffect(() => {
@@ -2314,62 +2475,17 @@ const PatientBoard = () => {
     prevActiveTabRef.current = activeTab;
   }, [activeTab, clearRepertoryRubricDetails]);
 
-  // Call getSectionList when Repertory or Repertorize tab is active
-  useEffect(() => {
-    if (activeTab === 'Repertory' || activeTab === 'Repertorize') {
-      dispatch(getSectionList({ PageNumber: sectionPageNumber, PageSize: sectionPageSize }));
-    }
-  }, [activeTab, sectionPageNumber, dispatch]);
+  const sectionInfiniteLoading = sectionLoadingMore || (sectionLoading && accumulatedSections.length === 0);
 
-  // Append paginated section results for infinite scroll
-  useEffect(() => {
-    const sections = sectionList?.resultObject;
-    if (!Array.isArray(sections)) {
-      if (sectionPageNumber === 1) {
-        setAccumulatedSections([]);
-      }
-      setSectionLoadingMore(false);
-      return;
-    }
-
-    setAccumulatedSections((prev) => {
-      if (sectionPageNumber === 1) {
-        return sections;
-      }
-      const existingIds = new Set(prev.map((section) => section.sectionId));
-      const nextSections = sections.filter((section) => !existingIds.has(section.sectionId));
-      return [...prev, ...nextSections];
-    });
-    setSectionLoadingMore(false);
-  }, [sectionList, sectionPageNumber]);
-
-  const sectionTotalPages = useMemo(() => {
-    const totalPages = Number(sectionList?.totalPageCount);
-    if (Number.isFinite(totalPages) && totalPages > 0) {
-      return totalPages;
-    }
-    const totalCount = Number(sectionList?.totalCount);
-    if (Number.isFinite(totalCount) && totalCount > 0) {
-      return Math.ceil(totalCount / sectionPageSize);
-    }
-    return 1;
-  }, [sectionList, sectionPageSize]);
-
-  const hasMoreSections = sectionPageNumber < sectionTotalPages;
-
-  const handleSectionScroll = useCallback((event) => {
-    const target = event?.target;
-    if (!target || sectionLoadingMore || !hasMoreSections) {
-      return;
-    }
-
-    if (target.scrollTop + target.clientHeight < target.scrollHeight - 12) {
-      return;
-    }
-
-    setSectionLoadingMore(true);
-    setSectionPageNumber((prev) => prev + 1);
-  }, [sectionLoadingMore, hasMoreSections]);
+  useContainerInfiniteLoad({
+    enabled: (activeTab === 'Repertory' || activeTab === 'Repertorize') && accumulatedSections.length > 0,
+    hasMore: sectionHasMore,
+    loading: sectionInfiniteLoading,
+    itemCount: accumulatedSections.length,
+    onLoadMore: loadNextSectionPage,
+    root: sectionScrollEl,
+    sentinel: sectionSentinelEl,
+  });
 
   const repertorizeSectionMetaById = useMemo(() => {
     const map = new Map();
@@ -2443,6 +2559,8 @@ const PatientBoard = () => {
     setAccordionDataMap(new Map());
     setLastRequestedRemedyId(null);
     setAccordionLoadingMoreRemedyId(null);
+    accordionInFlightRef.current.clear();
+    accordionLoadFailedRef.current.clear();
     dispatch(setRepertorizarionRemedyForAccordionList(null));
   }, [dispatch]);
 
@@ -2718,9 +2836,13 @@ const PatientBoard = () => {
   const [questionsRubricHasMore, setQuestionsRubricHasMore] = useState(false);
   const [questionsRubricLoadingMore, setQuestionsRubricLoadingMore] = useState(false);
   const questionsRubricFetchSeqRef = useRef(0);
+  const questionsRubricInFlightRef = useRef(false);
+  const questionsRubricLoadFailedRef = useRef(false);
 
   const resetQuestionsRubricsResults = useCallback(() => {
     questionsRubricFetchSeqRef.current += 1;
+    questionsRubricInFlightRef.current = false;
+    questionsRubricLoadFailedRef.current = false;
     setQuestionsRubricList([]);
     setSelectedSubGroupName('');
     setSelectedSubGroupId(null);
@@ -2879,6 +3001,12 @@ const PatientBoard = () => {
       ? questionsRubricFetchSeqRef.current
       : ++questionsRubricFetchSeqRef.current;
 
+    if (!append) {
+      questionsRubricLoadFailedRef.current = false;
+    }
+
+    questionsRubricInFlightRef.current = true;
+
     if (append) {
       setQuestionsRubricLoadingMore(true);
     } else {
@@ -2923,9 +3051,20 @@ const PatientBoard = () => {
           title: 'Error',
           text: 'Failed to fetch rubrics for the selected sub-group',
         });
+      } else if (append && requestSeq === questionsRubricFetchSeqRef.current) {
+        questionsRubricLoadFailedRef.current = true;
+        setQuestionsRubricHasMore(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load more rubrics',
+        });
       }
       throw error;
     } finally {
+      if (requestSeq === questionsRubricFetchSeqRef.current) {
+        questionsRubricInFlightRef.current = false;
+      }
       if (append) {
         if (requestSeq === questionsRubricFetchSeqRef.current) {
           setQuestionsRubricLoadingMore(false);
@@ -2946,6 +3085,8 @@ const PatientBoard = () => {
     const isNewSubGroup = selectedSubGroupId !== subGroupId;
     if (isNewSubGroup) {
       questionsRubricFetchSeqRef.current += 1;
+      questionsRubricLoadFailedRef.current = false;
+      questionsRubricInFlightRef.current = false;
       setQuestionsRubricList([]);
       setRubricSearch('');
       setQuestionsRubricPage(1);
@@ -2973,16 +3114,22 @@ const PatientBoard = () => {
       || !questionsRubricHasMore
       || questionsRubricLoadingMore
       || questionsRubricLoading
+      || questionsRubricInFlightRef.current
+      || questionsRubricLoadFailedRef.current
     ) {
       return;
     }
 
     const validSectionIds = Array.isArray(selectedSubGroupSectionIds) && selectedSubGroupSectionIds.length > 0 ? selectedSubGroupSectionIds : undefined;
-    await fetchQuestionsRubricsBySubgroup(trimmedKeyword, {
-      pageNumber: questionsRubricPage + 1,
-      append: true,
-      sectionIds: validSectionIds,
-    });
+    try {
+      await fetchQuestionsRubricsBySubgroup(trimmedKeyword, {
+        pageNumber: questionsRubricPage + 1,
+        append: true,
+        sectionIds: validSectionIds,
+      });
+    } catch {
+      /* error already surfaced in fetchQuestionsRubricsBySubgroup */
+    }
   }, [
     selectedSubGroupName,
     selectedSubGroupSectionIds,
@@ -2993,20 +3140,11 @@ const PatientBoard = () => {
     fetchQuestionsRubricsBySubgroup,
   ]);
 
-  const handleQuestionsRubricsScroll = useCallback((event) => {
-    const target = event.currentTarget;
-    if (!target) return;
-
-    const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 80;
-    if (nearBottom) {
-      loadMoreQuestionsRubrics();
-    }
-  }, [loadMoreQuestionsRubrics]);
-
   // Handle question rubric click to fetch rubric details
   const handleQuestionRubricClick = async (rubric) => {
     try {
       setSelectedQuestionRubric(rubric);
+      setShowRemedyInfo(true);
       // Call API to get rubric details with remedies
       await dispatch(getRubricDetails({ subSectionId: rubric.subsectionId }));
       // Open the modal
@@ -3134,7 +3272,7 @@ const PatientBoard = () => {
     // Apply grade font styles from API (fontName / fontColor / fontStyle e.g. Poppins, Red, CAPITAL)
     const fontStyleObj = {
       ...getRemedyAliasStyle(item),
-      fontSize: "12px",
+      fontSize: "11px",
     };
 
     const rubricLabel =
@@ -3201,9 +3339,10 @@ const PatientBoard = () => {
     return (
       <>
         <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-          <div className="search-box">
+          <div className={`search-box pb-questions-search-box pb-repertorize-accordion-search${(accordionState?.searchTerm ?? '').trim() ? ' pb-questions-search-box--active' : ''}`}>
             <Input
               bsSize="sm"
+              className="pb-questions-search-input"
               placeholder="Search rubrics..."
               value={accordionState?.searchTerm ?? ""}
               onChange={(e) => handleAccordionSearchChange(remedyId, e.target.value)}
@@ -3242,10 +3381,14 @@ const PatientBoard = () => {
           </div>
         )}
 
-        <div
+        <InfiniteScrollContainer
           className="custom-scrollbar"
           style={{ maxHeight: "220px", overflowY: "auto" }}
-          onScroll={(event) => handleAccordionScroll(remedyId, event)}
+          enabled={visibleEntries.length > 0}
+          hasMore={hasMoreEntries}
+          loading={isLoadingMore}
+          itemCount={visibleEntries.length}
+          onLoadMore={() => handleAccordionLoadMore(remedyId)}
         >
           {visibleEntries.length > 0 ? (
             visibleEntries.map((item, index) => renderAccordionSublistEntryRow(item, index))
@@ -3262,7 +3405,7 @@ const PatientBoard = () => {
               </p>
             </div>
           )}
-        </div>
+        </InfiniteScrollContainer>
 
         {(hasMoreEntries || isAtEnd) && (
           <div className="text-center py-2 border-top mt-1">
@@ -3275,6 +3418,7 @@ const PatientBoard = () => {
                   className="btn btn-link btn-sm p-0"
                   onClick={(e) => {
                     e.stopPropagation();
+                    accordionLoadFailedRef.current.delete(remedyId);
                     handleAccordionLoadMore(remedyId);
                   }}
                 >
@@ -3570,6 +3714,10 @@ const PatientBoard = () => {
   const handleAccordionLoadMore = useCallback(
     (remedyId) => {
       const normalizedRemedyId = normalizeAccordionRemedyId(remedyId);
+      if (accordionInFlightRef.current.has(normalizedRemedyId) || accordionLoadFailedRef.current.has(normalizedRemedyId)) {
+        return;
+      }
+
       const currentState = accordionDataMap.get(normalizedRemedyId);
       if (!currentState) {
         return;
@@ -3602,6 +3750,7 @@ const PatientBoard = () => {
         !repertorizarionRemedyForAccordionLoading &&
         accordionLoadingMoreRemedyId !== normalizedRemedyId
       ) {
+        accordionInFlightRef.current.add(normalizedRemedyId);
         fetchAccordionData(normalizedRemedyId, {
           pageNumber: (currentState.pageNumber ?? 1) + 1,
           append: true,
@@ -3616,22 +3765,6 @@ const PatientBoard = () => {
       repertorizarionRemedyForAccordionLoading,
       repertorizeAccordionGlobalFilters,
     ]
-  );
-
-  const handleAccordionScroll = useCallback(
-    (remedyId, event) => {
-      const target = event?.target;
-      if (!target) {
-        return;
-      }
-
-      if (target.scrollTop + target.clientHeight < target.scrollHeight - 12) {
-        return;
-      }
-
-      handleAccordionLoadMore(remedyId);
-    },
-    [handleAccordionLoadMore]
   );
 
   const handleAccordionSearchChange = useCallback(
@@ -3649,6 +3782,9 @@ const PatientBoard = () => {
         });
         return newMap;
       });
+
+      accordionLoadFailedRef.current.delete(remedyId);
+      accordionInFlightRef.current.delete(remedyId);
 
       if (accordionSearchDebounceRef.current) {
         clearTimeout(accordionSearchDebounceRef.current);
@@ -3757,7 +3893,12 @@ const PatientBoard = () => {
     }
 
     const { remedyId, append } = lastAccordionRequestRef.current || {};
+    if (remedyId != null) {
+      accordionInFlightRef.current.delete(remedyId);
+    }
+
     if (!remedyId || !repertorizarionRemedyForAccordionList) {
+      setAccordionLoadingMoreRemedyId(null);
       return;
     }
 
@@ -4026,6 +4167,7 @@ const PatientBoard = () => {
 
   const clearSubSectionLocalSearch = useCallback(() => {
     subSectionSearchRequestRef.current += 1;
+    subSectionSearchInFlightRef.current = false;
     setSubSectionSearch('');
     setSubSectionSearchResults([]);
     setSubSectionSearchTreeResults([]);
@@ -4039,6 +4181,7 @@ const PatientBoard = () => {
 
   const clearGlobalSubSectionSearch = useCallback(() => {
     globalSubSectionSearchRequestRef.current += 1;
+    globalSubSectionSearchInFlightRef.current = false;
     setGlobalSubSectionSearch('');
     setGlobalSubSectionSearchResults([]);
     setGlobalSubSectionSearchTreeResults([]);
@@ -4307,6 +4450,7 @@ const PatientBoard = () => {
       || !globalSubSectionSearchTreeHasMore
       || globalSubSectionSearchTreeLoadingMore
       || globalSubSectionSearchLoading
+      || globalSubSectionSearchInFlightRef.current
     ) {
       return;
     }
@@ -4314,6 +4458,7 @@ const PatientBoard = () => {
     const requestId = globalSubSectionSearchRequestRef.current;
     const nextPage = globalSubSectionSearchTreePage + 1;
 
+    globalSubSectionSearchInFlightRef.current = true;
     setGlobalSubSectionSearchTreeLoadingMore(true);
     try {
       const response = await searchSubSectionsGlobalPaged({
@@ -4338,8 +4483,10 @@ const PatientBoard = () => {
       applySubSectionSearchResultsToTree(mergedResults);
     } catch (error) {
       console.error('Error loading more global subsection search results:', error);
+      setGlobalSubSectionSearchTreeHasMore(false);
     } finally {
       if (requestId === globalSubSectionSearchRequestRef.current) {
+        globalSubSectionSearchInFlightRef.current = false;
         setGlobalSubSectionSearchTreeLoadingMore(false);
       }
     }
@@ -4360,6 +4507,7 @@ const PatientBoard = () => {
       || !subSectionSearchTreeHasMore
       || subSectionSearchTreeLoadingMore
       || subSectionSearchTreeLoading
+      || subSectionSearchInFlightRef.current
     ) {
       return;
     }
@@ -4367,6 +4515,7 @@ const PatientBoard = () => {
     const requestId = subSectionSearchRequestRef.current;
     const nextPage = subSectionSearchTreePage + 1;
 
+    subSectionSearchInFlightRef.current = true;
     setSubSectionSearchTreeLoadingMore(true);
     try {
       const response = await searchSubSectionsBySectionPaged({
@@ -4392,8 +4541,10 @@ const PatientBoard = () => {
       applySubSectionSearchResultsToTree(mergedResults);
     } catch (error) {
       console.error('Error loading more section subsection search results:', error);
+      setSubSectionSearchTreeHasMore(false);
     } finally {
       if (requestId === subSectionSearchRequestRef.current) {
+        subSectionSearchInFlightRef.current = false;
         setSubSectionSearchTreeLoadingMore(false);
       }
     }
@@ -4407,13 +4558,7 @@ const PatientBoard = () => {
     subSectionSearchTreeResults,
   ]);
 
-  const handleSubSectionTreeScroll = useCallback((event) => {
-    const target = event.currentTarget;
-    if (!target) return;
-
-    const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 80;
-    if (!nearBottom) return;
-
+  const loadMoreSubSectionSearchTree = useCallback(() => {
     if (isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore) {
       loadMoreGlobalSubSectionSearchTree();
       return;
@@ -4668,6 +4813,7 @@ const PatientBoard = () => {
   const handleRubricRemedyClick = async (rubricRemedy, subSectionId) => {
     console.log('Rubric Remedy clicked:', rubricRemedy, 'subSectionId:', subSectionId);
     setSelectedRubricRemedy(rubricRemedy);
+    setShowRemedyInfo(true);
     setRubricRemedyModalOpen(true);
 
     if (subSectionId) {
@@ -4694,6 +4840,8 @@ const PatientBoard = () => {
     setClinicalPatternRubricPage(1);
     setClinicalPatternRubricHasMore(false);
     setClinicalPatternRubricLoadingMore(false);
+    clinicalPatternRubricInFlightRef.current = false;
+    clinicalPatternRubricLoadFailedRef.current = false;
 
     const trimmedKeyword = keyword?.trim();
     if (!trimmedKeyword) {
@@ -4731,11 +4879,14 @@ const PatientBoard = () => {
       || !clinicalPatternRubricHasMore
       || clinicalPatternRubricLoadingMore
       || rubricByKeywordIdLoading
+      || clinicalPatternRubricInFlightRef.current
+      || clinicalPatternRubricLoadFailedRef.current
     ) {
       return;
     }
 
     const nextPage = clinicalPatternRubricPage + 1;
+    clinicalPatternRubricInFlightRef.current = true;
     setClinicalPatternRubricLoadingMore(true);
     try {
       const validSectionIds = Array.isArray(activeKeywordSectionIds) && activeKeywordSectionIds.length > 0 ? activeKeywordSectionIds : undefined;
@@ -4749,10 +4900,26 @@ const PatientBoard = () => {
       if (result?.payload) {
         setClinicalPatternRubricPage(result.payload.pageNumber ?? nextPage);
         setClinicalPatternRubricHasMore(result.payload.hasMore ?? false);
+      } else {
+        clinicalPatternRubricLoadFailedRef.current = true;
+        setClinicalPatternRubricHasMore(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load more rubrics',
+        });
       }
     } catch (error) {
       console.error('Error loading more clinical pattern rubrics:', error);
+      clinicalPatternRubricLoadFailedRef.current = true;
+      setClinicalPatternRubricHasMore(false);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to load more rubrics',
+      });
     } finally {
+      clinicalPatternRubricInFlightRef.current = false;
       setClinicalPatternRubricLoadingMore(false);
     }
   }, [
@@ -4764,16 +4931,6 @@ const PatientBoard = () => {
     rubricByKeywordIdLoading,
     dispatch,
   ]);
-
-  const handleClinicalPatternRubricsScroll = useCallback((event) => {
-    const target = event.currentTarget;
-    if (!target) return;
-
-    const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 80;
-    if (nearBottom) {
-      loadMoreClinicalPatternRubrics();
-    }
-  }, [loadMoreClinicalPatternRubrics]);
 
   // Create options from real allopathic drug data
   const adverseTypeOptions = useMemo(() => {
@@ -5059,6 +5216,17 @@ const PatientBoard = () => {
   );
 
   sessionAfterRestoreRef.current = async (snapshot) => {
+    sectionRequestSeqRef.current += 1;
+    sectionInFlightRef.current = false;
+    skipSectionTabFetchRef.current = true;
+    setSectionLoadingMore(false);
+    const restoredItems = Array.isArray(snapshot.accumulatedSections) ? snapshot.accumulatedSections : [];
+    const restoredHasMore = restoredItems.length > 0 && restoredItems.length % SECTION_PAGE_SIZE === 0;
+    sectionHasMoreRef.current = restoredHasMore;
+    setSectionHasMore(restoredHasMore);
+    sectionLoadErrorRef.current = null;
+    setSectionLoadError(null);
+
     if (snapshot.selectedSubSection?.subSectionId) {
       await dispatch(getRubricDetails({ subSectionId: snapshot.selectedSubSection.subSectionId }));
     }
@@ -5244,7 +5412,7 @@ const PatientBoard = () => {
   const hasMoreAdverseReactions = adverseReactionsPageData.length < filteredAdverseReactions.length;
 
   const headerStyles = `
-    .pb-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #e9ecef; background:#fff; position:sticky; top:0; z-index:2; }
+    .pb-header { display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border-bottom:1px solid #e9ecef; background:#fff; position:relative; z-index:1; }
     .pb-logo { font-weight:700; letter-spacing:1px; }
     .pb-logo-wrapper { position:absolute; left:0; right:0; top:10px; display:flex; justify-content:center; pointer-events:none; }
     .pb-logo-inner { pointer-events:auto; }
@@ -5308,7 +5476,7 @@ const PatientBoard = () => {
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      padding:9px 12px;
+      padding:5px 8px;
       border-bottom:1px solid #eef2f6;
       cursor:pointer;
       background:transparent;
@@ -5327,7 +5495,7 @@ const PatientBoard = () => {
       flex:1 1 auto;
     }
     .pb-remedy-list-row__name {
-      font-size:12.5px;
+      font-size:11px;
       font-weight:600;
       color:#0f172a;
       letter-spacing:-0.01em;
@@ -5350,7 +5518,7 @@ const PatientBoard = () => {
     }
     .pb-remedy-list-row__chevron {
       flex-shrink:0;
-      font-size:14px;
+      font-size:11px;
       color:#94a3b8;
     }
     .pb-rubric-row { position:relative; }
@@ -5359,20 +5527,28 @@ const PatientBoard = () => {
     .pb-rubric-row:hover .pb-rubric-badges { display:flex !important; }
     .pb-accordion-sublist-row { position:relative; overflow:hidden; cursor:default; }
     .pb-accordion-sublist-row:hover { background-color:#f6f8fa; }
-    .pb-accordion-sublist-entry { width:100%; min-width:0; }
+    .pb-accordion-sublist-entry {
+      width:100%;
+      min-width:0;
+      gap:8px;
+      flex-wrap:nowrap;
+    }
     .pb-accordion-sublist-label {
-      flex:1 1 auto;
+      flex:1 1 0;
       min-width:0;
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      line-height:1.35;
+      line-height:1.25;
       padding-right:4px;
+      font-size:11px;
+      font-weight:400;
     }
     .pb-accordion-sublist-chips-slot {
-      flex:0 0 96px;
-      width:96px;
-      min-width:96px;
+      flex:0 0 auto;
+      margin-left:auto;
+      min-width:0;
+      width:auto;
       display:flex;
       justify-content:flex-end;
       align-items:center;
@@ -5384,7 +5560,7 @@ const PatientBoard = () => {
       flex-direction:row;
       align-items:center;
       justify-content:flex-end;
-      gap:4px;
+      gap:3px;
       flex-wrap:nowrap;
       margin-left:0;
     }
@@ -5392,12 +5568,18 @@ const PatientBoard = () => {
     .pb-accordion-sublist-row.pb-accordion-sublist-row--has-grade .pb-rubric-badges--accordion {
       display:flex !important;
     }
-    .pb-rubric-badges--accordion .pb-chip { margin-left:0; }
+    .pb-rubric-badges--accordion .pb-chip {
+      margin-left:0;
+      width:16px;
+      height:16px;
+      font-size:9px;
+      border-radius:3px;
+    }
     .pb-rubric-row--repertory-subsection {
       overflow:hidden;
       border:none !important;
       border-bottom:1px solid #f1f3f5 !important;
-      padding:7px 8px 7px 10px !important;
+      padding:4px 6px 4px 8px !important;
       margin:0;
       transition:background-color .15s ease;
     }
@@ -5442,7 +5624,7 @@ const PatientBoard = () => {
       border-radius:4px;
       background:#fff;
       color:#495057;
-      font-size:12px;
+      font-size:11px;
       font-weight:700;
       line-height:1;
       display:inline-flex;
@@ -5469,7 +5651,7 @@ const PatientBoard = () => {
       white-space:normal;
       word-break:break-word;
       overflow-wrap:break-word;
-      font-size:13px;
+      font-size:11px;
       line-height:1.45;
       padding-right:2px;
       color:#495057;
@@ -5477,22 +5659,23 @@ const PatientBoard = () => {
     .pb-rubric-row--repertory-subsection-parent .pb-repertory-subsection-label {
       font-weight:600;
       color:#212529;
-      font-size:13px;
+      font-size:11px;
     }
     .pb-rubric-row--repertory-subsection-leaf .pb-repertory-subsection-label {
       font-weight:400;
       color:#495057;
-      font-size:12.5px;
+      font-size:11px;
     }
     .pb-repertory-subsection-chips-slot {
       flex:0 0 auto;
+      margin-left:auto;
       min-width:0;
-      max-width:84px;
+      max-width:none;
       display:flex;
       justify-content:flex-end;
-      align-items:flex-start;
-      align-self:flex-start;
-      padding-top:1px;
+      align-items:center;
+      align-self:center;
+      padding-top:0;
     }
     .pb-subsection-search-wrap { position:relative; min-width:150px; flex-shrink:0; }
     .pb-subsection-search-tooltip.tooltip .tooltip-inner {
@@ -5543,7 +5726,7 @@ const PatientBoard = () => {
       align-items:center;
       justify-content:space-between;
       gap:8px;
-      padding:7px 12px;
+      padding:4px 8px;
       font-size:11px;
       font-weight:700;
       letter-spacing:0.35px;
@@ -5576,13 +5759,13 @@ const PatientBoard = () => {
     .pb-subsection-search-suggestion {
       display:block;
       width:100%;
-      padding:10px 12px;
+      padding:6px 8px;
       border:none;
       border-bottom:1px solid #f1f3f5;
       background:#fff;
       color:#212529;
       text-align:left;
-      font-size:12px;
+      font-size:11px;
       line-height:1.45;
       cursor:pointer;
       white-space:normal;
@@ -5640,167 +5823,273 @@ const PatientBoard = () => {
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      font-size:14px;
+      font-size:11px;
       line-height:1.35;
     }
-    .pb-repertorization-rubric-actions { flex:0 0 auto; gap:6px; }
-    .pb-repertorization-chips-slot {
+    .pb-repertorization-rubric-actions {
       flex:0 0 auto;
-      display:flex;
-      justify-content:flex-end;
+      gap:6px;
+      margin-left:auto;
       align-items:center;
-      min-height:20px;
     }
-    .pb-repertorization-rubric-row .pb-rubric-badges--repertorization {
-      position:static;
-      transform:none;
+    .pb-repertorization-grade-chips {
       display:none;
       flex-direction:row;
       align-items:center;
       justify-content:flex-end;
-      gap:4px;
+      gap:3px;
       flex-wrap:nowrap;
+      flex:0 0 auto;
+      position:static;
+      margin:0;
+      padding:0;
     }
-    .pb-repertorization-rubric-row:hover .pb-rubric-badges--repertorization {
-      display:flex !important;
+    .pb-repertorization-grade-chips .pb-chip {
+      width:16px;
+      height:16px;
+      font-size:9px;
+      margin:0 !important;
+      border-radius:3px;
+      flex-shrink:0;
+    }
+    .pb-repertorization-intensity-badge {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:16px;
+      height:16px;
+      padding:0 4px;
+      margin:0;
+      border-radius:3px;
+      background:#000 !important;
+      color:#fff !important;
+      font-size:9px !important;
+      font-weight:500;
+      line-height:1;
+      flex-shrink:0;
+    }
+    .pb-repertorization-rubric-row:hover .pb-repertorization-grade-chips {
+      display:inline-flex !important;
     }
     .pb-repertorization-rubric-row:hover .pb-repertorization-intensity-badge {
-      display:none;
+      display:none !important;
     }
     .pb-tabs-nav {
       border-bottom:none;
       padding-bottom:0;
-      gap:4px;
     }
     .pb-main-toolbar {
       display:flex;
       align-items:center;
-      gap:10px 12px;
+      justify-content:space-between;
+      gap:0.5rem;
       margin-top:0.5rem;
       margin-bottom:0.5rem;
-      min-height:42px;
+      min-height:32px;
       flex-wrap:nowrap;
+      width:100%;
     }
+    /* Left Repertorize / right Prescription stay at edges; 7 center tabs cluster */
     .pb-main-toolbar__left,
     .pb-main-toolbar__right {
       display:flex;
       align-items:center;
       flex:0 0 auto;
-      gap:8px;
-    }
-    .pb-main-toolbar__right {
-      margin-left:auto;
-      min-width:0;
+      gap:0.35rem;
     }
     .pb-main-toolbar__center {
-      flex:1 1 auto;
       display:flex;
       align-items:center;
       justify-content:center;
+      flex:1 1 auto;
       flex-wrap:wrap;
-      gap:4px;
+      gap:0.7rem;
+      min-width:0;
+    }
+    .pb-main-toolbar .pb-tab,
+    .pb-main-toolbar .pb-repertorize-tab-btn,
+    .pb-main-toolbar .pb-prescription-tab-btn {
+      flex:0 0 auto;
       min-width:0;
     }
     @media (max-width: 1199.98px) {
       .pb-main-toolbar {
-        flex-wrap:wrap;
+        display:grid;
+        grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
+        align-items:stretch;
+        justify-content:stretch;
+        gap:0.7rem;
+        flex-wrap:unset;
       }
-      .pb-main-toolbar__center {
-        order:3;
-        flex:1 1 100%;
-        justify-content:flex-start;
+      .pb-main-toolbar__left {
+        grid-column:1 / -1;
+        display:flex;
+        width:100%;
       }
+      .pb-main-toolbar__left .pb-repertorize-tab-btn {
+        width:100%;
+        justify-content:center;
+      }
+      /* Flatten center + right so Prescription follows Deep Analysis in the 2-col grid */
+      .pb-main-toolbar__center,
       .pb-main-toolbar__right {
+        display:contents;
+        order:unset;
         margin-left:0;
+        flex:unset;
+      }
+      .pb-main-toolbar .pb-tab,
+      .pb-main-toolbar .pb-prescription-tab-btn {
+        width:100%;
+        min-width:0;
+        justify-content:center;
       }
     }
     .pb-tab {
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding:7px 12px;
+      min-height:28px;
+      height:28px;
+      padding:4px 12px 4px 10px;
       margin-right:0;
-      font-size:0.875rem;
-      font-weight:500;
-      color:#64748b;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:0.01em;
+      color:#475569;
       cursor:pointer;
       text-decoration:none;
-      border:none;
-      background:transparent;
-      border-radius:999px;
-      transition:color .15s ease, background-color .15s ease, box-shadow .15s ease;
+      border:1px solid #d7e3ef;
+      background:linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+      border-radius:5px;
+      box-shadow:0 1px 2px rgba(15, 23, 42, 0.05);
+      transition:background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
       line-height:1.2;
       white-space:nowrap;
+      box-sizing:border-box;
+      position:relative;
     }
     .pb-tab i {
-      font-size:15px;
+      font-size:11px;
       line-height:1;
-      opacity:0.85;
+      opacity:1;
     }
     .pb-tab:hover:not(.active) {
-      color:#0b5cab;
-      background:#f0f7ff;
       text-decoration:none;
+      box-shadow:0 2px 6px rgba(15, 23, 42, 0.1);
     }
     .pb-tab.active,
     .pb-tab.active:hover {
-      color:#0b5cab;
-      background:linear-gradient(180deg, #eaf5ff 0%, #d9ecff 100%);
-      box-shadow:inset 0 0 0 1px #b6d8f7;
-      text-decoration:none;
-      font-weight:600;
+      text-decoration:none !important;
+      font-weight:700;
+      box-shadow:0 2px 8px rgba(15, 23, 42, 0.12);
+      position:relative;
+    }
+    /* Body Parts → Deep Analysis — lighter blue gradient */
+    .pb-tab--body-parts,
+    .pb-tab--questions,
+    .pb-tab--clinical,
+    .pb-tab--repertory,
+    .pb-tab--materia,
+    .pb-tab--adverse,
+    .pb-tab--deep {
+      color:#0369a1 !important;
+      background:linear-gradient(180deg, #fbfdff 0%, #f5fbff 55%, #eef8ff 100%) !important;
+      background-image:linear-gradient(180deg, #fbfdff 0%, #f5fbff 55%, #eef8ff 100%) !important;
+      border-color:#d7eefc !important;
+      box-shadow:0 1px 2px rgba(14, 165, 233, 0.06);
+    }
+    .pb-tab--body-parts:hover:not(.active),
+    .pb-tab--questions:hover:not(.active),
+    .pb-tab--clinical:hover:not(.active),
+    .pb-tab--repertory:hover:not(.active),
+    .pb-tab--materia:hover:not(.active),
+    .pb-tab--adverse:hover:not(.active),
+    .pb-tab--deep:hover:not(.active) {
+      color:#0c4a6e !important;
+      background:linear-gradient(180deg, #f5fbff 0%, #eef8ff 55%, #e0f2fe 100%) !important;
+      background-image:linear-gradient(180deg, #f5fbff 0%, #eef8ff 55%, #e0f2fe 100%) !important;
+      border-color:#bae6fd !important;
+    }
+    .pb-tab--body-parts.active,
+    .pb-tab--body-parts.active:hover,
+    .pb-tab--questions.active,
+    .pb-tab--questions.active:hover,
+    .pb-tab--clinical.active,
+    .pb-tab--clinical.active:hover,
+    .pb-tab--repertory.active,
+    .pb-tab--repertory.active:hover,
+    .pb-tab--materia.active,
+    .pb-tab--materia.active:hover,
+    .pb-tab--adverse.active,
+    .pb-tab--adverse.active:hover,
+    .pb-tab--deep.active,
+    .pb-tab--deep.active:hover {
+      color:#0c4a6e !important;
+      background:linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+      background-image:linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+      border-color:#7dd3fc !important;
+      box-shadow:0 2px 8px rgba(14, 165, 233, 0.14);
+      text-decoration:none !important;
     }
     .pb-tab--audio {
       color:#0b5cab !important;
       background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%) !important;
-      box-shadow:inset 0 0 0 1px #7ec2f5;
-      font-weight:600;
+      border:1px solid #7ec2f5 !important;
+      box-shadow:0 1px 2px rgba(30, 136, 229, 0.1);
+      font-weight:700;
     }
     .pb-tab--audio:hover {
       color:#fff !important;
       background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%) !important;
+      border-color:#0b5cab !important;
       box-shadow:0 2px 8px rgba(30, 136, 229, 0.28);
     }
     .pb-tab--audio i {
       opacity:1;
     }
     .pb-dmm-author-row { display:flex; width:100%; gap:4px; flex-wrap:nowrap; }
-    .pb-dmm-author-tab { flex:1 1 0; min-width:0; margin:0; padding:6px 4px; font-weight:700; font-size:12px; text-align:center; cursor:pointer; color:#495057; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pb-dmm-author-tab { flex:1 1 0; min-width:0; margin:0; padding:6px 4px; font-weight:700; font-size:11px; text-align:center; cursor:pointer; color:#495057; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .pb-dmm-author-tab.active { color:#000000; text-decoration:underline; text-underline-offset:6px; }
     .pb-repertorize-tab-btn {
       position:relative !important;
       display:inline-flex !important;
       align-items:center;
       gap:7px;
-      min-height:34px;
-      padding:6px 14px 6px 12px !important;
-      border-radius:10px !important;
-      background:linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%) !important;
-      border:1px solid #d7e3ef !important;
-      color:#475569 !important;
+      min-height:28px;
+      height:28px;
+      padding:4px 12px 4px 10px !important;
+      border-radius:5px !important;
+      background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #e2e8f0 100%) !important;
+      background-image:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #e2e8f0 100%) !important;
+      border:1px solid #cbd5e1 !important;
+      color:#334155 !important;
       font-weight:700 !important;
-      font-size:13px !important;
+      font-size:11px !important;
       letter-spacing:0.01em;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.05);
+      box-shadow:0 1px 2px rgba(15, 23, 42, 0.08);
       transition:background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
     }
     .pb-repertorize-tab-btn i {
-      font-size:15px;
+      font-size:11px;
       line-height:1;
     }
     .pb-repertorize-tab-btn:hover:not(.active) {
-      background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%) !important;
-      border-color:#93c5fd !important;
-      color:#0b5cab !important;
-      box-shadow:0 2px 6px rgba(30, 136, 229, 0.12);
+      background:linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%) !important;
+      background-image:linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%) !important;
+      border-color:#94a3b8 !important;
+      color:#1e293b !important;
+      box-shadow:0 2px 6px rgba(15, 23, 42, 0.12);
     }
     .pb-repertorize-tab-btn.active,
     .pb-repertorize-tab-btn.active:hover,
     .pb-repertorize-tab-btn.active:focus {
-      background:linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+      background:linear-gradient(180deg, #64748b 0%, #334155 50%, #0f172a 100%) !important;
+      background-image:linear-gradient(180deg, #64748b 0%, #334155 50%, #0f172a 100%) !important;
       border-color:#0f172a !important;
       color:#ffffff !important;
       box-shadow:0 4px 12px rgba(15, 23, 42, 0.28) !important;
+      text-decoration:none !important;
     }
     .pb-repertorize-count-badge {
       position:absolute;
@@ -5832,33 +6121,36 @@ const PatientBoard = () => {
     .pb-prescription-tab-btn:focus,
     .pb-prescription-tab-btn:active,
     .pb-prescription-tab-btn.active {
+      position:relative !important;
       display:inline-flex !important;
       align-items:center;
       gap:7px;
-      min-height:34px;
-      padding:6px 14px 6px 12px !important;
-      border-radius:10px !important;
-      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%) !important;
-      background-image:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%) !important;
-      border:1px solid #7ec2f5 !important;
-      color:#0b5cab !important;
+      min-height:28px;
+      height:28px;
+      padding:4px 12px 4px 10px !important;
+      border-radius:5px !important;
+      background:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+      background-image:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+      border:1px solid #86efac !important;
+      color:#15803d !important;
       font-weight:700 !important;
-      font-size:13px !important;
+      font-size:11px !important;
       letter-spacing:0.01em;
-      box-shadow:0 1px 2px rgba(30, 136, 229, 0.1) !important;
+      box-shadow:0 1px 2px rgba(22, 163, 74, 0.12) !important;
       transition:background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+      text-decoration:none !important;
     }
     .pb-prescription-tab-btn i {
-      font-size:15px;
+      font-size:11px;
       line-height:1;
     }
     .pb-prescription-tab-btn:hover,
     .pb-prescription-tab-btn:focus {
-      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%) !important;
-      background-image:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%) !important;
-      border-color:#0b5cab !important;
-      color:#fff !important;
-      box-shadow:0 4px 12px rgba(30, 136, 229, 0.3) !important;
+      background:linear-gradient(180deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%) !important;
+      background-image:linear-gradient(180deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%) !important;
+      border-color:#4ade80 !important;
+      color:#166534 !important;
+      box-shadow:0 4px 12px rgba(22, 163, 74, 0.2) !important;
     }
     /* Prescription modal — premium shell (Prescription / Labs / History) */
     .pb-prescription-modal .modal-content {
@@ -5898,13 +6190,13 @@ const PatientBoard = () => {
       border:1px solid transparent !important;
       background:transparent !important;
       color:#475569 !important;
-      font-size:13px !important;
+      font-size:11px !important;
       font-weight:700 !important;
       letter-spacing:0.01em;
       box-shadow:none !important;
       transition:background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
     }
-    .pb-prescription-modal__tab i { font-size:15px; line-height:1; }
+    .pb-prescription-modal__tab i { font-size:11px; line-height:1; }
     .pb-prescription-modal__tab:hover:not(.is-active) {
       background:#fff !important;
       border-color:#d7e3ef !important;
@@ -5962,7 +6254,7 @@ const PatientBoard = () => {
     }
     .pb-prescription-modal__table {
       margin-bottom:0 !important;
-      font-size:12.5px;
+      font-size:11px;
     }
     .pb-prescription-modal__table thead th {
       background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
@@ -5972,7 +6264,7 @@ const PatientBoard = () => {
       font-weight:700;
       letter-spacing:0.04em;
       text-transform:uppercase;
-      padding:10px 12px !important;
+      padding:6px 8px !important;
       position:sticky;
       top:0;
       z-index:10;
@@ -5981,11 +6273,11 @@ const PatientBoard = () => {
     .pb-prescription-modal__table thead th i {
       color:#0b5cab;
       margin-right:5px;
-      font-size:13px;
+      font-size:11px;
       vertical-align:-1px;
     }
     .pb-prescription-modal__table tbody td {
-      padding:10px 12px !important;
+      padding:6px 8px !important;
       border-color:#eef2f6 !important;
       vertical-align:middle;
       color:#0f172a;
@@ -6004,7 +6296,7 @@ const PatientBoard = () => {
     }
     .pb-prescription-modal__empty-icon {
       width:44px;
-      height:44px;
+      height:32px;
       border-radius:12px;
       display:inline-flex;
       align-items:center;
@@ -6030,10 +6322,10 @@ const PatientBoard = () => {
       align-items:center;
       justify-content:center;
       gap:6px;
-      padding:8px 12px;
+      padding:5px 8px;
       border-radius:9px;
       cursor:pointer;
-      font-size:12.5px;
+      font-size:11px;
       font-weight:600;
       color:#64748b;
       text-align:center;
@@ -6078,6 +6370,7 @@ const PatientBoard = () => {
       flex-direction:column;
       padding:0.5rem;
       border:1px solid var(--minimal-card-border, #b9b9b9) !important;
+      border-radius:5px !important;
       box-shadow:none !important;
       background-color:#fff;
     }
@@ -6116,87 +6409,70 @@ const PatientBoard = () => {
     }
     .pb-keyword-tabs-wrap {
       border:1px solid var(--minimal-card-border, #b9b9b9);
-      border-radius:8px;
-      padding:8px 12px;
+      border-radius:5px;
+      padding:5px 8px;
       background-color:#fff;
-    }
-    .pb-repertorize-top-row {
-      flex-wrap:nowrap;
-      align-items:stretch;
-      height:100%;
-      margin:0 !important;
-    }
-    .pb-repertorize-top-row > [class*="col-"] {
-      min-width:0;
-      height:100%;
     }
     .pb-repertorize-layout {
       display:grid;
-      grid-template-columns:minmax(0, 1fr) minmax(160px, 12%);
+      /* Shared tracks so Uncommon|Section|DMM|Headings corners align */
+      grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(160px, 12%);
       grid-template-rows:500px 580px;
       grid-template-areas:
-        "top section"
-        "dmm headings";
-      gap:8px;
+        "rubrics common uncommon section"
+        "dmm dmm dmm headings";
+      column-gap:0.25rem;
+      row-gap:0.25rem;
+      align-content:start;
       align-items:stretch;
+      justify-items:stretch;
       width:100%;
       min-width:0;
-    }
-    .pb-repertorize-layout__top {
-      grid-area:top;
-      min-width:0;
-      min-height:0;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-    }
-    .pb-repertorize-layout__dmm {
-      grid-area:dmm;
-      min-width:0;
-      min-height:0;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-    }
-    .pb-repertorize-layout__section {
-      grid-area:section;
-      min-width:0;
-      min-height:0;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-    }
-    .pb-repertorize-layout__headings {
-      grid-area:headings;
-      min-width:0;
-      min-height:0;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-    }
-    .pb-repertorize-layout__top > .pb-repertorize-top-row,
-    .pb-repertorize-layout__dmm > .pb-repertorize-bottom-row {
-      flex:1 1 auto;
-      width:100%;
-      min-height:0;
-      height:100%;
       margin:0 !important;
+      padding:0 !important;
     }
-    .pb-repertorize-rubrics-col,
-    .pb-repertorize-common-col,
-    .pb-repertorize-uncommon-col {
-      flex:0 0 33.333% !important;
-      max-width:33.333%;
-    }
-    .pb-repertorize-dmm-col {
-      flex:0 0 100% !important;
-      max-width:100%;
+    .pb-repertorize-layout__rubrics { grid-area:rubrics; }
+    .pb-repertorize-layout__common { grid-area:common; }
+    .pb-repertorize-layout__uncommon { grid-area:uncommon; }
+    .pb-repertorize-layout__section { grid-area:section; }
+    .pb-repertorize-layout__dmm { grid-area:dmm; }
+    .pb-repertorize-layout__headings { grid-area:headings; }
+    .pb-repertorize-layout__rubrics,
+    .pb-repertorize-layout__common,
+    .pb-repertorize-layout__uncommon,
+    .pb-repertorize-layout__section,
+    .pb-repertorize-layout__dmm,
+    .pb-repertorize-layout__headings {
       min-width:0;
+      min-height:0;
+      width:100%;
+      max-width:100%;
       height:100%;
+      max-height:100%;
+      align-self:stretch;
+      justify-self:stretch;
+      display:flex;
+      flex-direction:column;
+      margin:0 !important;
+      padding:0 !important;
+      overflow:hidden;
+      box-sizing:border-box;
     }
-    .pb-repertorize-section-col {
-      flex:0 0 12% !important;
-      max-width:12%;
+    .pb-repertorize-layout__rubrics > .pb-tab-card,
+    .pb-repertorize-layout__common > .pb-tab-card,
+    .pb-repertorize-layout__uncommon > .pb-tab-card,
+    .pb-repertorize-layout__section > .pb-tab-card,
+    .pb-repertorize-layout__headings > .pb-tab-card,
+    .pb-repertorize-layout__dmm > .pb-tab-card {
+      flex:1 1 auto;
+      align-self:stretch;
+      width:100% !important;
+      height:100% !important;
+      max-width:100%;
+      max-height:100%;
+      min-height:0;
+      margin:0 !important;
+      box-sizing:border-box;
     }
     @media (max-width: 991px) {
       .pb-tab-cards-row--fill { flex-wrap:wrap !important; }
@@ -6204,19 +6480,22 @@ const PatientBoard = () => {
         grid-template-columns:minmax(0, 1fr);
         grid-template-rows:auto;
         grid-template-areas:
-          "top"
+          "rubrics"
+          "common"
+          "uncommon"
           "section"
           "dmm"
           "headings";
       }
-      .pb-repertorize-top-row { flex-wrap:wrap; height:auto; }
-      .pb-repertorize-rubrics-col,
-      .pb-repertorize-common-col,
-      .pb-repertorize-uncommon-col,
-      .pb-repertorize-section-col,
-      .pb-repertorize-dmm-col {
-        flex:0 0 100% !important;
-        max-width:100%;
+      .pb-repertorize-layout__rubrics,
+      .pb-repertorize-layout__common,
+      .pb-repertorize-layout__uncommon,
+      .pb-repertorize-layout__section,
+      .pb-repertorize-layout__dmm,
+      .pb-repertorize-layout__headings {
+        height:auto;
+        max-height:none;
+        min-height:280px;
       }
     }
     .pb-tab-card--544,
@@ -6230,36 +6509,220 @@ const PatientBoard = () => {
     }
     .patient-board-page .pb-tab-cards-row { --bs-gutter-x:0.25rem; --bs-gutter-y:0.25rem; }
 
-    /* Body Parts (AnatomyViewer) — match Repertory cards spacing/radius */
+    /* Patient Board internal cards — match Body Parts (5px) */
+    .patient-board-page .pb-tab-card,
+    .patient-board-page .pb-repertory-card,
+    .patient-board-page .pb-repertorize-card,
+    .patient-board-page .pb-clinical-table-wrap,
+    .patient-board-page .pb-keyword-tabs-wrap,
+    .patient-board-page .pb-ae-column,
+    .patient-board-page .pb-ae-header-bar,
+    .patient-board-page .pb-mm-header-bar,
+    .patient-board-page .pb-mm-headings-panel,
+    .patient-board-page .pb-mm-content-panel,
+    .patient-board-page .da-container,
     .patient-board-page .pb-body-part-tab .anatomy-header,
     .patient-board-page .pb-body-part-tab .anatomy-viewer-card,
     .patient-board-page .pb-body-part-tab .anatomy-panel,
     .patient-board-page .pb-body-part-tab .anatomy-panel-card,
     .patient-board-page .pb-body-part-tab .anatomy-canvas-wrap {
-      border-radius: 0.25rem !important;
-      box-shadow: none !important;
-      border-color: var(--minimal-card-border, #b9b9b9) !important;
+      border-radius:5px !important;
+      box-shadow:none !important;
+      border-color:var(--minimal-card-border, #b9b9b9) !important;
     }
     .patient-board-page .pb-body-part-tab .anatomy-header {
-      margin-bottom: 0.5rem !important;
-      padding: 0.5rem !important;
+      margin-bottom:0.25rem !important;
+      padding:0.35rem 0.5rem !important;
     }
     .patient-board-page .pb-body-part-tab .anatomy-grid {
-      gap: 0.25rem !important;
+      gap:0.25rem !important;
     }
     .patient-board-page .pb-body-part-tab .anatomy-panel-card {
-      padding: 0.5rem !important;
+      padding:0 !important;
     }
     .patient-board-page .pb-body-part-tab .anatomy-panel-card--scroll {
-      gap: 0.5rem !important;
+      gap:0 !important;
+      padding:0 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-panel-head {
+      padding:5px 8px !important;
+      min-height:32px;
+      box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      border-bottom:1px solid #eef2f6 !important;
+      background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-panel-part-title {
+      font-size:11px !important;
+      font-weight:700 !important;
+      letter-spacing:0.06em;
+      line-height:1.2;
+      margin:0;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-panel-mesh {
+      margin-top:2px !important;
+      font-size:10px !important;
+      line-height:1.25;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-section-label {
+      font-size:11px !important;
+      font-weight:500 !important;
+      letter-spacing:0.02em;
+      color:#374151 !important;
+      margin:6px 8px 4px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-section-list {
+      gap:0 !important;
+      padding:0 2px 4px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-section-item {
+      padding:5px 7px 5px 8px !important;
+      min-height:28px !important;
+      box-sizing:border-box !important;
+      border-radius:0 !important;
+      border:0 !important;
+      border-bottom:1px solid #eef2f6 !important;
+      background:transparent !important;
+      font-size:11px !important;
+      font-weight:500 !important;
+      color:#0f172a !important;
+      box-shadow:none !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-section-item:hover {
+      background:#f5faff !important;
+      border-color:#eef2f6 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-section-item.active,
+    .patient-board-page .pb-body-part-tab .anatomy-section-item.is-active {
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
+      color:#0b5cab !important;
+      box-shadow:none !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-hotspot-list {
+      gap:0 !important;
+      padding:0 2px 4px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-hotspot-row {
+      padding:5px 7px 5px 8px !important;
+      min-height:28px !important;
+      box-sizing:border-box !important;
+      border-radius:0 !important;
+      border:0 !important;
+      border-bottom:1px solid #eef2f6 !important;
+      background:transparent !important;
+      font-size:11px !important;
+      font-weight:500 !important;
+      color:#0f172a !important;
+      box-shadow:none !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-hotspot-row:hover {
+      background:#f5faff !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-hotspot-row.active {
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
+      color:#0b5cab !important;
+      border-color:#eef2f6 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-hotspot-chev {
+      font-size:12px !important;
+      color:#0b5cab;
+      opacity:1;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-rubric-panel {
+      margin:4px 6px 6px !important;
+      padding:6px 8px !important;
+      border-radius:5px !important;
+      border:1px solid #eef2f6 !important;
+      background:#fff !important;
+      box-shadow:none !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-rubric-row {
+      gap:4px !important;
+      padding:5px 0 !important;
+      min-height:28px;
+      box-sizing:border-box;
+      border-bottom:1px solid #eef2f6 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-rubric-title {
+      font-size:11px !important;
+      font-weight:500 !important;
+      line-height:1.25;
+      color:#0f172a !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-rubric-sub {
+      font-size:9px !important;
+      font-weight:500 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-grade-row {
+      gap:3px !important;
+      justify-content:flex-end;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-grade-btn {
+      min-width:16px !important;
+      width:16px !important;
+      height:16px !important;
+      font-size:9px !important;
+      font-weight:500 !important;
+      border-radius:3px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-rubric-load-more,
+    .patient-board-page .pb-body-part-tab .anatomy-rubric-end,
+    .patient-board-page .pb-body-part-tab .anatomy-section-loading {
+      font-size:11px !important;
+      padding:6px 0 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-canvas-icon-btn {
+      width:24px !important;
+      height:24px !important;
+      min-width:24px !important;
+      padding:0 !important;
+      border-radius:5px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-canvas-icon-btn.rounded-circle {
+      border-radius:5px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-canvas-icon-btn i {
+      font-size:13px !important;
+      line-height:1 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-canvas-overlay__left,
+    .patient-board-page .pb-body-part-tab .anatomy-canvas-overlay__right {
+      gap:4px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-panel-empty,
+    .patient-board-page .pb-body-part-tab .anatomy-panel-empty.subtle,
+    .patient-board-page .pb-body-part-tab .anatomy-panel-empty--error {
+      border-radius:5px !important;
+      padding:6px 8px !important;
+      font-size:11px !important;
+      line-height:1.35 !important;
+      margin:4px 6px !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-section-item-name {
+      font-size:11px !important;
+      font-weight:500 !important;
+      letter-spacing:0.02em;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-section {
+      padding:0 !important;
+    }
+    .patient-board-page .pb-body-part-tab .anatomy-hotspot-block {
+      margin:0 !important;
+    }
+    .patient-board-page .pb-body-part-tab .spinner-border-sm {
+      width:0.75rem !important;
+      height:0.75rem !important;
+      border-width:0.12em !important;
     }
     .pb-info {
-      padding:10px 12px;
+      padding:8px 3px 0 3px !important;
       position:relative;
-      border-radius:12px;
-      background:linear-gradient(180deg, #fbfdff 0%, #f5f8fb 100%);
-      border:1px solid #e2ebf3;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      border-radius:5px;
+      background:transparent !important;
+      border:none !important;
+      box-shadow:none !important;
       gap:12px;
     }
     .pb-info__identity {
@@ -6272,12 +6735,12 @@ const PatientBoard = () => {
     .pb-info__avatar-wrap {
       position:relative;
       flex-shrink:0;
-      width:44px;
-      height:44px;
+      width:32px;
+      height:32px;
     }
     .pb-info__avatar {
-      width:44px;
-      height:44px;
+      width:32px;
+      height:32px;
       border-radius:50%;
       object-fit:cover;
       border:2px solid #fff;
@@ -6302,7 +6765,7 @@ const PatientBoard = () => {
       min-width:0;
     }
     .pb-info__name {
-      font-size:15px;
+      font-size:11px;
       font-weight:700;
       letter-spacing:0.02em;
       color:#0f172a;
@@ -6313,16 +6776,16 @@ const PatientBoard = () => {
       align-items:center;
       gap:5px;
       padding:4px 9px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid #e2ebf3;
-      color:#64748b;
-      font-size:12px;
+      border-radius:5px;
+      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+      border:1px solid #cfe3f7;
+      color:#0f172a;
+      font-size:11px;
       font-weight:500;
       line-height:1.2;
     }
     .pb-info__meta i {
-      font-size:13px;
+      font-size:11px;
       color:#0b5cab;
       line-height:1;
     }
@@ -6341,7 +6804,7 @@ const PatientBoard = () => {
       width:34px;
       height:34px;
       padding:0;
-      border-radius:10px;
+      border-radius:5px;
       display:inline-flex;
       align-items:center;
       justify-content:center;
@@ -6372,17 +6835,17 @@ const PatientBoard = () => {
       align-items:center;
       gap:6px;
       padding:5px 10px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid #e2ebf3;
-      color:#475569;
-      font-size:12px;
+      border-radius:5px;
+      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+      border:1px solid #cfe3f7;
+      color:#0f172a;
+      font-size:11px;
       font-weight:600;
       white-space:nowrap;
     }
     .pb-appointment-date i {
       color:#0b5cab;
-      font-size:14px;
+      font-size:11px;
       line-height:1;
     }
     .pb-info__status {
@@ -6396,18 +6859,18 @@ const PatientBoard = () => {
       align-items:center;
       gap:6px;
       padding:5px 10px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid #e2ebf3;
-      color:#64748b;
-      font-size:12px;
+      border-radius:5px;
+      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+      border:1px solid #cfe3f7;
+      color:#0f172a;
+      font-size:11px;
       font-weight:500;
       white-space:nowrap;
     }
     .pb-info__chip i {
-      font-size:14px;
+      font-size:11px;
       line-height:1;
-      color:#94a3b8;
+      color:#0b5cab;
     }
     .pb-info__chip--due {
       color:#0f172a;
@@ -6427,46 +6890,48 @@ const PatientBoard = () => {
     }
     .pb-part-item { padding:2px 6px; cursor:pointer; font-weight:500; color:#495057; }
     .pb-part-item.active { color:#000000; text-decoration:underline; text-underline-offset:6px; }
-    .pb-keyword-tab { padding:6px 12px; border:1px solid #d1d5db; border-radius:4px; cursor:pointer; font-weight:500; color:#495057; transition:all 0.2s ease; font-size:13px; }
+    .pb-keyword-tab { padding:6px 12px; border:1px solid #d1d5db; border-radius:4px; cursor:pointer; font-weight:500; color:#495057; transition:all 0.2s ease; font-size:11px; }
     .pb-keyword-tab:hover:not(.disabled) { background-color:#f6f8fa; border-color:#000000; }
     .pb-keyword-tab.active { color:#000000; border-color:#000000; background-color:#f6f8fa; font-weight:600; }
     .pb-keyword-tab.disabled { opacity:0.5; cursor:not-allowed; background-color:#f5f5f5; }
-    /* Questions SUB QUESTION GROUP + Clinical Pattern KEYWORDS — shared pill chips */
+    /* Questions SUB QUESTION GROUP + Clinical Pattern KEYWORDS — compact chips */
     .pb-questions-keywords-card .pb-keyword-tab,
     .pb-clinical-keywords-card .pb-keyword-tab {
       display:inline-flex;
       align-items:center;
-      gap:4px;
-      padding:6px 12px;
-      border-radius:999px;
+      gap:3px;
+      padding:4px 8px;
+      min-height:24px;
+      box-sizing:border-box;
+      border-radius:5px;
       border:1px solid #cfd8e3;
       background:#fff;
-      color:#212529;
-      font-size:13px;
-      font-weight:600;
-      line-height:1.25;
-      box-shadow:0 1px 2px rgba(16, 24, 40, 0.04);
-      transition:background-color .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease;
+      color:#0f172a;
+      font-size:11px;
+      font-weight:500;
+      line-height:1.2;
+      box-shadow:none;
+      transition:background-color .12s ease, border-color .12s ease, color .12s ease;
     }
     .pb-clinical-keywords-card .pb-keyword-tab {
-      padding:5px 11px;
-      font-size:12.5px;
+      padding:4px 8px;
+      font-size:11px;
       gap:3px;
     }
     .pb-questions-keywords-card .pb-keyword-tab:hover:not(.disabled),
     .pb-clinical-keywords-card .pb-keyword-tab:hover:not(.disabled) {
-      background:#f8fbfd;
+      background:#f5faff;
       border-color:#b8e2f4;
-      color:#1f4e8c;
-      box-shadow:0 1px 3px rgba(30, 136, 229, 0.12);
+      color:#0b5cab;
+      box-shadow:none;
     }
     .pb-questions-keywords-card .pb-keyword-tab.active,
     .pb-clinical-keywords-card .pb-keyword-tab.active {
-      background:var(--bs-info-bg-subtle, #dff0fa);
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%);
       border-color:#b8e2f4;
-      color:#1f4e8c;
-      font-weight:700;
-      box-shadow:inset 0 0 0 1px rgba(30, 136, 229, 0.08);
+      color:#0b5cab;
+      font-weight:500;
+      box-shadow:none;
     }
     .pb-qwrap { display:flex; flex-wrap:wrap; gap:24px 36px; }
     .pb-qitem { color:#495057; font-weight:500; cursor:pointer; text-decoration:none; }
@@ -6477,6 +6942,39 @@ const PatientBoard = () => {
     .form-select:focus,
     .form-select:focus-visible { box-shadow:none !important; }
     .search-box:focus-within { background-color:transparent; }
+    /* Magnifier must never overlap placeholder/text across Patient Board tabs */
+    .patient-board-page .search-box,
+    .patient-board-page .pb-questions-search-box {
+      position:relative !important;
+    }
+    .patient-board-page .search-box > .form-control,
+    .patient-board-page .search-box > input,
+    .patient-board-page .pb-questions-search-box > .form-control,
+    .patient-board-page .pb-questions-search-box > .pb-questions-search-input,
+    .patient-board-page .pb-questions-search-input {
+      padding-left:34px !important;
+      box-sizing:border-box !important;
+    }
+    .patient-board-page .search-box > .search-icon,
+    .patient-board-page .pb-questions-search-box > .search-icon {
+      position:absolute !important;
+      left:10px !important;
+      top:50% !important;
+      right:auto !important;
+      bottom:auto !important;
+      transform:translateY(-50%) !important;
+      height:auto !important;
+      width:auto !important;
+      margin:0 !important;
+      padding:0 !important;
+      line-height:1 !important;
+      font-size:13px !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      pointer-events:none !important;
+      z-index:2 !important;
+    }
     .form-select:focus { background-color:#fff; border-color:#25a0e2; box-shadow:none; }
     .choices.is-focused .choices__inner { border-color:#25a0e2 !important; box-shadow:none !important; }
     .react-select-container .react-select__control--is-focused { border-color:#25a0e2 !important; box-shadow:none !important; }
@@ -6511,46 +7009,47 @@ const PatientBoard = () => {
       overflow-x:hidden;
     }
     .pb-tab-panel--adverse {
-      gap:8px;
+      gap:0.25rem;
     }
     .pb-ae-header-bar {
       display:flex;
       align-items:center;
-      gap:12px;
-      padding:7px 12px;
+      gap:8px;
+      padding:4px 8px;
       background:linear-gradient(180deg, #ffffff 0%, #fbfbfe 100%);
       border:1px solid #e3e8ee;
-      border-radius:12px;
+      border-radius:5px;
       box-shadow:0 1px 2px rgba(16,24,40,0.04);
       flex-shrink:0;
-      min-height:46px;
+      min-height:36px;
     }
     .pb-ae-header-bar__icon {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      width:32px;
-      height:32px;
-      border-radius:8px;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
+      width:24px;
+      height:24px;
+      border-radius:5px;
+      background:transparent;
       color:#0b5cab;
-      border:1px solid #cfe3f7;
-      font-size:16px;
+      border:0;
+      box-shadow:none;
+      font-size:13px;
       flex-shrink:0;
     }
     .pb-ae-header-bar__select-wrap {
-      flex:0 0 220px;
-      min-width:180px;
-      max-width:240px;
+      flex:0 0 200px;
+      min-width:160px;
+      max-width:220px;
     }
     .pb-ae-header-bar__select-label {
-      display:none;
+      display:none !important;
     }
     .pb-ae-header-bar__divider {
       width:1px;
       align-self:center;
-      height:24px;
-      min-height:24px;
+      height:20px;
+      min-height:20px;
       background:#e9ecef;
       flex-shrink:0;
     }
@@ -6563,41 +7062,52 @@ const PatientBoard = () => {
       flex-wrap:wrap;
       gap:2px 6px;
       text-align:center;
-      font-size:13px;
-      line-height:1.3;
-      padding:0 6px;
+      font-size:11px;
+      line-height:1.25;
+      padding:0 4px;
     }
     .pb-ae-header-bar__category {
       flex:0 0 auto;
       max-width:220px;
       text-align:right;
-      font-size:12px;
+      font-size:11px;
+      font-weight:500;
       line-height:1.25;
       padding-left:4px;
       align-self:center;
     }
     .pb-ae-header-bar__select-wrap .pb-ae-select__control {
-      min-height:32px !important;
-      border-radius:8px;
+      min-height:28px !important;
+      height:28px !important;
+      border-radius:5px !important;
+      font-size:11px !important;
+      box-shadow:none !important;
     }
     .pb-ae-header-bar__select-wrap .pb-ae-select__value-container {
-      padding:0 8px;
+      padding:0 6px;
     }
     .pb-ae-header-bar__select-wrap .pb-ae-select__indicators {
-      height:32px;
+      height:28px;
     }
     .pb-ae-header-bar__select-wrap .pb-ae-select__dropdown-indicator,
     .pb-ae-header-bar__select-wrap .pb-ae-select__clear-indicator {
-      padding:4px 8px;
+      padding:2px 6px;
+    }
+    .pb-ae-header-bar__select-wrap .pb-ae-select__single-value,
+    .pb-ae-header-bar__select-wrap .pb-ae-select__placeholder,
+    .pb-ae-header-bar__select-wrap .pb-ae-select__input-container {
+      font-size:11px !important;
+      margin:0;
+      padding:0;
     }
     .pb-ae-select-option__name {
-      font-size:13px;
-      font-weight:600;
-      color:#212529;
-      line-height:1.2;
+      font-size:11px;
+      font-weight:500;
+      color:#0f172a;
+      line-height:1.25;
     }
     .pb-ae-select-option__meta {
-      font-size:11px;
+      font-size:10px;
       color:#868e96;
       line-height:1.2;
       margin-top:1px;
@@ -6617,16 +7127,16 @@ const PatientBoard = () => {
       min-height:0;
       display:flex;
       flex-direction:column;
-      padding-left:6px;
-      padding-right:6px;
+      padding-left:0.125rem;
+      padding-right:0.125rem;
     }
     .pb-ae-column {
       display:flex;
       flex-direction:column;
       height:100%;
       min-height:0;
-      border:1px solid #e9ecef;
-      border-radius:8px;
+      border:1px solid #e3e8ee;
+      border-radius:5px;
       background:#fff;
       overflow:hidden;
       box-shadow:0 1px 2px rgba(16,24,40,0.04);
@@ -6635,43 +7145,48 @@ const PatientBoard = () => {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:8px;
-      padding:10px 12px;
-      border-bottom:1px solid #e9ecef;
+      gap:6px;
+      min-height:32px;
+      height:32px;
+      padding:5px 8px;
+      box-sizing:border-box;
+      border-bottom:1px solid #eef2f6;
       flex-shrink:0;
     }
     .pb-ae-column-header-left {
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:6px;
       min-width:0;
     }
-    .pb-ae-column--serious .pb-ae-column-header { background:#fff5f5; }
-    .pb-ae-column--other .pb-ae-column-header { background:#fff8f0; }
-    .pb-ae-column--adverse .pb-ae-column-header { background:#fff5f5; }
-    .pb-ae-column-icon { font-size:16px; flex-shrink:0; }
+    .pb-ae-column--serious .pb-ae-column-header { background:linear-gradient(180deg, #fff8f8 0%, #fff5f5 100%); }
+    .pb-ae-column--other .pb-ae-column-header { background:linear-gradient(180deg, #fffaf5 0%, #fff8f0 100%); }
+    .pb-ae-column--adverse .pb-ae-column-header { background:linear-gradient(180deg, #fff8f8 0%, #fff5f5 100%); }
+    .pb-ae-column-icon { font-size:12px; flex-shrink:0; line-height:1; }
     .pb-ae-column-icon--serious,
     .pb-ae-column-icon--adverse { color:#dc3545; }
     .pb-ae-column-icon--other { color:#fd7e14; }
     .pb-ae-column-title {
-      font-size:12px;
+      font-size:11px;
       font-weight:700;
-      letter-spacing:0.4px;
-      color:#212529;
+      letter-spacing:0.06em;
+      color:#111827;
       white-space:nowrap;
+      line-height:1.2;
     }
     .pb-ae-column-badge {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      min-width:22px;
-      height:22px;
-      padding:0 6px;
-      border-radius:999px;
-      font-size:11px;
-      font-weight:700;
+      min-width:18px;
+      height:16px;
+      padding:0 5px;
+      border-radius:5px;
+      font-size:10px;
+      font-weight:500;
       color:#fff;
       flex-shrink:0;
+      line-height:1;
     }
     .pb-ae-column--serious .pb-ae-column-badge,
     .pb-ae-column--adverse .pb-ae-column-badge { background:#dc3545; }
@@ -6680,16 +7195,20 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      width:30px;
-      height:30px;
+      width:24px;
+      height:24px;
       padding:0;
       border:1px solid transparent;
-      border-radius:6px;
+      border-radius:5px;
       background:transparent;
       color:#6c757d;
       cursor:pointer;
       transition:background-color .15s ease, color .15s ease, border-color .15s ease;
       flex-shrink:0;
+    }
+    .pb-ae-filter-btn i {
+      font-size:12px;
+      line-height:1;
     }
     .pb-ae-filter-btn:hover,
     .pb-ae-filter-btn.active {
@@ -6698,34 +7217,41 @@ const PatientBoard = () => {
       color:#495057;
     }
     .pb-ae-column-search {
-      padding:8px 12px;
+      padding:4px 8px;
       border-bottom:1px solid #eef2f6;
       flex-shrink:0;
       background:linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
     }
     .pb-ae-column-search .pb-questions-search-box {
       width:100%;
+      height:28px;
+      min-height:28px;
+      position:relative;
     }
     .pb-ae-column-search .pb-questions-search-input {
-      border-radius:999px !important;
-      border-color:#d7e3ef !important;
-      background:#f8fafc !important;
-      font-size:12px;
+      border-radius:5px !important;
+      border:1px solid #d0d7de !important;
+      background:#ffffff !important;
+      font-size:11px !important;
       height:28px !important;
       min-height:28px !important;
-      padding-left:30px !important;
+      max-height:28px !important;
+      padding:0 28px 0 34px !important;
       line-height:28px !important;
+      box-sizing:border-box !important;
+      box-shadow:none !important;
     }
     .pb-ae-column-search .pb-questions-search-input:focus {
       background:#fff !important;
-      border-color:#93c5fd !important;
-      box-shadow:0 0 0 3px rgba(30, 136, 229, 0.12);
+      border-color:#94a3b8 !important;
+      box-shadow:none !important;
     }
     .pb-ae-column-search .pb-questions-search-box .search-icon {
       top:50%;
       transform:translateY(-50%);
       height:auto;
       line-height:1;
+      font-size:13px;
     }
     .pb-ae-column-search--disabled {
       opacity:0.72;
@@ -6740,50 +7266,62 @@ const PatientBoard = () => {
       min-height:0;
       overflow-y:auto;
       overflow-x:hidden;
-      padding:8px;
-      background:#fcfcfd;
+      padding:4px 6px 6px;
+      background:#fff;
     }
     .pb-ae-column-state {
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height:120px;
-      padding:16px;
+      min-height:80px;
+      padding:10px 8px;
       text-align:center;
       color:#868e96;
-      font-size:13px;
+      font-size:11px;
+      line-height:1.35;
     }
     .pb-ae-effect-row {
-      display:block;
-      padding:10px 12px;
-      margin-bottom:6px;
-      background:#fff;
-      border:1px solid #e9ecef;
-      border-radius:6px;
-      font-size:13px;
+      display:flex;
+      align-items:center;
+      padding:5px 7px 5px 5px;
+      min-height:28px;
+      box-sizing:border-box;
+      margin-bottom:0;
+      background:transparent;
+      border:0;
+      border-bottom:1px solid #eef2f6;
+      border-radius:0;
+      font-size:11px;
       font-weight:500;
-      color:#212529;
-      transition:background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+      color:#0f172a;
+      transition:background-color .12s ease;
     }
-    .pb-ae-effect-row:last-child { margin-bottom:0; }
+    .pb-ae-effect-row:last-child {
+      margin-bottom:0;
+      border-bottom:0;
+    }
     .pb-ae-effect-row:hover {
-      background:#f8f9fa;
-      border-color:#dee2e6;
-      box-shadow:0 1px 2px rgba(16,24,40,0.05);
+      background:#f5faff;
+      border-color:#eef2f6;
+      box-shadow:none;
     }
     .pb-ae-effect-name {
       display:block;
       min-width:0;
-      line-height:1.35;
+      line-height:1.25;
+      font-size:11px;
+      font-weight:500;
     }
     .pb-ae-column-footer {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:8px;
-      padding:8px 12px;
-      border-top:1px solid #e9ecef;
-      background:#f8f9fa;
+      gap:6px;
+      padding:4px 8px;
+      min-height:28px;
+      box-sizing:border-box;
+      border-top:1px solid #eef2f6;
+      background:linear-gradient(180deg, #fafbfc 0%, #fff 100%);
       flex-shrink:0;
       flex-wrap:wrap;
     }
@@ -6791,62 +7329,91 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       gap:4px;
-      font-size:12px;
+      font-size:11px;
       color:#6c757d;
       white-space:nowrap;
+    }
+    .pb-ae-item-count i {
+      font-size:12px;
     }
     .pb-ae-scroll-indicator {
       display:inline-flex;
       align-items:center;
-      gap:4px;
+      gap:3px;
       margin-left:auto;
       font-size:11px;
-      font-weight:600;
-      color:#6f42c1;
+      font-weight:500;
+      color:#0b5cab;
       white-space:nowrap;
     }
     .pb-ae-scroll-hint {
       display:flex;
       align-items:center;
       justify-content:center;
-      gap:6px;
-      padding:10px 8px 4px;
-      font-size:12px;
+      gap:4px;
+      padding:6px 4px;
+      font-size:11px;
       color:#868e96;
     }
     .pb-ae-footer {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding:4px 2px 0;
+      gap:8px;
+      padding:2px 0 0;
       flex-shrink:0;
       flex-wrap:wrap;
     }
     .pb-ae-disclaimer {
       margin:0;
-      font-size:12px;
+      font-size:11px;
       color:#868e96;
       font-style:italic;
-      line-height:1.4;
+      line-height:1.35;
     }
     .pb-ae-reference-btn {
       display:inline-flex;
       align-items:center;
-      gap:6px;
+      gap:5px;
       white-space:nowrap;
       flex-shrink:0;
+      min-height:28px;
+      height:28px;
+      padding:4px 10px !important;
+      font-size:11px !important;
+      font-weight:500 !important;
+      border-radius:5px !important;
+      line-height:1.2;
+    }
+    .pb-ae-reference-btn i {
+      font-size:12px;
+      line-height:1;
     }
     .pb-ae-reference-summary {
       display:grid;
-      gap:8px;
-      font-size:14px;
-      color:#212529;
+      gap:6px;
+      font-size:11px;
+      line-height:1.45;
+      color:#0f172a;
     }
     .pb-ae-reference-summary strong {
-      color:#1f4e8c;
+      color:#0b5cab;
     }
-    .mm-info { color:#000000; }
+    .pb-tab-panel--adverse .ae-name {
+      font-size:11px;
+      font-weight:500;
+      color:#0b5cab;
+    }
+    .pb-tab-panel--adverse .ae-system,
+    .pb-tab-panel--adverse .ae-category {
+      font-size:11px;
+      font-weight:500;
+    }
+    .pb-tab-panel--adverse .text-muted,
+    .pb-tab-panel--adverse .small {
+      font-size:11px !important;
+    }
+    .mm-info { color:#0f172a; }
     .mm-info-scroll,
     .mm-info-scroll p,
     .mm-info-scroll div,
@@ -6855,23 +7422,43 @@ const PatientBoard = () => {
     .mm-info-scroll td,
     .mm-info-scroll font,
     .mm-info-scroll strong,
+    .mm-info-scroll b,
+    .mm-info-scroll em,
     .mm-info-scroll h1,
     .mm-info-scroll h2,
     .mm-info-scroll h3,
     .mm-info-scroll h4,
     .mm-info-scroll h5,
-    .mm-info-scroll h6 { color:#000000 !important; }
+    .mm-info-scroll h6 {
+      color:#0f172a !important;
+      font-size:var(--mm-font-size, 11px) !important;
+      line-height:1.55 !important;
+    }
+    .mm-info-scroll p {
+      margin:0 0 0.55em !important;
+    }
+    .mm-info-scroll h1,
+    .mm-info-scroll h2,
+    .mm-info-scroll h3,
+    .mm-info-scroll h4,
+    .mm-info-scroll h5,
+    .mm-info-scroll h6 {
+      font-weight:700 !important;
+      line-height:1.45 !important;
+      margin:8px 0 4px !important;
+    }
     .pb-tab-panel--materia-medica {
-      gap:8px;
+      gap:0.25rem;
     }
     .pb-mm-header-bar {
       display:flex;
       align-items:center;
-      gap:14px;
-      padding:10px 14px;
+      gap:8px;
+      padding:4px 8px;
+      min-height:36px;
       background:linear-gradient(180deg, #ffffff 0%, #fbfbfe 100%);
       border:1px solid #e3e8ee;
-      border-radius:12px;
+      border-radius:5px;
       box-shadow:0 1px 2px rgba(16,24,40,0.04);
       flex-shrink:0;
       flex-wrap:wrap;
@@ -6879,27 +7466,28 @@ const PatientBoard = () => {
     .pb-mm-header-bar__fields {
       display:grid;
       grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
-      gap:14px;
+      gap:8px;
       flex:1 1 auto;
       min-width:0;
     }
     .pb-mm-header-bar__select-group {
       display:flex;
       align-items:stretch;
-      gap:10px;
+      gap:6px;
       min-width:0;
     }
     .pb-mm-header-bar__icon {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      width:32px;
-      height:32px;
-      border-radius:8px;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
+      width:24px;
+      height:24px;
+      border-radius:5px;
+      background:transparent;
       color:#0b5cab;
-      border:1px solid #cfe3f7;
-      font-size:16px;
+      border:0;
+      box-shadow:none;
+      font-size:13px;
       flex-shrink:0;
       margin-top:0;
     }
@@ -6908,70 +7496,73 @@ const PatientBoard = () => {
       min-width:0;
     }
     .pb-mm-header-bar__select-label {
-      display:block;
-      margin:0 0 6px;
-      font-size:10px;
-      font-weight:700;
-      letter-spacing:0.6px;
-      text-transform:uppercase;
-      color:#868e96;
-      line-height:1;
+      display:none;
     }
     .pb-mm-header-bar__select-wrap .pb-mm-select__control {
-      min-height:32px !important;
-      border-radius:999px;
+      min-height:28px !important;
+      height:28px !important;
+      border-radius:5px !important;
+      font-size:11px !important;
+      box-shadow:none !important;
     }
     .pb-mm-header-bar__select-wrap .pb-mm-select__value-container {
-      padding:0 10px;
+      padding:0 6px;
     }
     .pb-mm-header-bar__select-wrap .pb-mm-select__indicators {
-      height:32px;
+      height:28px;
     }
     .pb-mm-header-bar__select-wrap .pb-mm-select__dropdown-indicator,
     .pb-mm-header-bar__select-wrap .pb-mm-select__clear-indicator {
-      padding:4px 8px;
+      padding:2px 6px;
+    }
+    .pb-mm-header-bar__select-wrap .pb-mm-select__single-value,
+    .pb-mm-header-bar__select-wrap .pb-mm-select__placeholder,
+    .pb-mm-header-bar__select-wrap .pb-mm-select__input-container {
+      font-size:11px !important;
+      margin:0;
+      padding:0;
     }
     .pb-mm-header-bar__divider {
       width:1px;
       align-self:center;
-      height:36px;
-      min-height:36px;
+      height:20px;
+      min-height:20px;
       background:#e9ecef;
       flex-shrink:0;
     }
     .pb-mm-header-bar__title {
-      flex:1 1 220px;
-      min-width:200px;
+      flex:1 1 180px;
+      min-width:140px;
       text-align:right;
-      font-size:13px;
-      font-weight:700;
-      color:#1f4e8c;
-      line-height:1.35;
+      font-size:11px;
+      font-weight:500;
+      color:#0b5cab;
+      line-height:1.25;
       align-self:center;
-      padding-left:8px;
+      padding-left:6px;
     }
     .pb-mm-header-bar__author-row {
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:6px;
       width:100%;
       min-width:0;
-      min-height:32px;
+      min-height:28px;
     }
     .pb-mm-header-bar__author-select {
       flex:1 1 0;
       min-width:0;
     }
     .pb-mm-header-bar__action-spacer {
-      width:32px;
+      width:24px;
       flex-shrink:0;
     }
     .pb-mm-reset-btn {
-      width:32px !important;
-      height:32px !important;
-      min-width:32px;
+      width:24px !important;
+      height:24px !important;
+      min-width:24px;
       padding:0 !important;
-      border-radius:8px !important;
+      border-radius:5px !important;
       background:#f3f6f9 !important;
       border:1px solid #ced4da !important;
       color:#495057 !important;
@@ -6980,12 +7571,12 @@ const PatientBoard = () => {
       justify-content:center;
     }
     .pb-mm-reset-btn i {
-      font-size:15px;
+      font-size:12px;
       line-height:1;
     }
     .pb-mm-layout {
       display:flex;
-      gap:8px;
+      gap:0.25rem;
       flex:1 1 auto;
       min-height:0;
       overflow:hidden;
@@ -6996,7 +7587,7 @@ const PatientBoard = () => {
       display:flex;
       flex-direction:column;
       border:1px solid #e3e8ee;
-      border-radius:12px;
+      border-radius:5px;
       background:#fff;
       overflow:hidden;
       box-shadow:0 1px 2px rgba(16,24,40,0.04);
@@ -7016,15 +7607,18 @@ const PatientBoard = () => {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      min-height:44px;
-      padding:0 12px;
+      gap:8px;
+      min-height:32px;
+      height:32px;
+      padding:5px 8px;
       box-sizing:border-box;
       flex-shrink:0;
       background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+      border-top-left-radius:5px;
+      border-top-right-radius:5px;
     }
     .pb-mm-headings-panel > .pb-mm-panel-header {
-      height:44px;
+      height:32px;
     }
     .pb-mm-panel-divider {
       flex-shrink:0;
@@ -7035,20 +7629,22 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      width:20px;
-      height:20px;
-      border-radius:6px;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
-      border:1px solid #cfe3f7;
+      width:auto;
+      height:auto;
+      border-radius:0;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
       color:#0b5cab;
       font-size:12px;
       line-height:1;
       flex-shrink:0;
+      padding:0;
     }
     .pb-mm-headings-title {
       display:inline-flex;
       align-items:center;
-      gap:7px;
+      gap:6px;
       margin:0;
       padding:0;
       font-size:11px;
@@ -7064,88 +7660,103 @@ const PatientBoard = () => {
       min-height:0;
       overflow-y:auto;
       overflow-x:hidden;
-      padding:6px 8px;
+      padding:4px 6px 6px 2px;
     }
     .pb-mm-heading-item {
       display:flex;
       align-items:center;
-      gap:10px;
+      gap:8px;
       width:100%;
-      padding:8px 10px;
-      margin-bottom:6px;
-      border:1px solid transparent;
-      border-radius:8px;
+      padding:5px 7px 5px 2px;
+      min-height:28px;
+      box-sizing:border-box;
+      margin-bottom:0;
+      border:0;
+      border-bottom:1px solid #eef2f6;
+      border-radius:0;
       background:transparent;
-      color:#495057;
-      font-size:12px;
+      color:#0f172a;
+      font-size:11px;
       font-weight:500;
       text-align:left;
       cursor:pointer;
-      transition:background-color .15s ease, color .15s ease, border-color .15s ease;
+      transition:background-color .12s ease, color .12s ease;
     }
-    .pb-mm-heading-item:last-child { margin-bottom:0; }
+    .pb-mm-heading-item:last-child {
+      margin-bottom:0;
+      border-bottom:0;
+    }
     .pb-mm-heading-item:hover {
-      background:#f8f9fa;
-      border-color:#e9ecef;
+      background:#f5faff;
+      border-color:#eef2f6;
     }
     .pb-mm-heading-item.active {
-      background:var(--bs-info-bg-subtle, #dff0fa);
-      border-color:rgba(var(--bs-info-rgb, 50, 204, 255), 0.35);
-      color:var(--bs-info, #32ccff);
-      font-weight:600;
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%);
+      border-color:#eef2f6;
+      color:#0b5cab;
+      font-weight:500;
+      box-shadow:none;
     }
     .pb-mm-heading-item__icon-wrap {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      width:34px;
-      height:34px;
-      border-radius:8px;
-      background:var(--bs-info-bg-subtle, #dff0fa);
-      color:var(--bs-info, #32ccff);
-      border:1px solid rgba(var(--bs-info-rgb, 50, 204, 255), 0.25);
+      width:auto;
+      height:auto;
+      min-width:0;
+      border-radius:0;
+      background:transparent !important;
+      color:#0b5cab;
+      border:0 !important;
+      box-shadow:none !important;
       flex-shrink:0;
-      transition:background-color .15s ease, color .15s ease, border-color .15s ease;
+      padding:0;
     }
     .pb-mm-heading-item.active .pb-mm-heading-item__icon-wrap {
-      background:var(--bs-info-bg-subtle, #dff0fa);
-      color:var(--bs-info, #32ccff);
-      border-color:rgba(var(--bs-info-rgb, 50, 204, 255), 0.45);
+      background:transparent !important;
+      color:#0b5cab !important;
+      border:0 !important;
     }
     .pb-mm-heading-item__icon {
-      font-size:20px;
+      font-size:11px;
       line-height:1;
+      font-weight:400 !important;
     }
     .pb-mm-heading-item__label {
       min-width:0;
-      line-height:1.3;
+      line-height:1.25;
+      font-size:11px;
+      font-weight:500;
     }
     .pb-mm-content-header {
       align-items:center;
-      min-height:44px;
-      height:auto;
-      padding-top:8px;
-      padding-bottom:8px;
-      flex-wrap:nowrap;
+      min-height:32px !important;
+      height:32px !important;
+      max-height:32px !important;
+      padding:5px 8px !important;
+      flex-wrap:nowrap !important;
+      overflow:hidden;
     }
     .pb-mm-content-heading {
       min-width:0;
       flex:1 1 auto;
       display:flex;
-      flex-direction:column;
-      justify-content:center;
-      gap:2px;
+      flex-direction:row;
+      align-items:center;
+      justify-content:flex-start;
+      gap:0;
+      height:28px;
     }
     .pb-mm-content-title {
       display:inline-flex;
       align-items:center;
-      gap:7px;
-      font-size:13px;
+      gap:6px;
+      font-size:11px;
       font-weight:700;
-      letter-spacing:-0.01em;
+      letter-spacing:0.06em;
       text-transform:none;
       color:#111827;
-      line-height:1.25;
+      line-height:1.2;
       margin:0;
       white-space:nowrap;
       overflow:hidden;
@@ -7153,33 +7764,26 @@ const PatientBoard = () => {
       max-width:100%;
     }
     .pb-mm-content-subtitle {
-      margin:0;
-      padding-left:27px;
-      font-size:11px;
-      color:#868e96;
-      line-height:1.2;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      display:none;
     }
     .pb-mm-content-tools {
       display:inline-flex;
       align-items:center;
-      gap:6px;
+      gap:4px;
       flex-shrink:0;
     }
     .pb-mm-zoom-btn {
-      width:28px !important;
-      height:28px !important;
-      min-width:28px;
+      width:24px !important;
+      height:24px !important;
+      min-width:24px;
       padding:0 !important;
-      border-radius:7px !important;
+      border-radius:5px !important;
       display:inline-flex !important;
       align-items:center;
       justify-content:center;
     }
     .pb-mm-zoom-btn i {
-      font-size:14px !important;
+      font-size:12px !important;
       line-height:1;
     }
     .pb-mm-zoom-btn--in {
@@ -7195,33 +7799,39 @@ const PatientBoard = () => {
     .pb-mm-zoom-size {
       font-size:11px;
       color:#868e96;
-      min-width:30px;
+      min-width:28px;
       text-align:center;
       line-height:1;
     }
     .pb-mm-section-block {
-      scroll-margin-top:12px;
-      margin-bottom:18px;
+      scroll-margin-top:8px;
+      margin-bottom:12px;
     }
     .pb-mm-section-block:last-child {
       margin-bottom:0;
     }
     .pb-mm-section-heading {
-      font-size:13px;
+      font-size:var(--mm-font-size, 11px);
       font-weight:700;
-      letter-spacing:0.4px;
+      letter-spacing:0.04em;
       text-transform:uppercase;
-      color:#212529;
-      margin:0 0 8px;
-      padding-bottom:6px;
-      border-bottom:1px solid #e9ecef;
+      color:#0f172a;
+      margin:0 0 6px;
+      padding-bottom:4px;
+      border-bottom:1px solid #eef2f6;
+      line-height:1.45;
     }
     .pb-mm-content-scroll {
       flex:1 1 auto;
       min-height:0;
       overflow-y:auto;
       overflow-x:hidden;
-      padding:0 14px 14px;
+      padding:6px 8px 8px;
+    }
+    .pb-mm-content-scroll .text-muted,
+    .pb-mm-headings-list .text-muted,
+    .pb-mm-headings-list .small {
+      font-size:11px !important;
     }
     .pb-adverse-effects-columns > [class*="col-"] {
       padding-left:0.75rem;
@@ -7244,12 +7854,12 @@ const PatientBoard = () => {
       align-items:center;
       justify-content:center;
       gap:3px;
-      font-size:12px;
+      font-size:11px;
       font-weight:700;
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
       line-height:1;
     }
-    .modal-header-btn i { font-size:15px; line-height:1; }
+    .modal-header-btn i { font-size:11px; line-height:1; }
     .modal-header-btn:hover {
       background:#f4faff;
       border-color:#93c5fd;
@@ -7286,7 +7896,7 @@ const PatientBoard = () => {
       margin:0 2px;
       flex-shrink:0;
     }
-    .marathi-tooltip { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); color:#fff; padding:20px 30px; border-radius:8px; max-width:600px; z-index:9999; line-height:1.8; font-size:14px; box-shadow:0 4px 20px rgba(0,0,0,0.3); animation:fadeIn 0.3s ease; }
+    .marathi-tooltip { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); color:#fff; padding:20px 30px; border-radius:8px; max-width:600px; z-index:9999; line-height:1.8; font-size:11px; box-shadow:0 4px 20px rgba(0,0,0,0.3); animation:fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity:0; transform:translate(-50%,-50%) scale(0.9); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
     .remedy-item { cursor:pointer; transition:color 0.2s ease, background-color 0.15s ease, box-shadow 0.15s ease; margin-right:1px; display:inline-block; padding:4px 4px; border-radius:4px; line-height:1; }
     .remedy-item:hover { color:#000000; background-color:#f6f8fa; box-shadow:inset 0 0 0 1px #dee2e6; }
@@ -7317,9 +7927,9 @@ const PatientBoard = () => {
       white-space:normal;
       overflow:visible;
       line-height:1.45;
-      padding:8px 10px;
+      padding:4px 8px;
       margin:0;
-      border-radius:10px;
+      border-radius:5px;
       background:#fafcfe;
       box-shadow:inset 0 0 0 1px #e8eef5;
     }
@@ -7381,7 +7991,7 @@ const PatientBoard = () => {
       word-spacing:calc(1px * 0.98);
     }
     .pb-reference-rubric-item + .pb-reference-rubric-item { border-top:1px solid #f0f2f5; }
-    .remedy-info-icon { color:#1e88e5; font-size:13px; margin-left:3px; font-style:normal; font-weight:800; letter-spacing:0.2px; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; cursor:pointer; border-radius:50%; background:#f0f7ff; transition:background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease; }
+    .remedy-info-icon { color:#1e88e5; font-size:11px; margin-left:3px; font-style:normal; font-weight:800; letter-spacing:0.2px; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; cursor:pointer; border-radius:50%; background:#f0f7ff; transition:background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease; }
     .remedy-info-icon:hover { background-color:#e3f2fd; color:#1565c0; box-shadow:inset 0 0 0 1px #90caf9; }
     .info-tooltip {
       position:fixed;
@@ -7393,39 +8003,39 @@ const PatientBoard = () => {
       gap:0;
       background:linear-gradient(180deg, #f7fafc 0%, #eef3f8 100%);
       color:#000;
-      padding:14px;
-      border-radius:14px;
-      min-width:320px;
-      max-width:900px;
-      width:min(900px, 90vw);
+      padding:8px;
+      border-radius:8px;
+      min-width:280px;
+      max-width:720px;
+      width:min(720px, 90vw);
       max-height:calc(100vh - 48px);
       overflow-y:auto;
       overflow-x:hidden;
       overscroll-behavior:contain;
       box-sizing:border-box;
       z-index:10050;
-      box-shadow:0 18px 50px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.12);
+      box-shadow:0 12px 32px rgba(15, 23, 42, 0.22), 0 2px 6px rgba(15, 23, 42, 0.1);
       border:1px solid rgba(148, 163, 184, 0.35);
       animation:fadeIn 0.25s ease;
       pointer-events:none;
     }
     .info-tooltip-rubric-badge-wrap {
-      margin:0 0 12px;
+      margin:0 0 6px;
       max-width:100%;
-      padding:10px 14px;
-      border-radius:10px;
+      padding:5px 8px;
+      border-radius:5px;
       background:#fff;
       border:1px solid #e2e8f0;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      box-shadow:none;
     }
     .info-tooltip-rubric-badge {
       display:block;
       max-width:100%;
       padding:0;
-      font-size:15px;
-      font-weight:700;
+      font-size:11px;
+      font-weight:600;
       letter-spacing:0.01em;
-      line-height:1.35;
+      line-height:1.25;
       color:#0f172a;
       background:transparent;
       border:none;
@@ -7438,7 +8048,7 @@ const PatientBoard = () => {
     .info-tooltip__sections {
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:5px;
     }
     .info-tooltip--interactive { pointer-events:auto; }
     .info-tooltip .section,
@@ -7446,13 +8056,13 @@ const PatientBoard = () => {
     .info-tooltip .section-generals,
     .info-tooltip .section-modalities,
     .info-tooltip .section-particulars {
-      border-radius:10px;
-      padding:12px 14px;
+      border-radius:5px;
+      padding:6px 8px;
       margin-bottom:0;
       background:linear-gradient(165deg, #1f2937 0%, #111827 100%) !important;
       border:1px solid #374151 !important;
       color:#ffffff !important;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.18);
+      box-shadow:none;
     }
     .info-tooltip .section-particulars { margin-bottom:0 !important; }
     .info-tooltip .text-muted,
@@ -7460,29 +8070,77 @@ const PatientBoard = () => {
       color:#e5e7eb !important;
       word-wrap:break-word;
       overflow-wrap:break-word;
-      line-height:1.55;
-      font-size:13px;
+      line-height:1.4;
+      font-size:11px;
+      font-weight:400;
+      margin:0;
+    }
+    .info-tooltip .info-tooltip__section-body p {
+      margin:0 0 4px;
+    }
+    .info-tooltip .info-tooltip__section-body p:last-child {
+      margin-bottom:0;
     }
     .info-tooltip .section-title {
-      font-weight:700;
-      font-size:12px;
-      letter-spacing:0.04em;
+      font-weight:500;
+      font-size:10px;
+      letter-spacing:0.03em;
       text-transform:uppercase;
       color:#93c5fd !important;
-      margin-bottom:8px;
-      padding-bottom:6px;
-      border-bottom:1px solid rgba(148, 163, 184, 0.28);
+      margin:0 0 4px;
+      padding:0 0 4px;
+      line-height:1.25;
+      border-bottom:1px solid rgba(148, 163, 184, 0.22);
     }
     .patient-board-page {
       --pb-tab-view-height:calc(100vh - 285px);
+      --pb-page-gutter:0.375rem;
       min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      margin:0 !important;
+      max-width:100% !important;
+      width:100% !important;
+      box-sizing:border-box !important;
     }
-    .patient-board-page > .card.mt-3 {
+    /* Beat body.doctor-layout .page-content .container-fluid { padding:0 } */
+    body.doctor-layout .page-content .patient-board-page.container-fluid,
+    .page-content .patient-board-page.container-fluid,
+    .patient-board-page.container-fluid,
+    .patient-board-page {
+      padding-left:var(--pb-page-gutter, 0.375rem) !important;
+      padding-right:var(--pb-page-gutter, 0.375rem) !important;
+      padding-top:0 !important;
+      padding-bottom:var(--pb-page-gutter, 0.375rem) !important;
+      box-sizing:border-box !important;
+    }
+    .patient-board-page > .pb-main-content {
       display:flex;
       flex-direction:column;
       flex:1 1 auto;
       min-height:calc(100vh - 72px);
+      margin:0 !important;
+      padding:0 !important;
+      border:none !important;
+      background:transparent !important;
+      box-shadow:none !important;
+      width:100%;
+      max-width:100%;
+      box-sizing:border-box;
+    }
+    .patient-board-page > .pb-header {
+      position:relative;
+      top:auto;
+      z-index:1;
+      margin-bottom:0.35rem;
+    }
+    .patient-board-page .pb-info {
+      margin-top:0 !important;
       margin-bottom:0 !important;
+      padding-bottom:0 !important;
+    }
+    .pb-main-content > *:not(.pb-tab-main-view) {
+      flex-shrink:0;
     }
     .pb-tab-main-view {
       flex:1 1 0;
@@ -7518,7 +8176,7 @@ const PatientBoard = () => {
       overflow:hidden;
       padding-bottom:0;
       margin-bottom:0;
-      gap:8px;
+      gap:0.25rem;
     }
     .pb-tab-sub-view--questions {
       flex:1 1 0;
@@ -7536,7 +8194,7 @@ const PatientBoard = () => {
       min-width:0;
       display:grid !important;
       grid-template-columns:minmax(0, 2fr) minmax(0, 4fr) minmax(0, 6fr);
-      gap:0 8px;
+      gap:0 0.25rem;
       width:100%;
       max-width:100%;
       height:100%;
@@ -7570,7 +8228,7 @@ const PatientBoard = () => {
     }
     .pb-tab-panel--questions .pb-questions-col-card {
       border:1px solid #e3e8ee !important;
-      border-radius:12px !important;
+      border-radius:5px !important;
       box-shadow:0 1px 2px rgba(16, 24, 40, 0.04);
       background:#fff;
       padding:0 !important;
@@ -7583,6 +8241,17 @@ const PatientBoard = () => {
       box-sizing:border-box;
       scrollbar-gutter:stable;
     }
+    .pb-tab-panel--questions .pb-questions-section-scroll,
+    .pb-tab-panel--questions .pb-questions-group-scroll {
+      padding-left:2px;
+    }
+    .pb-tab-panel--questions .pb-questions-keywords-scroll {
+      padding:4px 6px 6px 8px;
+    }
+    .pb-tab-panel--questions .pb-questions-rubrics-card .pb-tab-card-scroll,
+    .pb-tab-panel--questions .pb-questions-rubrics-scroll {
+      padding:4px 6px 6px 8px !important;
+    }
     .pb-tab-panel--questions .pb-tab-card-divider {
       border-top-color:#eef1f4 !important;
       margin:0 !important;
@@ -7590,7 +8259,7 @@ const PatientBoard = () => {
     .pb-questions-right-stack {
       display:grid;
       grid-template-rows:minmax(0, 38%) minmax(0, 62%);
-      gap:8px;
+      gap:0.25rem;
       min-height:0;
       height:100%;
       width:100%;
@@ -7607,45 +8276,52 @@ const PatientBoard = () => {
       flex:1 1 0;
       min-height:0;
     }
+    .pb-tab-panel--questions .pb-questions-keywords-scroll .d-flex.flex-wrap {
+      gap:4px !important;
+      padding:2px 0 !important;
+    }
     .pb-questions-row--active {
-      background:var(--bs-info-bg-subtle, #dff0fa) !important;
-      color:#1f4e8c;
-      border-color:#b8e2f4 !important;
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
+      color:#0b5cab;
+      border-color:#eef2f6 !important;
     }
     .pb-questions-path-bar {
       display:flex;
       align-items:center;
       flex-wrap:wrap;
-      gap:6px;
-      padding:8px 12px;
+      gap:4px;
+      padding:4px 8px;
+      min-height:28px;
+      box-sizing:border-box;
       background:linear-gradient(180deg, #f8fafc 0%, #f3f6f9 100%);
       border:1px solid #e3e8ee;
-      border-radius:10px;
+      border-radius:5px;
+      margin-bottom:0.25rem;
     }
     .pb-questions-path-label {
-      font-size:10px;
+      font-size:9px;
       font-weight:700;
       letter-spacing:0.06em;
       text-transform:uppercase;
       color:#868e96;
-      margin-right:4px;
+      margin-right:2px;
     }
     .pb-questions-path-item {
-      font-size:12px;
-      font-weight:600;
+      font-size:11px;
+      font-weight:500;
       color:#495057;
-      padding:2px 8px;
-      border-radius:999px;
+      padding:2px 6px;
+      border-radius:5px;
       background:#fff;
       border:1px solid #e9ecef;
     }
     .pb-questions-path-item--active {
-      color:#1f4e8c;
+      color:#0b5cab;
       border-color:#b8e2f4;
-      background:var(--bs-info-bg-subtle, #dff0fa);
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%);
     }
     .pb-questions-path-sep {
-      font-size:14px;
+      font-size:12px;
       color:#adb5bd;
       line-height:1;
     }
@@ -7655,20 +8331,20 @@ const PatientBoard = () => {
       justify-content:space-between;
       gap:8px;
       flex-shrink:0;
-      min-height:44px;
-      height:44px;
-      padding:8px 12px;
+      min-height:32px;
+      height:32px;
+      padding:5px 8px;
       box-sizing:border-box;
       background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-      border-top-left-radius:11px;
-      border-top-right-radius:11px;
+      border-top-left-radius:5px;
+      border-top-right-radius:5px;
       flex-wrap:nowrap;
       overflow:visible;
     }
     .pb-questions-panel-header .pb-section-title {
       display:inline-flex !important;
       align-items:center;
-      gap:7px;
+      gap:6px;
       margin:0 !important;
       padding:0 !important;
       line-height:1.2 !important;
@@ -7694,13 +8370,34 @@ const PatientBoard = () => {
       margin:0 !important;
       padding:0 !important;
     }
-    .pb-tab-panel--questions .pb-questions-panel-header .pb-questions-search-box .pb-questions-search-input {
-      min-height:28px;
+    .pb-tab-panel--questions .pb-questions-panel-header .pb-questions-search-box {
+      position:relative;
+      width:100%;
       height:28px;
-      padding-top:2px;
-      padding-bottom:2px;
-      font-size:12px;
-      border-radius:999px;
+      min-height:28px;
+      margin:0;
+      padding:0;
+      display:block;
+    }
+    .pb-tab-panel--questions .pb-questions-panel-header .pb-questions-search-box .pb-questions-search-input {
+      border-radius:5px !important;
+      border:1px solid #d0d7de !important;
+      background:#ffffff !important;
+      font-size:11px !important;
+      height:28px !important;
+      min-height:28px !important;
+      max-height:28px !important;
+      margin:0 !important;
+      padding:0 28px 0 34px !important;
+      line-height:28px !important;
+      box-sizing:border-box !important;
+      color:#0f172a;
+      box-shadow:none !important;
+    }
+    .pb-tab-panel--questions .pb-questions-panel-header .pb-questions-search-box .pb-questions-search-input:focus {
+      background:#ffffff !important;
+      border-color:#94a3b8 !important;
+      box-shadow:none !important;
     }
     .pb-questions-search-box {
       position:relative;
@@ -7709,17 +8406,20 @@ const PatientBoard = () => {
       flex:1 1 auto;
     }
     .pb-questions-search-box .pb-questions-search-input {
-      padding-right: 30px;
-      border-radius:8px;
-      border-color:#dfe3e8;
-      transition:border-color .15s ease, box-shadow .15s ease;
+      padding-left:34px !important;
+      padding-right:30px;
+      border-radius:5px;
+      border-color:#d0d7de;
+      background:#ffffff;
+      transition:border-color .15s ease;
+      box-shadow:none;
     }
     .pb-questions-search-box--active .pb-questions-search-input {
-      border-color:#7dd3fc;
-      box-shadow:0 0 0 2px rgba(50, 204, 255, 0.15);
+      border-color:#94a3b8;
+      box-shadow:none;
     }
     .pb-questions-search-box--active .search-icon {
-      color:#25a0e2;
+      color:#475569;
     }
     .pb-questions-search-box--disabled {
       opacity:0.72;
@@ -7770,17 +8470,19 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      width:20px;
-      height:20px;
-      border-radius:6px;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
-      border:1px solid #cfe3f7;
+      width:auto;
+      height:auto;
+      border-radius:0;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
       color:#0b5cab;
       font-size:12px;
       line-height:1;
       flex-shrink:0;
       margin-right:0;
       vertical-align:middle;
+      padding:0;
     }
     .pb-tab-panel--questions .pb-questions-section-item,
     .pb-tab-panel--questions .pb-questions-group-item {
@@ -7793,9 +8495,11 @@ const PatientBoard = () => {
       border-bottom-color:#eef2f6 !important;
       border-radius:0;
       margin:0;
-      padding:9px 10px !important;
-      font-size:12.5px !important;
-      font-weight:600;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      font-size:11px !important;
+      font-weight:500;
       letter-spacing:0.02em;
       color:#0f172a;
       cursor:pointer;
@@ -7806,28 +8510,35 @@ const PatientBoard = () => {
     }
     .pb-tab-panel--questions .pb-questions-section-item__icon,
     .pb-tab-panel--questions .pb-questions-group-item__icon {
-      width:24px;
-      height:24px;
-      border-radius:7px;
+      width:auto;
+      height:auto;
+      min-width:0;
+      border-radius:0;
       flex-shrink:0;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
-      border:1px solid #cfe3f7;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
       color:#0b5cab;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      padding:0;
+      margin:0;
     }
     .pb-tab-panel--questions .pb-questions-section-item__icon i,
     .pb-tab-panel--questions .pb-questions-group-item__icon i {
-      font-size:13px;
+      font-size:11px;
       line-height:1;
+      font-weight:400 !important;
+      color:inherit;
     }
     .pb-tab-panel--questions .pb-questions-section-item__label,
     .pb-tab-panel--questions .pb-questions-group-item__label {
       min-width:0;
       flex:1 1 auto;
       line-height:1.25;
+      font-size:11px !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--questions .pb-questions-section-item:last-child,
     .pb-tab-panel--questions .pb-questions-group-item:last-child {
@@ -7841,32 +8552,65 @@ const PatientBoard = () => {
     .pb-tab-panel--questions .pb-questions-group-item--active {
       background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
       color:#0b5cab !important;
-      box-shadow:inset 3px 0 0 #1e88e5;
-      font-weight:700 !important;
+      box-shadow:none !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--questions .pb-questions-section-item--active .pb-questions-section-item__icon,
     .pb-tab-panel--questions .pb-questions-group-item--active .pb-questions-group-item__icon {
-      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
-      border-color:#0b5cab;
-      color:#fff;
-      box-shadow:0 1px 3px rgba(11, 92, 171, 0.28);
+      background:transparent !important;
+      border:0 !important;
+      color:#0b5cab !important;
+      box-shadow:none !important;
     }
     .pb-tab-panel--questions .pb-questions-section-scroll {
       scrollbar-gutter:stable;
     }
+    .pb-tab-panel--questions .pb-questions-rubric-item {
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
+      font-size:11px !important;
+      font-weight:500;
+      line-height:1.25;
+      border-bottom:1px solid #eef2f6 !important;
+    }
+    .pb-tab-panel--questions .pb-questions-rubric-item:hover {
+      background:#f5faff !important;
+      padding-right:80px !important;
+    }
+    .pb-tab-panel--questions .pb-questions-rubric-label {
+      font-size:11px !important;
+      font-weight:500 !important;
+      line-height:1.25;
+      color:#0f172a;
+    }
+    .pb-tab-panel--questions .pb-questions-rubrics-footer {
+      padding:4px 8px;
+      min-height:28px;
+      font-size:11px;
+    }
+    .pb-tab-panel--questions .pb-questions-rubrics-list__status,
+    .pb-tab-panel--questions .text-muted,
+    .pb-tab-panel--questions .small {
+      font-size:11px !important;
+    }
     .pb-questions-list-item {
       cursor:pointer;
-      font-size:13px;
-      line-height:1.4;
+      font-size:11px;
+      line-height:1.25;
       white-space:normal;
       word-break:break-word;
       overflow-wrap:anywhere;
-      padding:10px 12px !important;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
       border-radius:0;
       transition:background-color .12s ease, border-color .12s ease;
     }
     .pb-questions-list-item:hover:not(.pb-questions-row--active) {
-      background:#f8f9fa;
+      background:#f5faff;
     }
     .pb-questions-search-hint {
       font-size:11px;
@@ -7900,41 +8644,71 @@ const PatientBoard = () => {
     .pb-clinical-top-bar {
       padding-bottom:2px;
     }
-    /* Compact Clinical Pattern top bar — single-row align, no label */
+    /* Compact Clinical Pattern top bar — select + meta (stacks on mobile) */
     .pb-clinical-header-bar {
-      padding:7px 12px;
-      gap:12px;
-      min-height:46px;
+      padding:4px 8px;
+      gap:8px;
+      min-height:36px;
+      height:auto;
       align-items:center;
+      border-radius:5px;
+      flex-wrap:nowrap;
+    }
+    .pb-clinical-header-bar__select-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:0 0 auto;
+      min-width:0;
+    }
+    .pb-clinical-header-bar__meta {
+      display:flex;
+      align-items:center;
+      flex:1 1 auto;
+      min-width:0;
+      gap:8px;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__icon {
-      width:32px;
-      height:32px;
-      border-radius:8px;
-      font-size:16px;
+      width:24px;
+      height:24px;
+      border-radius:5px;
+      font-size:13px;
+      background:transparent;
+      border:0;
+      box-shadow:none;
+      color:#0b5cab;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__select-wrap {
-      flex:0 0 220px;
-      min-width:180px;
-      max-width:240px;
+      flex:0 0 200px;
+      min-width:160px;
+      max-width:220px;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__control {
-      min-height:32px !important;
-      border-radius:8px;
+      min-height:28px !important;
+      height:28px !important;
+      border-radius:5px !important;
+      font-size:11px !important;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__value-container {
-      padding:0 8px;
+      padding:0 6px;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__indicators {
-      height:32px;
+      height:28px;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__dropdown-indicator,
     .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__clear-indicator {
-      padding:4px 8px;
+      padding:2px 6px;
+    }
+    .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__single-value,
+    .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__placeholder,
+    .pb-clinical-header-bar .pb-ae-header-bar__select-wrap .pb-ae-select__input-container {
+      font-size:11px !important;
+      margin:0;
+      padding:0;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__divider {
-      min-height:24px;
-      height:24px;
+      min-height:20px;
+      height:20px;
       align-self:center;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__info {
@@ -7943,45 +8717,52 @@ const PatientBoard = () => {
       justify-content:center;
       flex-wrap:wrap;
       gap:2px 6px;
-      padding:0 6px;
-      font-size:13px;
-      line-height:1.3;
+      padding:0 4px;
+      font-size:11px;
+      line-height:1.25;
       text-align:center;
+      flex:1 1 auto;
+      min-width:0;
     }
     .pb-clinical-header-bar .ae-name {
-      font-size:13px;
+      font-size:11px;
+      font-weight:500;
       line-height:1.25;
     }
     .pb-clinical-header-desc {
       color:#495057;
       font-weight:500;
-      font-size:12.5px;
-      line-height:1.3;
+      font-size:11px;
+      line-height:1.25;
     }
     .pb-clinical-header-bar .pb-ae-header-bar__category {
-      font-size:12px;
+      font-size:11px;
+      font-weight:500;
       line-height:1.25;
       padding-left:4px;
       max-width:240px;
+      flex:0 0 auto;
     }
     /* Align CLINICAL SECTION / KEYWORDS / THERAPEUTICS headers on one level (Repertory style) */
     .pb-tab-panel--clinical .pb-clinical-section-card > .pb-questions-panel-header,
     .pb-tab-panel--clinical .pb-clinical-keywords-card > .pb-questions-panel-header,
     .pb-tab-panel--clinical .pb-clinical-rubrics-card > .pb-questions-panel-header,
     .pb-tab-panel--clinical .pb-clinical-therapeutics-card > .pb-questions-panel-header {
-      min-height:44px;
-      height:44px;
-      padding:8px 12px;
+      min-height:32px;
+      height:32px;
+      padding:5px 8px;
       box-sizing:border-box;
       align-items:center;
       background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-      border-top-left-radius:11px;
-      border-top-right-radius:11px;
+      border-top-left-radius:5px;
+      border-top-right-radius:5px;
     }
     .pb-tab-panel--clinical .pb-clinical-rubrics-card > .pb-questions-panel-header.pb-questions-rubrics-header {
-      height:auto;
-      min-height:44px;
-      flex-wrap:wrap;
+      height:32px !important;
+      min-height:32px !important;
+      max-height:32px !important;
+      padding:5px 8px !important;
+      flex-wrap:nowrap !important;
     }
     .pb-tab-panel--clinical .pb-clinical-section-card > .pb-questions-panel-header .pb-section-title,
     .pb-tab-panel--clinical .pb-clinical-keywords-card > .pb-questions-panel-header .pb-section-title,
@@ -7989,27 +8770,32 @@ const PatientBoard = () => {
     .pb-tab-panel--clinical .pb-clinical-therapeutics-card > .pb-questions-panel-header .pb-section-title {
       display:inline-flex !important;
       align-items:center;
-      gap:7px;
+      gap:6px;
       font-size:11px;
       letter-spacing:0.06em;
       line-height:1.2;
       white-space:nowrap;
       font-weight:700;
       color:#111827;
+      height:28px;
+      margin:0 !important;
+      padding:0 !important;
     }
     .pb-tab-panel--clinical .pb-repertory-section-title-icon {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      width:20px;
-      height:20px;
-      border-radius:6px;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
-      border:1px solid #cfe3f7;
+      width:auto;
+      height:auto;
+      border-radius:0;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
       color:#0b5cab;
       font-size:12px;
       line-height:1;
       flex-shrink:0;
+      padding:0;
     }
     .pb-tab-panel--clinical .pb-questions-search-wrap {
       display:flex;
@@ -8018,14 +8804,40 @@ const PatientBoard = () => {
       max-width:210px;
       flex:1 1 120px;
       height:28px;
-    }
-    .pb-tab-panel--clinical .pb-clinical-keywords-card .pb-questions-search-box .pb-questions-search-input {
       min-height:28px;
+      max-height:28px;
+      margin:0 !important;
+      padding:0 !important;
+    }
+    .pb-tab-panel--clinical .pb-questions-panel-header .pb-questions-search-box {
+      position:relative;
+      width:100%;
       height:28px;
-      padding-top:2px;
-      padding-bottom:2px;
-      font-size:12px;
-      border-radius:999px;
+      min-height:28px;
+      margin:0;
+      padding:0;
+      display:block;
+    }
+    .pb-tab-panel--clinical .pb-clinical-keywords-card .pb-questions-search-box .pb-questions-search-input,
+    .pb-tab-panel--clinical .pb-clinical-rubrics-card .pb-questions-search-box .pb-questions-search-input {
+      border-radius:5px !important;
+      border:1px solid #d0d7de !important;
+      background:#ffffff !important;
+      font-size:11px !important;
+      height:28px !important;
+      min-height:28px !important;
+      max-height:28px !important;
+      margin:0 !important;
+      padding:0 28px 0 34px !important;
+      line-height:28px !important;
+      box-sizing:border-box !important;
+      box-shadow:none !important;
+    }
+    .pb-tab-panel--clinical .pb-clinical-keywords-card .pb-questions-search-box .pb-questions-search-input:focus,
+    .pb-tab-panel--clinical .pb-clinical-rubrics-card .pb-questions-search-box .pb-questions-search-input:focus {
+      background:#ffffff !important;
+      border-color:#94a3b8 !important;
+      box-shadow:none !important;
     }
     .pb-tab-panel--clinical .pb-clinical-section-item {
       display:flex;
@@ -8037,9 +8849,11 @@ const PatientBoard = () => {
       border-bottom-color:#eef2f6 !important;
       border-radius:0;
       margin:0;
-      padding:9px 10px !important;
-      font-size:12.5px !important;
-      font-weight:600;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      font-size:11px !important;
+      font-weight:500;
       letter-spacing:0.02em;
       color:#0f172a;
       cursor:pointer;
@@ -8049,26 +8863,33 @@ const PatientBoard = () => {
       transition:background-color .12s ease, color .12s ease, box-shadow .12s ease;
     }
     .pb-tab-panel--clinical .pb-clinical-section-item__icon {
-      width:24px;
-      height:24px;
-      border-radius:7px;
+      width:auto;
+      height:auto;
+      min-width:0;
+      border-radius:0;
       flex-shrink:0;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
-      border:1px solid #cfe3f7;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
       color:#0b5cab;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      padding:0;
+      margin:0;
     }
     .pb-tab-panel--clinical .pb-clinical-section-item__icon i {
-      font-size:13px;
+      font-size:11px;
       line-height:1;
+      font-weight:400 !important;
+      color:inherit;
     }
     .pb-tab-panel--clinical .pb-clinical-section-item__label {
       min-width:0;
       flex:1 1 auto;
       line-height:1.25;
+      font-size:11px !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--clinical .pb-clinical-section-item:last-child {
       border-bottom:0 !important;
@@ -8079,56 +8900,105 @@ const PatientBoard = () => {
     .pb-tab-panel--clinical .pb-clinical-section-item--active {
       background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
       color:#0b5cab !important;
-      box-shadow:inset 3px 0 0 #1e88e5;
-      font-weight:700 !important;
+      box-shadow:none !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--clinical .pb-clinical-section-item--active .pb-clinical-section-item__icon {
-      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
-      border-color:#0b5cab;
-      color:#fff;
-      box-shadow:0 1px 3px rgba(11, 92, 171, 0.28);
+      background:transparent !important;
+      border:0 !important;
+      color:#0b5cab !important;
+      box-shadow:none !important;
     }
     .pb-tab-panel--clinical .pb-clinical-section-scroll {
       padding:8px;
+      padding-left:2px;
       box-sizing:border-box;
       scrollbar-gutter:stable;
+    }
+    .pb-tab-panel--clinical .pb-clinical-keywords-scroll {
+      padding:4px 6px 6px 8px !important;
+    }
+    .pb-tab-panel--clinical .pb-clinical-keywords-scroll .d-flex.flex-wrap {
+      gap:4px !important;
+      padding:2px 0 !important;
+    }
+    .pb-tab-panel--clinical .pb-clinical-rubrics-scroll {
+      padding:4px 6px 6px 8px !important;
+    }
+    .pb-tab-panel--clinical .pb-questions-rubric-item {
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      font-size:11px !important;
+      font-weight:500;
+      line-height:1.25;
+      border-bottom:1px solid #eef2f6 !important;
+    }
+    .pb-tab-panel--clinical .pb-questions-rubric-item:hover {
+      background:#f5faff !important;
+      padding-right:80px !important;
+    }
+    .pb-tab-panel--clinical .pb-questions-rubric-label {
+      font-size:11px !important;
+      font-weight:500 !important;
+      line-height:1.25;
+      color:#0f172a;
     }
     .pb-tab-panel--clinical .pb-tab-card-divider {
       border-top-color:#eef1f4 !important;
       margin:0 !important;
     }
     .pb-tab-panel--clinical .pb-clinical-zoom-tools {
-      gap:6px !important;
+      gap:4px !important;
     }
     .pb-tab-panel--clinical .pb-clinical-zoom-tools .btn {
-      width:28px !important;
-      height:28px !important;
-      min-width:28px;
+      width:24px !important;
+      height:24px !important;
+      min-width:24px;
       padding:0 !important;
-      border-radius:7px;
+      border-radius:5px !important;
       display:inline-flex;
       align-items:center;
       justify-content:center;
     }
     .pb-tab-panel--clinical .pb-clinical-zoom-tools .btn i {
-      font-size:14px !important;
+      font-size:12px !important;
+      line-height:1;
     }
     .pb-tab-panel--clinical .pb-clinical-zoom-tools .text-muted {
       font-size:11px !important;
-      min-width:30px !important;
+      min-width:28px !important;
       line-height:1;
     }
     .pb-clinical-particulars-bar {
-      padding:6px 10px;
+      padding:4px 8px;
+      min-height:28px;
+      box-sizing:border-box;
       border:1px solid #e3e8ee;
-      border-radius:10px;
+      border-radius:5px;
       background:linear-gradient(180deg, #f8fafc 0%, #f3f6f9 100%);
+    }
+    .pb-tab-panel--clinical .pb-clinical-particulars-bar .pb-part-item {
+      padding:2px 6px;
+      font-size:11px;
+      font-weight:500;
+      line-height:1.25;
+      border-radius:5px;
+      color:#495057;
+    }
+    .pb-tab-panel--clinical .pb-clinical-particulars-bar .pb-part-item.active {
+      color:#0b5cab;
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%);
+      text-decoration:none;
+    }
+    .pb-tab-panel--clinical .pb-clinical-particulars-bar .d-flex {
+      gap:4px 8px !important;
     }
     .pb-tab-sub-view--clinical {
       display:grid !important;
       grid-template-rows:minmax(0, 1fr) minmax(96px, 22%);
       grid-template-columns:minmax(0, 1fr);
-      gap:8px;
+      gap:0.25rem;
       flex:1 1 0;
       min-height:0;
       width:100%;
@@ -8142,7 +9012,7 @@ const PatientBoard = () => {
     .pb-tab-sub-view--clinical > .pb-clinical-main-row {
       display:grid !important;
       grid-template-columns:minmax(0, 2fr) minmax(0, 5fr) minmax(0, 5fr);
-      gap:0 8px;
+      gap:0 0.25rem;
       flex:none;
       min-height:0;
       min-width:0;
@@ -8170,7 +9040,7 @@ const PatientBoard = () => {
     .pb-tab-sub-view--clinical .pb-clinical-center-stack {
       display:grid;
       grid-template-rows:minmax(0, 38%) minmax(0, 62%);
-      gap:8px;
+      gap:0.25rem;
       min-height:0;
       height:100%;
       width:100%;
@@ -8185,7 +9055,7 @@ const PatientBoard = () => {
       overflow:hidden;
       margin-bottom:0 !important;
       border:1px solid #e3e8ee !important;
-      border-radius:12px !important;
+      border-radius:5px !important;
       box-shadow:0 1px 2px rgba(16, 24, 40, 0.04);
       background:#fff;
       padding:0 !important;
@@ -8194,7 +9064,7 @@ const PatientBoard = () => {
     .pb-clinical-rubrics-scroll {
       flex:1 1 0;
       min-height:0;
-      padding:8px;
+      padding:4px 6px 6px 8px;
       box-sizing:border-box;
       scrollbar-gutter:stable;
     }
@@ -8204,8 +9074,38 @@ const PatientBoard = () => {
     .pb-clinical-therapeutics-card .therapeutics-content,
     .pb-clinical-therapeutics-card .therapeutics-content p,
     .pb-clinical-therapeutics-card .therapeutics-content span,
-    .pb-clinical-therapeutics-card .therapeutics-content div {
-      color:#000 !important;
+    .pb-clinical-therapeutics-card .therapeutics-content div,
+    .pb-clinical-therapeutics-card .therapeutics-content li,
+    .pb-clinical-therapeutics-card .therapeutics-content td,
+    .pb-clinical-therapeutics-card .therapeutics-content th,
+    .pb-clinical-therapeutics-card .therapeutics-content strong,
+    .pb-clinical-therapeutics-card .therapeutics-content b,
+    .pb-clinical-therapeutics-card .therapeutics-content em {
+      color:#0f172a !important;
+      font-size:var(--therapeutic-font-size, 11px) !important;
+      line-height:1.7 !important;
+    }
+    .pb-clinical-therapeutics-card .therapeutics-content h1,
+    .pb-clinical-therapeutics-card .therapeutics-content h2,
+    .pb-clinical-therapeutics-card .therapeutics-content h3,
+    .pb-clinical-therapeutics-card .therapeutics-content h4,
+    .pb-clinical-therapeutics-card .therapeutics-content h5,
+    .pb-clinical-therapeutics-card .therapeutics-content h6 {
+      font-size:var(--therapeutic-font-size, 11px) !important;
+      font-weight:700 !important;
+      line-height:1.55 !important;
+      margin:10px 0 5px !important;
+    }
+    .pb-clinical-therapeutics-card .therapeutics-content {
+      padding:6px 8px !important;
+    }
+    .pb-clinical-therapeutics-card .therapeutics-content p {
+      margin:0 0 0.7em !important;
+    }
+    .pb-clinical-therapeutics-card .therapeutics-content br + br {
+      display:block;
+      content:"";
+      margin-top:0.35em;
     }
     .pb-clinical-bottom-strip {
       min-height:0;
@@ -8226,10 +9126,27 @@ const PatientBoard = () => {
       height:100%;
       overflow:auto;
       border:1px solid #dbe7f3;
-      border-radius:12px;
+      border-radius:5px;
       box-sizing:border-box;
       background:#fff;
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .pb-clinical-bottom-grid {
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      width:100%;
+      min-height:100%;
+      align-items:stretch;
+    }
+    .pb-clinical-bottom-col {
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+      border-right:1px solid #e2ebf3;
+      background:#fff;
+    }
+    .pb-clinical-bottom-col:last-child {
+      border-right:0;
     }
     .pb-tab-sub-view--clinical .pb-clinical-table-wrap table,
     .pb-clinical-bottom-table {
@@ -8255,29 +9172,39 @@ const PatientBoard = () => {
     .pb-clinical-th {
       font-weight:700 !important;
       text-align:center !important;
-      width:25%;
+      width:100%;
       font-size:11px;
       letter-spacing:0.04em;
-      padding:10px 12px !important;
-      border-color:#e2ebf3 !important;
+      padding:4px 6px !important;
+      min-height:28px;
+      border:0 !important;
+      border-bottom:1px solid #e2ebf3 !important;
       background:#fff !important;
-      color:#000 !important;
+      color:#0f172a !important;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
     }
     .pb-clinical-th--investigation,
     .pb-clinical-th--allopathic,
     .pb-clinical-th--examination,
     .pb-clinical-th--systems {
-      color:#000 !important;
+      color:#0f172a !important;
       background:#fff !important;
     }
     .pb-clinical-td {
-      padding:10px 12px !important;
-      font-size:12px;
-      line-height:1.45;
+      padding:4px 6px !important;
+      font-size:11px;
+      line-height:1.35;
       vertical-align:top;
-      border-color:#e2ebf3 !important;
+      border:0 !important;
       background:#fff !important;
-      color:#000 !important;
+      color:#0f172a !important;
+      flex:1 1 auto;
+      white-space:pre-wrap;
+      word-break:break-word;
+      overflow-wrap:anywhere;
     }
     .pb-tab-sub-view--clinical > .pb-clinical-main-row .pb-tab-card--fill {
       flex:1 1 0;
@@ -8344,7 +9271,7 @@ const PatientBoard = () => {
       min-width:0;
       display:grid !important;
       grid-template-columns:minmax(0, 2fr) minmax(0, 4fr) minmax(0, 6fr);
-      gap:0 8px;
+      gap:0 0.25rem;
       width:100%;
       max-width:100%;
       height:100%;
@@ -8378,40 +9305,56 @@ const PatientBoard = () => {
     }
     /* Premium Repertory UI (visual only — same flow) */
     .pb-tab-panel--repertory .pb-repertory-toolbar {
-      --bs-gutter-x:0.5rem;
+      --bs-gutter-x:0;
       --bs-gutter-y:0;
-      margin:0;
-      /* Equal space above + below global search */
-      padding-top:10px;
-      padding-bottom:10px;
+      display:grid !important;
+      grid-template-columns:minmax(0, 2fr) minmax(0, 4fr) minmax(0, 6fr);
+      gap:0 0.25rem;
+      width:100%;
+      max-width:100%;
+      margin:0 !important;
+      padding-top:4px;
+      padding-bottom:4px;
       align-items:center;
     }
-    .pb-tab-panel--repertory .pb-repertory-toolbar > [class*="col"] {
-      padding-top:0 !important;
-      padding-bottom:0 !important;
+    .pb-tab-panel--repertory .pb-repertory-toolbar__search-col {
+      min-width:0;
+      width:100%;
+      padding:0 !important;
+      margin:0 !important;
     }
     .pb-tab-panel--repertory .pb-repertory-global-search-wrap {
-      max-width:360px;
+      max-width:none;
+      width:100%;
+      position:relative;
       display:flex;
       align-items:center;
     }
     .pb-tab-panel--repertory .pb-repertory-global-search-wrap .form-control {
+      width:100%;
       height:32px;
       min-height:32px;
       margin:0;
-      padding-top:0;
-      padding-bottom:0;
+      padding:0 14px 0 34px !important;
       line-height:1.2;
-      font-size:13px;
+      font-size:11px;
       border-radius:999px;
       border-color:#dfe3e8;
       transition:border-color .15s ease, box-shadow .15s ease;
+      box-sizing:border-box;
     }
     .pb-tab-panel--repertory .pb-repertory-global-search-wrap .search-icon {
-      height:32px;
-      line-height:32px;
+      position:absolute;
+      left:12px;
+      top:50%;
+      transform:translateY(-50%);
+      height:auto;
+      line-height:1;
       display:flex;
       align-items:center;
+      font-size:14px;
+      pointer-events:none;
+      z-index:1;
     }
     .pb-tab-panel--repertory .pb-repertory-global-search-wrap .form-control,
     .pb-tab-panel--repertory .pb-subsection-search-wrap .form-control {
@@ -8427,7 +9370,7 @@ const PatientBoard = () => {
     }
     .pb-tab-panel--repertory .pb-repertory-col-card {
       border:1px solid #e3e8ee !important;
-      border-radius:12px !important;
+      border-radius:5px !important;
       box-shadow:0 1px 2px rgba(16, 24, 40, 0.04);
       background:#fff;
       /* Flush header to card edge so search spacing is measured against top + divider only */
@@ -8439,6 +9382,25 @@ const PatientBoard = () => {
       padding:8px;
       box-sizing:border-box;
     }
+    .pb-tab-panel--repertory .pb-repertory-section-scroll,
+    .pb-tab-panel--repertory .pb-repertory-subsection-scroll {
+      padding-left:2px;
+      scrollbar-gutter:stable;
+    }
+    .pb-infinite-sentinel {
+      display:block;
+      width:100%;
+      height:1px;
+      overflow:hidden;
+      pointer-events:none;
+    }
+    .pb-tab-panel--repertory .pb-repertory-details-card .pb-tab-card-content {
+      padding:4px 6px 6px 8px;
+    }
+    .pb-tab-panel--repertory .pb-repertory-details-card .pb-rubric-data-scroll {
+      padding-left:0;
+      scrollbar-gutter:stable;
+    }
     /* One-level headers: SECTION / SUB SECTION / RUBRIC DETAILS
        Equal distance above/below search via exact padding + control height */
     .pb-tab-panel--repertory .pb-repertory-panel-header {
@@ -8447,9 +9409,9 @@ const PatientBoard = () => {
       justify-content:space-between;
       gap:8px;
       /* 8 + 28 + 8 = 44 → equal space above/below the search control */
-      min-height:44px;
-      height:44px;
-      padding:8px 12px;
+      min-height:32px;
+      height:32px;
+      padding:5px 8px;
       box-sizing:border-box;
       background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
       border-top-left-radius:11px;
@@ -8500,9 +9462,8 @@ const PatientBoard = () => {
       min-height:28px !important;
       max-height:28px !important;
       margin:0 !important;
-      padding-top:0 !important;
-      padding-bottom:0 !important;
-      font-size:12px;
+      padding:0 12px 0 34px !important;
+      font-size:11px;
       line-height:28px !important;
       border-radius:999px;
       box-sizing:border-box !important;
@@ -8518,6 +9479,9 @@ const PatientBoard = () => {
       align-items:center;
       margin:0;
       padding:0;
+      font-size:13px;
+      pointer-events:none;
+      z-index:1;
     }
     .pb-tab-panel--repertory .pb-repertory-section-title-icon {
       display:inline-flex;
@@ -8529,7 +9493,7 @@ const PatientBoard = () => {
       background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
       border:1px solid #cfe3f7;
       color:#0b5cab;
-      font-size:12px;
+      font-size:11px;
       line-height:1;
       flex-shrink:0;
     }
@@ -8547,34 +9511,45 @@ const PatientBoard = () => {
       border-bottom-color:#eef2f6 !important;
       border-radius:0;
       margin:0;
-      padding:9px 10px !important;
-      font-size:12.5px !important;
-      font-weight:600;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      font-size:11px !important;
+      font-weight:500;
       letter-spacing:0.02em;
       color:#0f172a;
       transition:background-color .12s ease, color .12s ease, box-shadow .12s ease;
     }
     .pb-tab-panel--repertory .pb-repertory-section-item__icon {
-      width:24px;
-      height:24px;
-      border-radius:7px;
+      width:auto;
+      height:auto;
+      min-width:0;
+      border-radius:0;
       flex-shrink:0;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
-      border:1px solid #cfe3f7;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
       color:#0b5cab;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      padding:0;
+      margin:0;
+      font-weight:400;
     }
     .pb-tab-panel--repertory .pb-repertory-section-item__icon i {
-      font-size:13px;
+      font-size:11px;
       line-height:1;
+      font-weight:400 !important;
+      -webkit-text-stroke:0;
+      color:inherit;
     }
     .pb-tab-panel--repertory .pb-repertory-section-item__label {
       min-width:0;
       flex:1 1 auto;
       line-height:1.25;
+      font-size:11px !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--repertory .pb-repertory-section-item:last-child {
       border-bottom:0 !important;
@@ -8585,131 +9560,306 @@ const PatientBoard = () => {
     .pb-tab-panel--repertory .pb-repertory-section-item--active {
       background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
       color:#0b5cab !important;
-      box-shadow:inset 3px 0 0 #1e88e5;
-      font-weight:700 !important;
+      box-shadow:none !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--repertory .pb-repertory-section-item--active .pb-repertory-section-item__icon {
-      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
-      border-color:#0b5cab;
-      color:#fff;
-      box-shadow:0 1px 3px rgba(11, 92, 171, 0.28);
+      background:transparent !important;
+      border:0 !important;
+      color:#0b5cab !important;
+      box-shadow:none !important;
     }
-    .pb-tab-panel--repertory .pb-repertory-section-scroll {
-      scrollbar-gutter:stable;
+    .pb-tab-panel--repertory .pb-repertory-section-item--active .pb-repertory-section-item__label {
+      font-weight:500 !important;
     }
     .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection {
       border-radius:0;
       margin:0;
-      padding:8px 10px !important;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
       transition:background-color .12s ease;
+      border-left:0 !important;
+      border-right:0 !important;
+      border-top:0 !important;
+      border-bottom:1px solid #eef2f6 !important;
+    }
+    .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection:last-child {
+      border-bottom:0 !important;
+    }
+    .pb-tab-panel--repertory .pb-repertory-subsection-row {
+      width:100%;
+      min-width:0;
+      max-width:100%;
+      gap:8px;
+      align-items:center;
+      flex-wrap:nowrap;
+    }
+    .pb-tab-panel--repertory .pb-repertory-subsection-label {
+      flex:1 1 0;
+      min-width:0;
+      max-width:none;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      word-break:normal;
+      overflow-wrap:normal;
+      font-size:11px !important;
+      font-weight:500 !important;
+      line-height:1.25;
+      padding-right:8px;
+      color:#0f172a;
+    }
+    .pb-tab-panel--repertory .pb-repertory-subsection-chips-slot {
+      flex:0 0 auto;
+      margin-left:auto;
+      align-self:center;
+      padding-top:0;
+    }
+    .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection .pb-rubric-badges--repertory {
+      gap:3px;
+    }
+    .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection .pb-chip {
+      width:16px;
+      height:16px;
+      font-size:9px;
+      margin-left:0;
+      border-radius:3px;
+    }
+    .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection-parent .pb-repertory-subsection-label {
+      font-weight:500 !important;
+      color:#0f172a;
+      font-size:11px !important;
+    }
+    .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection-leaf .pb-repertory-subsection-label {
+      font-weight:500 !important;
+      color:#0f172a;
+      font-size:11px !important;
     }
     .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection-selected {
-      background-color:var(--bs-info-bg-subtle, #dff0fa) !important;
-      box-shadow:inset 3px 0 0 #32ccff;
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
+      box-shadow:none !important;
+      color:#0b5cab !important;
+    }
+    .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection-selected .pb-repertory-subsection-label {
+      color:#0b5cab !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection-selected:hover {
-      background-color:#d4ebf7 !important;
+      background:#f5faff !important;
+    }
+    .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection:hover:not(.pb-rubric-row--repertory-subsection-selected) {
+      background:#f5faff !important;
     }
     .pb-tab-panel--repertory .pb-subsection-tree-toggle {
-      border-radius:6px;
-      border-color:#d0d7de;
-      background:#fff;
-      color:#1e88e5;
-      width:18px;
-      height:18px;
+      width:14px;
+      height:14px;
+      min-width:14px;
+      border-radius:0;
+      border:0 !important;
+      background:transparent !important;
+      color:#0b5cab !important;
+      box-shadow:none !important;
+      font-size:12px;
+      font-weight:400;
+      line-height:1;
+      margin:0;
+      padding:0;
     }
     .pb-tab-panel--repertory .pb-subsection-tree-toggle:hover,
     .pb-tab-panel--repertory .pb-subsection-tree-toggle:focus {
-      background:#e8f5ff;
-      border-color:#b3dbff;
-      color:#1976d2;
+      background:transparent !important;
+      border:0 !important;
+      color:#0b5cab !important;
+    }
+    .pb-tab-panel--repertory .pb-subsection-tree-toggle-spacer {
+      width:14px;
+      min-width:14px;
+      flex-shrink:0;
     }
     .pb-tab-panel--repertory .pb-subsection-tree-children {
-      border-left-color:#e8eef4;
-      margin-left:10px;
-      padding-left:12px;
+      border-left:1px solid #eef2f6;
+      margin-left:6px;
+      padding-left:8px;
     }
     .pb-tab-panel--repertory .pb-repertory-empty-hint {
       padding-top:2rem !important;
       padding-bottom:2rem !important;
     }
     .pb-tab-panel--repertory .pb-repertory-details-title-bar {
-      border-bottom:1px solid #eef1f4 !important;
-      padding:8px 4px 10px !important;
-      margin-bottom:8px !important;
+      border-bottom:1px solid #eef2f6 !important;
+      padding:5px 7px 5px 0 !important;
+      margin:0 0 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
     }
     .pb-tab-panel--repertory .pb-repertory-details-title {
-      color:#111827 !important;
-      font-size:13.5px !important;
-      line-height:1.35;
+      color:#0f172a !important;
+      font-size:11px !important;
+      line-height:1.25;
       display:flex;
       flex-wrap:wrap;
-      align-items:baseline;
-      gap:6px;
+      align-items:center;
+      gap:8px;
+      margin:0 !important;
+      font-weight:500 !important;
     }
     .pb-tab-panel--repertory .pb-repertory-details-name {
-      font-weight:700;
+      font-weight:500 !important;
+      font-size:11px !important;
+      color:#0f172a;
     }
     .pb-tab-panel--repertory .pb-repertory-details-count {
-      font-weight:600;
-      font-size:12px;
-      color:#1e88e5;
-      background:#e8f5ff;
-      border:1px solid #cfe9ff;
-      border-radius:999px;
-      padding:1px 8px;
+      font-weight:500;
+      font-size:10px;
+      color:#0b5cab;
+      background:#f0f7ff;
+      border:1px solid #cfe3f7;
+      border-radius:4px;
+      padding:1px 6px;
+      line-height:1.25;
     }
     .pb-tab-panel--repertory .pb-repertory-subheading {
       font-size:11px;
-      letter-spacing:0.04em;
+      font-weight:500;
+      letter-spacing:0.02em;
       text-transform:uppercase;
-      color:#6b7280;
+      color:#374151;
+      line-height:1.25;
     }
     .pb-tab-panel--repertory .pb-reference-rubric-section {
-      border-bottom:1px solid #eef1f4;
-      padding-bottom:10px;
-      margin-bottom:8px;
+      border-bottom:0;
+      padding:0 0 2px;
+      margin:0 0 2px;
+    }
+    .pb-tab-panel--repertory .pb-reference-rubric-section .pb-repertory-subheading {
+      padding:5px 7px 5px 0;
+      min-height:28px;
+      display:flex;
+      align-items:center;
+      box-sizing:border-box;
+      border-bottom:0;
     }
     .pb-tab-panel--repertory .pb-reference-rubric-list {
       max-height:120px;
-      margin-top:8px;
+      margin-top:0;
+      margin-left:0;
+      padding-left:0;
+      width:100%;
       display:flex;
       flex-direction:column;
-      gap:2px;
+      gap:0;
     }
     .pb-tab-panel--repertory .pb-reference-rubric-item {
-      padding:5px 8px;
-      border-radius:6px;
-      font-size:12px;
-      line-height:1.35;
-      color:#1e88e5 !important;
+      width:auto;
+      max-width:none;
+      margin-left:-8px;
+      margin-right:-6px;
+      padding:5px 7px 5px 20px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      border-radius:0;
+      border:0 !important;
+      border-bottom:0 !important;
+      font-size:11px !important;
+      font-weight:400 !important;
+      line-height:1.25;
+      color:#0b5cab !important;
+      display:flex;
+      align-items:center;
       transition:background-color .12s ease;
     }
     .pb-tab-panel--repertory .pb-reference-rubric-item + .pb-reference-rubric-item {
       border-top:none;
     }
+    .pb-tab-panel--repertory .pb-reference-rubric-item:last-child {
+      border-bottom:0;
+    }
     .pb-tab-panel--repertory .pb-reference-rubric-item:hover {
-      background:#f4faff;
+      background:#f5faff;
     }
     .pb-tab-panel--repertory .pb-rubric-data-header {
       border-top:none;
-      border-bottom:1px solid #eef1f4;
-      padding:6px 2px 8px;
-      margin:4px 0 8px;
+      border-bottom:1px solid #eef2f6;
+      padding:5px 7px 5px 0;
+      margin:0 0 2px;
+      min-height:28px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
     }
     .pb-tab-panel--repertory .pb-repertory-remedy-wrap {
-      line-height:2;
-      word-spacing:2px;
-      padding:2px 2px 8px;
+      line-height:2.1;
+      word-spacing:1px;
+      padding:2px 2px 4px 0;
+      font-size:11px;
+    }
+    .pb-tab-panel--repertory .pb-repertory-remedy-wrap--authors {
+      display:flex;
+      flex-direction:column;
+      align-items:stretch;
+      gap:4px;
+      line-height:1.45;
+      word-spacing:normal;
+      padding:2px 0 4px;
     }
     .pb-tab-panel--repertory .remedy-item {
-      border-radius:6px;
-      padding:3px 5px;
-      margin:1px 2px;
+      border-radius:5px;
+      padding:2px 5px 2px 6px;
+      margin:0 1px;
+      font-size:11px;
+      line-height:2.1;
     }
     .pb-tab-panel--repertory .remedy-item:hover {
-      background-color:#f4faff;
+      background-color:#f5faff;
       box-shadow:inset 0 0 0 1px #cfe9ff;
+    }
+    .pb-tab-panel--repertory .pb-repertory-remedy-wrap--authors .remedy-item {
+      display:block;
+      width:100%;
+      max-width:100%;
+      box-sizing:border-box;
+      white-space:normal;
+      overflow:visible;
+      line-height:1.45;
+      padding:4px 8px !important;
+      margin:0 !important;
+      border-radius:5px !important;
+      background:#fafcfe;
+      box-shadow:inset 0 0 0 1px #e8eef5;
+    }
+    .pb-tab-panel--repertory .pb-repertory-remedy-wrap--authors .remedy-item:hover {
+      background-color:#f5faff !important;
+      box-shadow:inset 0 0 0 1px #cfe9ff !important;
+    }
+    .pb-tab-panel--repertory .pb-repertory-remedy-wrap--authors .remedy-author-sub-block {
+      display:inline;
+      font-size:0.8em;
+      line-height:1.45 !important;
+      vertical-align:baseline;
+      white-space:normal;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+      margin-left:4px;
+    }
+    .pb-tab-panel--repertory .pb-repertory-details-card .remedy-info-icon {
+      width:14px;
+      height:14px;
+      font-size:10px;
+      margin-left:2px;
+      border-radius:5px;
+      background:transparent;
+      box-shadow:none;
+      color:#0b5cab;
+    }
+    .pb-tab-panel--repertory .pb-repertory-details-card .remedy-info-icon:hover {
+      background:transparent;
+      color:#0b5cab;
+      box-shadow:none;
     }
     .pb-tab-panel--repertory .pb-panel-header-actions {
       display:flex;
@@ -8717,23 +9867,37 @@ const PatientBoard = () => {
       flex-shrink:0;
     }
     .pb-tab-panel--repertory .pb-panel-header-actions .pb-rubric-tools {
-      padding:3px;
-      gap:5px;
-      border-radius:10px;
+      padding:2px;
+      gap:3px;
+      border-radius:5px;
+      background:transparent;
+      border:0;
+      box-shadow:none;
+    }
+    .pb-tab-panel--repertory .pb-panel-header-actions .pb-rubric-tools__divider {
+      height:14px;
+      margin:0 1px;
+      background:#eef2f6;
     }
     .pb-tab-panel--repertory .pb-panel-header-actions .modal-header-btn {
-      border-radius:8px;
-      width:28px;
-      height:28px;
-      min-width:28px;
+      border-radius:4px;
+      width:22px;
+      height:22px;
+      min-width:22px;
       padding:0;
+      font-size:12px;
+      border:0;
+      background:transparent;
+      color:#0b5cab;
+      box-shadow:none;
     }
     .pb-tab-panel--repertory .pb-panel-header-actions .modal-header-btn.modal-header-btn--lang {
       width:auto;
-      min-width:32px;
-      height:28px;
-      padding:0 8px;
-      font-size:11px;
+      min-width:0;
+      height:22px;
+      padding:0 5px;
+      font-size:10px;
+      gap:2px;
     }
     .pb-tab-panel--repertory .pb-panel-header-actions .modal-header-btn.active {
       background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
@@ -8775,175 +9939,250 @@ const PatientBoard = () => {
       overflow:visible;
       flex:none;
       padding-bottom:0.5rem;
-      gap:0;
+      gap:0.25rem;
     }
+    .pb-repertorize-toolbar.row,
     .pb-repertorize-toolbar {
-      --bs-gutter-x:0.5rem;
-      --bs-gutter-y:0;
-      padding:6px 10px;
+      --bs-gutter-x:0 !important;
+      --bs-gutter-y:0 !important;
+      padding:2px !important;
       margin-left:0 !important;
       margin-right:0 !important;
-      margin-bottom:6px !important;
-      min-height:40px;
-      align-items:center;
+      margin-top:0 !important;
+      margin-bottom:0 !important;
+      min-height:0 !important;
+      height:auto !important;
+      align-items:center !important;
       border:1px solid #dbe7f3;
-      border-radius:12px;
+      border-radius:5px;
       background:linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
     }
     .pb-repertorize-toolbar > [class*="col"] {
-      padding-top:0 !important;
-      padding-bottom:0 !important;
+      padding:0 !important;
+      margin-top:0 !important;
+      margin-bottom:0 !important;
       display:flex;
       align-items:center;
     }
     .pb-repertorize-toolbar__thermals {
-      gap:6px !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center;
+      gap:12px !important;
+      margin-right:4px;
+    }
+    .pb-repertorize-toolbar__thermal-item {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      flex:0 0 auto;
+      margin:0 !important;
+      padding:0 !important;
+      line-height:0;
     }
     .pb-repertorize-toolbar__thermals .pb-circle {
-      width:20px;
-      height:20px;
-      margin-left:0;
-      font-size:7px;
+      width:20px !important;
+      height:20px !important;
+      margin:0 !important;
+      margin-left:0 !important;
+      font-size:7px !important;
+      flex:0 0 auto;
     }
     .pb-repertorize-toolbar__actions {
-      gap:6px !important;
+      gap:8px !important;
+      margin-left:auto;
+      flex-wrap:nowrap;
     }
     .pb-repertorize-toolbar .btn-sm,
+    .pb-repertorize-toolbar .btn.btn-sm,
     .pb-repertorize-toolbar__add,
     .pb-repertorize-toolbar__reset,
     .pb-repertorize-toolbar__keynote,
-    .pb-repertorize-toolbar__small {
-      height:28px !important;
-      min-height:28px;
+    .pb-repertorize-toolbar__small,
+    .pb-repertorize-toolbar__add:hover,
+    .pb-repertorize-toolbar__add:focus,
+    .pb-repertorize-toolbar__add:active,
+    .pb-repertorize-toolbar__reset:hover,
+    .pb-repertorize-toolbar__reset:focus,
+    .pb-repertorize-toolbar__reset:active,
+    .pb-repertorize-toolbar__keynote:hover,
+    .pb-repertorize-toolbar__keynote:focus,
+    .pb-repertorize-toolbar__keynote:active,
+    .pb-repertorize-toolbar__keynote.is-active,
+    .pb-repertorize-toolbar__small:hover,
+    .pb-repertorize-toolbar__small:focus,
+    .pb-repertorize-toolbar__small:active,
+    .pb-repertorize-toolbar__small.is-active {
+      height:26px !important;
+      min-height:26px !important;
+      max-height:26px !important;
       padding:0 10px !important;
       font-size:11px !important;
+      font-weight:400 !important;
       line-height:1 !important;
       display:inline-flex !important;
       align-items:center;
       justify-content:center;
-      border-radius:8px !important;
+      gap:4px;
+      border-radius:5px !important;
+      box-sizing:border-box;
+      white-space:nowrap;
+      transition:background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+    }
+    .pb-repertorize-toolbar__add i,
+    .pb-repertorize-toolbar__reset i,
+    .pb-repertorize-toolbar__keynote i,
+    .pb-repertorize-toolbar__small i {
+      font-size:12px !important;
+      line-height:1 !important;
+      margin:0 !important;
     }
     .pb-repertorize-toolbar__add {
-      background:#38bdf8 !important;
-      border-color:#0ea5e9 !important;
-      color:#0c4a6e !important;
-      font-weight:700;
-      box-shadow:0 1px 2px rgba(14, 165, 233, 0.2);
+      background:linear-gradient(180deg, #fffaf5 0%, #fff7ed 55%, #ffedd5 100%) !important;
+      background-image:linear-gradient(180deg, #fffaf5 0%, #fff7ed 55%, #ffedd5 100%) !important;
+      border:1px solid #fed7aa !important;
+      color:#ea580c !important;
+      box-shadow:0 1px 2px rgba(249, 115, 22, 0.08);
     }
     .pb-repertorize-toolbar__add:hover {
-      background:#0ea5e9 !important;
-      border-color:#0284c7 !important;
-      color:#fff !important;
+      background:linear-gradient(180deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%) !important;
+      background-image:linear-gradient(180deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%) !important;
+      border-color:#fdba74 !important;
+      color:#c2410c !important;
     }
     .pb-repertorize-toolbar__reset {
-      background:#eef2f7 !important;
+      background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #e2e8f0 100%) !important;
+      background-image:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #e2e8f0 100%) !important;
       border:1px solid #d5dde8 !important;
       color:#334155 !important;
-      font-weight:600;
+      box-shadow:0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+    .pb-repertorize-toolbar__reset:hover {
+      background:linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%) !important;
+      background-image:linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%) !important;
+      border-color:#cbd5e1 !important;
+      color:#1e293b !important;
     }
     .pb-repertorize-toolbar__keynote {
-      background:#fff !important;
+      background:linear-gradient(180deg, #faf5ff 0%, #f5f3ff 55%, #ede9fe 100%) !important;
+      background-image:linear-gradient(180deg, #faf5ff 0%, #f5f3ff 55%, #ede9fe 100%) !important;
       border:1px solid #c7d2fe !important;
       color:#4338ca !important;
-      font-weight:600;
-      transition:background-color .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease;
+      box-shadow:0 1px 2px rgba(99, 102, 241, 0.1);
     }
     .pb-repertorize-toolbar__keynote:hover {
-      background:#eef2ff !important;
+      background:linear-gradient(180deg, #f5f3ff 0%, #ede9fe 55%, #ddd6fe 100%) !important;
+      background-image:linear-gradient(180deg, #f5f3ff 0%, #ede9fe 55%, #ddd6fe 100%) !important;
       border-color:#a5b4fc !important;
+      color:#312e81 !important;
     }
     .pb-repertorize-toolbar__keynote.is-active {
-      background:linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%) !important;
-      border-color:#6366f1 !important;
+      background:linear-gradient(180deg, #ede9fe 0%, #ddd6fe 55%, #c4b5fd 100%) !important;
+      background-image:linear-gradient(180deg, #ede9fe 0%, #ddd6fe 55%, #c4b5fd 100%) !important;
+      border-color:#818cf8 !important;
       color:#312e81 !important;
-      box-shadow:0 0 0 3px rgba(99, 102, 241, 0.16);
+      box-shadow:0 2px 8px rgba(99, 102, 241, 0.2);
     }
     .pb-repertorize-toolbar__small {
-      background:#fff !important;
+      background:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+      background-image:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
       border:1px solid #a7f3d0 !important;
       color:#047857 !important;
-      font-weight:600;
-      transition:background-color .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease;
+      box-shadow:0 1px 2px rgba(16, 185, 129, 0.1);
     }
     .pb-repertorize-toolbar__small:hover {
-      background:#ecfdf5 !important;
+      background:linear-gradient(180deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%) !important;
+      background-image:linear-gradient(180deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%) !important;
       border-color:#6ee7b7 !important;
+      color:#065f46 !important;
     }
     .pb-repertorize-toolbar__small.is-active {
-      background:linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%) !important;
-      border-color:#10b981 !important;
+      background:linear-gradient(180deg, #d1fae5 0%, #a7f3d0 55%, #6ee7b7 100%) !important;
+      background-image:linear-gradient(180deg, #d1fae5 0%, #a7f3d0 55%, #6ee7b7 100%) !important;
+      border-color:#34d399 !important;
       color:#065f46 !important;
-      box-shadow:0 0 0 3px rgba(16, 185, 129, 0.16);
+      box-shadow:0 2px 8px rgba(16, 185, 129, 0.2);
     }
-    /* Keynote / Small Rubrics list surfaces — no pink wash */
+    /* Keynote / Small Rubrics list surfaces — flat tint matching toolbar buttons */
     .pb-tab-panel--repertorize .pb-tab-card-scroll.keynote-active {
-      background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
-      box-shadow:inset 0 0 0 1px #e2e8f0;
+      background:#f5f3ff !important;
+      box-shadow:inset 0 0 0 1px #ddd6fe;
       border-radius:8px;
     }
     .pb-tab-panel--repertorize .pb-tab-card-scroll.small-rubrics-active {
-      background:linear-gradient(180deg, #f8fffc 0%, #ecfdf5 100%) !important;
+      background:#f0fdf6 !important;
       box-shadow:inset 0 0 0 1px #d1fae5;
       border-radius:8px;
     }
     .pb-tab-panel--repertorize .pb-tab-card-scroll.keynote-active > div > .pb-remedy-list-row,
     .pb-tab-panel--repertorize .pb-tab-card-scroll.small-rubrics-active > div > .pb-remedy-list-row {
-      background:rgba(255,255,255,0.72);
+      background:transparent !important;
       border-bottom-color:#e8eef5 !important;
     }
-    .pb-tab-panel--repertorize .pb-tab-card-scroll.keynote-active > div > .pb-remedy-list-row:hover,
+    .pb-tab-panel--repertorize .pb-tab-card-scroll.keynote-active > div > .pb-remedy-list-row:hover {
+      background:rgba(255,255,255,0.5) !important;
+    }
     .pb-tab-panel--repertorize .pb-tab-card-scroll.small-rubrics-active > div > .pb-remedy-list-row:hover {
-      background:#fff !important;
+      background:rgba(255,255,255,0.45) !important;
     }
     .pb-repertorize-accordion-panel {
-      margin:4px 8px 10px;
-      padding:10px 12px !important;
-      border-radius:10px;
+      margin:2px 2px 6px;
+      padding:4px 6px !important;
+      border-radius:5px;
       background:#fff !important;
       border:1px solid #e2ebf3 !important;
-      border-left:3px solid #64748b !important;
-      box-shadow:0 1px 3px rgba(15, 23, 42, 0.06);
+      border-left:2px solid #64748b !important;
+      box-shadow:none;
     }
     .keynote-active .pb-repertorize-accordion-panel {
-      border-left-color:#6366f1 !important;
-      border-color:#e0e7ff !important;
-      background:linear-gradient(180deg, #ffffff 0%, #f8faff 100%) !important;
+      border-left-color:#818cf8 !important;
+      border-color:#ddd6fe !important;
+      background:#f5f3ff !important;
     }
     .small-rubrics-active .pb-repertorize-accordion-panel {
       border-left-color:#10b981 !important;
       border-color:#d1fae5 !important;
-      background:linear-gradient(180deg, #ffffff 0%, #f6fffb 100%) !important;
+      background:#f0fdf6 !important;
     }
     .keynote-active .pb-accordion-sublist-label,
     .small-rubrics-active .pb-accordion-sublist-label {
-      font-weight:600;
-      letter-spacing:0.01em;
-      line-height:1.4;
+      font-weight:500;
+      font-size:11px;
+      letter-spacing:0;
+      line-height:1.25;
     }
     .keynote-active .pb-accordion-sublist-row,
     .small-rubrics-active .pb-accordion-sublist-row {
+      background:transparent !important;
       border-bottom-color:#eef2f7 !important;
-      border-radius:6px;
-      margin:0 0 2px;
+      border-radius:0;
+      margin:0;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
     }
-    .keynote-active .pb-accordion-sublist-row:hover,
+    .keynote-active .pb-accordion-sublist-row:hover {
+      background:rgba(255,255,255,0.5) !important;
+    }
     .small-rubrics-active .pb-accordion-sublist-row:hover {
-      background:#f8fafc !important;
+      background:rgba(255,255,255,0.45) !important;
     }
     .pb-tab-panel--repertorize .keynote-active .ri-arrow-right-s-line,
-    .pb-tab-panel--repertorize .keynote-active .ri-arrow-down-s-line {
-      color:#6366f1;
+    .pb-tab-panel--repertorize .keynote-active .ri-arrow-down-s-line,
+    .pb-tab-panel--repertorize .keynote-active .pb-remedy-list-row__chevron {
+      color:#6366f1 !important;
     }
     .pb-tab-panel--repertorize .small-rubrics-active .ri-arrow-right-s-line,
-    .pb-tab-panel--repertorize .small-rubrics-active .ri-arrow-down-s-line {
-      color:#059669;
+    .pb-tab-panel--repertorize .small-rubrics-active .ri-arrow-down-s-line,
+    .pb-tab-panel--repertorize .small-rubrics-active .pb-remedy-list-row__chevron {
+      color:#059669 !important;
     }
     .pb-repertorize-panel-card {
       border-color:#dbe7f3 !important;
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
       background:#fff;
-      border-radius:12px !important;
+      border-radius:5px !important;
       padding:0 !important;
     }
     /* One-level headers: Repertorization / COMMON / UNCOMMON / SECTION
@@ -8954,18 +10193,18 @@ const PatientBoard = () => {
       align-items:center !important;
       justify-content:space-between;
       gap:8px;
-      min-height:44px !important;
-      height:44px !important;
-      max-height:44px !important;
-      padding:0 12px !important;
+      min-height:32px !important;
+      height:32px !important;
+      max-height:32px !important;
+      padding:5px 8px !important;
       box-sizing:border-box !important;
       flex-wrap:nowrap !important;
       flex-shrink:0 !important;
       overflow:hidden;
       margin:0 !important;
       background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%) !important;
-      border-top-left-radius:11px;
-      border-top-right-radius:11px;
+      border-top-left-radius:5px;
+      border-top-right-radius:5px;
       border-bottom:none !important;
     }
     /* Keep all four top cards + DMM/HEADINGS headers on exact same baseline */
@@ -9001,22 +10240,97 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      min-width:20px;
-      height:18px;
+      min-width:18px;
+      height:16px;
       margin-left:6px;
-      padding:0 6px;
-      border-radius:999px;
+      padding:0 5px;
+      border-radius:4px;
       font-size:10px;
-      font-weight:700;
+      font-weight:500;
       color:#0b5cab;
-      background:linear-gradient(180deg, #eaf5ff 0%, #d9ecff 100%);
-      border:1px solid #b6d8f7;
+      background:#f0f7ff;
+      border:1px solid #cfe3f7;
       vertical-align:middle;
       line-height:1;
     }
+    .pb-tab-panel--repertorize .pb-repertorize-panel-card .pb-tab-card-scroll {
+      padding:4px 6px 6px 8px;
+      box-sizing:border-box;
+      scrollbar-gutter:stable;
+    }
+    .pb-tab-panel--repertorize .pb-repertorize-section-card .pb-tab-card-scroll {
+      padding:4px 6px 6px 2px;
+      box-sizing:border-box;
+      scrollbar-gutter:stable;
+    }
+    .pb-tab-panel--repertorize .pb-repertorize-layout__rubrics .pb-tab-card-scroll {
+      padding:4px 6px 6px 8px;
+      box-sizing:border-box;
+      scrollbar-gutter:auto;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-list-row {
+      gap:8px;
+      padding:5px 7px 5px 0 !important;
+      min-height:28px;
+      box-sizing:border-box;
+      border-bottom:1px solid #eef2f6 !important;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-list-row--selected {
+      background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
+      box-shadow:none !important;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-list-row__name {
+      font-size:11px !important;
+      font-weight:500 !important;
+      line-height:1.25;
+      color:#0f172a;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-list-row__alias {
+      font-size:9px !important;
+      font-weight:400 !important;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-list-row__ratio {
+      font-size:9px !important;
+      font-weight:500 !important;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-list-row__chevron {
+      font-size:12px;
+      color:#0b5cab;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-list-row__meta {
+      gap:8px;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-score-bar {
+      width:48px;
+      min-width:48px;
+      margin-left:2px;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-score-bar__track {
+      height:4px;
+      box-shadow:none;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-score-bar__fill {
+      box-shadow:none;
+    }
+    .pb-tab-panel--repertorize .pb-remedy-score-bar__dot {
+      min-width:16px;
+      height:16px;
+      padding:0 3px;
+      font-size:8px;
+      font-weight:500;
+      border-width:1px;
+      box-shadow:0 1px 2px rgba(11, 92, 171, 0.28);
+    }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-row {
       border-radius:0;
-      padding:10px 12px !important;
+      width:100% !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:space-between !important;
+      gap:8px;
+      padding:5px 4px 5px 0 !important;
+      min-height:28px;
+      box-sizing:border-box;
       border-bottom-color:#eef2f6 !important;
       transition:background-color .12s ease;
     }
@@ -9024,14 +10338,79 @@ const PatientBoard = () => {
       background:#f5faff;
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-label {
-      font-size:12.5px;
-      font-weight:600;
+      flex:1 1 0 !important;
+      min-width:0 !important;
+      max-width:none !important;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-size:11px !important;
+      font-weight:500 !important;
       color:#0f172a;
-      letter-spacing:-0.01em;
+      letter-spacing:0;
+      line-height:1.25;
+      padding-right:8px;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-rubric-actions {
+      flex:0 0 auto !important;
+      margin-left:auto !important;
+      margin-right:0 !important;
+      padding-right:0 !important;
+      gap:6px !important;
+      display:inline-flex !important;
+      align-items:center;
+      position:relative;
+      z-index:1;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-grade-chips {
+      display:none;
+      flex-direction:row;
+      align-items:center;
+      gap:3px;
+      flex:0 0 auto;
+      position:static !important;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-rubric-row:hover .pb-repertorization-grade-chips {
+      display:inline-flex !important;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-rubric-row:hover .pb-repertorization-intensity-badge {
+      display:none !important;
+      visibility:hidden !important;
+      width:0 !important;
+      min-width:0 !important;
+      height:0 !important;
+      padding:0 !important;
+      margin:0 !important;
+      overflow:hidden !important;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-grade-chips .pb-chip,
+    .pb-tab-panel--repertorize .pb-repertorization-rubric-row .pb-chip {
+      width:16px;
+      height:16px;
+      font-size:9px;
+      margin:0 !important;
+      border-radius:3px;
+      flex-shrink:0;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-intensity-badge {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:16px;
+      height:16px;
+      padding:0 4px;
+      margin:0;
+      border-radius:3px;
+      background:#000 !important;
+      color:#fff !important;
+      font-size:9px !important;
+      font-weight:500;
+      line-height:1;
+      flex-shrink:0;
     }
     .pb-tab-panel--repertorize .pb-repertorize-common-col .pb-remedy-list-row,
     .pb-tab-panel--repertorize .pb-repertorize-uncommon-col .pb-remedy-list-row {
-      transition:background-color .14s ease, box-shadow .14s ease;
+      transition:background-color .12s ease;
     }
     .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-section-title,
     .pb-tab-panel--repertorize .pb-repertorize-side-header .pb-section-title {
@@ -9066,14 +10445,14 @@ const PatientBoard = () => {
       background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%) !important;
       border:1px solid #cfe3f7 !important;
       color:#0b5cab !important;
-      font-size:12px !important;
+      font-size:11px !important;
       line-height:1;
       flex-shrink:0;
     }
     .pb-repertorize-header-search {
-      min-width:140px;
-      max-width:180px;
-      flex:0 1 160px;
+      min-width:120px;
+      max-width:160px;
+      flex:0 1 140px;
       display:flex;
       align-items:center;
       height:28px;
@@ -9081,42 +10460,94 @@ const PatientBoard = () => {
       padding:0;
     }
     .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-box,
-    .pb-repertorize-header-search .pb-questions-search-box {
+    .pb-repertorize-header-search .pb-questions-search-box,
+    .pb-tab-panel--repertorize .pb-repertorize-accordion-search {
+      position:relative;
       width:100%;
       height:28px;
       min-height:28px;
       margin:0;
+      padding:0;
+      display:block;
     }
-    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-input {
-      border-radius:999px !important;
-      border-color:#d7e3ef !important;
-      background:#f8fafc !important;
-      font-size:12px;
+    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-input,
+    .pb-tab-panel--repertorize .pb-repertorize-accordion-search .pb-questions-search-input {
+      border-radius:5px !important;
+      border:1px solid #d0d7de !important;
+      background:#ffffff !important;
+      font-size:11px !important;
       height:28px !important;
       min-height:28px !important;
       max-height:28px !important;
       margin:0 !important;
-      padding-top:0 !important;
-      padding-bottom:0 !important;
-      padding-left:30px !important;
+      padding:0 10px 0 34px !important;
       line-height:28px !important;
       box-sizing:border-box !important;
+      color:#0f172a;
+      box-shadow:none !important;
     }
-    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-box .search-icon {
+    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-input::placeholder,
+    .pb-tab-panel--repertorize .pb-repertorize-accordion-search .pb-questions-search-input::placeholder {
+      color:#9ca3af;
+      font-size:11px;
+      opacity:1;
+    }
+    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-box .search-icon,
+    .pb-tab-panel--repertorize .pb-repertorize-accordion-search .search-icon {
+      position:absolute;
       top:50%;
+      left:10px;
       transform:translateY(-50%);
       height:auto;
       line-height:1;
+      display:flex;
+      align-items:center;
+      margin:0;
+      padding:0;
+      font-size:13px;
+      color:#6b7280;
+      pointer-events:none;
+      z-index:1;
     }
-    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-input:focus {
-      background:#fff !important;
-      border-color:#93c5fd !important;
-      box-shadow:0 0 0 3px rgba(30, 136, 229, 0.12);
+    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-input:focus,
+    .pb-tab-panel--repertorize .pb-repertorize-accordion-search .pb-questions-search-input:focus {
+      background:#ffffff !important;
+      border-color:#94a3b8 !important;
+      box-shadow:none !important;
+    }
+    .pb-tab-panel--repertorize .pb-repertorize-panel-header .pb-questions-search-box--active .search-icon,
+    .pb-tab-panel--repertorize .pb-repertorize-accordion-search.pb-questions-search-box--active .search-icon {
+      color:#475569;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-action-icon {
+      font-size:10px !important;
+      line-height:1;
+      cursor:pointer;
+      flex-shrink:0;
+      color:#64748b;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-action-icon.ri-triangle-line,
+    .pb-tab-panel--repertorize .pb-repertorization-action-icon.ri-triangle-fill {
+      font-size:9px !important;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-action-icon.ri-delete-bin-line {
+      color:#ef4444;
+      font-size:11px !important;
+    }
+    .pb-tab-panel--repertorize .pb-accordion-sublist-row {
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      border-bottom:1px solid #eef2f6 !important;
+    }
+    .pb-tab-panel--repertorize .pb-accordion-sublist-row.p-2 {
+      padding:5px 7px 5px 2px !important;
     }
     .pb-repertorize-dmm-tab {
       flex:1 1 0;
-      background:#fff !important;
-      border:1px solid #d7e6f5 !important;
+      background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #e2e8f0 100%) !important;
+      background-image:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #e2e8f0 100%) !important;
+      border:1px solid #cbd5e1 !important;
       color:#334155 !important;
       font-size:11px;
       font-weight:700;
@@ -9128,11 +10559,22 @@ const PatientBoard = () => {
       display:inline-flex !important;
       align-items:center;
       justify-content:center;
+      box-shadow:0 1px 2px rgba(15, 23, 42, 0.06);
+      transition:background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease;
     }
-    .pb-repertorize-dmm-tab.is-active {
-      background:#0f172a !important;
+    .pb-repertorize-dmm-tab:hover:not(.is-active) {
+      color:#0f172a !important;
+      background:linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%) !important;
+      background-image:linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%) !important;
+      border-color:#94a3b8 !important;
+    }
+    .pb-repertorize-dmm-tab.is-active,
+    .pb-repertorize-dmm-tab.is-active:hover {
+      background:linear-gradient(180deg, #64748b 0%, #334155 55%, #0f172a 100%) !important;
+      background-image:linear-gradient(180deg, #64748b 0%, #334155 55%, #0f172a 100%) !important;
       border-color:#0f172a !important;
       color:#fff !important;
+      box-shadow:0 2px 8px rgba(15, 23, 42, 0.22);
     }
     .pb-tab-panel--repertorize .pb-repertorize-dmm-tabs {
       width:100%;
@@ -9141,23 +10583,34 @@ const PatientBoard = () => {
       flex-shrink:0;
     }
     .pb-tab-panel--repertorize .pb-dmm-author-row {
+      display:flex !important;
+      width:100%;
       gap:6px;
       padding:8px 10px;
       margin:0 !important;
-      flex-wrap:wrap;
+      flex-wrap:nowrap !important;
       flex-shrink:0;
+      align-items:stretch;
+      box-sizing:border-box;
     }
     .pb-tab-panel--repertorize .pb-dmm-author-tab {
-      flex:0 1 auto;
+      flex:1 1 0 !important;
       min-width:0;
-      padding:5px 10px;
+      max-width:none;
+      padding:5px 6px;
       border-radius:999px;
       border:1px solid #cfd8e3;
       background:#fff;
       color:#475569;
-      font-size:11px;
+      font-size:10px;
       font-weight:600;
+      text-align:center;
       text-decoration:none;
+      text-transform:uppercase;
+      letter-spacing:0.02em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
     }
     .pb-tab-panel--repertorize .pb-dmm-author-tab:hover {
@@ -9214,7 +10667,7 @@ const PatientBoard = () => {
       flex:1 1 auto;
       width:100%;
       padding:0 !important;
-      border-radius:12px !important;
+      border-radius:5px !important;
     }
     .pb-tab-panel--repertorize .pb-tab-card--580.pb-tab-card--headings {
       height:100%;
@@ -9239,55 +10692,64 @@ const PatientBoard = () => {
     }
     .pb-repertorize-section-grades {
       flex-shrink:0;
-      border-top:1px solid #eef1f4;
-      padding:8px 8px 10px;
+      border-top:1px solid #eef2f6;
+      padding:6px 8px;
       background:linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
     }
     .pb-repertorize-section-row {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      padding:9px 12px !important;
+      gap:8px;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
       border-bottom:1px solid #eef2f6 !important;
-      transition:background-color .14s ease, box-shadow .14s ease;
+      transition:background-color .12s ease;
     }
     .pb-repertorize-section-row__label {
       display:inline-flex;
       align-items:center;
-      gap:10px;
+      gap:8px;
       min-width:0;
       flex:1 1 auto;
-      font-size:12.5px;
-      font-weight:600;
+      font-size:11px;
+      font-weight:500;
       color:#0f172a;
       letter-spacing:0.02em;
-      line-height:1.3;
+      line-height:1.25;
     }
     .pb-repertorize-section-icon {
-      width:28px;
-      height:28px;
-      border-radius:8px;
+      width:auto;
+      height:auto;
+      min-width:0;
+      border-radius:0;
       flex-shrink:0;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
-      border:1px solid #cfe3f7;
+      background:transparent;
+      border:0;
       color:#0b5cab;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      box-shadow:none;
+      padding:0;
     }
     .pb-repertorize-section-icon i {
-      font-size:15px;
+      font-size:11px;
       line-height:1;
+      font-weight:400;
     }
     .pb-repertorize-section-row .form-check-input,
     .pb-repertorize-heading-row .form-check-input {
-      width:16px;
-      height:16px;
+      width:14px;
+      height:14px;
       margin:0;
       flex-shrink:0;
-      border-radius:4px;
+      border-radius:3px;
       border-color:#cbd5e1;
       cursor:inherit;
       box-shadow:none;
@@ -9299,37 +10761,38 @@ const PatientBoard = () => {
     }
     .pb-repertorize-section-row .form-check-input:focus,
     .pb-repertorize-heading-row .form-check-input:focus {
-      box-shadow:0 0 0 3px rgba(30, 136, 229, 0.18);
+      box-shadow:0 0 0 2px rgba(30, 136, 229, 0.16);
       border-color:#93c5fd;
     }
     .pb-repertorize-section-row--active {
       background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
-      box-shadow:inset 3px 0 0 #1e88e5;
+      box-shadow:none !important;
     }
     .pb-repertorize-section-row--active .pb-repertorize-section-icon,
     .pb-repertorize-heading-row--active .pb-repertorize-heading-icon {
-      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
-      border-color:#0b5cab;
-      color:#fff;
-      box-shadow:0 1px 3px rgba(11, 92, 171, 0.28);
+      background:transparent !important;
+      border:0 !important;
+      color:#0b5cab !important;
+      box-shadow:none !important;
     }
     .pb-repertorize-section-row--active .pb-repertorize-section-row__label {
       color:#0b5cab;
+      font-weight:500;
     }
     .pb-repertorize-grade-btn {
-      width:26px !important;
-      height:26px !important;
-      min-width:26px;
+      width:22px !important;
+      height:22px !important;
+      min-width:22px;
       padding:0 !important;
-      font-size:11px !important;
-      font-weight:700;
+      font-size:10px !important;
+      font-weight:500;
       line-height:1;
-      border-radius:8px !important;
+      border-radius:4px !important;
       border:1px solid #d7e3ef !important;
       background:#fff !important;
       color:#475569 !important;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
-      transition:background-color .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease;
+      box-shadow:none;
+      transition:background-color .12s ease, border-color .12s ease, color .12s ease;
     }
     .pb-repertorize-grade-btn:hover:not(:disabled) {
       border-color:#93c5fd !important;
@@ -9340,7 +10803,7 @@ const PatientBoard = () => {
       background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%) !important;
       border-color:#0b5cab !important;
       color:#fff !important;
-      box-shadow:0 1px 3px rgba(11, 92, 171, 0.3);
+      box-shadow:none;
     }
     .pb-repertorize-grade-btn:disabled {
       opacity:0.45;
@@ -9348,41 +10811,121 @@ const PatientBoard = () => {
     }
     .pb-repertorize-heading-row--active {
       background:linear-gradient(90deg, #f0f7ff 0%, #f8fbff 100%) !important;
-      box-shadow:inset 3px 0 0 #1e88e5;
+      box-shadow:none !important;
     }
     .pb-tab-panel--repertorize .pb-repertorize-heading-row {
-      padding:9px 12px !important;
+      padding:5px 7px 5px 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
       border-bottom-color:#eef2f6 !important;
       margin:0;
       border-radius:0;
     }
     .pb-repertorize-heading-icon {
-      width:28px;
-      height:28px;
-      border-radius:8px;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%) !important;
-      border:1px solid #cfe3f7 !important;
+      width:auto;
+      height:auto;
+      min-width:0;
+      border-radius:0;
+      background:transparent !important;
+      border:0 !important;
       color:#0b5cab !important;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      box-shadow:none !important;
+      padding:0;
     }
     .pb-repertorize-heading-row--active .pb-repertorize-heading-icon {
       background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%) !important;
       border-color:#0b5cab !important;
       color:#fff !important;
     }
-    .pb-tab-panel--repertorize .pb-repertorize-dmm-card .pb-tab-card-scroll,
+    .pb-tab-panel--repertorize .pb-repertorize-dmm-card .pb-tab-card-scroll {
+      padding:4px 8px 8px;
+      font-size:11px;
+    }
     .pb-tab-panel--repertorize .pb-repertorize-headings-card .pb-tab-card-scroll {
       padding:4px 0;
     }
+    .pb-tab-panel--repertorize .pb-dmm-remedy-header {
+      margin-bottom:4px !important;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-remedy-title-wrap {
+      display:flex;
+      align-items:baseline;
+      flex-wrap:wrap;
+      gap:4px 6px;
+      min-width:0;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-remedy-name {
+      font-size:11px !important;
+      font-weight:600 !important;
+      line-height:1.3;
+      color:#0f172a;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-remedy-score {
+      font-size:9px !important;
+      font-weight:500 !important;
+      line-height:1.3;
+      color:#0b5cab !important;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-entry-heading {
+      font-size:10px !important;
+      font-weight:600 !important;
+      letter-spacing:0.03em;
+      text-transform:uppercase;
+      color:#374151 !important;
+      margin-bottom:2px;
+      line-height:1.3;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-entry-body,
+    .pb-tab-panel--repertorize .pb-dmm-entry-empty {
+      font-size:11px !important;
+      line-height:1.45 !important;
+      color:#334155;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-entry-body h1,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body h2,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body h3,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body h4,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body h5,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body h6,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body strong,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body b {
+      font-size:11px !important;
+      font-weight:600 !important;
+      line-height:1.35 !important;
+      margin:0 0 4px !important;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-entry-body p,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body div,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body li,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body span,
+    .pb-tab-panel--repertorize .pb-dmm-entry-body font {
+      font-size:11px !important;
+      line-height:1.45 !important;
+    }
+    .pb-tab-panel--repertorize .pb-dmm-entry-body p {
+      margin:0 0 6px !important;
+    }
     .pb-tab-panel--repertorize .pb-repertorize-bottom-row {
+      display:flex !important;
+      flex-direction:column;
       align-items:stretch;
       height:100%;
+      width:100% !important;
+      max-width:100%;
       margin:0 !important;
+      padding:0 !important;
+      --bs-gutter-x:0 !important;
+      --bs-gutter-y:0 !important;
     }
     .pb-tab-panel--repertorize .pb-repertorize-bottom-row > [class*="col-"] {
       display:flex;
       flex-direction:column;
       height:100%;
+      width:100% !important;
+      max-width:100% !important;
+      padding-left:0 !important;
+      padding-right:0 !important;
+      margin:0 !important;
     }
     .pb-questions-rubrics-card {
       min-height:0;
@@ -9413,33 +10956,35 @@ const PatientBoard = () => {
       word-break:break-word;
       overflow-wrap:anywhere;
       white-space:normal;
-      line-height:1.35;
-      font-size:12.5px;
-      min-height:0;
+      line-height:1.25;
+      font-size:11px;
+      min-height:28px;
       box-sizing:border-box;
-      padding:5px 12px !important;
+      padding:5px 7px 5px 2px !important;
       border-left:0 !important;
       border-right:0 !important;
       border-top:0 !important;
+      border-bottom:1px solid #eef2f6 !important;
       transition:padding-right .15s ease, background-color .15s ease;
     }
     .pb-questions-rubric-item:last-child {
       border-bottom:0 !important;
     }
     .pb-questions-rubric-item:hover {
-      background:#f8fbfd;
+      background:#f5faff;
       padding-right:80px !important;
     }
     .pb-questions-rubric-label {
       display:block;
-      color:#212529;
+      color:#0f172a;
       font-weight:500;
-      line-height:1.35;
+      line-height:1.25;
+      font-size:11px;
     }
     /* Clinical Pattern rubrics — denser rows for better space use */
     .pb-clinical-rubrics-card .pb-questions-rubric-item {
       padding:4px 10px !important;
-      font-size:12px;
+      font-size:11px;
       line-height:1.3;
     }
     .pb-clinical-rubrics-card .pb-questions-rubric-item:hover {
@@ -9455,7 +11000,7 @@ const PatientBoard = () => {
       justify-content:space-between;
       gap:8px;
       flex-wrap:wrap;
-      padding:8px 12px;
+      padding:5px 8px;
       border-top:1px solid #eef1f4;
       background:linear-gradient(180deg, #fafbfc 0%, #fff 100%);
       font-size:11px;
@@ -9468,60 +11013,94 @@ const PatientBoard = () => {
     .pb-questions-rubrics-list__status {
       width:100%;
       text-align:center;
-      padding:10px 12px;
+      padding:6px 8px;
     }
     .pb-questions-context-bar {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
+      gap:8px;
       flex-wrap:wrap;
-      padding:10px 14px;
+      padding:4px 8px;
+      min-height:28px;
+      box-sizing:border-box;
       background:linear-gradient(180deg, #f8fafc 0%, #f3f6f9 100%);
       border:1px solid #e3e8ee;
-      border-radius:10px;
+      border-radius:5px;
     }
     .pb-questions-context-label {
-      font-size:11px;
+      font-size:9px;
       font-weight:700;
       letter-spacing:0.06em;
       text-transform:uppercase;
       color:#6c757d;
-      margin-bottom:4px;
+      margin-bottom:2px;
     }
     .pb-questions-subgroup-pill {
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      padding:6px 12px;
-      border-radius:999px;
+      gap:6px;
+      padding:3px 8px;
+      border-radius:5px;
       background:#fff;
       border:1px solid #cfd8e3;
-      color:#212529;
-      font-size:13px;
-      font-weight:600;
-      box-shadow:0 1px 2px rgba(16, 24, 40, 0.04);
+      color:#0f172a;
+      font-size:11px;
+      font-weight:500;
+      box-shadow:none;
     }
     .pb-questions-subgroup-pill i {
-      color:#25a0e2;
-      font-size:15px;
+      color:#0b5cab;
+      font-size:11px;
     }
     .pb-questions-result-count {
-      font-size:11px;
-      font-weight:600;
-      color:#25a0e2;
+      font-size:10px;
+      font-weight:500;
+      color:#0b5cab;
       background:var(--bs-info-bg-subtle, #dff0fa);
       border:1px solid #b8e2f4;
-      border-radius:999px;
-      padding:3px 10px;
+      border-radius:5px;
+      padding:1px 6px;
+      line-height:1.2;
       white-space:nowrap;
+      flex-shrink:0;
     }
     .pb-questions-rubrics-header {
-      height:auto;
-      min-height:44px;
-      padding-top:8px;
-      padding-bottom:8px;
-      flex-wrap:wrap;
+      height:32px !important;
+      min-height:32px !important;
+      max-height:32px !important;
+      padding:5px 8px !important;
+      box-sizing:border-box;
+      flex-wrap:nowrap !important;
+      align-items:center;
+      overflow:hidden;
+    }
+    .pb-questions-rubrics-header .pb-section-title {
+      height:22px !important;
+      min-height:0 !important;
+      flex-shrink:1;
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .pb-questions-rubrics-header .d-flex.align-items-center {
+      flex-wrap:nowrap !important;
+      gap:6px !important;
+      min-width:0;
+      height:28px;
+      align-items:center;
+    }
+    .pb-questions-rubrics-header .pb-questions-search-box,
+    .pb-questions-rubrics-header .pb-questions-search-input {
+      height:28px !important;
+      min-height:28px !important;
+      max-height:28px !important;
+    }
+    .pb-tab-panel--questions .pb-questions-rubrics-header .pb-questions-search-input {
+      border-radius:5px !important;
+      font-size:11px !important;
+      line-height:28px !important;
+      padding:0 28px 0 34px !important;
     }
     .pb-body-part-tab {
       flex:1 1 auto;
@@ -9537,193 +11116,713 @@ const PatientBoard = () => {
       flex:1 1 auto;
       min-height:100%;
       border:1px solid var(--minimal-card-border, #b9b9b9);
-      border-radius:0.375rem;
+      border-radius:5px;
       background-color:#fff;
       box-shadow:none;
     }
     .da-icon-wrapper { position:relative; width:80px; height:80px; margin-bottom:20px; }
     .da-pulse { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:50px; height:50px; border-radius:50%; background:#000000; animation:pulse 2s infinite; }
     .da-spin { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:65px; height:65px; border:3px solid #f1f3f5; border-top:3px solid #000000; border-radius:50%; animation:spin 1.5s linear infinite; }
-    .da-text { font-size:1.1rem; font-weight:600; color:#000000; animation:fadeInOut 2s infinite; }
+    .da-text { font-size:0.75rem; font-weight:600; color:#000000; animation:fadeInOut 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity:0.4; transform:translate(-50%,-50%) scale(0.8); } 50% { opacity:1; transform:translate(-50%,-50%) scale(1); } }
     @keyframes spin { 0% { transform:translate(-50%,-50%) rotate(0deg); } 100% { transform:translate(-50%,-50%) rotate(360deg); } }
     @keyframes fadeInOut { 0%, 100% { opacity:0.5; } 50% { opacity:1; } }
     .rrd-body, .rrd-body p { text-align:justify; }
-    /* Premium Clinical Pattern / Questions rubric remedy modal */
+    /* Clinical Pattern / Questions rubric modal — match Repertory RUBRIC DETAILS density */
     .pb-rubric-remedy-modal .modal-dialog {
-      max-width:min(1100px, 94vw);
+      max-width:min(920px, 94vw);
+      margin:1.25rem auto;
     }
     .pb-rubric-remedy-modal__content {
-      border:1px solid #dbe7f3 !important;
-      border-radius:16px !important;
+      border:1px solid #d0d7de !important;
+      border-radius:5px !important;
       overflow:hidden;
-      box-shadow:0 22px 60px rgba(15, 23, 42, 0.22), 0 2px 10px rgba(15, 23, 42, 0.08) !important;
-      background:
-        linear-gradient(180deg, #ffffff 0%, #f8fbff 48%, #f3f7fb 100%) !important;
-      /* patient-board-page also sets min-height:100vh — kill that on modal content */
+      box-shadow:0 12px 32px rgba(15, 23, 42, 0.14) !important;
+      background:#fff !important;
       min-height:0 !important;
       height:auto !important;
-      max-height:min(88vh, 860px);
+      max-height:min(82vh, 640px);
       display:flex;
       flex-direction:column;
+      font-size:11px;
     }
     .modal-content.pb-rubric-remedy-modal__content.patient-board-page {
       min-height:0 !important;
       height:auto !important;
     }
-    .pb-rubric-remedy-modal__toolbar {
+    .pb-rubric-remedy-modal__header {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding:12px 16px;
-      background:linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
-      border-bottom:1px solid #dbe7f3;
-    }
-    .pb-rubric-remedy-modal__toolbar-group {
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .pb-rubric-remedy-modal__toolbar .modal-header-btn {
-      width:auto;
-      min-width:32px;
-      height:32px;
-      padding:0 8px;
-      border-radius:10px;
-      border:1px solid #d7e6f5;
+      gap:10px;
+      padding:6px 10px;
+      min-height:32px;
       background:#fff;
-      color:#334155;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      border-bottom:1px solid #eef2f6;
+      flex-shrink:0;
     }
-    .pb-rubric-remedy-modal__toolbar .modal-header-btn:hover {
+    .pb-rubric-remedy-modal__header-title {
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      margin:0;
+      font-size:11px !important;
+      font-weight:700 !important;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color:#0f172a !important;
+      line-height:1.2;
+    }
+    .pb-rubric-remedy-modal__header-title .pb-repertory-section-title-icon {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#0b5cab;
+      font-size:13px;
+    }
+    .pb-rubric-remedy-modal__header .pb-rubric-tools {
+      padding:2px;
+      gap:3px;
+      border-radius:5px;
+      background:transparent;
+      border:0;
+      box-shadow:none;
+    }
+    .pb-rubric-remedy-modal__header .pb-rubric-tools__divider {
+      height:14px;
+      margin:0 1px;
+      background:#eef2f6;
+    }
+    .pb-rubric-remedy-modal__header .modal-header-btn {
+      border-radius:4px;
+      width:22px;
+      height:22px;
+      min-width:22px;
+      padding:0;
+      font-size:12px;
+      border:0;
+      background:transparent;
+      color:#0b5cab;
+      box-shadow:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:2px;
+    }
+    .pb-rubric-remedy-modal__header .modal-header-btn.modal-header-btn--lang {
+      width:auto;
+      min-width:0;
+      height:22px;
+      padding:0 5px;
+      font-size:10px;
+    }
+    .pb-rubric-remedy-modal__header .modal-header-btn:hover {
       background:#f4faff;
-      border-color:#b6d8f7;
-      color:#1e88e5;
+      border-color:#93c5fd;
+      color:#0b5cab;
     }
-    .pb-rubric-remedy-modal__toolbar .modal-header-btn.active {
-      background:#e8f5ff;
-      border-color:#90caf9;
-      color:#1565c0;
-      box-shadow:inset 0 0 0 1px rgba(30, 136, 229, 0.12);
+    .pb-rubric-remedy-modal__header .modal-header-btn.active {
+      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
+      border-color:#0b5cab;
+      color:#fff;
+    }
+    .pb-rubric-remedy-modal__header .modal-header-btn.active:hover {
+      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
+      color:#fff;
     }
     .pb-rubric-remedy-modal__body {
-      padding:18px 20px 12px !important;
+      padding:8px 10px 6px !important;
       display:flex;
       flex-direction:column;
       gap:0;
-      max-height:min(68vh, 720px);
       overflow:hidden;
-      flex:0 1 auto;
+      flex:1 1 auto;
+      min-height:0;
     }
     .pb-rubric-remedy-modal__title-bar {
-      padding-bottom:12px;
-      margin-bottom:10px;
-      border-bottom:1px solid #e2ebf3;
+      border-bottom:1px solid #eef2f6 !important;
+      padding:5px 0 !important;
+      margin:0 0 2px !important;
+      min-height:28px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
       flex-shrink:0;
     }
     .pb-rubric-remedy-modal__title {
       color:#0f172a !important;
-      font-size:16px !important;
-      font-weight:700 !important;
-      letter-spacing:0.01em;
-      line-height:1.35;
+      font-size:11px !important;
+      line-height:1.25 !important;
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px;
+      margin:0 !important;
+      font-weight:500 !important;
       word-break:break-word;
     }
+    .pb-rubric-remedy-modal__title-name {
+      font-weight:500 !important;
+      font-size:11px !important;
+      color:#0f172a;
+    }
+    .pb-rubric-remedy-modal__title-count {
+      font-weight:500;
+      font-size:10px;
+      color:#0b5cab;
+      background:#f0f7ff;
+      border:1px solid #cfe3f7;
+      border-radius:4px;
+      padding:1px 6px;
+      line-height:1.25;
+      margin-left:0;
+    }
     .pb-rubric-remedy-modal__meta {
-      margin-bottom:12px;
-      padding:10px 12px;
-      border-radius:10px;
+      margin-bottom:6px;
+      padding:5px 7px;
+      border-radius:5px;
       background:#f8fafc;
       border:1px solid #e8eef5;
       flex-shrink:0;
     }
     .pb-rubric-remedy-modal__description {
-      font-size:13px;
-      line-height:1.5;
-      color:#64748b !important;
+      font-size:11px;
+      line-height:1.45;
+      color:#495057 !important;
       margin:0;
+      white-space:pre-wrap;
     }
-    .pb-rubric-remedy-modal__count-bar {
+    .pb-rubric-remedy-modal__data-header {
+      border-bottom:1px solid #eef2f6;
+      padding:5px 0;
+      margin:0 0 2px;
+      min-height:28px;
+      box-sizing:border-box;
       display:flex;
       align-items:center;
-      gap:10px;
-      margin-bottom:14px;
-      padding-bottom:12px;
-      border-bottom:1px solid #e2ebf3;
       flex-shrink:0;
     }
-    .pb-rubric-remedy-modal__count-label {
-      font-size:13px;
-      font-weight:700;
-      color:#0f172a;
+    .pb-rubric-remedy-modal__data-header .pb-repertory-subheading {
+      font-size:11px;
+      font-weight:500;
       letter-spacing:0.02em;
-    }
-    .pb-rubric-remedy-modal__count-pill {
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-width:34px;
-      height:26px;
-      padding:0 10px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:700;
-      color:#0b5cab;
-      background:linear-gradient(180deg, #eaf5ff 0%, #d9ecff 100%);
-      border:1px solid #b6d8f7;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,0.75);
+      text-transform:uppercase;
+      color:#374151;
+      line-height:1.25;
+      margin:0;
     }
     .pb-rubric-remedy-modal__remedies {
-      flex:0 1 auto;
-      min-height:0;
-      max-height:min(42vh, 420px);
+      flex:1 1 auto;
+      min-height:72px;
+      max-height:min(40vh, 320px);
       overflow-y:auto;
       overflow-x:hidden;
-      padding:2px 2px 4px;
-      margin:0 -2px;
+      padding:2px 0;
+      margin:0;
+    }
+    .pb-rubric-remedy-modal__loading {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:12px 4px;
+      color:#6c757d;
+      font-size:11px;
     }
     .pb-rubric-remedy-modal__remedy-wrap {
-      line-height:2.15;
-      word-spacing:4px;
-      padding:2px 4px 4px;
+      line-height:2.1;
+      word-spacing:1px;
+      padding:2px 0;
+      font-size:11px;
     }
     .pb-rubric-remedy-modal__remedy-wrap .remedy-item {
-      border-radius:8px;
-      padding:5px 7px;
-      margin:2px 3px;
-      transition:background-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+      border-radius:5px;
+      padding:2px 5px 2px 6px;
+      margin:0 1px;
+      font-size:11px !important;
+      line-height:2.1;
+      transition:background-color 0.12s ease, box-shadow 0.12s ease;
     }
     .pb-rubric-remedy-modal__remedy-wrap .remedy-item:hover {
-      background-color:#f4faff;
+      background-color:#f5faff;
       box-shadow:inset 0 0 0 1px #cfe9ff;
-      transform:translateY(-1px);
+      transform:none;
+    }
+    /* Authors list rows — keep soft radius + left padding (must follow base .remedy-item rules) */
+    .pb-rubric-remedy-modal__remedy-wrap--authors .remedy-item {
+      display:block;
+      width:100%;
+      max-width:100%;
+      box-sizing:border-box;
+      white-space:normal;
+      overflow:visible;
+      line-height:1.45;
+      padding:4px 8px 4px 8px !important;
+      margin:0 !important;
+      border-radius:5px !important;
+      background:#fafcfe;
+      box-shadow:inset 0 0 0 1px #e8eef5;
+    }
+    .pb-rubric-remedy-modal__remedy-wrap--authors .remedy-item:hover {
+      background-color:#f5faff !important;
+      box-shadow:inset 0 0 0 1px #cfe9ff !important;
+      transform:none;
+    }
+    .pb-rubric-remedy-modal__content .remedy-info-icon {
+      width:14px;
+      height:14px;
+      font-size:10px;
+      margin-left:2px;
+      border-radius:5px;
+      background:transparent;
+      box-shadow:none;
+      color:#0b5cab;
+    }
+    .pb-rubric-remedy-modal__content .remedy-info-icon:hover {
+      background:transparent;
+      color:#0b5cab;
+      box-shadow:none;
     }
     .pb-rubric-remedy-modal__footer {
       border-top:1px solid #e2ebf3 !important;
-      background:linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-      padding:12px 16px !important;
+      background:#fff;
+      padding:8px 12px !important;
       margin-top:0 !important;
       flex-shrink:0;
     }
     .pb-rubric-remedy-modal__footer .btn-ghost-danger {
-      border-radius:10px;
+      border-radius:5px;
       font-weight:600;
-      padding:6px 14px;
+      padding:5px 12px;
+      font-size:11px;
     }
     .patient-board-page .text-primary { color:#000 !important; }
     .patient-board-page .spinner-border.text-primary { color:#000 !important; }
-    .patient-board-page > .card > .pb-main-card-body {
-      flex:1 1 auto;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-      padding-left:0.25rem;
-      padding-right:0.25rem;
-      padding-bottom:0.25rem;
+
+    /* ===== Patient Board mobile responsive (Repertorize + shell) ===== */
+    @media (max-width: 991.98px) {
+      .patient-board-page {
+        --pb-tab-view-height:auto;
+        min-height:0;
+        overflow-x:hidden;
+      }
+      .pb-tab-main-view {
+        overflow:visible;
+        flex:1 1 auto;
+        min-height:0;
+        height:auto;
+      }
+      /* Repertorize: page-scroll stacked cards */
+      .pb-tab-panel--repertorize {
+        height:auto !important;
+        max-height:none !important;
+        overflow:visible !important;
+        flex:none !important;
+      }
+      .pb-repertorize-layout__rubrics,
+      .pb-repertorize-layout__common,
+      .pb-repertorize-layout__uncommon,
+      .pb-repertorize-layout__section,
+      .pb-repertorize-layout__dmm,
+      .pb-repertorize-layout__headings {
+        min-height:260px;
+        max-height:420px;
+      }
+
+      /* Repertory / Questions / Clinical: keep panels visible (avoid height:100% collapse) */
+      .pb-tab-panel--repertory,
+      .pb-tab-panel--questions,
+      .pb-tab-panel--clinical {
+        height:auto !important;
+        min-height:65vh !important;
+        max-height:none !important;
+        overflow:visible !important;
+        flex:1 1 auto !important;
+      }
+      .pb-tab-sub-view--repertory,
+      .pb-tab-sub-view--questions,
+      .pb-tab-sub-view--clinical {
+        flex:none !important;
+        height:auto !important;
+        min-height:58vh !important;
+        overflow:visible !important;
+      }
+      .pb-tab-sub-view--repertory > .pb-tab-cards-row--fill,
+      .pb-tab-sub-view--questions > .pb-tab-cards-row--fill,
+      .pb-tab-sub-view--clinical > .pb-clinical-main-row {
+        display:flex !important;
+        flex-direction:column !important;
+        flex-wrap:nowrap !important;
+        height:auto !important;
+        min-height:0 !important;
+        gap:0.35rem !important;
+        grid-template-columns:none !important;
+      }
+      .pb-tab-sub-view--repertory > .pb-tab-cards-row--fill > [class*="col-"],
+      .pb-tab-sub-view--questions > .pb-tab-cards-row--fill > [class*="col-"],
+      .pb-tab-sub-view--clinical > .pb-clinical-main-row > [class*="col-"] {
+        width:100% !important;
+        max-width:100% !important;
+        flex:0 0 auto !important;
+        height:auto !important;
+        min-height:280px !important;
+      }
+      .pb-tab-sub-view--repertory .pb-tab-card--544,
+      .pb-tab-sub-view--repertory .pb-tab-card--fill,
+      .pb-tab-sub-view--questions .pb-tab-card--544,
+      .pb-tab-sub-view--questions .pb-tab-card--fill,
+      .pb-tab-sub-view--clinical .pb-tab-card--fill {
+        height:320px !important;
+        min-height:320px !important;
+        max-height:420px !important;
+        flex:none !important;
+      }
+      .pb-tab-sub-view--clinical .pb-clinical-center-stack {
+        height:auto !important;
+        min-height:0 !important;
+        grid-template-rows:none !important;
+        display:flex !important;
+        flex-direction:column !important;
+        gap:0.35rem !important;
+      }
+      .pb-tab-sub-view--clinical .pb-clinical-center-stack > .pb-clinical-keywords-card,
+      .pb-tab-sub-view--clinical .pb-clinical-center-stack > .pb-clinical-rubrics-card {
+        height:280px !important;
+        min-height:280px !important;
+        max-height:360px !important;
+      }
+
+      /* Search boxes: full width when 3-col grid collapses (was stuck in 2fr track) */
+      .pb-tab-panel--repertory .pb-repertory-toolbar {
+        display:grid !important;
+        grid-template-columns:minmax(0, 1fr) !important;
+        gap:0 !important;
+        width:100% !important;
+      }
+      .pb-tab-panel--repertory .pb-repertory-toolbar__search-col,
+      .pb-tab-panel--repertory .pb-repertory-global-search-wrap,
+      .pb-repertory-global-search-wrap {
+        width:100% !important;
+        max-width:100% !important;
+      }
+      .pb-tab-panel--repertory .pb-repertory-global-search-wrap .form-control {
+        width:100% !important;
+        border-radius:5px;
+      }
+      .pb-tab-panel--repertory .pb-subsection-search-wrap,
+      .pb-questions-panel-header .pb-questions-search-wrap,
+      .pb-tab-panel--clinical .pb-questions-search-wrap {
+        min-width:0 !important;
+        max-width:none !important;
+        flex:1 1 auto !important;
+      }
+
+      /* Clinical / Adverse header: stack select above description (no overlap) */
+      .pb-clinical-header-bar.pb-ae-header-bar,
+      .pb-tab-panel--adverse .pb-ae-header-bar {
+        flex-direction:column !important;
+        align-items:stretch !important;
+        flex-wrap:nowrap !important;
+        height:auto !important;
+        min-height:0 !important;
+        gap:8px !important;
+        padding:8px !important;
+      }
+      .pb-clinical-header-bar__select-row {
+        width:100%;
+        flex:0 0 auto !important;
+      }
+      .pb-clinical-header-bar__select-row .pb-ae-header-bar__select-wrap,
+      .pb-tab-panel--adverse .pb-ae-header-bar__select-wrap {
+        flex:1 1 auto !important;
+        min-width:0 !important;
+        max-width:none !important;
+        width:100%;
+      }
+      .pb-clinical-header-bar__meta {
+        width:100%;
+        flex:0 0 auto !important;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:4px;
+      }
+      .pb-clinical-header-bar .pb-ae-header-bar__info,
+      .pb-tab-panel--adverse .pb-ae-header-bar__info {
+        width:100%;
+        justify-content:flex-start !important;
+        text-align:left !important;
+        padding:0 !important;
+      }
+      .pb-clinical-header-bar .pb-ae-header-bar__category,
+      .pb-tab-panel--adverse .pb-ae-header-bar__category {
+        width:100%;
+        max-width:none !important;
+        text-align:left !important;
+        padding-left:0 !important;
+      }
+      .pb-clinical-header-bar .pb-ae-header-bar__divider,
+      .pb-tab-panel--adverse .pb-ae-header-bar__divider {
+        display:none !important;
+      }
+      .pb-clinical-header-desc {
+        display:block;
+        width:100%;
+        white-space:normal;
+      }
+
+      /* Clinical bottom strip: stack 4 columns full-width on mobile */
+      .pb-clinical-bottom-grid {
+        grid-template-columns:1fr !important;
+      }
+      .pb-clinical-bottom-col {
+        width:100% !important;
+        border-right:0 !important;
+        border-bottom:1px solid #e2ebf3;
+      }
+      .pb-clinical-bottom-col:last-child {
+        border-bottom:0;
+      }
+      .pb-clinical-th {
+        justify-content:flex-start !important;
+        text-align:left !important;
+        padding:6px 8px !important;
+      }
+      .pb-clinical-td {
+        padding:6px 8px 10px !important;
+      }
+      .pb-clinical-bottom-strip {
+        height:auto !important;
+        min-height:0 !important;
+      }
+      .pb-tab-sub-view--clinical .pb-clinical-table-wrap {
+        height:auto !important;
+        max-height:none !important;
+        overflow:visible !important;
+      }
     }
-    .pb-main-card-body > *:not(.pb-tab-main-view) {
-      flex-shrink:0;
+
+    @media (max-width: 767.98px) {
+      .patient-board-page {
+        --pb-page-gutter:0.5rem;
+      }
+      .pb-info {
+        flex-direction:column;
+        align-items:stretch !important;
+        gap:8px !important;
+      }
+      .pb-info__identity {
+        width:100%;
+        display:flex;
+        flex-wrap:nowrap;
+        align-items:flex-start;
+        gap:10px;
+      }
+      .pb-info__avatar-wrap {
+        margin-top:2px;
+      }
+      .pb-info__details {
+        flex:1 1 auto;
+        min-width:0;
+        display:flex;
+        flex-direction:row;
+        flex-wrap:wrap;
+        align-items:center;
+        gap:6px;
+      }
+      .pb-info__name {
+        flex:1 1 100%;
+        width:100%;
+        min-width:0;
+        line-height:1.3;
+      }
+      .pb-info__meta {
+        flex:0 1 auto;
+        max-width:100%;
+      }
+      .pb-info__actions {
+        margin-left:0 !important;
+        align-self:flex-start;
+        flex-shrink:0;
+        gap:6px;
+        padding-top:0;
+      }
+      .pb-info__aside {
+        width:100%;
+        margin-left:0 !important;
+        justify-content:flex-start !important;
+        gap:6px !important;
+        flex-wrap:wrap;
+      }
+      .pb-info__status {
+        width:100%;
+        display:flex;
+        flex-wrap:wrap;
+        gap:6px;
+      }
+      .pb-info__chip,
+      .pb-appointment-date {
+        flex:1 1 auto;
+        min-width:0;
+        justify-content:flex-start;
+      }
+
+      .pb-main-toolbar {
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+        align-items:stretch !important;
+        flex-direction:unset !important;
+        flex-wrap:unset !important;
+        gap:8px !important;
+        min-height:0 !important;
+      }
+      .pb-main-toolbar__left {
+        grid-column:1 / -1;
+        display:flex !important;
+        width:100%;
+        margin-left:0 !important;
+        order:unset !important;
+      }
+      .pb-main-toolbar__left .pb-repertorize-tab-btn {
+        flex:1 1 auto;
+        width:100%;
+        justify-content:center;
+        min-width:0;
+      }
+      /* Center tabs + Prescription share one 2-col grid; Prescription after Deep Analysis */
+      .pb-main-toolbar__center,
+      .pb-main-toolbar__right {
+        display:contents !important;
+        width:auto;
+        margin-left:0 !important;
+        order:unset !important;
+      }
+      .pb-main-toolbar .pb-tab,
+      .pb-main-toolbar .pb-prescription-tab-btn {
+        width:100%;
+        min-width:0;
+        justify-content:center;
+        padding-left:8px;
+        padding-right:8px;
+      }
+
+      .pb-repertorize-toolbar.row,
+      .pb-repertorize-toolbar {
+        flex-direction:column !important;
+        align-items:stretch !important;
+        gap:8px !important;
+        padding:8px !important;
+      }
+      .pb-repertorize-toolbar > [class*="col"] {
+        width:100% !important;
+        max-width:100% !important;
+        flex:0 0 auto !important;
+        justify-content:stretch;
+      }
+      .pb-repertorize-toolbar__add {
+        width:100%;
+        justify-content:center;
+      }
+      .pb-repertorize-toolbar__actions {
+        width:100%;
+        margin-left:0 !important;
+        flex-wrap:wrap !important;
+        justify-content:flex-start !important;
+        gap:6px !important;
+      }
+      .pb-repertorize-toolbar__thermals {
+        width:100%;
+        justify-content:flex-start !important;
+        margin-right:0 !important;
+        margin-bottom:2px;
+      }
+      .pb-repertorize-toolbar__reset,
+      .pb-repertorize-toolbar__keynote,
+      .pb-repertorize-toolbar__small {
+        flex:1 1 calc(50% - 6px);
+        min-width:0;
+        justify-content:center;
+        white-space:nowrap;
+      }
+
+      .pb-tab-cards-row,
+      .pb-clinical-main-row,
+      .pb-ae-columns-row {
+        flex-direction:column !important;
+      }
+      .pb-tab-cards-row > [class*="col"],
+      .pb-clinical-main-row > [class*="col"],
+      .pb-ae-columns-row > [class*="col"] {
+        width:100% !important;
+        max-width:100% !important;
+        flex:0 0 auto !important;
+      }
+
+      .pb-mm-layout {
+        flex-direction:column;
+      }
+      .pb-mm-headings-panel {
+        flex:0 0 auto;
+        max-width:100%;
+        min-width:0;
+        max-height:240px;
+      }
+      .pb-mm-header-bar__fields {
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+      .pb-mm-header-bar__title {
+        text-align:left;
+        min-width:0;
+        flex:1 1 100%;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .pb-main-toolbar__center {
+        grid-template-columns:1fr 1fr;
+      }
+      .pb-info__name {
+        font-size:12px !important;
+      }
+      .pb-info__identity {
+        align-items:flex-start;
+      }
+      .pb-info__actions {
+        align-self:flex-start;
+      }
+      .pb-repertorize-toolbar__reset,
+      .pb-repertorize-toolbar__keynote,
+      .pb-repertorize-toolbar__small {
+        flex:1 1 100%;
+      }
+      .pb-repertorize-layout__rubrics,
+      .pb-repertorize-layout__common,
+      .pb-repertorize-layout__uncommon,
+      .pb-repertorize-layout__section,
+      .pb-repertorize-layout__dmm,
+      .pb-repertorize-layout__headings {
+        min-height:240px;
+        max-height:360px;
+      }
+    }
+
+    @media (max-width: 499.98px) {
+      .patient-board-page {
+        --pb-page-gutter:0.4rem;
+      }
+      .pb-info__actions .btn-icon {
+        width:30px;
+        height:30px;
+      }
+      .pb-info__actions .btn-icon i {
+        font-size:14px;
+      }
+      .pb-main-toolbar__center .pb-tab {
+        font-size:10px !important;
+        gap:4px;
+      }
+      .pb-main-toolbar__center .pb-tab i {
+        font-size:12px;
+      }
     }
   `;
 
@@ -10217,8 +12316,7 @@ const PatientBoard = () => {
         </div>
       </div>
 
-      <Card className="mt-3">
-        <CardBody className="pb-main-card-body">
+      <div className="pb-main-content">
           <div className="mar-10 d-flex align-items-center justify-content-between flex-wrap gap-2 pb-info">
             <div className="pb-info__identity">
               <div className="pb-info__avatar-wrap">
@@ -10358,7 +12456,7 @@ const PatientBoard = () => {
 
           {!showAudioCasePanel && (
           <>
-          <div className="mt-1 mb-1 pb-section-divider"></div>
+          <div className="mt-0 mb-1 pb-section-divider"></div>
 
           <div className="pb-main-toolbar">
             <div className="pb-main-toolbar__left">
@@ -10387,34 +12485,34 @@ const PatientBoard = () => {
                   Audio case
                 </button>
               )}
-              <span className={`pb-tab ${activeTab === 'Body Parts' ? 'active' : ''}`} onClick={() => setActiveTab('Body Parts')}>
+              <span className={`pb-tab pb-tab--body-parts${activeTab === 'Body Parts' ? ' active' : ''}`} onClick={() => setActiveTab('Body Parts')}>
                 <i className="ri-body-scan-line" aria-hidden="true" />
                 Body Parts
               </span>
               <span
-                className={`pb-tab ${activeTab === 'Questions' ? 'active' : ''}`}
+                className={`pb-tab pb-tab--questions${activeTab === 'Questions' ? ' active' : ''}`}
                 onClick={() => setActiveTab('Questions')}
               >
                 <i className="ri-questionnaire-line" aria-hidden="true" />
                 Questions
               </span>
-              <span className={`pb-tab ${activeTab === 'Clinical Pattern' ? 'active' : ''}`} onClick={() => setActiveTab('Clinical Pattern')}>
+              <span className={`pb-tab pb-tab--clinical${activeTab === 'Clinical Pattern' ? ' active' : ''}`} onClick={() => setActiveTab('Clinical Pattern')}>
                 <i className="ri-stethoscope-line" aria-hidden="true" />
                 Clinical Pattern
               </span>
-              <span className={`pb-tab ${activeTab === 'Repertory' ? 'active' : ''}`} onClick={() => setActiveTab('Repertory')}>
+              <span className={`pb-tab pb-tab--repertory${activeTab === 'Repertory' ? ' active' : ''}`} onClick={() => setActiveTab('Repertory')}>
                 <i className="ri-book-2-line" aria-hidden="true" />
                 Repertory
               </span>
-              <span className={`pb-tab ${activeTab === 'Materia Medica' ? 'active' : ''}`} onClick={() => setActiveTab('Materia Medica')}>
+              <span className={`pb-tab pb-tab--materia${activeTab === 'Materia Medica' ? ' active' : ''}`} onClick={() => setActiveTab('Materia Medica')}>
                 <i className="ri-book-open-line" aria-hidden="true" />
                 Materia Medica
               </span>
-              <span className={`pb-tab ${activeTab === 'Adverse Effect' ? 'active' : ''}`} onClick={() => setActiveTab('Adverse Effect')}>
+              <span className={`pb-tab pb-tab--adverse${activeTab === 'Adverse Effect' ? ' active' : ''}`} onClick={() => setActiveTab('Adverse Effect')}>
                 <i className="ri-alert-line" aria-hidden="true" />
                 Adverse Effect
               </span>
-              <span className={`pb-tab ${activeTab === 'Deep Analysis' ? 'active' : ''}`} onClick={() => setActiveTab('Deep Analysis')}>
+              <span className={`pb-tab pb-tab--deep${activeTab === 'Deep Analysis' ? ' active' : ''}`} onClick={() => setActiveTab('Deep Analysis')}>
                 <i className="ri-radar-line" aria-hidden="true" />
                 Deep Analysis
               </span>
@@ -10423,7 +12521,7 @@ const PatientBoard = () => {
               {activeTab === 'Repertorize' && (
                 <Button
                   type="button"
-                  className="btn btn-sm pb-prescription-tab-btn"
+                  className={`btn btn-sm pb-prescription-tab-btn${prescriptionModalOpen ? ' active' : ''}`}
                   onClick={() => setPrescriptionModalOpen(true)}
                 >
                   <i className="ri-file-list-3-line" aria-hidden="true" />
@@ -10438,40 +12536,44 @@ const PatientBoard = () => {
             {activeTab === 'Clinical Pattern' && (
               <div className="p-0 pb-tab-panel pb-tab-panel--clinical d-flex flex-column h-100 min-h-0">
                 <div className="pb-ae-header-bar pb-clinical-header-bar flex-shrink-0">
-                  <div className="pb-ae-header-bar__icon" aria-hidden="true">
-                    <i className="ri-stethoscope-line" />
+                  <div className="pb-clinical-header-bar__select-row">
+                    <div className="pb-ae-header-bar__icon" aria-hidden="true">
+                      <i className="ri-stethoscope-line" />
+                    </div>
+                    <div className="pb-ae-header-bar__select-wrap">
+                      <Select
+                        inputId="cp-select-pattern"
+                        aria-label="Clinical Pattern"
+                        isClearable={true}
+                        isSearchable={true}
+                        value={selectedClinicalPattern}
+                        onChange={handleClinicalPatternSelect}
+                        options={clinicalPatternOptions}
+                        placeholder="Search pattern..."
+                        classNamePrefix="pb-ae-select"
+                        styles={patientBoardSelectStyles}
+                        noOptionsMessage={() => 'No patterns found'}
+                      />
+                    </div>
                   </div>
-                  <div className="pb-ae-header-bar__select-wrap">
-                    <Select
-                      inputId="cp-select-pattern"
-                      aria-label="Clinical Pattern"
-                      isClearable={true}
-                      isSearchable={true}
-                      value={selectedClinicalPattern}
-                      onChange={handleClinicalPatternSelect}
-                      options={clinicalPatternOptions}
-                      placeholder="Search pattern..."
-                      classNamePrefix="pb-ae-select"
-                      styles={patientBoardSelectStyles}
-                      noOptionsMessage={() => 'No patterns found'}
-                    />
-                  </div>
-                  <div className="pb-ae-header-bar__divider" aria-hidden="true" />
-                  <div className="pb-ae-header-bar__info">
-                    {selectedClinicalPattern ? (
-                      <>
-                        <span className="ae-name">{selectedClinicalPattern.label}</span>
-                        {diagnosisData?.diagnosisNameAlias && (
-                          <span className="pb-clinical-header-desc"> — {diagnosisData.diagnosisNameAlias}</span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-muted small">Choose a clinical pattern to begin</span>
-                    )}
-                  </div>
-                  <div className="pb-ae-header-bar__divider" aria-hidden="true" />
-                  <div className="pb-ae-header-bar__category cp-category">
-                    {diagnosisData?.miasm || selectedClinicalPattern?.category || 'General'}
+                  <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
+                  <div className="pb-clinical-header-bar__meta">
+                    <div className="pb-ae-header-bar__info">
+                      {selectedClinicalPattern ? (
+                        <>
+                          <span className="ae-name">{selectedClinicalPattern.label}</span>
+                          {diagnosisData?.diagnosisNameAlias && (
+                            <span className="pb-clinical-header-desc"> — {diagnosisData.diagnosisNameAlias}</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-muted small">Choose a clinical pattern to begin</span>
+                      )}
+                    </div>
+                    <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
+                    <div className="pb-ae-header-bar__category cp-category">
+                      {diagnosisData?.miasm || selectedClinicalPattern?.category || 'General'}
+                    </div>
                   </div>
                 </div>
 
@@ -10597,13 +12699,13 @@ const PatientBoard = () => {
                               </span>
                               RUBRICS WITH REMEDIES
                             </div>
-                            <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end flex-grow-1">
+                            <div className="d-flex align-items-center gap-2 flex-nowrap justify-content-end flex-grow-1 min-w-0">
                               {(activeKeyword || activeKeywordTab) && !rubricByKeywordIdLoading && filteredRubricRemedies.length > 0 && (
                                 <span className="pb-questions-result-count">
                                   {filteredRubricRemedies.length} rubric{filteredRubricRemedies.length === 1 ? '' : 's'}
                                 </span>
                               )}
-                              <div className="pb-questions-search-wrap" style={{ minWidth: 180, maxWidth: 240, flex: '1 1 180px' }}>
+                              <div className="pb-questions-search-wrap" style={{ minWidth: 140, maxWidth: 220, flex: '1 1 140px' }}>
                                 {renderQuestionsSearchInput(
                                   rubricRemedySearch,
                                   setRubricRemedySearch,
@@ -10617,7 +12719,14 @@ const PatientBoard = () => {
                             </div>
                           </div>
                           <div className="pb-tab-card-divider flex-shrink-0"></div>
-                          <div className="pb-tab-card-scroll custom-scrollbar pb-clinical-rubrics-scroll" onScroll={handleClinicalPatternRubricsScroll}>
+                          <InfiniteScrollContainer
+                            className="pb-tab-card-scroll custom-scrollbar pb-clinical-rubrics-scroll"
+                            enabled={filteredRubricRemedies.length > 0}
+                            hasMore={clinicalPatternRubricHasMore}
+                            loading={clinicalPatternRubricLoadingMore || rubricByKeywordIdLoading}
+                            itemCount={filteredRubricRemedies.length}
+                            onLoadMore={loadMoreClinicalPatternRubrics}
+                          >
                             {rubricByKeywordIdLoading ? (
                               <div className="text-center p-4">
                                 <div className="spinner-border text-primary" role="status">
@@ -10657,7 +12766,7 @@ const PatientBoard = () => {
                                 <p className="text-muted mb-0">No rubrics available. Select a keyword to see rubrics.</p>
                               </div>
                             )}
-                          </div>
+                          </InfiniteScrollContainer>
                         </div>
                       </div>
                     </div>
@@ -10740,32 +12849,32 @@ const PatientBoard = () => {
                   {/* Bottom strip — Investigation / Allopathic / Examination / Systems */}
                   <div className="pb-clinical-bottom-strip flex-shrink-0">
                     <div className="pb-clinical-table-wrap custom-scrollbar">
-                      <table className="table table-bordered mb-0 pb-clinical-bottom-table" style={{ tableLayout: 'fixed' }}>
-                        <thead>
-                          <tr>
-                            <th className="pb-clinical-th pb-clinical-th--investigation">INVESTIGATION</th>
-                            <th className="pb-clinical-th pb-clinical-th--allopathic">ALLOPATHIC RX</th>
-                            <th className="pb-clinical-th pb-clinical-th--examination">EXAMINATION</th>
-                            <th className="pb-clinical-th pb-clinical-th--systems">SYSTEMS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="pb-clinical-td">
-                              {diagnosisData?.investigations || 'No data available'}
-                            </td>
-                            <td className="pb-clinical-td">
-                              {diagnosisData?.allopathicMedicines || 'No data available'}
-                            </td>
-                            <td className="pb-clinical-td">
-                              {diagnosisData?.examiniations || 'No data available'}
-                            </td>
-                            <td className="pb-clinical-td">
-                              {diagnosisData?.diagnosisSystemList?.map(system => system.diagnosisSystemName).join(', ') || 'No data available'}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                      <div className="pb-clinical-bottom-grid">
+                        <div className="pb-clinical-bottom-col">
+                          <div className="pb-clinical-th pb-clinical-th--investigation">INVESTIGATION</div>
+                          <div className="pb-clinical-td">
+                            {diagnosisData?.investigations || 'No data available'}
+                          </div>
+                        </div>
+                        <div className="pb-clinical-bottom-col">
+                          <div className="pb-clinical-th pb-clinical-th--allopathic">ALLOPATHIC RX</div>
+                          <div className="pb-clinical-td">
+                            {diagnosisData?.allopathicMedicines || 'No data available'}
+                          </div>
+                        </div>
+                        <div className="pb-clinical-bottom-col">
+                          <div className="pb-clinical-th pb-clinical-th--examination">EXAMINATION</div>
+                          <div className="pb-clinical-td">
+                            {diagnosisData?.examiniations || 'No data available'}
+                          </div>
+                        </div>
+                        <div className="pb-clinical-bottom-col">
+                          <div className="pb-clinical-th pb-clinical-th--systems">SYSTEMS</div>
+                          <div className="pb-clinical-td">
+                            {diagnosisData?.diagnosisSystemList?.map(system => system.diagnosisSystemName).join(', ') || 'No data available'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -10784,8 +12893,8 @@ const PatientBoard = () => {
             )}
             {activeTab === 'Repertory' && (
               <div className="p-0 pb-tab-panel pb-tab-panel--repertory d-flex flex-column h-100 min-h-0">
-                <div className="row g-0 align-items-center flex-shrink-0 pb-repertory-toolbar">
-                  <div className="col-auto">
+                <div className="flex-shrink-0 pb-repertory-toolbar">
+                  <div className="pb-repertory-toolbar__search-col">
                     <div className={`search-box pb-repertory-global-search-wrap${globalSubSectionSearch.trim() ? ' pb-repertory-search--active' : ''}`} ref={globalSubSectionSearchAnchorRef}>
                       <Input
                         bsSize="sm"
@@ -10833,7 +12942,7 @@ const PatientBoard = () => {
                         <div className="pb-tab-card-divider"></div>
                         <div
                           className="pb-tab-card-scroll custom-scrollbar pb-repertory-section-scroll"
-                          onScroll={handleSectionScroll}
+                          ref={bindSectionScrollEl}
                         >
                             {sectionLoading && sectionPageNumber === 1 && sectionOptions.length === 0 ? (
                               <div className="text-center p-4">
@@ -10861,15 +12970,50 @@ const PatientBoard = () => {
                                   </div>
                                   );
                                 })}
-                                {sectionLoadingMore && (
+                                {sectionLoadingMore && isElementScrollable(sectionScrollEl) && (
                                   <div className="text-center p-2">
                                     <Spinner size="sm" color="primary" />
                                   </div>
                                 )}
+                                {sectionLoadError && !sectionLoadingMore && (
+                                  <div className="text-center p-2">
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-link text-muted p-0"
+                                      onClick={() => {
+                                        sectionLoadErrorRef.current = null;
+                                        setSectionLoadError(null);
+                                        sectionHasMoreRef.current = true;
+                                        setSectionHasMore(true);
+                                        loadNextSectionPage();
+                                      }}
+                                    >
+                                      Retry loading sections
+                                    </button>
+                                  </div>
+                                )}
+                                {sectionHasMore && !sectionLoadError && (
+                                  <span
+                                    ref={bindSectionSentinelEl}
+                                    className="pb-infinite-sentinel"
+                                    aria-hidden="true"
+                                  />
+                                )}
                               </>
                             ) : (
                               <div className="text-center p-4">
-                                <p className="text-muted">No sections available</p>
+                                <p className="text-muted mb-0">
+                                  {sectionLoadError ? sectionLoadError : 'No sections available'}
+                                </p>
+                                {sectionLoadError && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-link p-0 mt-2"
+                                    onClick={fetchSectionPageOne}
+                                  >
+                                    Retry
+                                  </button>
+                                )}
                               </div>
                             )}
                         </div>
@@ -10925,10 +13069,26 @@ const PatientBoard = () => {
                           </div>
                         </div>
                         <div className="pb-tab-card-divider"></div>
-                        <div
+                        <InfiniteScrollContainer
                           className="pb-tab-card-scroll custom-scrollbar pb-repertory-subsection-scroll"
-                          ref={subSectionTreeScrollRef}
-                          onScroll={handleSubSectionTreeScroll}
+                          innerRef={subSectionTreeScrollRef}
+                          enabled={
+                            (isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore)
+                            || (isSubSectionSearchActive && subSectionSearchTreeHasMore)
+                          }
+                          hasMore={
+                            (isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore)
+                            || (isSubSectionSearchActive && subSectionSearchTreeHasMore)
+                          }
+                          loading={
+                            globalSubSectionSearchTreeLoadingMore
+                            || subSectionSearchTreeLoadingMore
+                            || globalSubSectionSearchLoading
+                            || subSectionSearchTreeLoading
+                            || subSectionTreeLoading
+                          }
+                          itemCount={subSectionTreeData.length}
+                          onLoadMore={loadMoreSubSectionSearchTree}
                         >
                             {globalSubSectionSearchLoading || subSectionSearchTreeLoading ? (
                               <div className="text-center p-4">
@@ -10951,14 +13111,9 @@ const PatientBoard = () => {
                                     <p className="text-muted">No subsections match your search</p>
                                   </div>
                                 )}
-                                {((isGlobalSubSectionSearchActive && globalSubSectionSearchTreeHasMore)
-                                  || (isSubSectionSearchActive && subSectionSearchTreeHasMore)) && (
+                                {(globalSubSectionSearchTreeLoadingMore || subSectionSearchTreeLoadingMore) && (
                                   <div className="text-center p-2">
-                                    {globalSubSectionSearchTreeLoadingMore || subSectionSearchTreeLoadingMore ? (
-                                      <Spinner size="sm" color="primary" />
-                                    ) : (
-                                      <p className="text-muted small mb-0">Scroll for more results</p>
-                                    )}
+                                    <Spinner size="sm" color="primary" />
                                   </div>
                                 )}
                               </div>
@@ -10976,7 +13131,7 @@ const PatientBoard = () => {
                                 <p className="text-muted mb-0">Select a section or use global search above</p>
                               </div>
                             )}
-                        </div>
+                        </InfiniteScrollContainer>
                       </div>
                     </div>
 
@@ -11032,8 +13187,8 @@ const PatientBoard = () => {
                         </div>
                         <div className="pb-tab-card-divider"></div>
                         <div className="pb-tab-card-content">
-                        <div className="mb-2 pb-2 flex-shrink-0 pb-repertory-details-title-bar">
-                          <h6 className="fw-bold mb-0 pb-repertory-details-title">
+                        <div className="flex-shrink-0 pb-repertory-details-title-bar">
+                          <h6 className="mb-0 pb-repertory-details-title">
                             <span className="pb-repertory-details-name">{repertoryRubricDetailsHeader.name}</span>
                             <span className="pb-repertory-details-count">[{repertoryRubricDetailsHeader.remedyCount}]</span>
                           </h6>
@@ -11078,7 +13233,7 @@ const PatientBoard = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="w-100 pb-repertory-remedy-wrap">
+                            <div className={`w-100 pb-repertory-remedy-wrap${showRemedyAuthors ? ' pb-repertory-remedy-wrap--authors' : ''}`}>
                               {Array.isArray(displayRubricDetails?.remediesList) && displayRubricDetails.remediesList.length > 0 ? (
                                 displayRubricDetails.remediesList.map((r, idx) => (
                                   <span
@@ -11087,7 +13242,7 @@ const PatientBoard = () => {
                                     style={getRemedyAliasStyle(r, { boostGrade2Weight: true, boostGrade4Font: true })}
                                     onClick={() => handleRemedyAliasClick(r)}
                                   >
-                                    {renderRemedyAliasWithAuthorSubscript(r, showRemedyAuthors)}
+                                    {renderRemedyAliasWithAuthorSubscript(r, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
                                     {showRemedyAuthors && r?.authors && getRemedyAuthorAliases(r).length === 0 && (
                                       <sub className="remedy-author-sub-block">({r.authors})</sub>
                                     )}
@@ -11113,49 +13268,53 @@ const PatientBoard = () => {
             {activeTab === 'Adverse Effect' && (
               <div className="p-0 pb-tab-panel pb-tab-panel--adverse d-flex flex-column">
                 <div className="pb-ae-header-bar pb-clinical-header-bar">
-                  <div className="pb-ae-header-bar__icon" aria-hidden="true">
-                    <i className="ri-capsule-line" />
+                  <div className="pb-clinical-header-bar__select-row">
+                    <div className="pb-ae-header-bar__icon" aria-hidden="true">
+                      <i className="ri-capsule-line" />
+                    </div>
+                    <div className="pb-ae-header-bar__select-wrap">
+                      <Select
+                        inputId="ae-select-type"
+                        name="ae-select-type"
+                        aria-label="Select drug"
+                        value={selectedAdverseType}
+                        onChange={handleDrugSelection}
+                        options={adverseTypeOptions}
+                        placeholder="Search drug..."
+                        isSearchable={true}
+                        isClearable={true}
+                        isLoading={allopathicDrugForDropdownLoading}
+                        classNamePrefix="pb-ae-select"
+                        styles={patientBoardSelectStyles}
+                        noOptionsMessage={() => 'No drugs found'}
+                        loadingMessage={() => 'Loading drugs...'}
+                      />
+                    </div>
                   </div>
-                  <div className="pb-ae-header-bar__select-wrap">
-                    <Select
-                      inputId="ae-select-type"
-                      name="ae-select-type"
-                      aria-label="Select drug"
-                      value={selectedAdverseType}
-                      onChange={handleDrugSelection}
-                      options={adverseTypeOptions}
-                      placeholder="Search drug..."
-                      isSearchable={true}
-                      isClearable={true}
-                      isLoading={allopathicDrugForDropdownLoading}
-                      classNamePrefix="pb-ae-select"
-                      styles={patientBoardSelectStyles}
-                      noOptionsMessage={() => 'No drugs found'}
-                      loadingMessage={() => 'Loading drugs...'}
-                    />
-                  </div>
-                  <div className="pb-ae-header-bar__divider" aria-hidden="true" />
-                  <div className="pb-ae-header-bar__info">
-                    {drugDetailsLoading && selectedAdverseType ? (
-                      <span className="text-muted small d-inline-flex align-items-center gap-2">
-                        <Spinner size="sm" />
-                        Loading drug details...
-                      </span>
-                    ) : adverseDrugDetails ? (
-                      <>
-                        <span className="ae-name">{adverseDrugDetails.allopathicDrugName}</span>
-                        {' '}
-                        <span className="ae-system">[{adverseDrugDetails.drugSystemName}]</span>
-                      </>
-                    ) : selectedAdverseType ? (
-                      <span className="ae-name">{selectedAdverseType.label}</span>
-                    ) : (
-                      <span className="text-muted small">Choose a drug to view adverse effects</span>
-                    )}
-                  </div>
-                  <div className="pb-ae-header-bar__divider" aria-hidden="true" />
-                  <div className="pb-ae-header-bar__category ae-category">
-                    {adverseDrugDetails?.drugGroupName || selectedAdverseType?.category || '—'}
+                  <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
+                  <div className="pb-clinical-header-bar__meta">
+                    <div className="pb-ae-header-bar__info">
+                      {drugDetailsLoading && selectedAdverseType ? (
+                        <span className="text-muted small d-inline-flex align-items-center gap-2">
+                          <Spinner size="sm" />
+                          Loading drug details...
+                        </span>
+                      ) : adverseDrugDetails ? (
+                        <>
+                          <span className="ae-name">{adverseDrugDetails.allopathicDrugName}</span>
+                          {' '}
+                          <span className="ae-system">[{adverseDrugDetails.drugSystemName}]</span>
+                        </>
+                      ) : selectedAdverseType ? (
+                        <span className="ae-name">{selectedAdverseType.label}</span>
+                      ) : (
+                        <span className="text-muted small">Choose a drug to view adverse effects</span>
+                      )}
+                    </div>
+                    <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
+                    <div className="pb-ae-header-bar__category ae-category">
+                      {adverseDrugDetails?.drugGroupName || selectedAdverseType?.category || '—'}
+                    </div>
                   </div>
                 </div>
 
@@ -11302,9 +13461,6 @@ const PatientBoard = () => {
                   <div className="pb-mm-header-bar__fields">
                     <div className="pb-mm-header-bar__select-group">
                       <div className="pb-mm-header-bar__select-wrap">
-                        <label className="pb-mm-header-bar__select-label" htmlFor="mm-select-remedy">
-                          Search Remedy
-                        </label>
                         <div className="pb-mm-header-bar__author-row">
                           <div className="pb-mm-header-bar__icon" aria-hidden="true">
                             <i className="ri-book-open-line" />
@@ -11312,6 +13468,7 @@ const PatientBoard = () => {
                           <div className="pb-mm-header-bar__author-select">
                             <Select
                               inputId="mm-select-remedy"
+                              aria-label="Search remedy"
                               isClearable={true}
                               isSearchable={true}
                               value={selectedRemedy}
@@ -11329,9 +13486,6 @@ const PatientBoard = () => {
                     </div>
                     <div className="pb-mm-header-bar__select-group">
                       <div className="pb-mm-header-bar__select-wrap">
-                        <label className="pb-mm-header-bar__select-label" htmlFor="mm-select-author">
-                          Search Author
-                        </label>
                         <div className="pb-mm-header-bar__author-row">
                           <div className="pb-mm-header-bar__icon" aria-hidden="true">
                             <i className="ri-user-star-line" />
@@ -11340,6 +13494,7 @@ const PatientBoard = () => {
                             <Select
                               inputId="mm-select-author"
                               name="mm-select-author"
+                              aria-label="Search author"
                               value={selectedAuthor}
                               onChange={(option) => setSelectedAuthor(option)}
                               options={authorOptions}
@@ -11453,11 +13608,6 @@ const PatientBoard = () => {
                           </span>
                           {[selectedRemedy?.label, selectedAuthor?.label].filter(Boolean).join(' | ') || 'Materia Medica'}
                         </h5>
-                        {selectedRemedy?.label && (
-                          <p className="pb-mm-content-subtitle mb-0">
-                            Selected Remedy: <span className="fw-semibold">{selectedRemedy.label}</span>
-                          </p>
-                        )}
                       </div>
                       <div className="pb-mm-content-tools">
                         <Button
@@ -11486,8 +13636,11 @@ const PatientBoard = () => {
                     <div className="pb-mm-panel-divider" />
                     <div
                       ref={mmContentScrollRef}
-                      className="pb-mm-content-scroll mm-info custom-scrollbar"
-                      style={{ fontSize: mmFontSize }}
+                      className="pb-mm-content-scroll mm-info mm-info-scroll custom-scrollbar"
+                      style={{
+                        fontSize: `${mmFontSize}px`,
+                        '--mm-font-size': `${mmFontSize}px`,
+                      }}
                     >
                       {(() => {
                         const authorId = selectedAuthor?.value ?? selectedAuthor;
@@ -11553,18 +13706,18 @@ const PatientBoard = () => {
             )}
             {activeTab === 'Repertorize' && (
               <div className="p-0 pb-tab-panel pb-tab-panel--repertorize d-flex flex-column">
-                <div className="row g-1 align-items-center mb-1 flex-shrink-0 pb-repertorize-toolbar">
-                  <div className="col-md-3">
+                <div className="row align-items-center flex-shrink-0 pb-repertorize-toolbar">
+                  <div className="col-auto">
                     <Button
                       className="btn-sm pb-repertorize-toolbar__add"
                       onClick={() => setActiveTab('Repertory')}
                     >
-                      <i className="ri-add-line me-1" aria-hidden="true" />
+                      <i className="ri-file-add-line" aria-hidden="true" />
                       Add Rubric
                     </Button>
                   </div>
-                  <div className="col-md-6 d-flex align-items-center justify-content-center">
-                    <div className="d-flex align-items-center gap-1 pb-repertorize-toolbar__thermals">
+                  <div className="col d-flex align-items-center justify-content-end pb-repertorize-toolbar__actions">
+                    <div className="d-flex align-items-center pb-repertorize-toolbar__thermals">
                       {thermalCircles.map((circle) => {
                         const hasText = circle.label === 'N/A';
                         const isSelected = selectedThermalId === circle.id;
@@ -11575,7 +13728,7 @@ const PatientBoard = () => {
                         } : undefined;
                         const id = `pb-circle-repertorize-${circle.id}`;
                         return (
-                          <React.Fragment key={circle.id}>
+                          <span key={circle.id} className="pb-repertorize-toolbar__thermal-item">
                             <span
                               id={id}
                               className="pb-circle"
@@ -11591,38 +13744,37 @@ const PatientBoard = () => {
                               {hasText ? 'N/A' : ''}
                             </span>
                             <UncontrolledTooltip placement="top" target={id}>{circle.label}</UncontrolledTooltip>
-                          </React.Fragment>
+                          </span>
                         );
                       })}
                     </div>
-                  </div>
-                  <div className="col-md-3 d-flex justify-content-end gap-2 pb-repertorize-toolbar__actions">
                     <Button
                       className="btn-sm pb-repertorize-toolbar__reset"
                       onClick={handleReset}
                     >
+                      <i className="ri-refresh-line" aria-hidden="true" />
                       Reset
                     </Button>
                     <Button
                       className={`btn-sm pb-repertorize-toolbar__keynote${isKeynoteMethodActive ? ' is-active' : ''}`}
                       onClick={handleKeynoteMethodClick}
                     >
+                      <i className="ri-key-2-line" aria-hidden="true" />
                       Keynote Method
                     </Button>
                     <Button
                       className={`btn-sm pb-repertorize-toolbar__small${isSmallRubricsActive ? ' is-active' : ''}`}
                       onClick={handleSmallRubricClick}
                     >
+                      <i className="ri-filter-3-line" aria-hidden="true" />
                       Small Rubrics
                     </Button>
                   </div>
                 </div>
 
                 <div className="pb-repertorize-layout">
-                <div className="pb-repertorize-layout__top">
-                <div className="row g-1 mt-0 pb-tab-cards-row pb-repertorize-top-row">
-                  {/* Rubrics for Repertorization - Responsive Width */}
-                  <div className="col-12 col-md-4 pb-repertorize-rubrics-col">
+                  {/* Rubrics for Repertorization */}
+                  <div className="pb-repertorize-layout__rubrics">
                     <div className="border rounded-2 pb-tab-card pb-tab-card--500 pb-repertorize-panel-card">
                       <div className="d-flex align-items-center justify-content-between flex-nowrap gap-2 pb-repertorize-panel-header">
                         <div className="fw-semibold pb-section-title mb-0">
@@ -11674,31 +13826,24 @@ const PatientBoard = () => {
                                   {rubric.rubricName} [{rubric.remedyCount || 0}]
                                 </span>
                                 <div className="pb-repertorization-rubric-actions d-flex align-items-center flex-shrink-0">
-                                  <div className="pb-repertorization-chips-slot">
-                                    <div className="pb-rubric-badges pb-rubric-badges--repertorization">
-                                      {renderIntensityChips(rubric, handleIntensityChipClick, { intensityNo: rubric.intensityNo })}
-                                    </div>
+                                  <div className="pb-repertorization-grade-chips" aria-hidden="true">
+                                    {renderIntensityChips(rubric, handleIntensityChipClick, { intensityNo: rubric.intensityNo })}
                                   </div>
+                                  <span className="pb-repertorization-intensity-badge">
+                                    {rubric.intensityNo}
+                                  </span>
                                   <i
-                                    className={isFilled ? 'ri-triangle-fill text-primary' : 'ri-triangle-line'}
-                                    style={{ fontSize: '14px', cursor: 'pointer', flexShrink: 0 }}
+                                    className={`pb-repertorization-action-icon ${isFilled ? 'ri-triangle-fill text-primary' : 'ri-triangle-line'}`}
                                     title="Eliminate"
                                     onClick={(e) => handleEliminationToggle(e, rubric)}
                                   />
                                   <i
-                                    className="ri-delete-bin-line text-danger"
-                                    style={{ fontSize: '12px', cursor: 'pointer', flexShrink: 0 }}
+                                    className="ri-delete-bin-line text-danger pb-repertorization-action-icon"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteRepertorizationRubric(rubric.rubricId);
                                     }}
                                   />
-                                  <span
-                                    className="badge pb-repertorization-intensity-badge"
-                                    style={{ background: '#000000', color: 'white', fontSize: '10px', flexShrink: 0 }}
-                                  >
-                                    {rubric.intensityNo}
-                                  </span>
                                 </div>
                               </div>
                             );
@@ -11708,8 +13853,8 @@ const PatientBoard = () => {
                     </div>
                   </div>
 
-                  {/* Common - Responsive Width */}
-                  <div className="col-12 col-md-4 pb-repertorize-common-col">
+                  {/* Common */}
+                  <div className="pb-repertorize-layout__common">
                     <div className="border rounded-2 pb-tab-card pb-tab-card--500 pb-repertorize-panel-card">
                       <div className="d-flex align-items-center justify-content-between flex-nowrap gap-2 pb-repertorize-panel-header">
                         <div className="fw-semibold pb-section-title mb-0">
@@ -11800,8 +13945,8 @@ const PatientBoard = () => {
                     </div>
                   </div>
 
-                  {/* Uncommon - Responsive Width */}
-                  <div className="col-12 col-md-4 pb-repertorize-uncommon-col">
+                  {/* Uncommon */}
+                  <div className="pb-repertorize-layout__uncommon">
                     <div className="border rounded-2 pb-tab-card pb-tab-card--500 pb-repertorize-panel-card">
                       <div className="d-flex align-items-center justify-content-between flex-nowrap gap-2 pb-repertorize-panel-header">
                         <div className="fw-semibold pb-section-title mb-0">
@@ -11890,14 +14035,9 @@ const PatientBoard = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-                </div>
 
-                {/* ###### Dj UI Code Start - Differential Materia Medica Card with Tabs Styling and Real Content ###### */}
+                {/* Differential Materia Medica */}
                 <div className="pb-repertorize-layout__dmm">
-                <div className="row g-1 mt-0 pb-tab-cards-row pb-repertorize-bottom-row">
-                  {/* Differential Materia Medica */}
-                  <div className="col-12 pb-repertorize-dmm-col">
                     <div className="border rounded-2 pb-tab-card pb-tab-card--580 pb-repertorize-dmm-card">
                       <div className="d-flex align-items-center justify-content-between flex-nowrap gap-2 pb-repertorize-panel-header pb-repertorize-side-header">
                         <div className="fw-semibold pb-section-title mb-0">
@@ -11965,19 +14105,23 @@ const PatientBoard = () => {
                               const remedyKey = remedy.remedyId ?? `${remedy.remedyName}-${index}`;
                               return (
                                 <div key={remedyKey} className={containerClasses}>
-                                  <div className="d-flex align-items-center justify-content-between mb-1">
-                                    <div>
-                                      <strong style={{ fontSize: '13px' }}>{remedy.remedyName}</strong>
+                                  <div className="d-flex align-items-center justify-content-between mb-1 pb-dmm-remedy-header">
+                                    <div className="pb-dmm-remedy-title-wrap">
+                                      <strong className="pb-dmm-remedy-name">{remedy.remedyName}</strong>
                                       {remedy.score ? (
-                                        <span className="ms-2" style={{ fontSize: '12px', color: '#004c9d' }}>[{remedy.score}]</span>
+                                        <span className="pb-dmm-remedy-score">
+                                          {String(remedy.score).trim().startsWith('[')
+                                            ? remedy.score
+                                            : `[${remedy.score}]`}
+                                        </span>
                                       ) : null}
                                     </div>
                                   </div>
                                   {remedy.entries && remedy.entries.length > 0 ? (
                                     remedy.entries.map((entry, entryIndex) => (
-                                      <div key={`${remedyKey}-${entryIndex}`} className={entryIndex === remedy.entries.length - 1 ? 'mb-1' : 'mb-2'}>
-                                        <div className="fw-semibold" style={{ fontSize: '12px', color: '#000000' }}>{entry.materiaMedicaHeadName}</div>
-                                        <div style={{ fontSize: `${mmFontSize}px`, lineHeight: 1.5 }}>
+                                      <div key={`${remedyKey}-${entryIndex}`} className={entryIndex === remedy.entries.length - 1 ? 'mb-1 pb-dmm-entry' : 'mb-2 pb-dmm-entry'}>
+                                        <div className="pb-dmm-entry-heading">{entry.materiaMedicaHeadName}</div>
+                                        <div className="pb-dmm-entry-body">
                                           {entry.materiaMedica ? ReactHtmlParser(entry.materiaMedica) : (
                                             <span className="text-muted">No materia medica available.</span>
                                           )}
@@ -11985,7 +14129,7 @@ const PatientBoard = () => {
                                       </div>
                                     ))
                                   ) : (
-                                    <div className="text-muted" style={{ fontSize: '12px' }}>No materia medica entries available.</div>
+                                    <div className="text-muted pb-dmm-entry-empty">No materia medica entries available.</div>
                                   )}
                                 </div>
                               );
@@ -12000,8 +14144,6 @@ const PatientBoard = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
                 </div>
 
                   {/* SECTION — same height as Rubrics / Common / Uncommon */}
@@ -12018,7 +14160,7 @@ const PatientBoard = () => {
                       <div className="pb-section-divider"></div>
                       <div
                         className="flex-grow-1 custom-scrollbar pb-tab-card-scroll"
-                        onScroll={handleSectionScroll}
+                        ref={bindSectionScrollEl}
                       >
                         {sectionLoading && sectionPageNumber === 1 && sectionOptions.length === 0 ? (
                           <div className="text-center p-4">
@@ -12068,15 +14210,50 @@ const PatientBoard = () => {
                                 </div>
                               );
                             })}
-                            {sectionLoadingMore && (
+                            {sectionLoadingMore && isElementScrollable(sectionScrollEl) && (
                               <div className="text-center p-2">
                                 <Spinner size="sm" color="primary" />
                               </div>
                             )}
+                            {sectionLoadError && !sectionLoadingMore && (
+                              <div className="text-center p-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-muted p-0"
+                                  onClick={() => {
+                                    sectionLoadErrorRef.current = null;
+                                    setSectionLoadError(null);
+                                    sectionHasMoreRef.current = true;
+                                    setSectionHasMore(true);
+                                    loadNextSectionPage();
+                                  }}
+                                >
+                                  Retry loading sections
+                                </button>
+                              </div>
+                            )}
+                            {sectionHasMore && !sectionLoadError && (
+                              <span
+                                ref={bindSectionSentinelEl}
+                                className="pb-infinite-sentinel"
+                                aria-hidden="true"
+                              />
+                            )}
                           </>
                         ) : (
                           <div className="text-center p-4">
-                            <p className="text-muted">No sections available</p>
+                            <p className="text-muted mb-0">
+                              {sectionLoadError ? sectionLoadError : 'No sections available'}
+                            </p>
+                            {sectionLoadError && (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-link p-0 mt-2"
+                                onClick={fetchSectionPageOne}
+                              >
+                                Retry
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -12424,7 +14601,7 @@ const PatientBoard = () => {
                               </span>
                               RUBRICS WITH REMEDIES
                             </div>
-                            <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end flex-grow-1">
+                            <div className="d-flex align-items-center gap-2 flex-nowrap justify-content-end flex-grow-1 min-w-0">
                               {selectedSubGroupName && !questionsRubricLoading && (
                                 <span className="pb-questions-result-count">
                                   {rubricSearch.trim()
@@ -12433,7 +14610,7 @@ const PatientBoard = () => {
                                   {' '}rubric{rubrics.length === 1 ? '' : 's'}
                                 </span>
                               )}
-                              <div style={{ minWidth: 200, maxWidth: 280, flex: '1 1 200px' }}>
+                              <div className="pb-questions-search-wrap" style={{ minWidth: 140, maxWidth: 220, flex: '1 1 140px' }}>
                                 {renderQuestionsSearchInput(
                                   rubricSearch,
                                   setRubricSearch,
@@ -12447,7 +14624,14 @@ const PatientBoard = () => {
                             </div>
                           </div>
                           <div className="pb-tab-card-divider flex-shrink-0"></div>
-                          <div className="pb-tab-card-scroll custom-scrollbar pb-questions-rubrics-scroll" onScroll={handleQuestionsRubricsScroll}>
+                          <InfiniteScrollContainer
+                            className="pb-tab-card-scroll custom-scrollbar pb-questions-rubrics-scroll"
+                            enabled={filteredRubrics.length > 0}
+                            hasMore={questionsRubricHasMore}
+                            loading={questionsRubricLoadingMore || questionsRubricLoading}
+                            itemCount={filteredRubrics.length}
+                            onLoadMore={loadMoreQuestionsRubrics}
+                          >
                             {questionsRubricLoading ? (
                               <div className="text-center p-4">
                                 <div className="spinner-border text-primary" role="status">
@@ -12477,11 +14661,6 @@ const PatientBoard = () => {
                                     <span className="text-muted small ms-2">Loading more rubrics...</span>
                                   </div>
                                 )}
-                                {!questionsRubricLoadingMore && questionsRubricHasMore && (
-                                  <div className="pb-questions-rubrics-list__status">
-                                    <span className="text-muted small">Scroll down to load more</span>
-                                  </div>
-                                )}
                               </div>
                             ) : selectedSubGroupName && rubricSearch.trim() ? (
                               <div className="text-center p-4">
@@ -12500,7 +14679,7 @@ const PatientBoard = () => {
                                 <p className="text-muted small mb-0">Choose section → group → sub-group to search rubrics.</p>
                               </div>
                             )}
-                          </div>
+                          </InfiniteScrollContainer>
                           {selectedSubGroupName && !questionsRubricLoading && rubrics.length > 0 && (
                             <div className="pb-questions-rubrics-footer">
                               <span>
@@ -12512,7 +14691,7 @@ const PatientBoard = () => {
                                 {questionsRubricLoadingMore
                                   ? 'Loading page...'
                                   : questionsRubricHasMore
-                                    ? `Page ${questionsRubricPage} · scroll for more`
+                                    ? `Page ${questionsRubricPage} · more available`
                                     : `Page ${questionsRubricPage} · end`}
                               </span>
                             </div>
@@ -12527,105 +14706,136 @@ const PatientBoard = () => {
           </div>
           </>
           )}
-        </CardBody>
-      </Card>
+      </div>
 
       {renderRemedyInfoTooltip()}
       {renderSubSectionSearchSuggestionsPortal()}
       {renderGlobalSubSectionSearchSuggestionsPortal()}
       {renderRemedyAbbrevTooltip()}
 
-      {/* English Tooltip — RUBRIC DETAILS subSectionDetails */}
+      {/* English Tooltip — RUBRIC DETAILS / modal subSectionDetails */}
       {showEnglishTooltip && (
         <div className="marathi-tooltip" style={{ whiteSpace: 'pre-wrap' }}>
           {getSubSectionLanguageDetailsText(
-            displayRubricDetails?.subSectionLanguageDetails,
+            (rubricRemedyModalOpen || questionRubricModalOpen)
+              ? rubricDetailsList?.subSectionLanguageDetails
+              : displayRubricDetails?.subSectionLanguageDetails,
             'english'
           )}
         </div>
       )}
 
-      {/* Marathi Tooltip — RUBRIC DETAILS subSectionDetails */}
+      {/* Marathi Tooltip — RUBRIC DETAILS / modal subSectionDetails */}
       {showMarathiTooltip && (
         <div className="marathi-tooltip" style={{ whiteSpace: 'pre-wrap' }}>
           {getSubSectionLanguageDetailsText(
-            displayRubricDetails?.subSectionLanguageDetails,
+            (rubricRemedyModalOpen || questionRubricModalOpen)
+              ? rubricDetailsList?.subSectionLanguageDetails
+              : displayRubricDetails?.subSectionLanguageDetails,
             'marathi'
           )}
         </div>
       )}
 
-      {/* Rubric Remedy Details Modal */}
+      {/* Rubric Remedy Details Modal (Clinical Pattern) */}
       <Modal
         isOpen={rubricRemedyModalOpen}
         toggle={() => setRubricRemedyModalOpen(false)}
         size="xl"
         className="pb-rubric-remedy-modal"
-        contentClassName="patient-board-page pb-rubric-remedy-modal__content"
+        contentClassName="pb-rubric-remedy-modal__content"
       >
-        <div className="pb-rubric-remedy-modal__toolbar">
-          <div className="pb-rubric-remedy-modal__toolbar-group">
+        <div className="pb-rubric-remedy-modal__header">
+          <h6 className="pb-rubric-remedy-modal__header-title mb-0">
+            <span className="pb-repertory-section-title-icon" aria-hidden="true">
+              <i className="ri-file-list-3-line" />
+            </span>
+            RUBRIC DETAILS
+          </h6>
+          <div className="pb-rubric-tools" role="toolbar" aria-label="Rubric detail tools">
             <Button
               size="sm"
               className={`modal-header-btn ${showRemedyAuthors ? 'active' : ''}`}
               onClick={() => setShowRemedyAuthors(!showRemedyAuthors)}
               title="Show remedy authors"
-            ><i className="ri-user-line" /></Button>
+              aria-pressed={showRemedyAuthors}
+            ><i className="ri-user-star-line" aria-hidden="true" /></Button>
             <Button
               size="sm"
               className={`modal-header-btn ${showRemedyInfo ? 'active' : ''}`}
               onClick={() => setShowRemedyInfo(!showRemedyInfo)}
               title="Show remedy info"
-            ><i className="ri-information-line" /></Button>
-          </div>
-          <div className="pb-rubric-remedy-modal__toolbar-group">
+              aria-pressed={showRemedyInfo}
+            ><i className="ri-information-line" aria-hidden="true" /></Button>
+            <span className="pb-rubric-tools__divider" aria-hidden="true" />
             <Button
               size="sm"
-              className="modal-header-btn"
+              className="modal-header-btn modal-header-btn--lang"
               title="English language"
-            >En</Button>
+              onMouseEnter={() => setShowEnglishTooltip(true)}
+              onMouseLeave={() => setShowEnglishTooltip(false)}
+            >
+              <i className="ri-translate-2" aria-hidden="true" />
+              En
+            </Button>
             <Button
               size="sm"
-              className="modal-header-btn"
+              className="modal-header-btn modal-header-btn--lang"
               title="Marathi language"
-            >म</Button>
+              onMouseEnter={() => setShowMarathiTooltip(true)}
+              onMouseLeave={() => setShowMarathiTooltip(false)}
+            >
+              <i className="ri-translate" aria-hidden="true" />
+              म
+            </Button>
           </div>
         </div>
         <ModalBody className="rrd-body pb-rubric-remedy-modal__body">
           <div className="pb-rubric-remedy-modal__title-bar">
             <h6 className="pb-rubric-remedy-modal__title mb-0">
-              {rubricDetailsList?.subSectionName || selectedRubricRemedy || 'KIDNEYS-PAIN-aching'}
+              <span className="pb-rubric-remedy-modal__title-name">
+                {rubricDetailsList?.subSectionName || selectedRubricRemedy || 'Rubric'}
+              </span>
+              <span className="pb-rubric-remedy-modal__title-count">
+                [{rubricDetailsList?.remediesList?.length || 0}]
+              </span>
             </h6>
           </div>
-          <div className="pb-rubric-remedy-modal__meta">
-            <div className="text-muted pb-rubric-remedy-modal__description">
-              {rubricDetailsList?.description || 'No data to display'}
+          {!!String(rubricDetailsList?.description || '').trim() && (
+            <div className="pb-rubric-remedy-modal__meta">
+              <div className="pb-rubric-remedy-modal__description">
+                {rubricDetailsList.description}
+              </div>
             </div>
-          </div>
-          <div className="pb-rubric-remedy-modal__count-bar">
-            <span className="pb-rubric-remedy-modal__count-label">Remedy Count :</span>
-            <span className="pb-rubric-remedy-modal__count-pill">
-              ({rubricDetailsList?.remediesList?.length || 0})
-            </span>
+          )}
+          <div className="pb-rubric-remedy-modal__data-header">
+            <div className="fw-semibold pb-repertory-subheading">Rubric Data To Display</div>
           </div>
           <div className={`pb-rubric-remedy-modal__remedies custom-scrollbar${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedies--authors' : ''}`}>
-            <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
-              {rubricDetailsList && rubricDetailsList.remediesList && rubricDetailsList.remediesList.length > 0 ? (
-                rubricDetailsList.remediesList.map((remedy, index) => (
-                  <span
-                    key={remedy?.remedyId ?? index}
-                    className="remedy-item"
-                    style={getRemedyAliasStyle(remedy)}
-                    onClick={() => handleRemedyAliasClick(remedy)}
-                  >
-                    {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
-                    {renderRemedyInfoIcon(remedy)}
-                  </span>
-                ))
-              ) : (
-                <span className="text-muted">No Remedies to display</span>
-              )}
-            </div>
+            {rubricDetailsLoading && !rubricDetailsList?.remediesList?.length ? (
+              <div className="pb-rubric-remedy-modal__loading">
+                <Spinner size="sm" color="primary" />
+                <span>Loading remedies...</span>
+              </div>
+            ) : (
+              <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
+                {rubricDetailsList?.remediesList?.length > 0 ? (
+                  rubricDetailsList.remediesList.map((remedy, index) => (
+                    <span
+                      key={remedy?.remedyId ?? index}
+                      className="remedy-item"
+                      style={getRemedyAliasStyle(remedy, { boostGrade2Weight: true, boostGrade4Font: true })}
+                      onClick={() => handleRemedyAliasClick(remedy)}
+                    >
+                      {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
+                      {renderRemedyInfoIcon(remedy)}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-muted">No data</span>
+                )}
+              </div>
+            )}
           </div>
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">
@@ -12639,71 +14849,99 @@ const PatientBoard = () => {
         toggle={() => setQuestionRubricModalOpen(false)}
         size="xl"
         className="pb-rubric-remedy-modal"
-        contentClassName="patient-board-page pb-rubric-remedy-modal__content"
+        contentClassName="pb-rubric-remedy-modal__content"
       >
-        <div className="pb-rubric-remedy-modal__toolbar">
-          <div className="pb-rubric-remedy-modal__toolbar-group">
+        <div className="pb-rubric-remedy-modal__header">
+          <h6 className="pb-rubric-remedy-modal__header-title mb-0">
+            <span className="pb-repertory-section-title-icon" aria-hidden="true">
+              <i className="ri-file-list-3-line" />
+            </span>
+            RUBRIC DETAILS
+          </h6>
+          <div className="pb-rubric-tools" role="toolbar" aria-label="Rubric detail tools">
             <Button
               size="sm"
               className={`modal-header-btn ${showRemedyAuthors ? 'active' : ''}`}
               onClick={() => setShowRemedyAuthors(!showRemedyAuthors)}
               title="Show remedy authors"
-            ><i className="ri-user-line" /></Button>
+              aria-pressed={showRemedyAuthors}
+            ><i className="ri-user-star-line" aria-hidden="true" /></Button>
             <Button
               size="sm"
               className={`modal-header-btn ${showRemedyInfo ? 'active' : ''}`}
               onClick={() => setShowRemedyInfo(!showRemedyInfo)}
               title="Show remedy info"
-            ><i className="ri-information-line" /></Button>
-          </div>
-          <div className="pb-rubric-remedy-modal__toolbar-group">
+              aria-pressed={showRemedyInfo}
+            ><i className="ri-information-line" aria-hidden="true" /></Button>
+            <span className="pb-rubric-tools__divider" aria-hidden="true" />
             <Button
               size="sm"
-              className="modal-header-btn"
+              className="modal-header-btn modal-header-btn--lang"
               title="English language"
-            >En</Button>
+              onMouseEnter={() => setShowEnglishTooltip(true)}
+              onMouseLeave={() => setShowEnglishTooltip(false)}
+            >
+              <i className="ri-translate-2" aria-hidden="true" />
+              En
+            </Button>
             <Button
               size="sm"
-              className="modal-header-btn"
+              className="modal-header-btn modal-header-btn--lang"
               title="Marathi language"
-            >म</Button>
+              onMouseEnter={() => setShowMarathiTooltip(true)}
+              onMouseLeave={() => setShowMarathiTooltip(false)}
+            >
+              <i className="ri-translate" aria-hidden="true" />
+              म
+            </Button>
           </div>
         </div>
         <ModalBody className="rrd-body pb-rubric-remedy-modal__body">
           <div className="pb-rubric-remedy-modal__title-bar">
             <h6 className="pb-rubric-remedy-modal__title mb-0">
-              {rubricDetailsList?.subSectionName || selectedQuestionRubric?.subsectionName || 'RUBRIC'}
+              <span className="pb-rubric-remedy-modal__title-name">
+                {rubricDetailsList?.subSectionName || selectedQuestionRubric?.subsectionName || 'Rubric'}
+              </span>
+              <span className="pb-rubric-remedy-modal__title-count">
+                [{rubricDetailsList?.remediesList?.length || 0}]
+              </span>
             </h6>
           </div>
-          <div className="pb-rubric-remedy-modal__meta">
-            <div className="text-muted pb-rubric-remedy-modal__description">
-              {rubricDetailsList?.description || 'No data to display'}
+          {!!String(rubricDetailsList?.description || '').trim() && (
+            <div className="pb-rubric-remedy-modal__meta">
+              <div className="pb-rubric-remedy-modal__description">
+                {rubricDetailsList.description}
+              </div>
             </div>
-          </div>
-          <div className="pb-rubric-remedy-modal__count-bar">
-            <span className="pb-rubric-remedy-modal__count-label">Remedy Count :</span>
-            <span className="pb-rubric-remedy-modal__count-pill">
-              ({rubricDetailsList?.remediesList?.length || 0})
-            </span>
+          )}
+          <div className="pb-rubric-remedy-modal__data-header">
+            <div className="fw-semibold pb-repertory-subheading">Rubric Data To Display</div>
           </div>
           <div className={`pb-rubric-remedy-modal__remedies custom-scrollbar${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedies--authors' : ''}`}>
-            <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
-              {rubricDetailsList && rubricDetailsList.remediesList && rubricDetailsList.remediesList.length > 0 ? (
-                rubricDetailsList.remediesList.map((remedy, index) => (
-                  <span
-                    key={remedy?.remedyId ?? index}
-                    className="remedy-item"
-                    style={getRemedyAliasStyle(remedy)}
-                    onClick={() => handleRemedyAliasClick(remedy)}
-                  >
-                    {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
-                    {renderRemedyInfoIcon(remedy)}
-                  </span>
-                ))
-              ) : (
-                <span className="text-muted">No Remedies to display</span>
-              )}
-            </div>
+            {rubricDetailsLoading && !rubricDetailsList?.remediesList?.length ? (
+              <div className="pb-rubric-remedy-modal__loading">
+                <Spinner size="sm" color="primary" />
+                <span>Loading remedies...</span>
+              </div>
+            ) : (
+              <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
+                {rubricDetailsList?.remediesList?.length > 0 ? (
+                  rubricDetailsList.remediesList.map((remedy, index) => (
+                    <span
+                      key={remedy?.remedyId ?? index}
+                      className="remedy-item"
+                      style={getRemedyAliasStyle(remedy, { boostGrade2Weight: true, boostGrade4Font: true })}
+                      onClick={() => handleRemedyAliasClick(remedy)}
+                    >
+                      {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
+                      {renderRemedyInfoIcon(remedy)}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-muted">No data</span>
+                )}
+              </div>
+            )}
           </div>
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">

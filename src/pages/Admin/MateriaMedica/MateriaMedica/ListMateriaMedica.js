@@ -3,6 +3,7 @@ import { Card, CardHeader, CardBody, Col, Container, Input, InputGroup, InputGro
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import Select from 'react-select';
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import Swal from 'sweetalert2';
 import { getMateriaMedica, getAuthorsForMateriaMedicaDDL, getRemedies, deleteMateriaMedica } from '../../../../slices/thunks';
 
@@ -175,6 +176,10 @@ const MateriaMedicaList = () => {
                           options={AuthorOptions}
                           isClearable
                           placeholder="Select..."
+                          classNamePrefix="admin-form-select"
+                          theme={neutralSelectTheme}
+                          styles={getAdminFormSelectStyles()}
+                          {...adminFormSelectPortalProps}
                         />
                       </div>
                     </Col>
@@ -191,6 +196,10 @@ const MateriaMedicaList = () => {
                           options={RemedyOptions}
                           isClearable
                           placeholder="Select..."
+                          classNamePrefix="admin-form-select"
+                          theme={neutralSelectTheme}
+                          styles={getAdminFormSelectStyles()}
+                          {...adminFormSelectPortalProps}
                         />
                       </div>
                     </Col>

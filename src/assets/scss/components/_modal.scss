@@ -4,25 +4,29 @@
 
 .modal-title {
     font-weight: $font-weight-semibold;
-    font-size: 16px;
+    font-size: 13px;
     color: #000;
 }
 
-// Popup headings: semibold (600), 16px, black — includes custom title markup outside .modal-title
+// Popup headings: semibold (600), compact — includes custom title markup outside .modal-title
 .modal-header {
     padding: 0.7rem;
     font-weight: $font-weight-semibold;
-    font-size: 16px;
+    font-size: 13px;
     color: #000;
     background: #fff;
     border-bottom: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
 
     .modal-title,
     h1, h2, h3, h4, h5, h6,
     [class*="modal__title"]:not([class*="saved"]),
     [class$="__title-text"] {
         font-weight: $font-weight-semibold !important;
-        font-size: 16px !important;
+        font-size: 13px !important;
         color: #000 !important;
     }
 
@@ -74,7 +78,7 @@
 
 .offcanvas-header .offcanvas-title {
     font-weight: $font-weight-semibold !important;
-    font-size: 16px !important;
+    font-size: 13px !important;
     color: #000 !important;
 }
 
@@ -93,6 +97,44 @@
 // Modal / offcanvas footers — Velzon soft buttons with icon spacing
 $modal-footer-btn-height: calc(0.8rem * 1.5 + #{$input-padding-y} * 2 + #{$border-width * 2});
 
+/* Compact soft action buttons — footer and in-body (e.g. Restore rows) */
+.modal-action-btn.btn {
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    font-weight: 500;
+    border-color: transparent !important;
+    height: var(--app-form-field-height, #{$modal-footer-btn-height}) !important;
+    min-height: var(--app-form-field-height, #{$modal-footer-btn-height}) !important;
+    max-height: var(--app-form-field-height, #{$modal-footer-btn-height}) !important;
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
+    border-radius: $input-border-radius !important;
+    white-space: nowrap;
+
+    i[class^="ri-"],
+    i[class*=" ri-"],
+    .ri {
+        font-size: 0.875rem;
+        line-height: 1;
+        margin: 0 !important;
+    }
+
+    .spinner-border,
+    .spinner-border-sm {
+        width: 0.85rem;
+        height: 0.85rem;
+        border-width: 0.12em;
+        margin: 0 !important;
+    }
+}
+
 .modal-footer,
 .offcanvas-footer {
     display: flex;
@@ -109,7 +151,7 @@ $modal-footer-btn-height: calc(0.8rem * 1.5 + #{$input-padding-y} * 2 + #{$borde
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.3rem;
+        gap: 0.35rem;
         font-weight: 500;
         border-color: transparent !important;
         height: var(--app-form-field-height, #{$modal-footer-btn-height});

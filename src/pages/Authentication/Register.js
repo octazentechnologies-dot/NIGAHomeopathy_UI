@@ -45,14 +45,20 @@ const stepFieldMap = {
 const selectStyles = {
   control: (base, state) => ({
     ...base,
-    minHeight: 42,
-    borderRadius: "0.25rem",
+    minHeight: 38,
+    fontSize: "0.75rem",
+    borderRadius: 10,
     borderWidth: "1px",
-    borderColor: state.isFocused ? "#25a0e2" : "#dee2e6",
+    borderColor: state.isFocused ? "#1e88e5" : "#dbe3ef",
+    backgroundColor: "#f8fbff",
     boxShadow: "none",
-    "&:hover": { borderColor: state.isFocused ? "#25a0e2" : "#dee2e6" },
+    "&:hover": { borderColor: state.isFocused ? "#1e88e5" : "#dbe3ef" },
   }),
-  menu: (base) => ({ ...base, zIndex: 20, borderRadius: 10 }),
+  valueContainer: (base) => ({ ...base, fontSize: "0.75rem" }),
+  singleValue: (base) => ({ ...base, fontSize: "0.75rem", fontWeight: 400 }),
+  placeholder: (base) => ({ ...base, fontSize: "0.75rem" }),
+  option: (base) => ({ ...base, fontSize: "0.75rem" }),
+  menu: (base) => ({ ...base, zIndex: 20, borderRadius: 10, fontSize: "0.75rem" }),
 };
 
 const Register = () => {
@@ -471,53 +477,61 @@ const Register = () => {
                               <Col md={6} className="d-none d-md-block" />
                               <Col md={6}>
                                 <Label htmlFor="userPassword" className="form-label">Password <span className="text-danger">*</span></Label>
-                                <div className="position-relative auth-pass-inputgroup">
-                                  <Input
-                                    id="userPassword"
-                                    name="userPassword"
-                                    type={passwordShow ? "text" : "password"}
-                                    placeholder="Create a password"
-                                    value={validation.values.userPassword}
-                                    onChange={validation.handleChange}
-                                    onBlur={validation.handleBlur}
-                                    invalid={validation.touched.userPassword && !!validation.errors.userPassword}
-                                  />
-                                  <button
-                                    className="btn btn-link position-absolute end-0 top-0 text-decoration-none text-muted"
-                                    type="button"
-                                    onClick={() => setPasswordShow((v) => !v)}
-                                    aria-label={passwordShow ? "Hide password" : "Show password"}
-                                  >
-                                    <i className="ri-eye-fill align-middle" />
-                                  </button>
+                                <div className="auth-pass-inputgroup">
+                                  <div className="auth-pass-inputgroup__control">
+                                    <Input
+                                      id="userPassword"
+                                      name="userPassword"
+                                      type={passwordShow ? "text" : "password"}
+                                      placeholder="Create a password"
+                                      value={validation.values.userPassword}
+                                      onChange={validation.handleChange}
+                                      onBlur={validation.handleBlur}
+                                      invalid={validation.touched.userPassword && !!validation.errors.userPassword}
+                                    />
+                                    <button
+                                      className="auth-pass-inputgroup__toggle"
+                                      type="button"
+                                      onClick={() => setPasswordShow((v) => !v)}
+                                      aria-label={passwordShow ? "Hide password" : "Show password"}
+                                    >
+                                      <i className={passwordShow ? "ri-eye-off-fill" : "ri-eye-fill"} aria-hidden="true" />
+                                    </button>
+                                  </div>
                                   {validation.touched.userPassword && validation.errors.userPassword ? (
-                                    <FormFeedback type="invalid">{validation.errors.userPassword}</FormFeedback>
+                                    <FormFeedback type="invalid" className="d-block">
+                                      {validation.errors.userPassword}
+                                    </FormFeedback>
                                   ) : null}
                                 </div>
                               </Col>
                               <Col md={6}>
                                 <Label htmlFor="confirmPassword" className="form-label">Confirm password <span className="text-danger">*</span></Label>
-                                <div className="position-relative auth-pass-inputgroup">
-                                  <Input
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    type={confirmPasswordShow ? "text" : "password"}
-                                    placeholder="Re-enter password"
-                                    value={validation.values.confirmPassword}
-                                    onChange={validation.handleChange}
-                                    onBlur={validation.handleBlur}
-                                    invalid={validation.touched.confirmPassword && !!validation.errors.confirmPassword}
-                                  />
-                                  <button
-                                    className="btn btn-link position-absolute end-0 top-0 text-decoration-none text-muted"
-                                    type="button"
-                                    onClick={() => setConfirmPasswordShow((v) => !v)}
-                                    aria-label={confirmPasswordShow ? "Hide password" : "Show password"}
-                                  >
-                                    <i className="ri-eye-fill align-middle" />
-                                  </button>
+                                <div className="auth-pass-inputgroup">
+                                  <div className="auth-pass-inputgroup__control">
+                                    <Input
+                                      id="confirmPassword"
+                                      name="confirmPassword"
+                                      type={confirmPasswordShow ? "text" : "password"}
+                                      placeholder="Re-enter password"
+                                      value={validation.values.confirmPassword}
+                                      onChange={validation.handleChange}
+                                      onBlur={validation.handleBlur}
+                                      invalid={validation.touched.confirmPassword && !!validation.errors.confirmPassword}
+                                    />
+                                    <button
+                                      className="auth-pass-inputgroup__toggle"
+                                      type="button"
+                                      onClick={() => setConfirmPasswordShow((v) => !v)}
+                                      aria-label={confirmPasswordShow ? "Hide password" : "Show password"}
+                                    >
+                                      <i className={confirmPasswordShow ? "ri-eye-off-fill" : "ri-eye-fill"} aria-hidden="true" />
+                                    </button>
+                                  </div>
                                   {validation.touched.confirmPassword && validation.errors.confirmPassword ? (
-                                    <FormFeedback type="invalid">{validation.errors.confirmPassword}</FormFeedback>
+                                    <FormFeedback type="invalid" className="d-block">
+                                      {validation.errors.confirmPassword}
+                                    </FormFeedback>
                                   ) : null}
                                 </div>
                               </Col>

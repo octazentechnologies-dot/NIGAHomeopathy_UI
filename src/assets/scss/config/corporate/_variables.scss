@@ -647,8 +647,9 @@ $font-family-code:            var(--#{$prefix}font-monospace);
 
 // $font-size-root affects the value of `rem`, which is used for as well font sizes, paddings, and margins
 // $font-size-base affects the font size of the body text
+// Compact app typography: 0.75rem (12px) — denser UI across admin + doctor
 $font-size-root:              null;
-$font-size-base:              0.875rem; // Assumes the browser default, typically `16px`
+$font-size-base:              0.75rem;
 $font-size-sm:                $font-size-base * .875;
 $font-size-lg:                $font-size-base * 1.25;
 
@@ -662,15 +663,15 @@ $font-weight-bolder:          bolder;
 
 $font-weight-base:            $font-weight-normal;
 
-$line-height-base:            1.5;
+$line-height-base:            1.45;
 $line-height-sm:              1.25;
 $line-height-lg:              2;
 
-$h1-font-size:                $font-size-base * 2.5;
-$h2-font-size:                $font-size-base * 2;
-$h3-font-size:                $font-size-base * 1.75;
-$h4-font-size:                $font-size-base * 1.5;
-$h5-font-size:                $font-size-base * 1.25;
+$h1-font-size:                $font-size-base * 2;
+$h2-font-size:                $font-size-base * 1.7;
+$h3-font-size:                $font-size-base * 1.45;
+$h4-font-size:                $font-size-base * 1.25;
+$h5-font-size:                $font-size-base * 1.1;
 $h6-font-size:                $font-size-base;
 // scss-docs-end font-variables
 
@@ -712,23 +713,23 @@ $display-line-height: $headings-line-height;
 
 //Font size custom
 $font-size-custom: (
-  10: 10px,
-  11: 11px,
-  12: 12px,
-  13: 13px,
-  14: 14px,
-  15: 15px,
-  16: 16px,
-  17: 17px,
-  18: 18px,
-  19: 19px,
-  20: 20px,
-  21: 21px,
-  22: 22px,
-  23: 23px,
-  24: 24px,
-  36: 36px,
-  48: 48px
+  10: 8px,
+  11: 9px,
+  12: 10px,
+  13: 11px,
+  14: 12px,
+  15: 12px,
+  16: 13px,
+  17: 13px,
+  18: 14px,
+  19: 14px,
+  20: 15px,
+  21: 16px,
+  22: 17px,
+  23: 18px,
+  24: 19px,
+  36: 28px,
+  48: 36px
 );
 
 // scss-docs-start type-variables

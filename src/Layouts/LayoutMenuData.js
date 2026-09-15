@@ -1543,15 +1543,15 @@ const Navdata = () => {
         },
     ];
 
-    // SEC-04.02 / FND-02.01 — role-specific stub menus; hide Velzon demo unless explicitly enabled
+    // SEC-04.02 / FND-02.01 — role-specific menus (fallback when horizontal split is not used)
     if (role === UserRole.ACCOUNT) {
         return (
             <React.Fragment>
                 {[
                     { label: "Account", isHeader: true },
-                    { id: "account-home", label: "Home", icon: "ri-home-line", link: "/account/home" },
+                    { id: "account-home", label: "Home", icon: "ri-home-line", link: "/accountdashboard" },
                     { id: "account-ledger", label: "Ledger", icon: "ri-book-line", link: "/account/ledger" },
-                    { id: "account-earnings", label: "Doctor Earnings", icon: "ri-money-dollar-circle-line", link: "/account/earnings" },
+                    { id: "account-earnings", label: "Doctor Earnings", icon: "ri-money-dollar-circle-line", link: "/account/doctor-earnings" },
                     { id: "account-payouts", label: "Payouts", icon: "ri-bank-card-line", link: "/account/payouts" },
                     { id: "account-invoices", label: "Invoices", icon: "ri-file-list-3-line", link: "/account/invoices" },
                     { id: "account-reports", label: "Reports", icon: "ri-bar-chart-line", link: "/account/reports" },
@@ -1560,12 +1560,17 @@ const Navdata = () => {
         );
     }
 
-    if (role === UserRole.PHARMACY_PARTNER) {
+    if (role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER) {
         return (
             <React.Fragment>
                 {[
                     { label: "Pharmacy", isHeader: true },
-                    { id: "pharmacy-home", label: "Home", icon: "ri-capsule-line", link: "/pharmacy/home" },
+                    { id: "pharmacy-home", label: "Home", icon: "ri-capsule-line", link: "/pharmacydashboard" },
+                    { id: "pharmacy-onboarding", label: "Onboarding", icon: "ri-user-add-line", link: "/pharmacy/onboarding" },
+                    { id: "pharmacy-orders", label: "Orders", icon: "ri-shopping-bag-line", link: "/pharmacy/orders" },
+                    { id: "pharmacy-quotes", label: "Quotes", icon: "ri-file-list-2-line", link: "/pharmacy/quotes" },
+                    { id: "pharmacy-inventory", label: "Inventory", icon: "ri-archive-line", link: "/pharmacy/inventory" },
+                    { id: "pharmacy-prescriptions", label: "Prescriptions", icon: "ri-file-paper-2-line", link: "/pharmacy/prescriptions" },
                 ]}
             </React.Fragment>
         );

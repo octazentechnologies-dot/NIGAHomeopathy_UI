@@ -8,6 +8,9 @@ const UserRole = {
     /* M01 FND-01.02 — ecosystem roles (seeded in RoleMaster via M01_Foundation_Security_Server.sql) */
     PATIENT: "Patient",
     ACCOUNT: "Account",
+    /* Dev portal role name */
+    PHARMACY: "Pharmacy",
+    /* M01 seed name — kept for RoleMaster / older stubs compatibility */
     PHARMACY_PARTNER: "PharmacyPartner",
 };
 
@@ -18,12 +21,22 @@ const ADMIN_PORTAL_ROLES = [UserRole.ADMIN, UserRole.MANAGEMENT];
 const usesDoctorDashboardLayout = (role) =>
     role === UserRole.DOCTOR || role === UserRole.RECEPTION;
 
-/** Admin dashboard: full-width fixed topbar + horizontal nav */
-const usesAdminDashboardLayout = (role) => role === UserRole.ADMIN;
+/** Account portal: horizontal top nav (same shell as admin) */
+const usesAccountDashboardLayout = (role) => role === UserRole.ACCOUNT;
+
+/** Pharmacy portal: horizontal top nav (same shell as admin) */
+const usesPharmacyDashboardLayout = (role) =>
+    role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER;
+
+/** Admin / Account / Pharmacy: full-width fixed topbar + horizontal nav */
+const usesAdminDashboardLayout = (role) =>
+    role === UserRole.ADMIN ||
+    usesAccountDashboardLayout(role) ||
+    usesPharmacyDashboardLayout(role);
 
 /** Topbar briefcase "More" overflow menu (admin + doctor/reception) */
 const usesTopbarMoreMenu = (role) =>
-    usesAdminDashboardLayout(role) || usesDoctorDashboardLayout(role);
+    role === UserRole.ADMIN || usesDoctorDashboardLayout(role);
 
 const resolveUserRole = (userProfile) => {
     if (userProfile?.role) return userProfile.role;
@@ -97,6 +110,8 @@ export {
     UserRole,
     ADMIN_PORTAL_ROLES,
     usesDoctorDashboardLayout,
+    usesAccountDashboardLayout,
+    usesPharmacyDashboardLayout,
     usesAdminDashboardLayout,
     usesTopbarMoreMenu,
     resolveUserRole,

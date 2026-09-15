@@ -29,6 +29,74 @@ const toMoreItem = (value) => {
   return val;
 };
 
+/** Flat Account portal nav matching FND-02.01 Account Dashboard. */
+export const getAccountHorizontalMenuItems = () => [
+  {
+    id: 'accounthome',
+    label: 'Home',
+    icon: 'ri-home-4-line',
+    link: '/accountdashboard',
+  },
+  {
+    id: 'accountledger',
+    label: 'Ledger',
+    icon: 'ri-book-2-line',
+    link: '/account/ledger',
+  },
+  {
+    id: 'accountearnings',
+    label: 'Doctor Earnings',
+    icon: 'ri-user-smile-line',
+    link: '/account/doctor-earnings',
+  },
+  {
+    id: 'accountpayouts',
+    label: 'Payouts',
+    icon: 'ri-exchange-dollar-line',
+    link: '/account/payouts',
+  },
+  {
+    id: 'accountinvoices',
+    label: 'Invoices',
+    icon: 'ri-file-list-3-line',
+    link: '/account/invoices',
+  },
+  {
+    id: 'accountreports',
+    label: 'Reports',
+    icon: 'ri-bar-chart-box-line',
+    link: '/account/reports',
+  },
+];
+
+/** Flat Pharmacy portal nav (Home / Onboarding / Orders / Quotes). */
+export const getPharmacyHorizontalMenuItems = () => [
+  {
+    id: 'pharmacyhome',
+    label: 'Home',
+    icon: 'ri-home-4-line',
+    link: '/pharmacydashboard',
+  },
+  {
+    id: 'pharmacyonboarding',
+    label: 'Onboarding',
+    icon: 'ri-user-add-line',
+    link: '/pharmacy/onboarding',
+  },
+  {
+    id: 'pharmacyorders',
+    label: 'Orders',
+    icon: 'ri-shopping-bag-3-line',
+    link: '/pharmacy/orders',
+  },
+  {
+    id: 'pharmacyquotes',
+    label: 'Quotes',
+    icon: 'ri-file-list-3-line',
+    link: '/pharmacy/quotes',
+  },
+];
+
 export const getHorizontalMenuSplit = (navChildren) => {
   const menuItems = [];
   const moreMenuItems = [];

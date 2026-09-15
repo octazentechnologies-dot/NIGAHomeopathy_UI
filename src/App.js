@@ -8,6 +8,9 @@ installDocumentTitleBrand();
 
 //imoprt Route
 import Route from './Routes';
+import { ensureMultiSelectGrowStyles } from './helpers/neutralSelectStyles';
+
+ensureMultiSelectGrowStyles();
 
 // Production uses real classic + New-API backends only (SEC-01.03).
 // Do not call fakeBackend() — it intercepts axios with Velzon dummy users.

@@ -58,24 +58,24 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
-  padding: 12px 12px;
-  border-radius: 18px;
+  margin-bottom: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
   border: 1px solid var(--anat-border);
   background: var(--anat-panel-bg);
   box-shadow: var(--anat-shadow-lg);
 }
 
 .anatomy-title {
-  font-size: 18px;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.2px;
 }
 
 .anatomy-subtitle {
-  font-size: 12px;
+  font-size: 0.6875rem;
   color: var(--anat-muted);
 }
 
@@ -175,7 +175,7 @@
 
 .anatomy-viewer-card {
   border: 1px solid var(--anat-border);
-  border-radius: 18px;
+  border-radius: 5px;
   background: var(--anat-panel-bg);
   box-shadow: var(--anat-shadow-lg);
   overflow: hidden;
@@ -242,7 +242,7 @@
   position: relative;
   background: var(--anat-canvas-bg);
   border: 1px solid var(--anat-border);
-  border-radius: 12px;
+  border-radius: 5px;
   overflow: hidden;
 }
 
@@ -273,6 +273,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.anatomy-canvas-icon-btn i {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .anatomy-canvas-icon-btn--active {
@@ -350,7 +355,7 @@
 .anatomy-panel {
   flex: 1;
   min-height: 0;
-  border-radius: 18px;
+  border-radius: 5px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -362,7 +367,7 @@
   height: auto;
   max-height: 100%;
   border: 1px solid var(--anat-border);
-  border-radius: 18px;
+  border-radius: 5px;
   background: var(--anat-panel-bg);
   box-shadow: var(--anat-shadow-lg);
   padding: 14px;
@@ -910,8 +915,8 @@
 .anatomy-section-loading {
   display: flex;
   align-items: center;
-  padding: 12px 0;
-  font-size: 13px;
+  padding: 0.45rem 0;
+  font-size: 0.6875rem;
   color: var(--anat-muted);
 }
 
@@ -919,8 +924,8 @@
   color: var(--vz-danger, #f06548);
   border: 1px solid color-mix(in srgb, var(--vz-danger, #f06548) 25%, var(--anat-border));
   background: color-mix(in srgb, var(--vz-danger, #f06548) 6%, var(--anat-panel-bg));
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 8px;
+  padding: 0.55rem;
 }
 
 .anatomy-section-list {
@@ -929,7 +934,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.35rem;
 }
 
 .anatomy-section-item {
@@ -937,12 +942,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
   border: 1px solid var(--anat-border);
   background: var(--anat-surface);
   color: var(--anat-text);
-  font-size: 14px;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;

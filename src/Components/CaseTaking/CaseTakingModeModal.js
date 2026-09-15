@@ -17,7 +17,7 @@ const CaseTakingModeModal = ({
     >
         <ModalHeader className="patient-list-modal__header" toggle={toggle}>
             <span className="patient-list-modal__title patient-list-modal__title--simple">
-                <i className="ri-stethoscope-line" style={{ color: '#25a0e2', fontSize: 20 }} />
+                <i className="ri-stethoscope-line" style={{ color: '#25a0e2', fontSize: 15 }} />
                 <span className="patient-list-modal__title-text">Start case taking</span>
             </span>
         </ModalHeader>

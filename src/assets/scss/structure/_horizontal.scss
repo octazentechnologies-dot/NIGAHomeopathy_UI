@@ -217,7 +217,8 @@
                 display: block;
                 max-height: 360px;
                 overflow-y: auto;
-                padding-left: 0;
+                padding-left: 0.85rem;
+                padding-right: 0.85rem;
 
                 .navbar-nav {
                     flex-direction: column;
@@ -226,8 +227,26 @@
                         padding-left: $vertical-menu-item-padding-x;
                     }
 
+                    > .nav-item > .nav-link.menu-link,
+                    > li > .nav-link.menu-link {
+                        padding-left: 0.5rem;
+                        padding-right: 0.5rem;
+                    }
+
                     .nav-sm .nav-link:before {
                         opacity: 1 !important;
+                        content: "-" !important;
+                        position: static !important;
+                        display: inline-block !important;
+                        width: auto !important;
+                        height: auto !important;
+                        background: none !important;
+                        border: none !important;
+                        margin: 0 0.45rem 0 0 !important;
+                        padding: 0 !important;
+                        top: auto !important;
+                        left: auto !important;
+                        color: inherit !important;
                     }
                 }
             }
@@ -236,7 +255,7 @@
                 position: relative;
                 min-width: 100%;
                 box-shadow: none;
-                padding-left: 28px;
+                padding-left: 1.15rem;
                 left: 0;
                 animation: none;
                 padding-top: 0;
