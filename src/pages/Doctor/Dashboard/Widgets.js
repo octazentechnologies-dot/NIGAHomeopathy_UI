@@ -2618,6 +2618,54 @@ const Widgets = () => {
                 </div>
             </div>
 
+            <div className="row mb-2 doctor-dashboard-chrome-row">
+                <div className="col-6 col-md-4 col-lg-2">
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className={`avatar-title border rounded-2 fs-17 doctor-kpi-icon ${counts?.isOnline || counts?.IsOnline ? 'bg-success-subtle border-success' : 'bg-secondary-subtle border-secondary'}`}>
+                                    <i className="ri-wifi-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{(counts?.isOnline || counts?.IsOnline) ? 'Online' : 'Offline'}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">AVAILABILITY</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-6 col-md-4 col-lg-2">
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-vidicon-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">TELE QUEUE</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-6 col-md-4 col-lg-2">
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-warning-subtle border-warning border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-wallet-3-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.unpaidCount ?? counts?.UnpaidCount ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">UNPAID</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div className="row mb-2 doctor-dashboard-action-row">
                 <div className="col-md-6 col-xl-3">
                     <div className="card-animate card mb-2 doctor-action-card">

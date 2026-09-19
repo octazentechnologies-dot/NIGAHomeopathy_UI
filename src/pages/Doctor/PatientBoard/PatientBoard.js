@@ -3439,12 +3439,25 @@ const PatientBoard = () => {
 
   // Handle delete rubric from repertorization
   const handleDeleteRepertorizationRubric = (rubricId) => {
-    const isEliminationRubric = filledPyramidIcons.has(rubricId);
-    setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
-    if (isEliminationRubric) {
-      setFilledPyramidIcons(new Set());
-      dispatch(setEliminationDataList(null));
-    }
+    Swal.fire({
+      title: 'Remove this rubric from clipboard?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#299cdb',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, remove',
+      cancelButtonText: 'Cancel',
+    }).then((result) => {
+      if (!result.isConfirmed) {
+        return;
+      }
+      const isEliminationRubric = filledPyramidIcons.has(rubricId);
+      setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
+      if (isEliminationRubric) {
+        setFilledPyramidIcons(new Set());
+        dispatch(setEliminationDataList(null));
+      }
+    });
   };
 
   const handleEliminationToggle = async (event, rubric) => {
@@ -12424,6 +12437,10 @@ const PatientBoard = () => {
                   {formattedAppointmentDate}
                 </div>
               ) : null}
+              <div className="pb-appointment-meta text-muted small d-flex flex-wrap gap-2 mb-1">
+                <span className="pb-info__chip">Visit: {searchParams.get('visitType') || searchParams.get('VisitType') || 'In-clinic'}</span>
+                <span className="pb-info__chip">Consult: {searchParams.get('consultMode') || searchParams.get('ConsultMode') || 'Clinic'}</span>
+              </div>
               <div className="pb-info__status">
                 <span className="pb-info__chip">
                   <i className="ri-calendar-check-line" aria-hidden="true" />
@@ -13783,6 +13800,7 @@ const PatientBoard = () => {
                           </span>
                           Repertorization
                           <span className="pb-repertorize-count-pill">{repertorizationRubrics.length}</span>
+                          <span className="text-muted small fw-normal ms-1">COG uses this clipboard</span>
                         </div>
                         {/* Ascending / descending sort icons — hidden per request
                         <div className="d-flex gap-1">
