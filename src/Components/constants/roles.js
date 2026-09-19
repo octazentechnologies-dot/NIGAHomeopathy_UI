@@ -28,11 +28,15 @@ const usesAccountDashboardLayout = (role) => role === UserRole.ACCOUNT;
 const usesPharmacyDashboardLayout = (role) =>
     role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER;
 
-/** Admin / Account / Pharmacy: full-width fixed topbar + horizontal nav */
+/** Patient portal: family / caregiver screens (S1 CON-01.03) */
+const usesPatientDashboardLayout = (role) => role === UserRole.PATIENT;
+
+/** Admin / Account / Pharmacy / Patient: full-width fixed topbar + horizontal nav */
 const usesAdminDashboardLayout = (role) =>
     role === UserRole.ADMIN ||
     usesAccountDashboardLayout(role) ||
-    usesPharmacyDashboardLayout(role);
+    usesPharmacyDashboardLayout(role) ||
+    usesPatientDashboardLayout(role);
 
 /** Topbar briefcase "More" overflow menu (admin + doctor/reception) */
 const usesTopbarMoreMenu = (role) =>
@@ -96,6 +100,15 @@ const canAccessAdminPortal = (userOrRole) => {
 /** Alias — same rule as portal access for W0 (per-master ACL refined in W1+). */
 const canMutateAdminMasters = (userOrRole) => canAccessAdminPortal(userOrRole);
 
+/** FND-02.02 — deny-by-default ACL for new portal routes. */
+const ACCOUNT_ROUTE_ROLES = [UserRole.ACCOUNT];
+const PHARMACY_ROUTE_ROLES = [UserRole.PHARMACY, UserRole.PHARMACY_PARTNER];
+const PATIENT_APP_ROUTE_ROLES = [
+    UserRole.PATIENT,
+    UserRole.ADMIN,
+    UserRole.MANAGEMENT,
+];
+
 const isAdminRoutePath = (path) => {
     if (!path || typeof path !== "string") return false;
     const normalized = path.replace(/^\//, "");
@@ -112,6 +125,7 @@ export {
     usesDoctorDashboardLayout,
     usesAccountDashboardLayout,
     usesPharmacyDashboardLayout,
+    usesPatientDashboardLayout,
     usesAdminDashboardLayout,
     usesTopbarMoreMenu,
     resolveUserRole,
@@ -119,4 +133,7 @@ export {
     canAccessAdminPortal,
     canMutateAdminMasters,
     isAdminRoutePath,
+    ACCOUNT_ROUTE_ROLES,
+    PHARMACY_ROUTE_ROLES,
+    PATIENT_APP_ROUTE_ROLES,
 };

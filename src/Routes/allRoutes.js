@@ -1,5 +1,10 @@
 import React from "react";
 import RoleBasedHomeRedirect from "../Components/Common/RoleBasedHomeRedirect";
+import {
+  ACCOUNT_ROUTE_ROLES,
+  PHARMACY_ROUTE_ROLES,
+  PATIENT_APP_ROUTE_ROLES,
+} from "../Components/constants/roles";
 import { LANDING_SPLAT_PATH } from "../constants/landingRoutes";
 import LandingLegacyRedirect from "../pages/Landing/HomeoJobLanding/LandingLegacyRedirect";
 //Admin Start
@@ -153,6 +158,8 @@ import AccountDashboard from "../pages/Account/Dashboard";
 import AccountComingSoon from "../pages/Account/components/AccountComingSoon";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
+import FamilyMembers from "../pages/Family/FamilyMembers";
+import CaregiverAccess from "../pages/Family/CaregiverAccess";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -554,22 +561,25 @@ const authProtectedRoutes = [
   // Doctor Side End //
 
   // Account Side //
-  { path: "accountdashboard", component: <AccountDashboard /> },
-  { path: "account/ledger", component: <AccountComingSoon title="Ledger" /> },
-  { path: "account/doctor-earnings", component: <AccountComingSoon title="Doctor Earnings" /> },
-  { path: "account/payouts", component: <AccountComingSoon title="Payouts" /> },
-  { path: "account/invoices", component: <AccountComingSoon title="Invoices" /> },
-  { path: "account/reports", component: <AccountComingSoon title="Reports" /> },
+  { path: "accountdashboard", component: <AccountDashboard />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/ledger", component: <AccountComingSoon title="Ledger" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/doctor-earnings", component: <AccountComingSoon title="Doctor Earnings" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/payouts", component: <AccountComingSoon title="Payouts" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/invoices", component: <AccountComingSoon title="Invoices" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/reports", component: <AccountComingSoon title="Reports" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   // Account Side End //
 
   // Pharmacy Side //
-  { path: "pharmacydashboard", component: <PharmacyDashboard /> },
-  { path: "pharmacy/onboarding", component: <PharmacyComingSoon title="Onboarding" /> },
-  { path: "pharmacy/orders", component: <PharmacyComingSoon title="Orders" /> },
-  { path: "pharmacy/quotes", component: <PharmacyComingSoon title="Quotes" /> },
-  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" /> },
-  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" /> },
+  { path: "pharmacydashboard", component: <PharmacyDashboard />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/onboarding", component: <PharmacyComingSoon title="Onboarding" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/orders", component: <PharmacyComingSoon title="Orders" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/quotes", component: <PharmacyComingSoon title="Quotes" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   // Pharmacy Side End //
+
+  { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "caregiver", component: <CaregiverAccess />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },
