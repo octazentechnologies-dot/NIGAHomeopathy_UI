@@ -100,6 +100,15 @@ const canAccessAdminPortal = (userOrRole) => {
 /** Alias — same rule as portal access for W0 (per-master ACL refined in W1+). */
 const canMutateAdminMasters = (userOrRole) => canAccessAdminPortal(userOrRole);
 
+/** FND-02.02 — deny-by-default ACL for new portal routes. */
+const ACCOUNT_ROUTE_ROLES = [UserRole.ACCOUNT];
+const PHARMACY_ROUTE_ROLES = [UserRole.PHARMACY, UserRole.PHARMACY_PARTNER];
+const PATIENT_APP_ROUTE_ROLES = [
+    UserRole.PATIENT,
+    UserRole.ADMIN,
+    UserRole.MANAGEMENT,
+];
+
 const isAdminRoutePath = (path) => {
     if (!path || typeof path !== "string") return false;
     const normalized = path.replace(/^\//, "");
@@ -124,4 +133,7 @@ export {
     canAccessAdminPortal,
     canMutateAdminMasters,
     isAdminRoutePath,
+    ACCOUNT_ROUTE_ROLES,
+    PHARMACY_ROUTE_ROLES,
+    PATIENT_APP_ROUTE_ROLES,
 };

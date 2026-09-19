@@ -28,8 +28,12 @@ const nigahomeoMultipart = apiHelpers.nigahomeoMultipart;
 
 export const login = data => api.post(url.LOGIN, data);
 export const getSubscriptionStatus = () => api.get(url.SUBSCRIPTION_STATUS, null);
-/** M01 SEC-03 — prefer New-API Logout (JWT denylist). Best-effort if classic login token is not accepted. */
-export const logoutApi = () => nigahomeoAPI.post("/Account/Logout");
+/** SEC-03.01 — classic login token on Old-API; New-API denylist when the JWT is accepted there. */
+export const logoutApi = () =>
+  Promise.allSettled([
+    api.post("/Account/Logout"),
+    nigahomeoAPI.post("/Account/Logout"),
+  ]);
 export const forgotPasswordSecure = (email) =>
   nigahomeoAPI.post("/Account/ForgotPassword", { email });
 export const resetPasswordSecure = (payload) =>
@@ -635,3 +639,14 @@ export const listCaregiverActingFor = () => nigahomeoAPI.get(url.CAREGIVER_LIST_
 
 export const requestOtp = (data) => nigahomeoAPI.post(url.OTP_REQUEST, data);
 export const verifyOtp = (data) => nigahomeoAPI.post(url.OTP_VERIFY, data);
+export const loginWithOtp = (data) => nigahomeoAPI.post(url.ACCOUNT_LOGIN_OTP, data);
+export const confirmMobileAgainstProfile = (data) =>
+  nigahomeoAPI.post(url.ACCOUNT_CONFIRM_MOBILE, data);
+export const getPatientProfileMe = () => nigahomeoAPI.get(url.PATIENT_PROFILE_ME, null);
+export const savePatientProfileMe = (data) => nigahomeoAPI.put(url.PATIENT_PROFILE_ME, data);
+export const getPatientWelcome = () => nigahomeoAPI.get(url.WELCOME_PATIENT, null);
+export const getPrivacyConsentStatus = () => nigahomeoAPI.get(url.CONSENT_PRIVACY_STATUS, null);
+export const grantPrivacyConsent = (data) => nigahomeoAPI.post(url.CONSENT_GRANT_PRIVACY, data || {});
+export const registerDevicePushToken = (data) => nigahomeoAPI.post(url.DEVICE_REGISTER, data);
+export const listMyDevicePushTokens = () => nigahomeoAPI.get(url.DEVICE_MINE, null);
+export const signSecureFileUrl = (data) => nigahomeoAPI.post(url.SECURE_FILE_SIGN, data);

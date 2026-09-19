@@ -65,3 +65,21 @@ export const PATIENT_FALLBACK_MENU = [
     link: "/caregiver",
   },
 ];
+
+/** ADM-B04.03 — keep API menus that map to SPA paths (drop legacy MVC URLs). */
+export const isSpaMenuLink = (link) => {
+  if (!link || typeof link !== "string" || link === "/#") return false;
+  const path = link.startsWith("/") ? link : `/${link}`;
+  return (
+    path.startsWith("/admin") ||
+    path.startsWith("/account") ||
+    path.startsWith("/pharmacy") ||
+    path.startsWith("/family") ||
+    path.startsWith("/caregiver") ||
+    path.startsWith("/doctor") ||
+    path === "/dashboard" ||
+    path === "/accountdashboard" ||
+    path === "/pharmacydashboard" ||
+    path === "/doctordashboard"
+  );
+};

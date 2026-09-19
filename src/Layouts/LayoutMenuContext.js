@@ -10,6 +10,7 @@ import {
   getAuthUserId,
   mapMenuMasterToNavItems,
   PATIENT_FALLBACK_MENU,
+  isSpaMenuLink,
 } from '../helpers/menuByRole';
 import { getMenuByRole } from '../helpers/realbackend_helper';
 import { resolveUserRole, UserRole } from '../Components/constants/roles';
@@ -78,10 +79,19 @@ export const LayoutMenuProvider = ({ children }) => {
       role === UserRole.ACCOUNT ||
       role === UserRole.PHARMACY ||
       role === UserRole.PHARMACY_PARTNER ||
-      role === UserRole.PATIENT;
+      role === UserRole.PATIENT ||
+      role === UserRole.ADMIN ||
+      role === UserRole.MANAGEMENT;
 
     if (apiReady && consumeApiForRole) {
-      return { menuItems: apiNavItems, moreMenuItems: [] };
+      const isAdminRole = role === UserRole.ADMIN || role === UserRole.MANAGEMENT;
+      const menuItems = isAdminRole
+        ? apiNavItems.filter((item) => isSpaMenuLink(item.link))
+        : apiNavItems;
+      const minItems = isAdminRole ? 3 : 1;
+      if (menuItems.length >= minItems) {
+        return { menuItems, moreMenuItems: [] };
+      }
     }
     return fallback;
   }, [navChildren, role, apiNavItems]);

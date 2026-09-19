@@ -162,7 +162,7 @@ export const logoutUser = () => async (dispatch) => {
       const { logoutApi } = await import("../../../helpers/realbackend_helper");
       await logoutApi();
     } catch {
-      // Best-effort New-API revoke
+      // Best-effort Old-API + New-API revoke (SEC-03.01)
     }
     sessionStorage.removeItem("authUser");
     document.body.classList.remove('admin-layout', 'doctor-layout', 'admin-forms-ui', 'admin-dashboard-route', 'admin-mobile-topbar');

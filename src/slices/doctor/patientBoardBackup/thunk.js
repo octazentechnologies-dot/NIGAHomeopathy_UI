@@ -269,7 +269,7 @@ export const logoutWithBackupPrompt = () => async (dispatch, getState) => {
     const { logoutApi } = await import('../../../helpers/realbackend_helper');
     await logoutApi();
   } catch {
-    // Best-effort server revoke (SEC-03.02); always clear local session.
+    // Best-effort Old-API + New-API revoke (SEC-03.01 / SEC-03.02); always clear local session.
   }
   sessionStorage.removeItem('authUser');
   dispatch(logoutUserSuccess(true));
