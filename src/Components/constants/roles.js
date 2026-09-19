@@ -28,11 +28,15 @@ const usesAccountDashboardLayout = (role) => role === UserRole.ACCOUNT;
 const usesPharmacyDashboardLayout = (role) =>
     role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER;
 
-/** Admin / Account / Pharmacy: full-width fixed topbar + horizontal nav */
+/** Patient portal: family / caregiver screens (S1 CON-01.03) */
+const usesPatientDashboardLayout = (role) => role === UserRole.PATIENT;
+
+/** Admin / Account / Pharmacy / Patient: full-width fixed topbar + horizontal nav */
 const usesAdminDashboardLayout = (role) =>
     role === UserRole.ADMIN ||
     usesAccountDashboardLayout(role) ||
-    usesPharmacyDashboardLayout(role);
+    usesPharmacyDashboardLayout(role) ||
+    usesPatientDashboardLayout(role);
 
 /** Topbar briefcase "More" overflow menu (admin + doctor/reception) */
 const usesTopbarMoreMenu = (role) =>
@@ -112,6 +116,7 @@ export {
     usesDoctorDashboardLayout,
     usesAccountDashboardLayout,
     usesPharmacyDashboardLayout,
+    usesPatientDashboardLayout,
     usesAdminDashboardLayout,
     usesTopbarMoreMenu,
     resolveUserRole,

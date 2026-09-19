@@ -588,3 +588,14 @@ export const ADMIN_ACL_COVERAGE = "/AdminAcl/coverage";
 
 /* M02 W7 — menus by role (New-API mastersAPI) */
 export const GET_MENU_BY_ROLE = "/mastersAPI/GetMenuByRole";
+
+/* CON-01 / CON-02 — family + caregiver (New-API) */
+export const FAMILY_LIST = "/Family";
+export const FAMILY_LINK_PRIMARY = "/Family/LinkPrimary";
+export const FAMILY_CAN_BOOK = "/Family/CanBookAs";
+export const CAREGIVER_GRANT = "/Caregiver/Grant";
+export const CAREGIVER_REVOKE = "/Caregiver/Revoke";
+export const CAREGIVER_LIST_MINE = "/Caregiver/ListMine";
+export const CAREGIVER_LIST_ACTING_FOR = "/Caregiver/ListActingFor";
+export const OTP_REQUEST = "/Otp/RequestOtp";
+export const OTP_VERIFY = "/Otp/VerifyOtp";

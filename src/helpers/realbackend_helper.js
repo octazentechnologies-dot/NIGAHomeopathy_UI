@@ -616,6 +616,22 @@ export const pingAdminAcl = () => nigahomeoAPI.get(url.ADMIN_ACL_PING, null);
 export const getAdminAclRepertory = () => nigahomeoAPI.get(url.ADMIN_ACL_REPERTORY, null);
 export const getAdminAclCoverage = () => nigahomeoAPI.get(url.ADMIN_ACL_COVERAGE, null);
 
-/** M02 W7 ADM-B04 — restored on New-API. UI hard-coded LayoutMenuData remains until ADM-B04.03 (UI track). */
+/** M02 W7 ADM-B04.03 — menus by role (New-API). UI falls back to LayoutMenuData when empty/error. */
 export const getMenuByRole = (userId) =>
   nigahomeoAPI.get(url.GET_MENU_BY_ROLE, userId != null ? { userId } : null);
+
+export const linkPrimaryPatient = (data) => nigahomeoAPI.post(url.FAMILY_LINK_PRIMARY, data);
+export const getFamilyMembers = () => nigahomeoAPI.get(url.FAMILY_LIST, null);
+export const createFamilyMember = (data) => nigahomeoAPI.post(url.FAMILY_LIST, data);
+export const updateFamilyMember = (id, data) => nigahomeoAPI.put(`${url.FAMILY_LIST}/${id}`, data);
+export const deleteFamilyMember = (id) => nigahomeoAPI.delete(`${url.FAMILY_LIST}/${id}`, null);
+export const canBookAsFamilyPatient = (patientId) =>
+  nigahomeoAPI.get(`${url.FAMILY_CAN_BOOK}/${patientId}`, null);
+
+export const grantCaregiver = (data) => nigahomeoAPI.post(url.CAREGIVER_GRANT, data);
+export const revokeCaregiver = (data) => nigahomeoAPI.post(url.CAREGIVER_REVOKE, data);
+export const listMyCaregivers = () => nigahomeoAPI.get(url.CAREGIVER_LIST_MINE, null);
+export const listCaregiverActingFor = () => nigahomeoAPI.get(url.CAREGIVER_LIST_ACTING_FOR, null);
+
+export const requestOtp = (data) => nigahomeoAPI.post(url.OTP_REQUEST, data);
+export const verifyOtp = (data) => nigahomeoAPI.post(url.OTP_VERIFY, data);

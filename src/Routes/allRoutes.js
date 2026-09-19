@@ -153,6 +153,8 @@ import AccountDashboard from "../pages/Account/Dashboard";
 import AccountComingSoon from "../pages/Account/components/AccountComingSoon";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
+import FamilyMembers from "../pages/Family/FamilyMembers";
+import CaregiverAccess from "../pages/Family/CaregiverAccess";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -570,6 +572,9 @@ const authProtectedRoutes = [
   { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" /> },
   { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" /> },
   // Pharmacy Side End //
+
+  { path: "family", component: <FamilyMembers /> },
+  { path: "caregiver", component: <CaregiverAccess /> },
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },
