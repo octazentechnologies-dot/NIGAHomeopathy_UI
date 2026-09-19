@@ -82,10 +82,7 @@ const AppointmentSlotGrid = ({
         {groupedSlots.map(([hourLabel, hourSlots]) => (
           <div key={hourLabel} className="appointment-slot-hour-row">
             <div className="appointment-slot-hour-label">{hourLabel}</div>
-            <div
-              className="appointment-slot-row"
-              style={{ gridTemplateColumns: `repeat(${hourSlots.length}, minmax(0, 1fr))` }}
-            >
+            <div className="appointment-slot-row">
               {hourSlots.map((slot) => {
                 const isClickable = slot.status === 'available' && typeof onSlotClick === 'function';
                 return (

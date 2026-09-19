@@ -35,6 +35,7 @@ const DateOfBirthPicker = ({
     name,
     minDate = null,
     maxDate = 'today',
+    hideIcon = false,
 }) => {
     const wrapperRef = useRef(null);
     const popoverRef = useRef(null);
@@ -422,20 +423,27 @@ const DateOfBirthPicker = ({
     ) : null;
 
     return (
-        <div className={`dob-picker ${className}`.trim()} ref={wrapperRef}>
+        <div className={`dob-picker ${hideIcon ? 'dob-picker--no-icon' : ''} ${className}`.trim()} ref={wrapperRef}>
             <div className={`dob-picker__input-group ${hasError ? 'is-invalid' : ''}`}>
-                <span className="dob-picker__icon">
-                    <i className="ri-calendar-line" />
-                </span>
+                <button
+                    type="button"
+                    className="dob-picker__icon"
+                    onClick={openPicker}
+                    aria-label="Open calendar"
+                >
+                    <i className="ri-calendar-line" aria-hidden="true" />
+                </button>
                 <input
                     type="text"
                     name={name}
                     className={`form-control dob-picker__input ${hasError ? 'is-invalid' : ''}`}
                     value={value}
                     placeholder={placeholder}
-                    readOnly
-                    onClick={openPicker}
-                    onFocus={openPicker}
+                    autoComplete="off"
+                    inputMode="numeric"
+                    onChange={handleInputChange}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleInputKeyDown}
                 />
             </div>
             {typeof document !== 'undefined' && popoverContent

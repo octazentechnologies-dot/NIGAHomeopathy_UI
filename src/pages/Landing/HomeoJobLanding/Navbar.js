@@ -43,8 +43,8 @@ const Navbar = () => {
         <nav className={`navbar navbar-expand-lg navbar-landing fixed-top job-navbar${navClass}`} id="navbar">
             <Container fluid className="custom-container">
                 <Link className="navbar-brand homeojob-brand" to={landingPath()}>
-                    <img src={LogoDark} className="card-logo card-logo-dark" alt="Homeo Centrum" />
-                    <img src={LogoLight} className="card-logo card-logo-light" alt="Homeo Centrum" />
+                    <img src={LogoDark} className="card-logo card-logo-dark" alt="Homeocentrum" />
+                    <img src={LogoLight} className="card-logo card-logo-light" alt="Homeocentrum" />
                 </Link>
                 <NavbarToggler
                     onClick={toggle}
@@ -73,11 +73,15 @@ const Navbar = () => {
                     </ul>
 
                     <div className="homeojob-nav-actions flex-shrink-0">
-                        <Link to="/login" className="btn btn-soft-primary">
-                            <i className="ri-login-box-line align-bottom me-1"></i> Sign in
+                        <Link to="/login" className="homeojob-nav-login">
+                            <span className="homeojob-nav-login__icon" aria-hidden="true">
+                                <i className="ri-login-circle-line" />
+                            </span>
+                            Login
                         </Link>
-                        <Link to="/register" className="btn btn-soft-primary">
-                            <i className="ri-user-3-line align-bottom me-1"></i> Sign Up
+                        <Link to="/register" className="btn homeojob-nav-signup">
+                            <i className="ri-user-add-line" aria-hidden="true" />
+                            Sign Up
                         </Link>
                     </div>
                 </Collapse>

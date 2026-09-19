@@ -6252,7 +6252,7 @@ const PatientBoard = () => {
       display:grid;
       /* Shared tracks so Uncommon|Section|DMM|Headings corners align */
       grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(160px, 12%);
-      grid-template-rows:500px 580px;
+      grid-template-rows:444px 524px;
       grid-template-areas:
         "rubrics common uncommon section"
         "dmm dmm dmm headings";
@@ -7929,6 +7929,8 @@ const PatientBoard = () => {
     }
     .patient-board-page {
       --pb-tab-view-height:calc(100vh - 285px);
+      /* Dense list rows: 28px → 34px ≈ 2 fewer visible rows (e.g. 12→10, 13→11) */
+      --pb-list-row-min-height:34px;
       --pb-page-gutter:0.375rem;
       min-height:100vh;
       display:flex;
@@ -7937,6 +7939,25 @@ const PatientBoard = () => {
       max-width:100% !important;
       width:100% !important;
       box-sizing:border-box !important;
+    }
+    /* Global list-row density — Repertory / Questions / Clinical / Repertorize / MM / AE / Body Parts */
+    .patient-board-page .pb-repertory-section-item,
+    .patient-board-page .pb-rubric-row--repertory-subsection,
+    .patient-board-page .pb-questions-section-item,
+    .patient-board-page .pb-questions-group-item,
+    .patient-board-page .pb-questions-rubric-item,
+    .patient-board-page .pb-questions-list-item,
+    .patient-board-page .pb-clinical-section-item,
+    .patient-board-page .pb-ae-effect-row,
+    .patient-board-page .pb-mm-heading-item,
+    .patient-board-page .pb-accordion-sublist-row,
+    .patient-board-page .pb-repertorization-rubric-row,
+    .patient-board-page .pb-remedy-list-row,
+    .patient-board-page .pb-repertorize-section-row,
+    .patient-board-page .pb-body-part-tab .anatomy-section-item,
+    .patient-board-page .pb-body-part-tab .anatomy-hotspot-row {
+      min-height:var(--pb-list-row-min-height) !important;
+      box-sizing:border-box;
     }
     /* Beat body.doctor-layout .page-content .container-fluid { padding:0 } */
     body.doctor-layout .page-content .patient-board-page.container-fluid,
@@ -10935,6 +10956,20 @@ const PatientBoard = () => {
       min-height:0;
       height:100%;
       overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .pb-body-part-tab .anatomy-root:not(.anatomy-root--fullscreen) {
+      flex:1 1 auto;
+      height:100%;
+      max-height:100%;
+      min-height:0;
+      width:100%;
+    }
+    .pb-body-part-tab .anatomy-grid {
+      flex:1 1 auto;
+      min-height:0;
+      height:100%;
     }
     .da-container {
       display:flex;

@@ -40,15 +40,15 @@ import ContactForm from "../components/ContactForm";
 import { landingPath } from "../../../../constants/landingRoutes";
 
 const HERO_SLIDES = [
-    { src: mainImage, alt: "Homeo Centrum main building" },
-    { src: hallImage, alt: "Homeo Centrum hall" },
-    { src: insideImage, alt: "Homeo Centrum interior" },
-    { src: rooms, alt: "Homeo Centrum rooms" },
-    { src: pharmsy, alt: "Homeo Centrum pharmacy" },
-    { src: staffImage, alt: "Homeo Centrum staff" },
-    { src: sideView, alt: "Homeo Centrum side view" },
-    { src: sideView1, alt: "Homeo Centrum side view" },
-    { src: nightView, alt: "Homeo Centrum night view" },
+    { src: mainImage, alt: "Homeocentrum main building" },
+    { src: hallImage, alt: "Homeocentrum hall" },
+    { src: insideImage, alt: "Homeocentrum interior" },
+    { src: rooms, alt: "Homeocentrum rooms" },
+    { src: pharmsy, alt: "Homeocentrum pharmacy" },
+    { src: staffImage, alt: "Homeocentrum staff" },
+    { src: sideView, alt: "Homeocentrum side view" },
+    { src: sideView1, alt: "Homeocentrum side view" },
+    { src: nightView, alt: "Homeocentrum night view" },
 ];
 // const CLIENT_LOGOS = [amazon, walmart, lenovo, paypal, shopify, verizon];
 
@@ -244,7 +244,7 @@ const HomePage = () => {
                     <Row className="align-items-center gy-4">
                         <Col sm>
                             <h4 className="text-white mb-0 fw-semibold">
-                                Build your homeopathic practice with Homeo Centrum
+                                Build your homeopathic practice with Homeocentrum
                             </h4>
                         </Col>
                         <Col sm="auto">

@@ -234,6 +234,22 @@
         justify-content: flex-end;
     }
 
+    &__date-filter {
+        width: 8.75rem;
+        flex-shrink: 0;
+
+        .dob-picker__input-group {
+            min-height: var(--app-form-field-height, 1.75rem);
+            height: var(--app-form-field-height, 1.75rem);
+            border-radius: 999px;
+        }
+
+        .dob-picker__input {
+            font-size: var(--app-form-field-font-size, 0.6875rem) !important;
+            padding: 0 0.45rem 0 0.1rem !important;
+        }
+    }
+
     &__title {
         display: inline-flex;
         align-items: center;
@@ -877,13 +893,17 @@
             border-radius: 8px;
             font-size: var(--app-form-field-font-size, 0.6875rem) !important;
         }
+
+        &.dob-picker--no-icon .dob-picker__input {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
     }
 
     &__interval {
         position: relative;
 
         .appointment-slot-interval-display {
-            padding-left: 2.35rem;
             border-radius: 8px;
             border: 1px solid #e2ebf3;
             background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
@@ -895,14 +915,7 @@
     }
 
     &__interval-icon {
-        position: absolute;
-        left: 0.85rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #25a0e2;
-        font-size: 1rem;
-        z-index: 1;
-        pointer-events: none;
+        display: none;
     }
 
     &__slots {
@@ -1171,6 +1184,13 @@
         box-shadow: none !important;
         cursor: pointer;
         background: transparent;
+    }
+
+    &--no-icon {
+        .dob-picker__input {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
     }
 
     &__popover {

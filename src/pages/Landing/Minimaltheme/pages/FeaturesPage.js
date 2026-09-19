@@ -10,7 +10,7 @@ const FeaturesPage = () => {
 
     return (
         <>
-            <PageBanner title="Homeo Centrum Features" breadcrumb="Features" />
+            <PageBanner title="Homeocentrum Features" breadcrumb="Features" />
             <section className="section">
                 <Container>
                     <Row className="g-4">

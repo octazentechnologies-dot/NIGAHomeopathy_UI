@@ -43,8 +43,8 @@ const Navbar = () => {
         <nav className={"navbar navbar-expand-lg navbar-landing fixed-top " + navClass} id="navbar">
             <Container>
                 <Link className="navbar-brand minimaltheme-brand" to={landingPath()}>
-                    <img src={logodark} className="card-logo card-logo-dark" alt="Homeo Centrum" />
-                    <img src={logolight} className="card-logo card-logo-light" alt="Homeo Centrum" />
+                    <img src={logodark} className="card-logo card-logo-dark" alt="Homeocentrum" />
+                    <img src={logolight} className="card-logo card-logo-light" alt="Homeocentrum" />
                 </Link>
 
                 <NavbarToggler

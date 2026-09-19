@@ -1,60 +1,137 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Card, CardBody, Col, Container, Row } from "reactstrap";
+import { Col, Container, Row } from "reactstrap";
+import CtaDoctorImage from "../../../assets/images/landing/cta-doctor.png";
 import { MODULE_CATEGORIES } from "./constants/jobLandingContent";
 
 const Categories = () => (
     <>
-        <section className="section bg-light" id="categories">
-            <Container>
-                <Row className="justify-content-center">
-                    <Col lg={7}>
-                        <div className="text-center mb-5">
-                            <h1 className="mb-3 ff-secondary fw-semibold text-capitalize lh-base">
-                                Cloud homeopathy{" "}
-                                <span className="text-primary">modules</span> featured
-                            </h1>
-                            <p className="text-muted">
-                                Case taking, repertorization, diagnosis master, materia medica, and deep analytics in one platform.
-                            </p>
-                        </div>
-                    </Col>
-                </Row>
+        <section className="section homeojob-modules" id="categories">
+            <div className="homeojob-modules__dots homeojob-modules__dots--tl" aria-hidden="true" />
+            <div className="homeojob-modules__dots homeojob-modules__dots--tr" aria-hidden="true" />
 
-                <Row className="justify-content-center homeojob-modules-row g-3">
+            <Container className="position-relative">
+                <div className="homeojob-modules__header">
+                    <p className="homeojob-modules__eyebrow">Cloud Homeopathy</p>
+                    <h2 className="homeojob-modules__title">
+                        Cloud Homeopathy <span className="text-primary">Modules</span> Featured
+                    </h2>
+                    <p className="homeojob-modules__subtitle">
+                        Case taking, repertorization, diagnosis master, materia medica, and deep
+                        analytics in one platform.
+                    </p>
+                </div>
+
+                <Row className="g-3 g-xl-4 homeojob-modules__grid">
                     {MODULE_CATEGORIES.map((item) => (
-                        <Col lg={3} md={6} key={item.label} className="d-flex">
-                            <Card className="homeojob-module-card card shadow-none text-center py-3 w-100 h-100">
-                                <CardBody className="py-4">
-                                    <div className="avatar-sm position-relative mb-4 mx-auto">
-                                        <div className="job-icon-effect"></div>
-                                        <div className="avatar-title bg-transparent text-success rounded-circle">
-                                            <i className={item.icon}></i>
-                                        </div>
-                                    </div>
-                                    <h5 className="fs-17 pt-1">{item.label}</h5>
-                                    <p className="mb-0 text-muted">{item.detail}</p>
-                                </CardBody>
-                            </Card>
+                        <Col lg={3} md={6} sm={6} key={item.label} className="d-flex">
+                            <article
+                                className={`homeojob-module-card homeojob-module-card--${item.theme}`}
+                            >
+                                <span className="homeojob-module-card__dots" aria-hidden="true" />
+                                <div
+                                    className="homeojob-module-card__icon"
+                                    aria-hidden="true"
+                                >
+                                    <i className={item.icon} />
+                                </div>
+                                <h3 className="homeojob-module-card__title">{item.label}</h3>
+                                <p className="homeojob-module-card__detail">{item.detail}</p>
+                                <Link
+                                    to="/register"
+                                    className="homeojob-module-card__action"
+                                    aria-label={`Explore ${item.label}`}
+                                >
+                                    <i className="ri-arrow-right-line" />
+                                </Link>
+                            </article>
                         </Col>
                     ))}
                 </Row>
+
+                <div className="homeojob-modules__flourishes">
+                    <div className="homeojob-modules__flourish homeojob-modules__flourish--bl" aria-hidden="true">
+                        <i className="ri-leaf-fill" />
+                        <span>Smarter Homeopathy Together</span>
+                    </div>
+                    <div className="homeojob-modules__flourish homeojob-modules__flourish--br" aria-hidden="true">
+                        <span>Better Health Naturally</span>
+                    </div>
+                </div>
             </Container>
         </section>
-        <section className="py-5 bg-primary position-relative">
-            <div className="bg-overlay bg-overlay-pattern opacity-50"></div>
+
+        <section className="section homeojob-cta" id="get-started">
             <Container>
-                <Row className="align-items-center gy-4">
-                    <Col sm>
-                        <h4 className="text-white mb-2">Ready to Started?</h4>
-                        <p className="text-white-50 mb-0">Create new account and start your Homeo Centrum practice</p>
-                    </Col>
-                    <Col sm="auto">
-                        <Link to="/register" className="btn bg-gradient btn-danger">
-                            Create Free Account
-                        </Link>
-                    </Col>
-                </Row>
+                <div className="homeojob-cta__panel">
+                    <div className="homeojob-cta__shape homeojob-cta__shape--1" aria-hidden="true" />
+                    <div className="homeojob-cta__shape homeojob-cta__shape--2" aria-hidden="true" />
+                    <div className="homeojob-cta__dots" aria-hidden="true" />
+
+                    <div className="homeojob-cta__layout">
+                        <div className="homeojob-cta__copy">
+                            <p className="homeojob-cta__eyebrow">
+                                Take the First Step Today
+                                <span />
+                            </p>
+                            <h2 className="homeojob-cta__title">Ready to Started?</h2>
+                            <p className="homeojob-cta__subtitle">
+                                Create new account and start your Homeocentrum practice
+                            </p>
+
+                            <div className="homeojob-cta__features">
+                                <div className="homeojob-cta__feature">
+                                    <span className="homeojob-cta__feature-icon homeojob-cta__feature-icon--blue">
+                                        <i className="ri-flashlight-fill" />
+                                    </span>
+                                    <div>
+                                        <strong>Quick Setup</strong>
+                                        <span>Get started in minutes</span>
+                                    </div>
+                                </div>
+                                <div className="homeojob-cta__feature">
+                                    <span className="homeojob-cta__feature-icon homeojob-cta__feature-icon--green">
+                                        <i className="ri-shield-check-fill" />
+                                    </span>
+                                    <div>
+                                        <strong>Secure &amp; Reliable</strong>
+                                        <span>Your data is always safe</span>
+                                    </div>
+                                </div>
+                                <div className="homeojob-cta__feature">
+                                    <span className="homeojob-cta__feature-icon homeojob-cta__feature-icon--purple">
+                                        <i className="ri-cloud-fill" />
+                                    </span>
+                                    <div>
+                                        <strong>All-in-One Platform</strong>
+                                        <span>Manage everything easily</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="homeojob-cta__visual">
+                            <img
+                                src={CtaDoctorImage}
+                                alt="Homeopathy practitioner"
+                                className="homeojob-cta__image"
+                            />
+                            <div className="homeojob-cta__leaves" aria-hidden="true">
+                                <i className="ri-leaf-fill" />
+                                <i className="ri-leaf-fill" />
+                                <i className="ri-leaf-fill" />
+                            </div>
+                        </div>
+
+                        <div className="homeojob-cta__action">
+                            <span className="homeojob-cta__spark" aria-hidden="true" />
+                            <Link to="/register" className="btn homeojob-cta__btn">
+                                Create Free Account
+                                <i className="ri-arrow-right-line" aria-hidden="true" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
             </Container>
         </section>
     </>
