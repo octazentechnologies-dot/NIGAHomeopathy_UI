@@ -2525,11 +2525,43 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
     }
   }
 
+  .header-profile-user-wrap {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    line-height: 0;
+  }
+
   .header-profile-user {
     border: 2px solid var(--#{$prefix}border-color);
     object-fit: cover;
     padding: 1px;
     background-color: var(--#{$prefix}secondary-bg, #fff);
+  }
+
+  .header-profile-user-status {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #0ab39c;
+    border: 2px solid var(--#{$prefix}secondary-bg, #fff);
+    box-shadow: 0 0 0 1px rgba(10, 179, 156, 0.25);
+    pointer-events: none;
+  }
+
+  .doctor-online-toggle {
+    padding: 0.45rem 1.25rem 0.65rem;
+    border-bottom: 1px solid var(--#{$prefix}border-color);
+    margin-bottom: 0.15rem;
+
+    .form-switch .form-check-input {
+      width: 2.2em;
+      margin-left: 0;
+      cursor: pointer;
+    }
   }
 }
 
@@ -2637,8 +2669,10 @@ body.doctor-layout {
     }
   }
 
-  /* Action cards row (Patient, Appointment, Billings, Subscription) */
-  .page-content .row.mb-2:has(> [class*="col-xl-3"] > .card-animate) {
+  /* Action cards row (Appointment, Patient, Unpaid Consultations, Subscription) */
+  .page-content .row.mb-2.doctor-dashboard-action-row,
+  .page-content .row.mb-2:has(> [class*="col-xl-3"] > .card-animate),
+  .page-content .row.mb-2:has(> [class*="col-xl-4"] > .card-animate) {
     .card-animate {
       h4,
       h4 span,
@@ -2702,7 +2736,9 @@ body.doctor-layout {
 
   /* KPI / action rows: soft hover fill that respects rounded corners */
   .page-content .row.mb-2:has(> [class*="col-lg-2"] > .card-animate) .card-animate:hover,
-  .page-content .row.mb-2:has(> [class*="col-xl-3"] > .card-animate) .card-animate:hover {
+  .page-content .row.mb-2.doctor-dashboard-action-row .card-animate:hover,
+  .page-content .row.mb-2:has(> [class*="col-xl-3"] > .card-animate) .card-animate:hover,
+  .page-content .row.mb-2:has(> [class*="col-xl-4"] > .card-animate) .card-animate:hover {
     background-color: $doctor-hover-bg !important;
 
     /* Keep fill on the card shell — not square card-body — so corners stay round */
@@ -5561,7 +5597,7 @@ body.doctor-layout {
       font-size: 0.75rem !important;
     }
 
-    // Action card titles (Patient / Appointment / Billings / Subscription)
+    // Action card titles (Patient / Appointment / Unpaid Consultations / Subscription)
     h4.doctor-action-title,
     .doctor-action-title,
     .doctor-action-title .counter-value,

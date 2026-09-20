@@ -53,7 +53,7 @@ const ContactPage = () => {
                                     allowFullScreen
                                     loading="lazy"
                                     referrerPolicy="no-referrer-when-downgrade"
-                                    title="Homeo Centrum Location"
+                                    title="Homeocentrum Location"
                                 ></iframe>
                             </div>
                         </Col>

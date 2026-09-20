@@ -63,6 +63,7 @@ export const getHomeDashboardPath = (role) => {
 };
 
 export const DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT = "doctor-dashboard:open-new-appointment";
+export const DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT = "doctor-dashboard:open-billing-list";
 
 export const buildPatientSelectOption = (patient) => {
   if (!patient) {
@@ -83,4 +84,11 @@ export const dispatchOpenNewAppointmentModal = (patient = null) => {
   window.dispatchEvent(
     new CustomEvent(DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT, { detail: patient })
   );
+};
+
+export const dispatchOpenBillingListModal = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT));
 };

@@ -22,6 +22,7 @@ import { getHomeDashboardPath } from '../helpers/dashboard_helper';
 import { WhatsAppModal } from '../Components/WhatsAppModal';
 import ActivePatientSessionsStack from '../Components/Common/ActivePatientSessionsStack';
 import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeaderButton';
+import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
 const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
@@ -109,6 +110,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                             {userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION ? (
                                 <div className="d-flex align-items-center header-doctor-session-tools">
                                     <LastWorkBackupHeaderButton userRole={userRole} />
+                                    <ReceptionStaffHeaderButton userRole={userRole} />
                                     <ActivePatientSessionsStack />
                                 </div>
                             ) : null}

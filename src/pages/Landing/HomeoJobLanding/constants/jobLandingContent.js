@@ -2,12 +2,12 @@ export const JOB_PROCESS = [
     {
         id: 1,
         label: "Register Account",
-        desc: "Create your Homeo Centrum account, verify your profile, then choose a plan that fits your clinic size and practice goals.",
+        desc: "Create your Homeocentrum account, verify your profile, then choose a plan that fits your clinic size and practice goals.",
     },
     {
         id: 2,
         label: "Case Taking",
-        desc: "Capture patient history with keyword-based symptoms, structured rubrics, and guided prompts that keep every case complete.",
+        desc: "Capture patient history with smart, guided forms, structured rubrics and keyword-based symptoms that keep every case complete.",
     },
     {
         id: 3,
@@ -22,14 +22,54 @@ export const JOB_PROCESS = [
 ];
 
 export const MODULE_CATEGORIES = [
-    { icon: "ri-stethoscope-line fs-1", label: "Case Taking", detail: "Structured history" },
-    { icon: "ri-bar-chart-grouped-line fs-1", label: "Repertorization", detail: "Remedy scoring" },
-    { icon: "ri-heart-pulse-line fs-1", label: "Diagnosis Master", detail: "Symptom mapping" },
-    { icon: "ri-book-open-line fs-1", label: "Materia Medica", detail: "Therapeutics" },
-    { icon: "ri-time-line fs-1", label: "Timeline View", detail: "Layer-wise cases" },
-    { icon: "ri-pie-chart-line fs-1", label: "Deep Analytics", detail: "Case insights" },
-    { icon: "ri-translate-2 fs-1", label: "Multi-lingual", detail: "Rubric search" },
-    { icon: "ri-cloud-line fs-1", label: "Cloud Platform", detail: "Anywhere access" },
+    {
+        icon: "ri-stethoscope-line",
+        label: "Case Taking",
+        detail: "Structured history",
+        theme: "blue",
+    },
+    {
+        icon: "ri-bar-chart-grouped-line",
+        label: "Repertorization",
+        detail: "Remedy scoring",
+        theme: "green",
+    },
+    {
+        icon: "ri-heart-pulse-line",
+        label: "Diagnosis Master",
+        detail: "Symptom mapping",
+        theme: "pink",
+    },
+    {
+        icon: "ri-book-open-line",
+        label: "Materia Medica",
+        detail: "Therapeutics",
+        theme: "orange",
+    },
+    {
+        icon: "ri-history-line",
+        label: "Timeline View",
+        detail: "Layer-wise cases",
+        theme: "purple",
+    },
+    {
+        icon: "ri-pie-chart-line",
+        label: "Deep Analytics",
+        detail: "Case insights",
+        theme: "sky",
+    },
+    {
+        icon: "ri-translate-2",
+        label: "Multi-lingual",
+        detail: "Rubric search",
+        theme: "teal",
+    },
+    {
+        icon: "ri-cloud-line",
+        label: "Cloud Platform",
+        detail: "Anywhere access",
+        theme: "rose",
+    },
 ];
 
 export const HERO_KEYWORDS = ["Case Taking", "Repertory", "Materia Medica", "Analytics"];
