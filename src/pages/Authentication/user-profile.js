@@ -33,6 +33,15 @@ import { editProfile, resetProfileFlag } from "../../slices/thunks";
 import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
 import { UserRole } from "../../Components/constants/roles";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
+import {
+  getDoctorProfileMe,
+  updateDoctorProfileMe,
+  uploadDoctorProfilePhoto,
+  getDoctorCredentialsMe,
+  uploadDoctorCredentialDocument,
+  getAvailabilityMe,
+  updateAvailabilityMe,
+} from "../../helpers/realbackend_helper";
 
 const PROFILE_TABS = [
   { id: "profile", label: "Profile" },
@@ -133,6 +142,7 @@ const EMPTY_QUALIFICATION_FORM = {
   year: "",
   documentName: "",
   documentUrl: "",
+  documentFile: null,
 };
 
 const INITIAL_QUALIFICATIONS = [
@@ -238,6 +248,31 @@ const INITIAL_CONSULTATION_MODE = {
   both: false,
 };
 
+const amPmToHms = (value) => {
+  const raw = String(value || "").trim();
+  const hhmm = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (hhmm) {
+    return `${String(Number(hhmm[1])).padStart(2, "0")}:${hhmm[2]}:${hhmm[3] || "00"}`;
+  }
+  const ampm = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!ampm) return "10:00:00";
+  let hour = Number(ampm[1]);
+  const minute = ampm[2];
+  const period = ampm[3].toUpperCase();
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, "0")}:${minute}:00`;
+};
+
+const showSaveResult = (ok, text) =>
+  Swal.fire({
+    title: ok ? "Saved!" : "Not saved",
+    text,
+    icon: ok ? "success" : "error",
+    timer: ok ? 1500 : 2500,
+    showConfirmButton: !ok,
+  });
+
 const ProfileBadge = ({ tone = "neutral", children }) => (
   <span className={`user-profile-page__badge user-profile-page__badge--${tone}`}>
     {children}
@@ -271,6 +306,7 @@ const UserProfile = () => {
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(avatar1);
   const [photoFileInputKey, setPhotoFileInputKey] = useState(0);
+  const [photoFile, setPhotoFile] = useState(null);
   const photoInputRef = useRef(null);
   const [qualifications, setQualifications] = useState(INITIAL_QUALIFICATIONS);
   const [qualificationForm, setQualificationForm] = useState(EMPTY_QUALIFICATION_FORM);
@@ -326,6 +362,80 @@ const UserProfile = () => {
     }
   }, [dispatch, user]);
 
+  useEffect(() => {
+    let cancelled = false;
+    getDoctorProfileMe()
+      .then((payload) => {
+        if (cancelled) return;
+        const me = payload?.data ?? payload?.Data ?? payload;
+        if (!me) return;
+        setClinicForm((prev) => ({
+          ...prev,
+          clinicName: me.clinicName || prev.clinicName,
+          city: me.city || prev.city,
+          contactNumber: me.mobileNo || prev.contactNumber,
+          email: me.emailId || prev.email,
+        }));
+        setFeesForm((prev) => ({
+          ...prev,
+          inClinic: {
+            ...prev.inClinic,
+            consultationFee: me.consultFeeInClinic != null ? String(me.consultFeeInClinic) : prev.inClinic.consultationFee,
+          },
+          tele: {
+            ...prev.tele,
+            enabled: me.consultFeeTele != null,
+            consultationFee: me.consultFeeTele != null ? String(me.consultFeeTele) : prev.tele.consultationFee,
+          },
+        }));
+        if (me.kyc) {
+          setBankForm((prev) => ({
+            ...prev,
+            accountHolderName: me.kyc.accountHolder || prev.accountHolderName,
+            bankName: me.kyc.bankName || prev.bankName,
+            accountNumber: me.kyc.accountNumber || prev.accountNumber,
+            confirmAccountNumber: me.kyc.accountNumber || prev.confirmAccountNumber,
+            ifscCode: me.kyc.ifsc || prev.ifscCode,
+          }));
+        }
+      })
+      .catch(() => {});
+    getDoctorCredentialsMe()
+      .then((payload) => {
+        if (cancelled) return;
+        const docs = payload?.data?.documents ?? payload?.data?.Documents ?? [];
+        if (!Array.isArray(docs) || docs.length === 0) return;
+        setQualifications(
+          docs.map((doc, index) => ({
+            id: doc.doctorCredentialDocumentId ?? index + 1,
+            degree: doc.documentType || "Qualification",
+            specialization: "—",
+            institution: "",
+            year: "",
+            documentName: doc.fileName,
+            documentUrl: doc.filePath || "#",
+          }))
+        );
+      })
+      .catch(() => {});
+    getAvailabilityMe()
+      .then((payload) => {
+        if (cancelled) return;
+        const me = payload?.data ?? payload;
+        const note = me?.workingHoursNote;
+        if (note) {
+          setHoursSchedule((prev) => ({
+            ...prev,
+            monday: { ...prev.monday, available: true },
+          }));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const validation = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -364,7 +474,7 @@ const UserProfile = () => {
     }));
   };
 
-  const handleSaveClinic = (event) => {
+  const handleSaveClinic = async (event) => {
     event.preventDefault();
     if (
       !clinicForm.clinicName.trim() ||
@@ -383,16 +493,20 @@ const UserProfile = () => {
       return;
     }
 
-    Swal.fire({
-      title: "Saved!",
-      text: "Clinic information has been updated for Dr. Nikhil Jamdar.",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    try {
+      await updateDoctorProfileMe({
+        clinicName: clinicForm.clinicName.trim(),
+        city: clinicForm.city.trim(),
+        emailId: clinicForm.email.trim(),
+        mobileNo: clinicForm.contactNumber.trim(),
+      });
+      showSaveResult(true, "Clinic information has been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Clinic save failed.");
+    }
   };
 
-  const handleSaveFees = (event) => {
+  const handleSaveFees = async (event) => {
     event.preventDefault();
     if (!String(feesForm.inClinic.consultationFee || "").trim()) {
       Swal.fire({
@@ -415,13 +529,15 @@ const UserProfile = () => {
       return;
     }
 
-    Swal.fire({
-      title: "Saved!",
-      text: "Consultation fees have been updated for Dr. Nikhil Jamdar.",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    try {
+      await updateDoctorProfileMe({
+        consultFeeInClinic: Number(feesForm.inClinic.consultationFee),
+        consultFeeTele: feesForm.tele.enabled ? Number(feesForm.tele.consultationFee) : null,
+      });
+      showSaveResult(true, "Consultation fees have been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Fee save failed.");
+    }
   };
 
   const handleChangePhotoClick = () => {
@@ -459,6 +575,7 @@ const UserProfile = () => {
     }
 
     const objectUrl = URL.createObjectURL(file);
+    setPhotoFile(file);
     setProfilePhoto((prev) => {
       if (prev && prev !== avatar1 && typeof prev === "string" && prev.startsWith("blob:")) {
         URL.revokeObjectURL(prev);
@@ -484,15 +601,20 @@ const UserProfile = () => {
     });
   };
 
-  const handleSavePhoto = (event) => {
+  const handleSavePhoto = async (event) => {
     event.preventDefault();
-    Swal.fire({
-      title: "Saved!",
-      text: "Doctor profile photo has been updated.",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    if (!photoFile) {
+      showSaveResult(true, "No new photo selected.");
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append("file", photoFile);
+      await uploadDoctorProfilePhoto(formData);
+      showSaveResult(true, "Doctor profile photo has been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Photo upload failed.");
+    }
   };
 
   const updateQualificationField = (field, value) => {
@@ -544,19 +666,24 @@ const UserProfile = () => {
         ...prev,
         documentName: file.name,
         documentUrl: objectUrl,
+        documentFile: file,
       };
     });
   };
 
-  const handleSaveQualifications = (event) => {
+  const handleSaveQualifications = async (event) => {
     event.preventDefault();
-    Swal.fire({
-      title: "Saved!",
-      text: "Qualifications have been updated for Dr. Nikhil Jamdar.",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    try {
+      if (qualificationForm.documentFile) {
+        const formData = new FormData();
+        formData.append("file", qualificationForm.documentFile);
+        formData.append("documentType", "Qualification");
+        await uploadDoctorCredentialDocument(formData);
+      }
+      showSaveResult(true, "Qualifications have been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Qualification save failed.");
+    }
   };
 
   const handleAddOrUpdateQualification = (event) => {
@@ -604,6 +731,12 @@ const UserProfile = () => {
     }
 
     const nextId = qualifications.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    if (qualificationForm.documentFile) {
+      const formData = new FormData();
+      formData.append("file", qualificationForm.documentFile);
+      formData.append("documentType", "Qualification");
+      uploadDoctorCredentialDocument(formData).catch(() => {});
+    }
     setQualifications((prev) => [
       ...prev,
       {
@@ -777,7 +910,7 @@ const UserProfile = () => {
     });
   };
 
-  const handleSaveHours = (event) => {
+  const handleSaveHours = async (event) => {
     event.preventDefault();
     if (!consultationMode.inClinic && !consultationMode.teleconsultation) {
       Swal.fire({
@@ -790,20 +923,30 @@ const UserProfile = () => {
       return;
     }
 
-    Swal.fire({
-      title: "Saved!",
-      text: "Clinic hours have been updated for Dr. Nikhil Jamdar.",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    const sourceDay = WEEK_DAYS.map((day) => hoursSchedule[day.id]).find((row) => row?.available && row.startTime && row.endTime) || hoursSchedule.monday;
+    try {
+      await updateAvailabilityMe({
+        isOnline: true,
+        workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
+        scheduleDate: new Date().toISOString(),
+        workStartTime: amPmToHms(sourceDay.startTime),
+        workEndTime: amPmToHms(sourceDay.endTime),
+        slotIntervalMinutes: 15,
+      });
+      await updateDoctorProfileMe({
+        workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
+      });
+      showSaveResult(true, "Clinic hours have been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Hours save failed.");
+    }
   };
 
   const updateBankField = (field, value) => {
     setBankForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveBank = (event) => {
+  const handleSaveBank = async (event) => {
     event.preventDefault();
     if (
       !bankForm.accountHolderName.trim() ||
@@ -834,13 +977,19 @@ const UserProfile = () => {
       return;
     }
 
-    Swal.fire({
-      title: "Saved!",
-      text: "Bank details have been updated for Dr. Nikhil Jamdar.",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    try {
+      await updateDoctorProfileMe({
+        kyc: {
+          accountHolder: bankForm.accountHolderName.trim(),
+          bankName: bankForm.bankName.trim(),
+          accountNumber: bankForm.accountNumber.trim(),
+          ifsc: bankForm.ifscCode.trim(),
+        },
+      });
+      showSaveResult(true, "Bank details have been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Bank save failed.");
+    }
   };
 
   const renderHoursTimeSelect = (dayId, field, value, disabled) => (

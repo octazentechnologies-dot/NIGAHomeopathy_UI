@@ -76,6 +76,10 @@ import {
   getRubricRemedyDetails as getRubricRemedyDetailsApi,
   searchRubricsByKeyword as searchRubricsByKeywordApi,
   getMateriaMedicaHeadingByAuthorId as getMateriaMedicaHeadingByAuthorIdApi,
+  runCenterOfGravity,
+  exportCaseToPdf,
+  getPatientComplaints,
+  savePatientComplaints,
 } from '../../../helpers/realbackend_helper';
 import {
   buildSubSectionSearchTree,
@@ -12341,6 +12345,109 @@ const PatientBoard = () => {
     }
   };
 
+  const handleRunCenterOfGravity = async () => {
+    const rubrics = (repertorizationRubrics || [])
+      .map((rubric) => ({
+        subSectionId: Number(rubric.rubricId ?? rubric.subsectionId ?? rubric.subSectionId),
+        intensity: Number(rubric.intensityNo ?? rubric.intensityId ?? 1),
+      }))
+      .filter((item) => Number.isFinite(item.subSectionId) && item.subSectionId > 0);
+    if (rubrics.length === 0) {
+      Swal.fire({ icon: 'info', title: 'Clipboard empty', text: 'Add rubrics before Center of Gravity.', confirmButtonColor: '#000000' });
+      return;
+    }
+    try {
+      Swal.fire({ title: 'Running Center of Gravity…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const result = await runCenterOfGravity({
+        patientId: patientId ? Number(patientId) : null,
+        rubrics,
+      });
+      const rows = result?.data ?? result?.Data ?? [];
+      const lines = (Array.isArray(rows) ? rows : [])
+        .slice(0, 8)
+        .map((row) => `${row.remedyName ?? row.RemedyName} (${row.score ?? row.Score})`);
+      Swal.fire({
+        icon: 'success',
+        title: 'Center of Gravity',
+        html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No remedies scored for this clipboard.',
+        confirmButtonColor: '#000000',
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Center of Gravity failed',
+        text: typeof err === 'string' ? err : err?.message || 'Request failed',
+        confirmButtonColor: '#000000',
+      });
+    }
+  };
+
+  const handleExportCasePdf = async () => {
+    if (!patientId || !caseId) {
+      Swal.fire({ icon: 'warning', title: 'Missing case', text: 'Open a patient with patientId and caseId to export.', confirmButtonColor: '#000000' });
+      return;
+    }
+    try {
+      Swal.fire({ title: 'Exporting case PDF…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const blob = await exportCaseToPdf(patientId, caseId);
+      const file = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/pdf' });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `case-${patientId}-${caseId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      Swal.close();
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Export failed',
+        text: typeof err === 'string' ? err : err?.message || 'PDF export failed',
+        confirmButtonColor: '#000000',
+      });
+    }
+  };
+
+  const handleLoadSaveComplaints = async () => {
+    if (!patientId) {
+      Swal.fire({ icon: 'warning', title: 'Missing patient', text: 'Open a patient to load complaints.', confirmButtonColor: '#000000' });
+      return;
+    }
+    try {
+      Swal.fire({ title: 'Loading complaints…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const rows = await getPatientComplaints(patientId);
+      const list = rows?.data ?? rows?.resultObject ?? rows?.Data ?? (Array.isArray(rows) ? rows : []);
+      const ids = (Array.isArray(list) ? list : [])
+        .map((item) => item.chiefComplaintId ?? item.ChiefComplaintId ?? item.id)
+        .filter(Boolean);
+      if (ids.length && caseId) {
+        await savePatientComplaints({
+          PatientId: Number(patientId),
+          CaseId: Number(caseId),
+          ChiefComplaintIds: ids.join(','),
+        });
+      }
+      const names = (Array.isArray(list) ? list : [])
+        .map((item) => item.complaintName ?? item.ComplaintName ?? item.name ?? String(item.chiefComplaintId ?? item.id ?? ''))
+        .filter(Boolean);
+      Swal.fire({
+        icon: 'success',
+        title: 'Complaints',
+        html: names.length ? `<pre style="text-align:left">${names.join('\n')}</pre>` : 'No complaints saved for this patient.',
+        confirmButtonColor: '#000000',
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Complaints failed',
+        text: typeof err === 'string' ? err : err?.message || 'Request failed',
+        confirmButtonColor: '#000000',
+      });
+    }
+  };
+
   return (
     <div className="container-fluid patient-board-page">
       <style>{headerStyles}</style>
@@ -12570,6 +12677,12 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
+              <Button type="button" className="btn btn-sm me-1" onClick={handleLoadSaveComplaints} title="GET/POST complaints on classic api">
+                Complaints
+              </Button>
+              <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasePdf} title="Export case PDF">
+                Export PDF
+              </Button>
               {activeTab === 'Repertorize' && (
                 <Button
                   type="button"
@@ -13836,6 +13949,9 @@ const PatientBoard = () => {
                           Repertorization
                           <span className="pb-repertorize-count-pill">{repertorizationRubrics.length}</span>
                           <span className="text-muted small fw-normal ms-1">COG uses this clipboard</span>
+                          <Button type="button" className="btn btn-sm ms-2" onClick={handleRunCenterOfGravity}>
+                            Run COG
+                          </Button>
                         </div>
                         {/* Ascending / descending sort icons — hidden per request
                         <div className="d-flex gap-1">

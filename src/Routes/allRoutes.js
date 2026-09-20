@@ -395,6 +395,7 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 
 // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
+import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
 
 import FileManager from "../pages/FileManager";
@@ -790,6 +791,7 @@ const authProtectedRoutes = [
 
   //User Profile
   { path: "/profile", component: <UserProfile /> },
+  { path: "/enquiries", component: <EnquiryInboxPage /> },
 
   // Catch-all for authenticated app routes (landing is served from publicRoutes)
   { path: "*", component: <RoleBasedHomeRedirect /> },

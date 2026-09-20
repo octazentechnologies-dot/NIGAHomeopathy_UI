@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import Select from "react-select";
 import {
   Alert,
   Button,
@@ -16,38 +17,80 @@ import {
   Table,
 } from "reactstrap";
 import {
+  addFamilyRelation,
   createFamilyMember,
   deleteFamilyMember,
   getFamilyMembers,
-  linkPrimaryPatient,
+  getFamilyMe,
+  getFamilyRelations,
   updateFamilyMember,
 } from "../../helpers/realbackend_helper";
 import { unwrapApiList } from "../../helpers/menuByRole";
 
 const emptyForm = {
-  ownerPatientId: "",
+  relationId: "",
   relation: "",
   patientName: "",
   mobileNo: "",
   email: "",
 };
 
+const ADD_NEW_VALUE = "__new__";
+
 const FamilyMembers = () => {
   document.title = "Family | Niga Homeocentrum";
   const [members, setMembers] = useState([]);
+  const [relations, setRelations] = useState([]);
+  const [ownerName, setOwnerName] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [newRelationName, setNewRelationName] = useState("");
+  const [showNewRelation, setShowNewRelation] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
+  const relationOptions = useMemo(() => {
+    const rows = relations.map((row) => ({
+      value: String(row.relationId ?? row.RelationId),
+      label: row.relationName ?? row.RelationName,
+    }));
+    return [...rows, { value: ADD_NEW_VALUE, label: "+ Add new relation" }];
+  }, [relations]);
+
+  const selectedRelation = useMemo(() => {
+    if (showNewRelation) {
+      return relationOptions.find((o) => o.value === ADD_NEW_VALUE) || null;
+    }
+    if (form.relationId) {
+      return relationOptions.find((o) => o.value === String(form.relationId)) || {
+        value: String(form.relationId),
+        label: form.relation || "Relation",
+      };
+    }
+    if (form.relation) {
+      const byName = relationOptions.find(
+        (o) => o.value !== ADD_NEW_VALUE && o.label.toLowerCase() === form.relation.toLowerCase()
+      );
+      return byName || { value: form.relation, label: form.relation };
+    }
+    return null;
+  }, [form.relationId, form.relation, relationOptions, showNewRelation]);
+
+  const loadRelations = async () => {
+    const raw = await getFamilyRelations();
+    setRelations(unwrapApiList(raw?.data ?? raw));
+  };
+
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const raw = await getFamilyMembers();
-      setMembers(unwrapApiList(raw?.data ?? raw));
+      const [meRaw, listRaw] = await Promise.all([getFamilyMe(), getFamilyMembers(), loadRelations()]);
+      const me = meRaw?.data ?? meRaw;
+      setOwnerName(me?.ownerPatientName ?? me?.OwnerPatientName ?? "");
+      setMembers(unwrapApiList(listRaw?.data ?? listRaw));
     } catch (err) {
       setError(typeof err === "string" ? err : "Could not load family members.");
       setMembers([]);
@@ -66,25 +109,48 @@ const FamilyMembers = () => {
   };
 
   const resetForm = () => {
-    setForm((prev) => ({ ...emptyForm, ownerPatientId: prev.ownerPatientId }));
+    setForm(emptyForm);
     setEditingId(null);
+    setShowNewRelation(false);
+    setNewRelationName("");
   };
 
-  const onLinkPrimary = async (event) => {
+  const onRelationChange = (option) => {
+    if (!option) {
+      setForm((prev) => ({ ...prev, relationId: "", relation: "" }));
+      setShowNewRelation(false);
+      return;
+    }
+    if (option.value === ADD_NEW_VALUE) {
+      setShowNewRelation(true);
+      setForm((prev) => ({ ...prev, relationId: "", relation: "" }));
+      return;
+    }
+    setShowNewRelation(false);
+    setForm((prev) => ({ ...prev, relationId: option.value, relation: option.label }));
+  };
+
+  const onSaveNewRelation = async (event) => {
     event.preventDefault();
-    const ownerPatientId = Number(form.ownerPatientId);
-    if (!ownerPatientId) {
-      setError("Primary PatientId is required.");
+    const name = newRelationName.trim();
+    if (!name) {
+      setError("Enter a relation name.");
       return;
     }
     setSaving(true);
     setError(null);
-    setMessage(null);
     try {
-      await linkPrimaryPatient({ patientId: ownerPatientId });
-      setMessage("Primary patient linked for this login.");
+      const raw = await addFamilyRelation({ relationName: name });
+      const created = raw?.data ?? raw;
+      const id = created?.relationId ?? created?.RelationId;
+      const label = created?.relationName ?? created?.RelationName ?? name;
+      await loadRelations();
+      setForm((prev) => ({ ...prev, relationId: String(id || ""), relation: label }));
+      setShowNewRelation(false);
+      setNewRelationName("");
+      setMessage(`Relation "${label}" added.`);
     } catch (err) {
-      setError(typeof err === "string" ? err : "Link primary failed.");
+      setError(typeof err === "string" ? err : "Could not add relation.");
     } finally {
       setSaving(false);
     }
@@ -92,26 +158,26 @@ const FamilyMembers = () => {
 
   const onSave = async (event) => {
     event.preventDefault();
+    if (showNewRelation && !form.relationId) {
+      setError("Save the new relation first, or pick one from the list.");
+      return;
+    }
     setSaving(true);
     setError(null);
     setMessage(null);
     try {
+      const payload = {
+        relationId: form.relationId ? Number(form.relationId) : undefined,
+        relation: form.relation,
+        patientName: form.patientName,
+        mobileNo: form.mobileNo || null,
+        email: form.email || null,
+      };
       if (editingId) {
-        await updateFamilyMember(editingId, {
-          relation: form.relation,
-          patientName: form.patientName,
-          mobileNo: form.mobileNo || null,
-          email: form.email || null,
-        });
+        await updateFamilyMember(editingId, payload);
         setMessage("Family member updated.");
       } else {
-        await createFamilyMember({
-          ownerPatientId: Number(form.ownerPatientId),
-          relation: form.relation,
-          patientName: form.patientName,
-          mobileNo: form.mobileNo || null,
-          email: form.email || null,
-        });
+        await createFamilyMember(payload);
         setMessage("Family member added.");
       }
       resetForm();
@@ -125,8 +191,9 @@ const FamilyMembers = () => {
 
   const onEdit = (row) => {
     setEditingId(row.familyMemberId ?? row.FamilyMemberId);
+    setShowNewRelation(false);
     setForm({
-      ownerPatientId: String(row.ownerPatientId ?? row.OwnerPatientId ?? form.ownerPatientId),
+      relationId: String(row.relationId ?? row.RelationId ?? ""),
       relation: row.relation ?? row.Relation ?? "",
       patientName: row.patientName ?? row.PatientName ?? "",
       mobileNo: row.mobileNo ?? row.MobileNo ?? "",
@@ -163,25 +230,40 @@ const FamilyMembers = () => {
               <CardBody>
                 {message ? <Alert color="success">{message}</Alert> : null}
                 {error ? <Alert color="danger">{error}</Alert> : null}
-                <Form onSubmit={onLinkPrimary} className="mb-4">
-                  <FormGroup>
-                    <Label>Primary PatientId</Label>
-                    <Input
-                      name="ownerPatientId"
-                      value={form.ownerPatientId}
-                      onChange={onChange}
-                      placeholder="Clinical PatientId for this login"
-                    />
-                  </FormGroup>
-                  <Button color="secondary" type="submit" disabled={saving}>
-                    Link primary patient
-                  </Button>
-                </Form>
+                {ownerName ? (
+                  <p className="text-muted small mb-3">
+                    Adding members under your login{ownerName ? ` (${ownerName})` : ""}. You do not enter a PatientId.
+                  </p>
+                ) : null}
                 <Form onSubmit={onSave}>
                   <FormGroup>
                     <Label>Relation</Label>
-                    <Input name="relation" value={form.relation} onChange={onChange} required />
+                    <Select
+                      classNamePrefix="react-select"
+                      className="react-select-container"
+                      isSearchable
+                      isClearable
+                      placeholder="Search relation..."
+                      options={relationOptions}
+                      value={selectedRelation}
+                      onChange={onRelationChange}
+                    />
                   </FormGroup>
+                  {showNewRelation ? (
+                    <FormGroup>
+                      <Label>New relation name</Label>
+                      <div className="d-flex gap-2">
+                        <Input
+                          value={newRelationName}
+                          onChange={(e) => setNewRelationName(e.target.value)}
+                          placeholder="e.g. Guardian"
+                        />
+                        <Button color="secondary" type="button" onClick={onSaveNewRelation} disabled={saving}>
+                          Save
+                        </Button>
+                      </div>
+                    </FormGroup>
+                  ) : null}
                   <FormGroup>
                     <Label>Name</Label>
                     <Input name="patientName" value={form.patientName} onChange={onChange} required />

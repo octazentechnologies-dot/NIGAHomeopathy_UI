@@ -220,6 +220,13 @@ const Navdata = () => {
         },
 
         {
+            id: "enquiries",
+            label: "Enquiries",
+            icon: "ri-mail-line",
+            link: "/enquiries",
+        },
+
+        {
             id: "existancequestions",
             label: "Existance Questions",
             icon: "ri-question-line",

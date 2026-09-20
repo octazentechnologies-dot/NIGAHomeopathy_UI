@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 //import Scss
 import './assets/scss/themes.scss';
@@ -9,13 +9,45 @@ installDocumentTitleBrand();
 //imoprt Route
 import Route from './Routes';
 import { ensureMultiSelectGrowStyles } from './helpers/neutralSelectStyles';
+import { getLoggedinUser } from './helpers/api_helper';
 
 ensureMultiSelectGrowStyles();
 
-// Production uses real classic + New-API backends only (SEC-01.03).
-// Do not call fakeBackend() — it intercepts axios with Velzon dummy users.
+const PUBLIC_PATH_PREFIXES = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/auth',
+  '/find-doctor',
+  '/book',
+  '/privacy',
+  '/terms',
+  '/landing',
+];
+
+function isPublicPath(pathname) {
+  const path = String(pathname || '/').toLowerCase();
+  if (path === '/' || path === '') return true;
+  return PUBLIC_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
 
 function App() {
+  useEffect(() => {
+    const bounceIfLoggedOut = () => {
+      const token = getLoggedinUser()?.token;
+      if (token) return;
+      if (isPublicPath(window.location.pathname)) return;
+      window.location.replace('/login');
+    };
+    window.addEventListener('pageshow', bounceIfLoggedOut);
+    window.addEventListener('popstate', bounceIfLoggedOut);
+    return () => {
+      window.removeEventListener('pageshow', bounceIfLoggedOut);
+      window.removeEventListener('popstate', bounceIfLoggedOut);
+    };
+  }, []);
+
   return (
     <React.Fragment>
       <Route />

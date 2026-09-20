@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { landingPath } from "../../../../constants/landingRoutes";
+import {
+    createPublicBooking,
+    getPublicPolicy,
+    requestPatientAuthOtp,
+    slotToHHmm,
+    toIsoDate,
+    verifyPatientAuthOtp,
+} from "../../../../helpers/publicBookingApi";
 
 const INR = "\u20B9";
 
 const STEPS = [
     { id: 1, label: "Patient Details" },
-    { id: 2, label: "Payment" },
-    { id: 3, label: "Generate Receipt" },
+    { id: 2, label: "Verify OTP" },
+    { id: 3, label: "Booking hold" },
 ];
 
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
@@ -84,20 +92,15 @@ const formatSummaryDate = (date) => {
 };
 
 const getSlotEnd = (slot) => {
-    const match = String(slot).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    const hhmm = slotToHHmm(slot);
+    const match = String(hhmm).match(/^(\d{1,2}):(\d{2})$/);
     if (!match) return slot;
     let hour = Number(match[1]);
     const minute = Number(match[2]);
-    const period = match[3].toUpperCase();
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0;
     const total = hour * 60 + minute + 30;
     const endHour24 = Math.floor(total / 60) % 24;
     const endMin = total % 60;
-    const endPeriod = endHour24 >= 12 ? "PM" : "AM";
-    let endHour12 = endHour24 % 12;
-    if (endHour12 === 0) endHour12 = 12;
-    return `${endHour12}:${String(endMin).padStart(2, "0")} ${endPeriod}`;
+    return `${String(endHour24).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
 };
 
 const BookingConfirmModal = ({
@@ -115,6 +118,11 @@ const BookingConfirmModal = ({
     const [paymentMethod, setPaymentMethod] = useState("upi");
     const [paying, setPaying] = useState(false);
     const [receiptId, setReceiptId] = useState("");
+    const [otpCode, setOtpCode] = useState("");
+    const [otpHint, setOtpHint] = useState("");
+    const [policyVersion, setPolicyVersion] = useState("2026.09");
+    const [bookingError, setBookingError] = useState("");
+    const [paymentStatus, setPaymentStatus] = useState("");
 
     const fee = consultMode === "tele" ? doctor.tele : doctor.inClinic;
     const platformFee = 0;
@@ -129,11 +137,11 @@ const BookingConfirmModal = ({
         step === 1
             ? "Please provide your details to confirm the appointment"
             : step === 2
-              ? "Complete the payment to book your appointment"
+              ? "Verify OTP and hold the slot (pay at clinic)"
               : "Your appointment receipt is ready";
     const shortSlotTime = selectedSlot;
     const appointmentWhen = `${summaryDate}, ${shortSlotTime}`;
-    const clinicShort = `${doctor.clinicName}, ${doctor.location.split(",")[0]}`;
+    const clinicShort = `${doctor.clinicName || ""}${doctor.location ? `, ${String(doctor.location).split(",")[0]}` : ""}`;
 
     useEffect(() => {
         if (!isOpen) return undefined;
@@ -153,6 +161,13 @@ const BookingConfirmModal = ({
         setPaymentMethod("upi");
         setPaying(false);
         setReceiptId("");
+        setOtpCode("");
+        setOtpHint("");
+        setBookingError("");
+        setPaymentStatus("");
+        getPublicPolicy("Booking")
+            .then((policy) => setPolicyVersion(policy.version ?? policy.Version ?? "2026.09"))
+            .catch(() => setPolicyVersion("2026.09"));
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -185,20 +200,62 @@ const BookingConfirmModal = ({
         return Object.keys(next).length === 0;
     };
 
-    const handleProceedPayment = (e) => {
+    const handleProceedPayment = async (e) => {
         e.preventDefault();
         if (!validateStep1()) return;
-        setStep(2);
+        setBookingError("");
+        setPaying(true);
+        try {
+            const otp = await requestPatientAuthOtp(patient.phone.trim());
+            const hintParts = [`OTP sent to ${otp.destinationMasked || "your mobile"}`];
+            if (otp.devCode) hintParts.push(`Dev code: ${otp.devCode}`);
+            setOtpHint(hintParts.join(". "));
+            if (otp.devCode) setOtpCode(String(otp.devCode));
+            setStep(2);
+        } catch (err) {
+            setBookingError(typeof err === "string" ? err : err?.message || "Could not send OTP.");
+        } finally {
+            setPaying(false);
+        }
     };
 
-    const handlePay = () => {
+    const handlePay = async () => {
+        if (!otpCode.trim()) {
+            setBookingError("Enter the OTP sent to your mobile.");
+            return;
+        }
         setPaying(true);
-        window.setTimeout(() => {
-            const id = `HCR-${Date.now().toString().slice(-8)}`;
-            setReceiptId(id);
-            setPaying(false);
+        setBookingError("");
+        try {
+            const verified = await verifyPatientAuthOtp({
+                mobile: patient.phone.trim(),
+                code: otpCode.trim(),
+            });
+            const sessionId = verified.bookingSessionId ?? verified.BookingSessionId;
+            const created = await createPublicBooking(doctor.id, {
+                mobile: patient.phone.trim(),
+                patientName: patient.fullName.trim(),
+                email: patient.email.trim(),
+                appointmentDate: `${toIsoDate(bookingDate)}T00:00:00`,
+                appointmentTime: slotToHHmm(selectedSlot),
+                visitType: consultMode === "tele" ? "Tele" : "InClinic",
+                consultMode: consultMode === "tele" ? "Tele" : "InClinic",
+                isTele: consultMode === "tele",
+                bookingSessionId: sessionId,
+                consentPolicyVersion: policyVersion,
+            });
+            setReceiptId(created.bookingToken ?? created.BookingToken ?? "");
+            setPaymentStatus(created.paymentStatus ?? created.PaymentStatus ?? "PENDING");
             setStep(3);
-        }, 900);
+        } catch (err) {
+            const message =
+                typeof err === "string"
+                    ? err
+                    : err?.response?.data?.message || err?.message || "Could not create booking hold.";
+            setBookingError(message);
+        } finally {
+            setPaying(false);
+        }
     };
 
     const handleBackdrop = (e) => {
@@ -580,6 +637,23 @@ const BookingConfirmModal = ({
                                                 </strong>
                                             </div>
                                         </div>
+                                        <label className="homeojob-booking-modal__field mt-3">
+                                            <span>OTP</span>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={otpCode}
+                                                onChange={(e) => setOtpCode(e.target.value)}
+                                                placeholder="6-digit OTP"
+                                                aria-label="Booking OTP"
+                                            />
+                                            {otpHint && <small className="text-muted d-block mt-1">{otpHint}</small>}
+                                        </label>
+                                        {bookingError && (
+                                            <small className="homeojob-booking-modal__error d-block mt-2">
+                                                {bookingError}
+                                            </small>
+                                        )}
                                     </div>
                                 </aside>
                             </div>
@@ -620,14 +694,14 @@ const BookingConfirmModal = ({
                                             onClick={handlePay}
                                             disabled={paying || !agreed}
                                         >
-                                            {paying ? "Processing..." : `Pay ${INR} ${totalAmount}`}
+                                            {paying ? "Holding slot..." : "Confirm hold (pay at clinic)"}
                                             {!paying && (
                                                 <i className="ri-arrow-right-line" aria-hidden="true" />
                                             )}
                                         </button>
                                         <p className="homeojob-booking-modal__razorpay">
                                             <i className="ri-lock-line" aria-hidden="true" />
-                                            Secure payment powered by Razorpay
+                                            Clinic hold now. Razorpay stays on classic api.
                                         </p>
                                     </div>
                                 </div>
@@ -641,14 +715,18 @@ const BookingConfirmModal = ({
                                 <span aria-hidden="true">
                                     <i className="ri-checkbox-circle-fill" />
                                 </span>
-                                <h3>Payment Successful</h3>
-                                <p>Your appointment has been confirmed. Receipt is ready.</p>
+                                <h3>Booking hold created</h3>
+                                <p>Slot held as {paymentStatus || "PENDING"}. Pay at clinic or later on classic Razorpay.</p>
                             </div>
 
                             <div className="homeojob-booking-modal__receipt-card">
                                 <div className="homeojob-booking-modal__receipt-row">
-                                    <span>Receipt ID</span>
+                                    <span>Booking token</span>
                                     <strong>{receiptId}</strong>
+                                </div>
+                                <div className="homeojob-booking-modal__receipt-row">
+                                    <span>Payment</span>
+                                    <strong>{paymentStatus || "PENDING"}</strong>
                                 </div>
                                 <div className="homeojob-booking-modal__receipt-row">
                                     <span>Patient</span>
@@ -696,7 +774,7 @@ const BookingConfirmModal = ({
                                 <p>{doctor.experience}</p>
                                 <p className="homeojob-booking-modal__rating">
                                     <i className="ri-star-fill" aria-hidden="true" />
-                                    {doctor.rating.toFixed(1)} ({doctor.reviews} reviews)
+                                    {Number(doctor.rating || 0).toFixed(1)} ({doctor.reviews || 0} reviews)
                                 </p>
                             </div>
                         </div>
@@ -782,6 +860,11 @@ const BookingConfirmModal = ({
                                     {errors.agreed}
                                 </small>
                             )}
+                            {bookingError && (
+                                <small className="homeojob-booking-modal__error homeojob-booking-modal__error--footer">
+                                    {bookingError}
+                                </small>
+                            )}
                             <div className="homeojob-booking-modal__actions">
                                 <button
                                     type="button"
@@ -795,7 +878,7 @@ const BookingConfirmModal = ({
                                     className="homeojob-booking-modal__btn homeojob-booking-modal__btn--primary"
                                     onClick={handleProceedPayment}
                                 >
-                                    Proceed to Payment
+                                    Proceed to OTP
                                     <i className="ri-arrow-right-line" aria-hidden="true" />
                                 </button>
                             </div>

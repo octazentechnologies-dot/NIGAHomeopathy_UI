@@ -58,6 +58,8 @@ const HomeoJobLanding = () => {
                     <Route path="account" element={<AccountPage />} />
                     <Route path="find-doctor" element={<FindDoctorPage />} />
                     <Route path="find-doctor/:doctorId" element={<DoctorDetailPage />} />
+                    <Route path="book" element={<FindDoctorPage />} />
+                    <Route path="book/:doctorId" element={<DoctorDetailPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
             </Routes>

@@ -591,10 +591,15 @@ export const GET_MENU_BY_ROLE = "/mastersAPI/GetMenuByRole";
 
 /* CON-01 / CON-02 — family + caregiver (New-API) */
 export const FAMILY_LIST = "/Family";
+export const FAMILY_ME = "/Family/Me";
+export const FAMILY_RELATIONS = "/Family/Relations";
 export const FAMILY_LINK_PRIMARY = "/Family/LinkPrimary";
 export const FAMILY_CAN_BOOK = "/Family/CanBookAs";
+export const FAMILY_BOOK_AS = "/Family/BookAs";
 export const CAREGIVER_GRANT = "/Caregiver/Grant";
 export const CAREGIVER_REVOKE = "/Caregiver/Revoke";
+export const CAREGIVER_ME = "/Caregiver/Me";
+export const CAREGIVER_LOOKUP = "/Caregiver/Lookup";
 export const CAREGIVER_LIST_MINE = "/Caregiver/ListMine";
 export const CAREGIVER_LIST_ACTING_FOR = "/Caregiver/ListActingFor";
 export const OTP_REQUEST = "/Otp/RequestOtp";
@@ -606,5 +611,6 @@ export const WELCOME_PATIENT = "/Welcome/Patient";
 export const CONSENT_PRIVACY_STATUS = "/Consent/PrivacyStatus";
 export const CONSENT_GRANT_PRIVACY = "/Consent/GrantPrivacy";
 export const DEVICE_REGISTER = "/Device/Register";
+export const DEVICE_UNREGISTER = "/Device/Unregister";
 export const DEVICE_MINE = "/Device/Mine";
 export const SECURE_FILE_SIGN = "/SecureFile/Sign";

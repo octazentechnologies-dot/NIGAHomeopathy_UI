@@ -16,18 +16,18 @@ import {
   Table,
 } from "reactstrap";
 import {
+  getCaregiverMe,
   grantCaregiver,
   listCaregiverActingFor,
   listMyCaregivers,
+  lookupCaregiver,
   requestOtp,
   revokeCaregiver,
 } from "../../helpers/realbackend_helper";
 import { unwrapApiList } from "../../helpers/menuByRole";
 
 const emptyGrant = {
-  patientId: "",
-  caregiverUserId: "",
-  destination: "",
+  caregiverContact: "",
   otpCode: "",
 };
 
@@ -36,6 +36,10 @@ const CaregiverAccess = () => {
   const [mine, setMine] = useState([]);
   const [actingFor, setActingFor] = useState([]);
   const [form, setForm] = useState(emptyGrant);
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerPatientId, setOwnerPatientId] = useState(null);
+  const [otpDestination, setOtpDestination] = useState("");
+  const [matchedCaregiver, setMatchedCaregiver] = useState(null);
   const [otpChallengeId, setOtpChallengeId] = useState(null);
   const [devCode, setDevCode] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,10 +51,15 @@ const CaregiverAccess = () => {
     setLoading(true);
     setError(null);
     try {
-      const [mineRaw, actingRaw] = await Promise.all([
+      const [meRaw, mineRaw, actingRaw] = await Promise.all([
+        getCaregiverMe(),
         listMyCaregivers(),
         listCaregiverActingFor(),
       ]);
+      const me = meRaw?.data ?? meRaw;
+      setOwnerName(me?.ownerPatientName ?? me?.OwnerPatientName ?? "");
+      setOwnerPatientId(me?.ownerPatientId ?? me?.OwnerPatientId ?? null);
+      setOtpDestination(me?.otpDestination ?? me?.OtpDestination ?? "");
       setMine(unwrapApiList(mineRaw?.data ?? mineRaw));
       setActingFor(unwrapApiList(actingRaw?.data ?? actingRaw));
     } catch (err) {
@@ -67,13 +76,37 @@ const CaregiverAccess = () => {
   const onChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === "caregiverContact") {
+      setMatchedCaregiver(null);
+      setOtpChallengeId(null);
+      setDevCode(null);
+    }
+  };
+
+  const resolveCaregiver = async () => {
+    const contact = form.caregiverContact.trim();
+    if (!contact) {
+      setError("Enter the caregiver mobile or email.");
+      return null;
+    }
+    const raw = await lookupCaregiver(contact);
+    const found = raw?.data ?? raw;
+    if (!found) {
+      setError("No Homeocentrum login found for that mobile or email.");
+      return null;
+    }
+    setMatchedCaregiver(found);
+    return found;
   };
 
   const onRequestOtp = async (event) => {
     event.preventDefault();
-    const patientId = Number(form.patientId);
-    if (!patientId || !form.destination) {
-      setError("PatientId and destination (mobile/email) are required for OTP.");
+    if (!ownerPatientId) {
+      setError("Your patient record could not be resolved. Try refresh.");
+      return;
+    }
+    if (!otpDestination) {
+      setError("No mobile or email is on your login to send OTP.");
       return;
     }
     setSaving(true);
@@ -81,19 +114,25 @@ const CaregiverAccess = () => {
     setMessage(null);
     setDevCode(null);
     try {
+      const found = await resolveCaregiver();
+      if (!found) {
+        setSaving(false);
+        return;
+      }
       const raw = await requestOtp({
         action: "GrantCaregiver",
         entityType: "Patient",
-        entityId: String(patientId),
-        destination: form.destination,
+        entityId: String(ownerPatientId),
+        destination: otpDestination,
       });
       const data = raw?.data ?? raw;
       const challengeId = data?.otpChallengeId ?? data?.OtpChallengeId;
       setOtpChallengeId(challengeId || null);
       setDevCode(data?.devCode ?? data?.DevCode ?? null);
+      const name = found.displayName ?? found.DisplayName;
       setMessage(
         data?.message ||
-          "OTP requested (SMS stub). Enter the code, then Grant."
+          `OTP sent to your login contact. Grant access for ${name || "this caregiver"} after you enter the code.`
       );
     } catch (err) {
       setError(typeof err === "string" ? err : "OTP request failed.");
@@ -109,19 +148,19 @@ const CaregiverAccess = () => {
     setMessage(null);
     try {
       await grantCaregiver({
-        patientId: Number(form.patientId),
-        caregiverUserId: Number(form.caregiverUserId),
+        caregiverContact: form.caregiverContact.trim(),
         scope: "booking",
         otpChallengeId: Number(otpChallengeId || 0),
         otpCode: form.otpCode,
       });
       setMessage("Caregiver access granted.");
       setForm(emptyGrant);
+      setMatchedCaregiver(null);
       setOtpChallengeId(null);
       setDevCode(null);
       await load();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Grant failed. Request OTP first unless you are Admin.");
+      setError(typeof err === "string" ? err : "Grant failed. Request OTP first.");
     } finally {
       setSaving(false);
     }
@@ -144,14 +183,13 @@ const CaregiverAccess = () => {
     }
   };
 
-  const renderGrantTable = (rows, showRevoke) => (
+  const renderGrantTable = (rows, showRevoke, mode) => (
     <div className="table-responsive">
       <Table className="table-nowrap mb-0">
         <thead>
           <tr>
-            <th>Id</th>
-            <th>PatientId</th>
-            <th>Caregiver user</th>
+            {mode === "acting" ? <th>Patient</th> : <th>Caregiver</th>}
+            <th>Contact</th>
             <th>Scope</th>
             <th>Active</th>
             {showRevoke ? <th></th> : null}
@@ -160,17 +198,19 @@ const CaregiverAccess = () => {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={showRevoke ? 6 : 5}>None.</td>
+              <td colSpan={showRevoke ? 5 : 4}>None.</td>
             </tr>
           ) : (
             rows.map((row) => {
               const id = row.caregiverAuthorizationId ?? row.CaregiverAuthorizationId;
               const active = row.isActive ?? row.IsActive;
+              const caregiverName = row.caregiverName ?? row.CaregiverName ?? "—";
+              const patientName = row.patientName ?? row.PatientName ?? "—";
+              const contact = row.caregiverContact ?? row.CaregiverContact ?? "—";
               return (
                 <tr key={id}>
-                  <td>{id}</td>
-                  <td>{row.patientId ?? row.PatientId}</td>
-                  <td>{row.caregiverUserId ?? row.CaregiverUserId}</td>
+                  <td>{mode === "acting" ? patientName : caregiverName}</td>
+                  <td>{contact}</td>
                   <td>{row.scope ?? row.Scope}</td>
                   <td>{active ? "Yes" : "No"}</td>
                   {showRevoke ? (
@@ -206,19 +246,31 @@ const CaregiverAccess = () => {
                 {devCode ? (
                   <Alert color="warning">Development OTP: {devCode}</Alert>
                 ) : null}
+                {ownerName ? (
+                  <p className="text-muted small mb-3">
+                    Granting access to your login{ownerName ? ` (${ownerName})` : ""}. You do not enter a PatientId or UserId.
+                  </p>
+                ) : null}
                 <Form onSubmit={onRequestOtp} className="mb-3">
                   <FormGroup>
-                    <Label>PatientId</Label>
-                    <Input name="patientId" value={form.patientId} onChange={onChange} required />
+                    <Label>Caregiver mobile or email</Label>
+                    <Input
+                      name="caregiverContact"
+                      value={form.caregiverContact}
+                      onChange={onChange}
+                      placeholder="Their registered mobile or email"
+                      required
+                    />
                   </FormGroup>
-                  <FormGroup>
-                    <Label>Caregiver UserId</Label>
-                    <Input name="caregiverUserId" value={form.caregiverUserId} onChange={onChange} required />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>OTP destination (mobile or email)</Label>
-                    <Input name="destination" value={form.destination} onChange={onChange} required />
-                  </FormGroup>
+                  {matchedCaregiver ? (
+                    <p className="text-muted small">
+                      Found: {matchedCaregiver.displayName ?? matchedCaregiver.DisplayName} (
+                      {matchedCaregiver.contact ?? matchedCaregiver.Contact})
+                    </p>
+                  ) : null}
+                  {otpDestination ? (
+                    <p className="text-muted small">OTP will be sent to your contact: {otpDestination}</p>
+                  ) : null}
                   <Button color="secondary" type="submit" disabled={saving}>
                     Request OTP
                   </Button>
@@ -233,7 +285,7 @@ const CaregiverAccess = () => {
                   </Button>
                 </Form>
                 <p className="text-muted mt-3 mb-0 small">
-                  SMS is stubbed until a provider is wired. AdminPortal can grant without OTP via API.
+                  SMS is stubbed until a provider is wired. The caregiver must already have a Homeocentrum login.
                 </p>
               </CardBody>
             </Card>
@@ -247,7 +299,7 @@ const CaregiverAccess = () => {
                 </Button>
               </CardHeader>
               <CardBody>
-                {loading ? <Spinner size="sm" /> : renderGrantTable(mine, true)}
+                {loading ? <Spinner size="sm" /> : renderGrantTable(mine, true, "mine")}
               </CardBody>
             </Card>
             <Card>
@@ -255,7 +307,7 @@ const CaregiverAccess = () => {
                 <h5 className="mb-0">Patients I may act for</h5>
               </CardHeader>
               <CardBody>
-                {loading ? <Spinner size="sm" /> : renderGrantTable(actingFor, false)}
+                {loading ? <Spinner size="sm" /> : renderGrantTable(actingFor, false, "acting")}
               </CardBody>
             </Card>
           </Col>

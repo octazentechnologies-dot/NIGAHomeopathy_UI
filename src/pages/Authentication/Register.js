@@ -362,7 +362,7 @@ const Register = () => {
                           {message || "Account created successfully. Redirecting you to sign in…"}
                         </p>
                         <Alert color="info" className="text-start mb-0">
-                          Next: sign in, then select your subscription package to unlock the doctor dashboard.
+                          Next: check your email to activate. The practice stays Pending until verification — it is not unlocked by a subscription package.
                         </Alert>
                       </div>
                     ) : (
