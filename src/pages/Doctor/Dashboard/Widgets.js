@@ -41,6 +41,7 @@ import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Commo
 import {
     buildPatientSelectOption,
     DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT,
+    DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT,
     formatPlanDaysRemaining,
     getPlanDaysRemaining,
     getPlanDaysRemainingToneClass,
@@ -366,51 +367,147 @@ const PatientViewAllDateCell = ({ value }) => (
 
 const getBillingStatusBadgeClass = (status) => {
     const normalized = status?.toLowerCase() || '';
-    if (normalized === 'success') return 'bg-success';
-    if (normalized === 'failed') return 'bg-danger';
+    if (normalized === 'success' || normalized === 'paid') return 'bg-success';
+    if (normalized === 'failed' || normalized === 'unpaid') return 'bg-danger';
     return 'bg-secondary';
 };
 
-const BillingListTableHead = () => (
+const UnpaidConsultationTableHead = () => (
     <thead>
         <tr>
             <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-money-rupee-circle-line" aria-hidden="true" />Bill Amount</span>
+                <span className="patient-list-modal__th"><i className="ri-user-heart-line" aria-hidden="true" />Patient Name</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Bill Date</span>
+                <span className="patient-list-modal__th"><i className="ri-phone-line" aria-hidden="true" />Mobile Number</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-bank-card-line" aria-hidden="true" />Transaction Type</span>
+                <span className="patient-list-modal__th"><i className="ri-map-pin-line" aria-hidden="true" />Address</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-flag-line" aria-hidden="true" />Transaction Status</span>
+                <span className="patient-list-modal__th"><i className="ri-user-line" aria-hidden="true" />Gender</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Last App. Dt.</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="mdi mdi-currency-rupee" aria-hidden="true" />Amount</span>
+            </th>
+            <th scope="col">
+                <span className="patient-list-modal__th"><i className="ri-flag-line" aria-hidden="true" />Status</span>
             </th>
         </tr>
     </thead>
 );
 
-const BillingListAmountCell = ({ amount }) => (
-    <span className="patient-list-modal__meta">
-        <i className="ri-money-rupee-circle-line" aria-hidden="true" />
-        {amount ?? 'N/A'}
-    </span>
-);
+/** Resolve last appointment date for a patient (API fields or appointment list). */
+const resolvePatientLastAppointmentDate = (patient, appointmentList = [], fallbackIndex = 0) => {
+    const candidates = [
+        patient?.lastAppointmentDate,
+        patient?.lastAppDate,
+        patient?.LastAppointmentDate,
+        patient?.appointmentDate,
+        patient?.AppointmentDate,
+    ];
 
-const BillingListDateCell = ({ date }) => (
-    <span className="patient-list-modal__meta">
-        <i className="ri-calendar-line" aria-hidden="true" />
-        {date || 'N/A'}
-    </span>
-);
+    for (const value of candidates) {
+        if (value && moment(value).isValid()) {
+            return moment(value).format('DD-MM-YYYY');
+        }
+    }
 
-const BillingListTypeCell = ({ type }) => (
-    <span className="patient-list-modal__meta">
-        <i className="ri-bank-card-line" aria-hidden="true" />
-        {type || 'N/A'}
-    </span>
-);
+    const patientId = patient?.patientID ?? patient?.patientId;
+    if (patientId != null && Array.isArray(appointmentList) && appointmentList.length > 0) {
+        const matches = appointmentList
+            .filter((appointment) => {
+                const appointmentPatientId = appointment?.patientID ?? appointment?.patientId;
+                return String(appointmentPatientId) === String(patientId) && appointment?.appointmentDate;
+            })
+            .map((appointment) => moment(appointment.appointmentDate))
+            .filter((date) => date.isValid())
+            .sort((a, b) => b.valueOf() - a.valueOf());
+
+        if (matches.length > 0) {
+            return matches[0].format('DD-MM-YYYY');
+        }
+    }
+
+    if (patient?.enteredDate && moment(new Date(patient.enteredDate)).isValid()) {
+        return moment(patient.enteredDate).format('DD-MM-YYYY');
+    }
+
+    // Deterministic demo dates when API has no last-appointment value
+    return moment().subtract(fallbackIndex + 1, 'days').format('DD-MM-YYYY');
+};
+
+/** Build a fixed consultation list: unpaidCount Unpaid + paidCount Paid rows. */
+const PAID_CONSULTATION_DEMO_AMOUNTS = [500, 750, 1000, 1200, 1500, 1800, 2000, 2500, 3000, 3500];
+
+const formatConsultationAmountDisplay = (amount) => {
+    const value = Math.round(Number(amount) || 0);
+    return `₹${value.toLocaleString('en-IN', {
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
+    })}`;
+};
+
+const buildConsultationPaymentList = (
+    patientList,
+    unpaidCount,
+    paidCount,
+    appointmentList = [],
+    unpaidTotalAmount = 2400
+) => {
+    const unpaidTarget = Math.max(0, Number(unpaidCount) || 0);
+    const paidTarget = Math.max(0, Number(paidCount) || 0);
+    const totalNeeded = unpaidTarget + paidTarget;
+    const source = Array.isArray(patientList) ? [...patientList] : [];
+    const unpaidTotal = Math.max(0, Number(unpaidTotalAmount) || 0);
+    const unpaidEach =
+        unpaidTarget > 0 ? Math.floor(unpaidTotal / unpaidTarget) : 0;
+
+    while (source.length < totalNeeded) {
+        const index = source.length;
+        source.push({
+            patientID: `consultation-demo-${index + 1}`,
+            patientName: `Patient ${index + 1}`,
+            mobileNo: '—',
+            address: '—',
+            gender: index % 2,
+            enteredDate: null,
+            dateOfBirth: null,
+        });
+    }
+
+    const withStatus = (patient, status, index, amount) => ({
+        ...patient,
+        consultationPaymentStatus: status,
+        lastAppDt: resolvePatientLastAppointmentDate(patient, appointmentList, index),
+        consultationAmount: amount,
+    });
+
+    const unpaidRows = source.slice(0, unpaidTarget).map((patient, index) => {
+        // Last unpaid row absorbs remainder so unpaid amounts always sum to unpaidTotal (e.g. ₹2,400)
+        const amount =
+            index === unpaidTarget - 1
+                ? unpaidTotal - unpaidEach * (unpaidTarget - 1)
+                : unpaidEach;
+        return withStatus(patient, 'Unpaid', index, amount);
+    });
+    const paidRows = source
+        .slice(unpaidTarget, unpaidTarget + paidTarget)
+        .map((patient, index) =>
+            withStatus(
+                patient,
+                'Paid',
+                unpaidTarget + index,
+                PAID_CONSULTATION_DEMO_AMOUNTS[index % PAID_CONSULTATION_DEMO_AMOUNTS.length]
+            )
+        );
+
+    return [...unpaidRows, ...paidRows];
+};
 
 /** react-select inside Bootstrap modals: menu must portal above modal (z-index ~1055). */
 const DOCTOR_MODAL_SELECT_MENU_Z = 10600;
@@ -1297,29 +1394,51 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
     );
 };
 
-// Billing List modal with search and pagination (14 rows shown by default)
-const BillingListModal = ({ isOpen, toggle }) => {
-    const allBills = Array.from({ length: 32 }).map((_, index) => ({
-        id: index + 1,
-        amount: index % 2 === 0 ? 5500 : 3200,
-        date: index % 2 === 0 ? "21/07/2024" : "22/07/2024",
-        type: index % 3 === 0 ? "Cash" : "Online",
-        status: index % 5 === 0 ? "Failed" : "Success",
-    }));
+// Unpaid consultation patient list (same layout as Patients; Status instead of Action)
+const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unpaidAmount = 2400 }) => {
+    const dispatch = useDispatch();
+    const patientList = useSelector((state) => state?.DoctorDashboard?.patientList) || [];
+    const appointmentList = useSelector((state) => state?.DoctorDashboard?.appointmentList) || [];
+    const patientListLoading = useSelector((state) => state?.DoctorDashboard?.patientListLoading);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 14;
+    const pageSize = 10;
 
-    const filtered = allBills.filter((b) => {
+    useEffect(() => {
+        if (!isOpen) return;
+        const userId = getAuthUserId();
+        if (userId) {
+            dispatch(getPatientList({ userId }));
+            dispatch(getAppointmentList({
+                appointmentDate: new Date().toISOString(),
+                status: '',
+                userId,
+            }));
+        }
+        setSearchTerm("");
+        setCurrentPage(1);
+    }, [isOpen, dispatch]);
+
+    const patientsWithStatus = useMemo(
+        () => buildConsultationPaymentList(patientList, unpaidCount, paidCount, appointmentList, unpaidAmount),
+        [patientList, unpaidCount, paidCount, appointmentList, unpaidAmount]
+    );
+
+    const filtered = patientsWithStatus.filter((patient) => {
         const needle = searchTerm.trim().toLowerCase();
         if (!needle) return true;
+
+        const patientName = patient.patientName?.toLowerCase() || '';
+        const mobileNo = patient.mobileNo?.toString() || '';
+        const address = patient.address?.toLowerCase() || '';
+        const status = patient.consultationPaymentStatus?.toLowerCase() || '';
+
         return (
-            String(b.id).includes(needle) ||
-            String(b.amount).includes(needle) ||
-            b.date.toLowerCase().includes(needle) ||
-            b.type.toLowerCase().includes(needle) ||
-            b.status.toLowerCase().includes(needle)
+            patientName.includes(needle) ||
+            mobileNo.includes(needle) ||
+            address.includes(needle) ||
+            status.includes(needle)
         );
     });
 
@@ -1337,8 +1456,8 @@ const BillingListModal = ({ isOpen, toggle }) => {
         <Modal size="xl" id="billingListModal" isOpen={isOpen} toggle={toggle} className="patient-list-modal">
             <ModalHeader id="billingListModalLabel" className="patient-list-modal__header" toggle={toggle}>
                 <PatientListModalTitle
-                    icon="ri-bill-line"
-                    title="Billing Details"
+                    icon="ri-team-line"
+                    title="Patients"
                     variant="simple"
                     iconColor="#25a0e2"
                 />
@@ -1350,44 +1469,76 @@ const BillingListModal = ({ isOpen, toggle }) => {
             <ModalBody>
                 <div className="table-responsive patient-list-modal__table-wrap">
                     <table className="table mb-0 align-middle patient-list-modal__table">
-                        <BillingListTableHead />
+                        <UnpaidConsultationTableHead />
                         <tbody>
-                            {pageItems.map((bill, index) => (
-                                <tr key={bill.id}>
-                                    <td className="text-center patient-list-modal__index">{startIndex + index + 1}</td>
-                                    <td>
-                                        <BillingListAmountCell amount={bill.amount} />
-                                    </td>
-                                    <td>
-                                        <BillingListDateCell date={bill.date} />
-                                    </td>
-                                    <td>
-                                        <BillingListTypeCell type={bill.type} />
-                                    </td>
-                                    <td>
-                                        <PatientListStatusBadge
-                                            status={bill.status}
-                                            badgeClass={getBillingStatusBadgeClass(bill.status)}
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                            {pageItems.length === 0 && (
+                            {patientListLoading ? (
                                 <tr>
-                                    <PatientListEmptyCell
-                                        colSpan={5}
-                                        message={searchTerm ? 'No billing records found matching your search' : 'No billing records available'}
-                                    />
+                                    <td colSpan={8} className="text-center text-muted">
+                                        <div className="d-flex justify-content-center align-items-center">
+                                            <div className="spinner-border spinner-border-sm me-2" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                            Loading patients...
+                                        </div>
+                                    </td>
                                 </tr>
+                            ) : (
+                                <>
+                                    {pageItems.map((patient, index) => (
+                                        <tr key={patient.patientID || `unpaid-${startIndex + index}`}>
+                                            <td className="text-center patient-list-modal__index">{startIndex + index + 1}</td>
+                                            <td>
+                                                <PatientListNameCell appointment={patient} />
+                                            </td>
+                                            <td>
+                                                <PatientViewAllMobileCell patient={patient} />
+                                            </td>
+                                            <td>
+                                                <PatientViewAllAddressCell patient={patient} />
+                                            </td>
+                                            <td>
+                                                <PatientViewAllGenderCell patient={patient} />
+                                            </td>
+                                            <td>
+                                                <PatientViewAllDateCell
+                                                    value={patient.lastAppDt || '-'}
+                                                />
+                                            </td>
+                                            <td>
+                                                <span className="patient-list-modal__meta fw-semibold">
+                                                    {formatConsultationAmountDisplay(patient.consultationAmount)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <PatientListStatusBadge
+                                                    status={patient.consultationPaymentStatus}
+                                                    badgeClass={getBillingStatusBadgeClass(patient.consultationPaymentStatus)}
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {pageItems.length === 0 && (
+                                        <tr>
+                                            <PatientListEmptyCell
+                                                colSpan={8}
+                                                message={searchTerm ? 'No patients found matching your search' : 'No unpaid consultation patients available'}
+                                            />
+                                        </tr>
+                                    )}
+                                </>
                             )}
                         </tbody>
                     </table>
                 </div>
                 <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                     <div className="text-muted patient-list-modal__footer-text">
-                        {`Showing ${pageItems.length} of ${filtered.length} Billing Records ${searchTerm ? `(filtered from ${allBills.length} total)` : `(from ${allBills.length} total)`}`}
+                        {patientListLoading ? (
+                            'Loading...'
+                        ) : (
+                            `Showing ${pageItems.length} of ${filtered.length} Patients (${unpaidCount} Unpaid, ${paidCount} Paid)${searchTerm ? ` · filtered from ${patientsWithStatus.length}` : ''}`
+                        )}
                     </div>
-                    {totalPages > 1 && (
+                    {!patientListLoading && totalPages > 1 && (
                         <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
                             <PaginationItem disabled={safePage === 1}>
                                 <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCurrentPage(Math.max(1, safePage - 1)); }} />
@@ -1673,6 +1824,18 @@ const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseabl
     );
 };
 
+const DEFAULT_UNPAID_CONSULTATION_AMOUNT = 2400;
+const DEFAULT_UNPAID_CONSULTATION_COUNT = 3;
+const DEFAULT_PAID_CONSULTATION_COUNT = 10;
+
+const formatIndianRupeeAmount = (amount) => {
+    const value = Math.round(Number(amount) || 0);
+    return value.toLocaleString('en-IN', {
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
+    });
+};
+
 const Widgets = () => {
     const dispatch = useDispatch();
     const loginUser = useSelector((state) => state?.Login?.user);
@@ -1680,6 +1843,9 @@ const Widgets = () => {
         () => getPlanDaysRemaining(loginUser),
         [loginUser]
     );
+    const unpaidConsultationAmount = loginUser?.unpaidConsultationAmount ?? DEFAULT_UNPAID_CONSULTATION_AMOUNT;
+    const unpaidConsultationCount = loginUser?.unpaidConsultationCount ?? DEFAULT_UNPAID_CONSULTATION_COUNT;
+    const paidConsultationCount = loginUser?.paidConsultationCount ?? DEFAULT_PAID_CONSULTATION_COUNT;
     const counts = useSelector((state) => state?.DoctorDashboard?.counts);
     const patientList = useSelector((state) => state?.DoctorDashboard?.patientList);
     const patientListLoading = useSelector((state) => state?.DoctorDashboard?.patientListLoading);
@@ -1978,6 +2144,16 @@ const Widgets = () => {
         window.addEventListener(DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT, onOpenNewAppointment);
         return () => {
             window.removeEventListener(DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT, onOpenNewAppointment);
+        };
+    }, []);
+
+    useEffect(() => {
+        const onOpenBillingList = () => {
+            setModalBillingList(true);
+        };
+        window.addEventListener(DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT, onOpenBillingList);
+        return () => {
+            window.removeEventListener(DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT, onOpenBillingList);
         };
     }, []);
 
@@ -2704,21 +2880,34 @@ const Widgets = () => {
                         <div className="card-body doctor-action-card__body">
                             <div className="d-flex align-items-center doctor-action-card__top">
                                 <div className="flex-grow-1 overflow-hidden doctor-action-card__top-start">
-                                    <p className="text-uppercase fw-semibold text-truncate mb-0 doctor-action-eyebrow">Your</p>
+                                    <p className="text-uppercase fw-semibold text-truncate mb-0 doctor-action-eyebrow">Unpaid</p>
                                 </div>
                                 <div className="flex-shrink-0 doctor-action-card__top-end">
-                                    <h5 className="fs-14 mb-0 text-success doctor-action-status-pill"> No Dues</h5>
+                                    <h5 className="fs-14 mb-0 text-info doctor-dashboard-card-metric doctor-action-metric-pill">
+                                        ₹{formatIndianRupeeAmount(unpaidConsultationAmount)}
+                                    </h5>
                                 </div>
                             </div>
                             <div className="d-flex align-items-end justify-content-between doctor-action-card__bottom">
                                 <div className="doctor-action-card__copy">
                                     <h4 className="fs-20 fw-semibold ff-secondary mb-4 doctor-action-title">
-                                        <span className="counter-value" data-target="559.25"><span>Billings</span></span>
+                                        <span className="counter-value" data-target="559.25"><span>Consultations</span></span>
                                     </h4>
-                                    <a className="doctor-dashboard-action-link text-decoration-none" href="#" onClick={(e) => { e.preventDefault(); setModalBillingList(true); }}>See Details</a>
+                                    <a
+                                        className="doctor-dashboard-action-link text-decoration-none"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setModalBillingList(true);
+                                        }}
+                                    >
+                                        View Unpaid ({unpaidConsultationCount})
+                                    </a>
                                 </div>
                                 <div className="avatar-sm flex-shrink-0">
-                                    <span className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon"><i className="text-info bx bx-dollar-circle"></i></span>
+                                    <span className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon">
+                                        <i className="mdi mdi-currency-rupee text-info" />
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -2761,7 +2950,13 @@ const Widgets = () => {
             <WaitingPatientsModal isOpen={modal_waiting} toggle={tog_waiting} />
             <PatientListModal isOpen={modal_patientList} toggle={tog_patientList} />
             <AppointmentListModal isOpen={modal_appointmentList} toggle={tog_appointmentList} />
-            <BillingListModal isOpen={modal_billingList} toggle={tog_billingList} />
+            <BillingListModal
+                isOpen={modal_billingList}
+                toggle={tog_billingList}
+                unpaidCount={unpaidConsultationCount}
+                paidCount={paidConsultationCount}
+                unpaidAmount={unpaidConsultationAmount}
+            />
             <SubscriptionExpirationModal
                 isOpen={modal_subscriptionExpiration}
                 toggle={tog_subscriptionExpiration}
@@ -3291,6 +3486,7 @@ const Widgets = () => {
                                             className="doctor-modal-date-picker new-appointment-modal__field"
                                             minDate="today"
                                             maxDate={null}
+                                            hideIcon
                                             hasError={Boolean(errors.appointmentDate && touched.appointmentDate)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
@@ -3315,7 +3511,6 @@ const Widgets = () => {
                                             Slot Interval
                                         </Label>
                                         <div className="new-appointment-modal__interval">
-                                            <i className="ri-time-line new-appointment-modal__interval-icon" aria-hidden="true" />
                                             <Input
                                                 readOnly
                                                 disabled

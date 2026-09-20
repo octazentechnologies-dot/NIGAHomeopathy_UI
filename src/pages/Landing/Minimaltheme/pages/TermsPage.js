@@ -1,52 +1,207 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
-import PageBanner from "../components/PageBanner";
-import { TERMS_INTRO, TERMS_SECTIONS } from "../constants/termsContent";
+
+import { landingPath } from "../../../../constants/landingRoutes";
 import { SITE } from "../constants/siteContent";
+import { TERMS_HERO, TERMS_INTRO, TERMS_SECTIONS } from "../constants/termsContent";
 
 const TermsPage = () => {
+    const [activeId, setActiveId] = useState(TERMS_SECTIONS[0].id);
+    const [openId, setOpenId] = useState(TERMS_SECTIONS[0].id);
+
     useEffect(() => {
         document.title = `${SITE.name} | Terms & Conditions`;
+        window.scrollTo(0, 0);
     }, []);
 
+    const handleNavClick = (id) => {
+        setActiveId(id);
+        setOpenId(id);
+        const el = document.getElementById(`terms-section-${id}`);
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    };
+
+    const toggleSection = (id) => {
+        setOpenId((prev) => (prev === id ? "" : id));
+        setActiveId(id);
+    };
+
     return (
-        <>
-            <PageBanner title="Terms & Conditions" breadcrumb="Terms & Conditions" />
-            <section className="section">
+        <div className="homeojob-privacy homeojob-privacy--terms">
+            <section className="homeojob-privacy__hero">
+                <div className="homeojob-privacy__hero-leaf homeojob-privacy__hero-leaf--l" aria-hidden="true">
+                    <i className="ri-leaf-fill" />
+                </div>
+                <div className="homeojob-privacy__hero-leaf homeojob-privacy__hero-leaf--r" aria-hidden="true">
+                    <i className="ri-leaf-fill" />
+                </div>
+
                 <Container>
-                    <Row className="justify-content-center">
-                        <Col lg={10}>
-                            <div className="text-muted ff-secondary" dangerouslySetInnerHTML={{ __html: TERMS_INTRO.html }} />
-                            <ul className="list-unstyled vstack gap-2 my-3">
-                                {TERMS_INTRO.list.map((item) => (
-                                    <li key={item} className="d-flex text-muted ff-secondary">
-                                        <i className="ri-checkbox-blank-circle-fill text-success me-2 mt-1 fs-10"></i>{item}
-                                    </li>
-                                ))}
-                            </ul>
-                            <div className="text-muted ff-secondary mb-4" dangerouslySetInnerHTML={{ __html: TERMS_INTRO.after }} />
-                            <hr />
-                            {TERMS_SECTIONS.map((section) => (
-                                <div key={section.title} className="mb-4">
-                                    <h4 className="mb-3">{section.title}</h4>
-                                    <div className="text-muted ff-secondary" dangerouslySetInnerHTML={{ __html: section.html }} />
-                                    {section.list && (
-                                        <ul className="list-unstyled vstack gap-2 mt-3">
-                                            {section.list.map((item) => (
-                                                <li key={item} className="d-flex text-muted ff-secondary">
-                                                    <i className="ri-checkbox-blank-circle-fill text-success me-2 mt-1 fs-10"></i>{item}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                    <hr className="my-4" />
+                    <Row className="align-items-center g-4">
+                        <Col lg={7}>
+                            <p className="homeojob-privacy__eyebrow">{TERMS_HERO.eyebrow}</p>
+                            <h1 className="homeojob-privacy__title">{TERMS_HERO.title}</h1>
+                            <p className="homeojob-privacy__subtitle">{TERMS_HERO.subtitle}</p>
+                            <nav className="homeojob-privacy__breadcrumb" aria-label="Breadcrumb">
+                                <Link to={landingPath()}>
+                                    <i className="ri-home-5-line" aria-hidden="true" />
+                                    Home
+                                </Link>
+                                <span aria-hidden="true">&gt;</span>
+                                <span>Terms &amp; Conditions</span>
+                            </nav>
+                        </Col>
+                        <Col lg={5}>
+                            <div className="homeojob-privacy__visual" aria-hidden="true">
+                                <div className="homeojob-privacy__shield homeojob-privacy__shield--terms">
+                                    <i className="ri-file-text-fill" />
                                 </div>
-                            ))}
+                                {TERMS_HERO.chips.map((chip) => (
+                                    <div
+                                        key={chip.label}
+                                        className={`homeojob-privacy__chip homeojob-privacy__chip--${chip.theme}`}
+                                    >
+                                        <span>
+                                            <i className={chip.icon} />
+                                        </span>
+                                        {chip.label}
+                                    </div>
+                                ))}
+                            </div>
                         </Col>
                     </Row>
                 </Container>
             </section>
-        </>
+
+            <section className="homeojob-privacy__body">
+                <Container>
+                    <Row className="g-4 g-xl-5">
+                        <Col lg={3}>
+                            <aside className="homeojob-privacy__sidebar">
+                                <h2 className="homeojob-privacy__side-title">In this page</h2>
+                                <nav className="homeojob-privacy__nav" aria-label="Terms sections">
+                                    {TERMS_SECTIONS.map((section, index) => (
+                                        <button
+                                            key={section.id}
+                                            type="button"
+                                            className={
+                                                activeId === section.id
+                                                    ? "homeojob-privacy__nav-item is-active"
+                                                    : "homeojob-privacy__nav-item"
+                                            }
+                                            onClick={() => handleNavClick(section.id)}
+                                        >
+                                            <em>{index + 1}.</em>
+                                            <span>{section.nav}</span>
+                                        </button>
+                                    ))}
+                                </nav>
+
+                                <div className="homeojob-privacy__help">
+                                    <span className="homeojob-privacy__help-icon" aria-hidden="true">
+                                        <i className="ri-customer-service-2-fill" />
+                                    </span>
+                                    <p>Still have questions? We&apos;re here to help.</p>
+                                    <Link to={landingPath("contact")} className="homeojob-privacy__help-btn">
+                                        Contact Us
+                                        <i className="ri-arrow-right-line" aria-hidden="true" />
+                                    </Link>
+                                </div>
+                            </aside>
+                        </Col>
+
+                        <Col lg={9}>
+                            <div className="homeojob-privacy__content">
+                                <div className="homeojob-privacy__intro">
+                                    <div dangerouslySetInnerHTML={{ __html: TERMS_INTRO.html }} />
+                                    {TERMS_INTRO.list && (
+                                        <ul>
+                                            {TERMS_INTRO.list.map((item) => (
+                                                <li key={item}>
+                                                    <i
+                                                        className="ri-checkbox-circle-fill"
+                                                        aria-hidden="true"
+                                                    />
+                                                    {item}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    {TERMS_INTRO.after && (
+                                        <div dangerouslySetInnerHTML={{ __html: TERMS_INTRO.after }} />
+                                    )}
+                                </div>
+
+                                <div className="homeojob-privacy__sections">
+                                    {TERMS_SECTIONS.map((section) => {
+                                        const isOpen = openId === section.id;
+                                        return (
+                                            <article
+                                                key={section.id}
+                                                id={`terms-section-${section.id}`}
+                                                className={`homeojob-privacy__card${isOpen ? " is-open" : ""}`}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className="homeojob-privacy__card-head"
+                                                    aria-expanded={isOpen}
+                                                    onClick={() => toggleSection(section.id)}
+                                                >
+                                                    <span
+                                                        className={`homeojob-privacy__card-icon homeojob-privacy__card-icon--${section.theme}`}
+                                                        aria-hidden="true"
+                                                    >
+                                                        <i className={section.icon} />
+                                                    </span>
+                                                    <span className="homeojob-privacy__card-copy">
+                                                        <strong>{section.title}</strong>
+                                                        <small>{section.summary}</small>
+                                                    </span>
+                                                    <i
+                                                        className={`ri-arrow-down-s-line homeojob-privacy__card-chevron${
+                                                            isOpen ? " is-open" : ""
+                                                        }`}
+                                                        aria-hidden="true"
+                                                    />
+                                                </button>
+
+                                                {isOpen && (
+                                                    <div className="homeojob-privacy__card-body">
+                                                        {section.html && (
+                                                            <div
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: section.html,
+                                                                }}
+                                                            />
+                                                        )}
+                                                        {section.list && (
+                                                            <ul>
+                                                                {section.list.map((item) => (
+                                                                    <li key={item}>
+                                                                        <i
+                                                                            className="ri-checkbox-circle-fill"
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                        {item}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </article>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </Col>
+                    </Row>
+                </Container>
+            </section>
+        </div>
     );
 };
 

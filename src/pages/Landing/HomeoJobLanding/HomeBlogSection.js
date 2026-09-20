@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Card, CardBody, Col, Container, Row, Spinner } from "reactstrap";
+import { Col, Container, Row, Spinner } from "reactstrap";
 
 import { getAllBlogs } from "../Minimaltheme/helpers/marketingApi";
 import { SITE } from "../Minimaltheme/constants/siteContent";
@@ -8,9 +8,39 @@ import { landingPath } from "../../../constants/landingRoutes";
 
 import img8 from "../../../assets/images/small/img-8.jpg";
 import img6 from "../../../assets/images/small/img-6.jpg";
-import img9 from "../../../assets/images/small/img-9.jpg";
 
-const FALLBACK_IMAGES = [img8, img6, img9];
+const FALLBACK_IMAGES = [img8, img6];
+
+const CATEGORY_THEMES = [
+    { label: "Practice Tips", icon: "ri-leaf-line", theme: "green" },
+    { label: "Clinic Updates", icon: "ri-book-open-line", theme: "purple" },
+];
+
+const FALLBACK_BLOGS = [
+    {
+        blogHead: "Welcome to Homeocentrum",
+        blogSubHead: "Cloud based homeopathic health management for modern practitioners.",
+        blogDate: "13/12/2025",
+    },
+    {
+        blogHead: "Practice insights & updates",
+        blogSubHead: "Tips and clinic news to help you grow a healthier practice.",
+        blogDate: "10/12/2025",
+    },
+];
+
+const formatBlogDate = (value) => {
+    if (!value) return "";
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(value).trim())) {
+        return String(value).trim();
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+};
 
 const HomeBlogSection = () => {
     const [blogs, setBlogs] = useState([]);
@@ -18,116 +48,136 @@ const HomeBlogSection = () => {
 
     useEffect(() => {
         getAllBlogs()
-            .then((list) => setBlogs(list.slice(0, 3)))
+            .then((list) => setBlogs(list.slice(0, 2)))
             .catch(() => setBlogs([]))
             .finally(() => setLoading(false));
     }, []);
 
-    const displayBlogs = blogs.length
-        ? blogs
-        : [
-              {
-                  blogHead: "Welcome to Homeo Centrum",
-                  blogSubHead: "Cloud based homeopathic health management for modern practitioners.",
-              },
-          ];
+    const displayBlogs = blogs.length ? blogs : FALLBACK_BLOGS;
 
     return (
-        <>
-            <section className="section" id="blog">
-                <Container>
-                    <Row className="justify-content-center">
-                        <Col lg={8}>
-                            <div className="text-center mb-5">
-                                <h1 className="mb-3 ff-secondary fw-semibold text-capitalize lh-base">
-                                    Our Latest <span className="text-primary">News</span>
-                                </h1>
-                                <p className="text-muted mb-4">
-                                    Updates, insights, and homeopathy practice tips from {SITE.name}.
-                                </p>
-                            </div>
-                        </Col>
-                    </Row>
+        <section className="section homeojob-news" id="blog">
+            <div className="homeojob-news__blob homeojob-news__blob--tl" aria-hidden="true" />
+            <div className="homeojob-news__blob homeojob-news__blob--br" aria-hidden="true" />
+            <div className="homeojob-news__dots" aria-hidden="true" />
+            <div className="homeojob-news__leaf" aria-hidden="true">
+                <i className="ri-leaf-fill" />
+            </div>
 
-                    {loading ? (
-                        <div className="text-center py-5">
-                            <Spinner color="primary" />
-                        </div>
-                    ) : (
-                        <Row className={displayBlogs.length < 3 ? "justify-content-center" : undefined}>
-                            {displayBlogs.map((blog, idx) => (
-                                <Col lg={4} md={6} key={blog.blogId || idx}>
-                                    <Card>
-                                        <CardBody>
+            <div className="homeojob-news__note homeojob-news__note--tl" aria-hidden="true">
+                <span>Knowledge for a Healthier Tomorrow</span>
+            </div>
+            <div className="homeojob-news__note homeojob-news__note--br" aria-hidden="true">
+                <span>Stay Informed Stay Healthy</span>
+            </div>
+
+            <Container className="position-relative">
+                <div className="homeojob-news__top">
+                    <div className="homeojob-news__header">
+                        <p className="homeojob-news__eyebrow">
+                            <i className="ri-file-text-line" aria-hidden="true" />
+                            Blog &amp; Updates
+                        </p>
+                        <h2 className="homeojob-news__title">
+                            Our Latest <span className="text-primary">News</span>
+                        </h2>
+                        <p className="homeojob-news__subtitle">
+                            Updates, insights, and homeopathy practice tips from {SITE.name}.
+                        </p>
+                    </div>
+                    <Link to={landingPath("blog")} className="homeojob-news__view-all">
+                        View All News
+                        <i className="ri-arrow-right-line" aria-hidden="true" />
+                    </Link>
+                </div>
+
+                {loading ? (
+                    <div className="text-center py-5">
+                        <Spinner color="primary" />
+                    </div>
+                ) : (
+                    <Row className="g-4 homeojob-news__grid justify-content-center">
+                        {displayBlogs.map((blog, idx) => {
+                            const category = CATEGORY_THEMES[idx % CATEGORY_THEMES.length];
+                            const href = blog.blogId ? landingPath(`blog/${blog.blogId}`) : null;
+                            const dateLabel = formatBlogDate(blog.blogDate);
+
+                            return (
+                                <Col lg={6} md={10} key={blog.blogId || idx}>
+                                    <article
+                                        className={`homeojob-news-card homeojob-news-card--${category.theme}`}
+                                    >
+                                        <div className="homeojob-news-card__media">
                                             <img
-                                                src={blog.blogImage1 || FALLBACK_IMAGES[idx % FALLBACK_IMAGES.length]}
+                                                src={
+                                                    blog.blogImage1 ||
+                                                    FALLBACK_IMAGES[idx % FALLBACK_IMAGES.length]
+                                                }
                                                 alt={blog.blogHead || ""}
-                                                className="img-fluid rounded"
-                                                style={{ height: 200, width: "100%", objectFit: "cover" }}
                                             />
-                                        </CardBody>
-                                        <CardBody>
-                                            {blog.blogDate && (
-                                                <ul className="list-inline fs-14 text-muted">
-                                                    <li className="list-inline-item">
-                                                        <i className="ri-calendar-line align-bottom me-1"></i>
-                                                        {blog.blogDate}
-                                                    </li>
-                                                </ul>
+                                            <span className="homeojob-news-card__category">
+                                                <i className={category.icon} aria-hidden="true" />
+                                                {category.label}
+                                            </span>
+                                        </div>
+
+                                        <div className="homeojob-news-card__body">
+                                            {dateLabel && (
+                                                <p className="homeojob-news-card__date">
+                                                    <i
+                                                        className="ri-calendar-line"
+                                                        aria-hidden="true"
+                                                    />
+                                                    {dateLabel}
+                                                </p>
                                             )}
-                                            <h5>
-                                                {blog.blogId ? (
-                                                    <Link to={landingPath(`blog/${blog.blogId}`)} className="text-body">
-                                                        {blog.blogHead}
-                                                    </Link>
-                                                ) : (
-                                                    blog.blogHead
-                                                )}
-                                            </h5>
-                                            <p className="text-muted fs-14">
+
+                                            <h3 className="homeojob-news-card__title">
+                                                <Link to={href || landingPath("blog")}>
+                                                    {blog.blogHead}
+                                                </Link>
+                                            </h3>
+
+                                            <p className="homeojob-news-card__excerpt">
                                                 {blog.blogSubHead || blog.blogDescription || ""}
                                             </p>
-                                            {blog.blogId && (
-                                                <Link to={landingPath(`blog/${blog.blogId}`)} className="link-success">
-                                                    Learn More{" "}
-                                                    <i className="ri-arrow-right-line align-bottom ms-1"></i>
-                                                </Link>
-                                            )}
-                                        </CardBody>
-                                    </Card>
-                                </Col>
-                            ))}
-                        </Row>
-                    )}
 
-                    <div className="text-center mt-4">
-                        <Link to={landingPath("blog")} className="btn btn-soft-primary">
-                            View All Blogs <i className="ri-arrow-right-line align-bottom ms-1"></i>
-                        </Link>
-                    </div>
-                </Container>
-            </section>
-            <section className="py-5 bg-primary position-relative">
-                <div className="bg-overlay bg-overlay-pattern opacity-50"></div>
-                <Container>
-                    <Row className="align-items-center gy-4">
-                        <Col sm>
-                            <h4 className="text-white fw-semibold">Get New Jobs Notification!</h4>
-                            <p className="text-white text-opacity-75 mb-0">
-                                Subscribe & get all related updates from {SITE.name}.
-                            </p>
-                        </Col>
-                        <Col sm="auto">
-                            <Link to={landingPath("contact")}>
-                                <Button className="btn btn-danger" type="button">
-                                    Contact Us <i className="ri-arrow-right-line align-bottom"></i>
-                                </Button>
-                            </Link>
-                        </Col>
+                                            <div className="homeojob-news-card__footer">
+                                                <Link
+                                                    to={href || landingPath("blog")}
+                                                    className="homeojob-news-card__more"
+                                                >
+                                                    Learn More
+                                                    <i
+                                                        className="ri-arrow-right-line"
+                                                        aria-hidden="true"
+                                                    />
+                                                </Link>
+                                                <Link
+                                                    to={href || landingPath("blog")}
+                                                    className="homeojob-news-card__arrow"
+                                                    aria-label={`Read ${blog.blogHead}`}
+                                                >
+                                                    <i
+                                                        className="ri-arrow-right-line"
+                                                        aria-hidden="true"
+                                                    />
+                                                </Link>
+                                            </div>
+
+                                            <i
+                                                className="ri-leaf-fill homeojob-news-card__flourish"
+                                                aria-hidden="true"
+                                            />
+                                        </div>
+                                    </article>
+                                </Col>
+                            );
+                        })}
                     </Row>
-                </Container>
-            </section>
-        </>
+                )}
+            </Container>
+        </section>
     );
 };
 

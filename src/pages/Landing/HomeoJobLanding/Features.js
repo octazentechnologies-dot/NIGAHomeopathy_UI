@@ -1,80 +1,175 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Card, CardBody, Col, Container, Row } from "reactstrap";
+import { Col, Container, Row } from "reactstrap";
 
-import Avatar10 from "../../../assets/images/users/avatar-10.jpg";
-import About from "../../../assets/images/about.jpg";
-import { ABOUT_CONTENT, TESTIMONIALS, WHY_CHOOSE } from "../Minimaltheme/constants/siteContent";
+import PlatformDoctor from "../../../assets/images/landing/platform-doctor.png";
+import DoctorAvatar from "../../../assets/images/users/avatar-2.jpg";
+
+const PLATFORM_PILLARS = [
+    {
+        icon: "ri-time-line",
+        tone: "green",
+        title: "Time Minimization",
+        text: "Manage cases faster and more efficiently.",
+    },
+    {
+        icon: "ri-bar-chart-grouped-line",
+        tone: "blue",
+        title: "Homeopathic Evolutionary",
+        text: "Stay updated with modern tools.",
+    },
+    {
+        icon: "ri-stack-line",
+        tone: "pink",
+        title: "Layer Differentiation",
+        text: "Advanced case analysis with deeper insights.",
+    },
+];
+
+const PLATFORM_STATS = [
+    { value: "100+", label: "Trusted Practitioners" },
+    { value: "50K+", label: "Cases Managed" },
+    { value: "99%", label: "Practitioner Satisfaction" },
+];
 
 const Features = () => (
-    <section className="section">
+    <section className="section homeojob-platform" id="platform">
         <Container>
-            <Row className="align-items-center justify-content-lg-between justify-content-center gy-4">
-                <Col lg={5} sm={7}>
-                    <div className="about-img-section mb-5 mb-lg-0 text-center">
-                        <Card className="card-bg-fill rounded shadow-lg inquiry-box d-none d-lg-block">
-                            <CardBody className="d-flex align-items-center">
-                                <div className="avatar-sm flex-shrink-0 me-3">
-                                    <div className="avatar-title bg-secondary-subtle text-secondary rounded-circle fs-18">
-                                        <i className="ri-briefcase-2-line"></i>
-                                    </div>
-                                </div>
-                                <h5 className="fs-15 lh-base mb-0">
-                                    Trusted by{" "}
-                                    <span className="text-secondary fw-semibold">100+</span> practitioners
-                                </h5>
-                            </CardBody>
-                        </Card>
+            <Row className="align-items-center gy-5">
+                <Col lg={6}>
+                    <div className="homeojob-platform__visual">
+                        <div className="homeojob-platform__blob" aria-hidden="true" />
+                        <div className="homeojob-platform__ring" aria-hidden="true" />
 
-                        <Card className="feedback-box card-bg-fill">
-                            <CardBody className="d-flex shadow-lg">
-                                <div className="flex-shrink-0 me-3">
-                                    <img src={Avatar10} alt="" className="avatar-sm rounded-circle" />
+                        <img
+                            src={PlatformDoctor}
+                            alt="Homeopathy practitioner"
+                            className="homeojob-platform__image"
+                        />
+
+                        <div className="homeojob-platform-float homeojob-platform-float--trust">
+                            <span className="homeojob-platform-float__icon homeojob-platform-float__icon--blue">
+                                <i className="ri-group-line" />
+                            </span>
+                            <span>
+                                Trusted by <strong>100+</strong> practitioners
+                            </span>
+                        </div>
+
+                        <div className="homeojob-platform-float homeojob-platform-float--natural">
+                            <span className="homeojob-platform-float__icon homeojob-platform-float__icon--green">
+                                <i className="ri-leaf-line" />
+                            </span>
+                            <span>
+                                <strong>Natural</strong> &amp; Safe Care
+                            </span>
+                        </div>
+
+                        <div className="homeojob-platform-float homeojob-platform-float--time">
+                            <span className="homeojob-platform-float__icon homeojob-platform-float__icon--blue">
+                                <i className="ri-time-line" />
+                            </span>
+                            <span>
+                                <strong>Save Time</strong> Practice Better
+                            </span>
+                        </div>
+
+                        <div className="homeojob-platform-float homeojob-platform-float--remedy">
+                            <h4>Find the Right Remedy</h4>
+                            <div className="homeojob-platform-float__search">
+                                <i className="ri-search-line" />
+                                <span>Search symptoms, rubrics...</span>
+                            </div>
+                            <ul>
+                                <li>
+                                    <i className="ri-checkbox-circle-fill" />
+                                    Accurate Results
+                                </li>
+                                <li>
+                                    <i className="ri-checkbox-circle-fill" />
+                                    Multi-lingual Support
+                                </li>
+                                <li>
+                                    <i className="ri-checkbox-circle-fill" />
+                                    Evidence Based
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="homeojob-platform-float homeojob-platform-float--quote">
+                            <img src={DoctorAvatar} alt="" className="homeojob-platform-float__avatar" />
+                            <div>
+                                <p>
+                                    &ldquo;Homeocentrum has made my practice faster and more
+                                    effective!&rdquo;
+                                </p>
+                                <div className="homeojob-platform-float__meta">
+                                    <strong>Dr. Priya Shah</strong>
+                                    <span className="homeojob-platform-float__stars" aria-hidden="true">
+                                        <i className="ri-star-fill" />
+                                        <i className="ri-star-fill" />
+                                        <i className="ri-star-fill" />
+                                        <i className="ri-star-fill" />
+                                        <i className="ri-star-fill" />
+                                    </span>
                                 </div>
-                                <div className="flex-grow-1">
-                                    <h5 className="fs-14 lh-base mb-0">{TESTIMONIALS[0]?.name}</h5>
-                                    <p className="text-muted fs-11 mb-1">{TESTIMONIALS[0]?.location}</p>
-                                    <div className="text-warning">
-                                        <i className="ri-star-s-fill me-1"></i>
-                                        <i className="ri-star-s-fill me-1"></i>
-                                        <i className="ri-star-s-fill me-1"></i>
-                                        <i className="ri-star-s-fill me-1"></i>
-                                        <i className="ri-star-s-line"></i>
-                                    </div>
-                                </div>
-                            </CardBody>
-                        </Card>
-                        <img src={About} alt="" className="img-fluid mx-auto rounded-3" />
+                            </div>
+                        </div>
                     </div>
                 </Col>
-                <Col lg={6}>
-                    <div className="text-muted">
-                        <h1 className="mb-3 lh-base">
-                            Find your <span className="text-primary">Homeo Centrum</span> practice platform in one place
-                        </h1>
-                        <p className="ff-secondary fs-16 mb-2">{WHY_CHOOSE.description}</p>
-                        <p className="ff-secondary fs-16">{ABOUT_CONTENT.quote}</p>
 
-                        <div className="vstack gap-2 mb-4 pb-1">
-                            {WHY_CHOOSE.items.map((item) => (
-                                <div className="d-flex align-items-center" key={item.title}>
-                                    <div className="flex-shrink-0 me-2">
-                                        <div className="avatar-xs icon-effect">
-                                            <div className="avatar-title bg-transparent text-success rounded-circle h2">
-                                                <i className="ri-check-fill"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex-grow-1">
-                                        <p className="mb-0">{item.title}</p>
-                                    </div>
+                <Col lg={6}>
+                    <div className="homeojob-platform__copy">
+                        <p className="homeojob-platform__eyebrow">All-in-One Practice Platform</p>
+                        <h2 className="homeojob-platform__title">
+                            Find your <span className="text-primary">Homeocentrum</span> practice
+                            platform in one place
+                        </h2>
+                        <p className="homeojob-platform__desc">
+                            Homeocentrum is a fully responsive cloud based homeopathic health
+                            management system built for beginner and master practitioners.
+                        </p>
+
+                        <blockquote className="homeojob-platform__quote">
+                            &ldquo;Efficient and Certain way of practicing Homeopathy.&rdquo;
+                        </blockquote>
+
+                        <div className="homeojob-platform__pillars">
+                            {PLATFORM_PILLARS.map((item) => (
+                                <div className="homeojob-platform__pillar" key={item.title}>
+                                    <span
+                                        className={`homeojob-platform__pillar-icon homeojob-platform__pillar-icon--${item.tone}`}
+                                        aria-hidden="true"
+                                    >
+                                        <i className={item.icon} />
+                                    </span>
+                                    <h3>{item.title}</h3>
+                                    <p>{item.text}</p>
                                 </div>
                             ))}
                         </div>
 
-                        <Link to="/register" className="btn btn-primary">
-                            Get Started <i className="ri-arrow-right-line align-bottom ms-1"></i>
-                        </Link>
+                        <div className="homeojob-platform__actions">
+                            <Link to="/register" className="btn homeojob-platform__cta">
+                                Get Started
+                                <i className="ri-arrow-right-line" aria-hidden="true" />
+                            </Link>
+                            <a href="#process" className="homeojob-platform__watch">
+                                <span className="homeojob-platform__watch-icon" aria-hidden="true">
+                                    <i className="ri-play-fill" />
+                                </span>
+                                Watch How It Works
+                            </a>
+                        </div>
+
+                        <div className="homeojob-platform__stats">
+                            {PLATFORM_STATS.map((stat) => (
+                                <div className="homeojob-platform__stat" key={stat.label}>
+                                    <strong>{stat.value}</strong>
+                                    <span>{stat.label}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </Col>
             </Row>

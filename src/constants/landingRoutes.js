@@ -33,6 +33,8 @@ export const LANDING_PUBLIC_PATHS = [
     "/privacy",
     "/terms",
     "/account",
+    "/find-doctor",
+    "/find-doctor/:doctorId",
 ];
 
 export const landingPath = (...segments) => {

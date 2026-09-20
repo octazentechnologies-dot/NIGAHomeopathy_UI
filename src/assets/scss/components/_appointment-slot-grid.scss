@@ -66,6 +66,7 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   gap: 8px;
   align-items: stretch;
   width: 100%;
+  min-width: 0;
 }
 
 .appointment-slot-hour-label {
@@ -82,8 +83,10 @@ $slot-color-current: #ffbc0a; // E-CONSULT
 
 .appointment-slot-row {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
   gap: 4px;
   width: 100%;
+  min-width: 0;
 }
 
 .appointment-slot-chip {
@@ -95,8 +98,11 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   line-height: 1.15;
   text-align: center;
   min-height: 30px;
+  min-width: 0;
   width: 100%;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
 
@@ -211,6 +217,41 @@ $slot-color-current: #ffbc0a; // E-CONSULT
 
 .new-appointment-modal .modal-dialog {
   max-width: 960px;
+}
+
+@media (max-width: 767.98px) {
+  .appointment-slot-hour-row {
+    grid-template-columns: 3.15rem minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .appointment-slot-hour-label {
+    font-size: 10px;
+    justify-content: flex-start;
+    text-align: left;
+    padding-right: 0;
+  }
+
+  .appointment-slot-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .appointment-slot-chip {
+    font-size: 10px;
+    padding: 7px 4px;
+    min-height: 34px;
+  }
+
+  .new-appointment-modal .appointment-slot-panel {
+    padding: 10px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .appointment-slot-row {
+    grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
+  }
 }
 
 .appointment-time-edit-modal .modal-body {

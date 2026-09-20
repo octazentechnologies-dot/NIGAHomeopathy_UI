@@ -1,20 +1,20 @@
 import { landingPath } from "../../../../constants/landingRoutes";
 
 export const SITE = {
-    name: "Homeo Centrum",
+    name: "Homeocentrum",
     tagline: "Easy Homeopathy | Easy Practice | Easy Remedy Hunting",
     phone: "+91-973 059 6019",
-    email: "nigahomeocentrum@gmail.com",
+    email: "nigaHomeocentrum@gmail.com",
     emailAlt: "jamdarnikhil@gmail.com",
     supportEmail: "support@Homeocentrum.com",
     address: "NIGA Homeopathy, Near Gurumauli Sadhana Mandir, Bagewadi, Akluj, Maharashtra, INDIA, 413101",
     hours: "Monday to Saturday, 9 AM to 6 PM IST",
     hoursShort: "Mon to Sat : 9 AM to 6 PM",
-    copyright: "Homeo Centrum",
+    copyright: "Homeocentrum",
     poweredBy: "MeshBA Solutions",
     mapEmbed:
         "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3797.0068151672504!2d74.99762617402966!3d17.88513488827767!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc474f95411a14f%3A0x966e71d6ff33ef2!2sHomeo%20Centrum!5e0!3m2!1sen!2sin!4v1684499132997!5m2!1sen!2sin",
-    website: "https://homeocentrum.com",
+    website: "https://Homeocentrum.com",
 };
 
 /** Set `url` when official profile links are available; icons stay visible without `#` placeholders. */
@@ -28,9 +28,9 @@ export const SOCIAL_LINKS = [
 
 export const HERO = {
     title: "The better way to practice homeopathy with",
-    highlight: "Homeo Centrum",
+    highlight: "Homeocentrum",
     subtitle:
-        "Homeo Centrum is a fully responsive, cloud based homeopathic health management system built for beginner and master practitioners.",
+        "Homeocentrum is a fully responsive, cloud based homeopathic health management system built for beginner and master practitioners.",
 };
 
 export const HERO_SLIDES = [
@@ -52,9 +52,9 @@ export const HERO_SLIDES = [
 ];
 
 export const WHY_CHOOSE = {
-    title: "Why Choosing Homeo Centrum",
+    title: "Why Choosing Homeocentrum",
     description:
-        "Homeo Centrum is the perfect cloud based tool for accurate prescription finding systems. It assists both beginner and master homeopathic practitioners to treat any simple to complicated cases, of any pathology in an easy way.",
+        "Homeocentrum is the perfect cloud based tool for accurate prescription finding systems. It assists both beginner and master homeopathic practitioners to treat any simple to complicated cases, of any pathology in an easy way.",
     items: [
         {
             icon: "ri-time-line",
@@ -64,7 +64,7 @@ export const WHY_CHOOSE = {
         {
             icon: "ri-stack-line",
             title: "Homeopathic Evolutionary",
-            text: "First time ever in homeopathic history, Homeo Centrum displays a timeframe of evolutionary development of a patient's condition.",
+            text: "First time ever in homeopathic history, Homeocentrum displays a timeframe of evolutionary development of a patient's condition.",
         },
         {
             icon: "ri-layers-line",
@@ -129,15 +129,15 @@ export const FEATURE_MODULES = [
     },
     {
         title: "Repertorization Module",
-        text: "Graphical score system of remedies which suggest a few final remedial lists instead of more confusing filtered remedial lists. Team of Homeo Centrum have specially developed this repertorial score system in a skillful way as no homeopath needs to look for multiple choices of various remedies, only few remedies need to be differentiated for final remedy selection. Also Homeo centrum repertory is embedded with a multi-lingual system. Each word used by different languages in this program will easily search for the exact rubric.",
+        text: "Graphical score system of remedies which suggest a few final remedial lists instead of more confusing filtered remedial lists. Team of Homeocentrum have specially developed this repertorial score system in a skillful way as no homeopath needs to look for multiple choices of various remedies, only few remedies need to be differentiated for final remedy selection. Also Homeocentrum repertory is embedded with a multi-lingual system. Each word used by different languages in this program will easily search for the exact rubric.",
     },
     {
         title: "Diagnosis Master",
-        text: "At Many occasions inexperienced homeopaths get difficulty in learning basic symptoms of a particular disease and their connection with homeopathic rubric system. Homeo Centrum will assist them to link the gap between patient's diagnostic symptoms with structured repertorial rubrics.",
+        text: "At Many occasions inexperienced homeopaths get difficulty in learning basic symptoms of a particular disease and their connection with homeopathic rubric system. Homeocentrum will assist them to link the gap between patient's diagnostic symptoms with structured repertorial rubrics.",
     },
     {
         title: "Timeline presentation of patient's details",
-        text: "First time ever in homeopathic history Homeo Centrum succeeded in presenting symptomatology of patients in evolutionary, layerwise and time framed way in just with one click.",
+        text: "First time ever in homeopathic history Homeocentrum succeeded in presenting symptomatology of patients in evolutionary, layerwise and time framed way in just with one click.",
     },
     {
         title: "Materia Medica and Therapeutics",
@@ -152,16 +152,16 @@ export const FEATURE_MODULES = [
 export const ABOUT_CONTENT = {
     quote: '"Efficient and Certain way of practicing Homeopathy."',
     intro:
-        "We have built an enviable reputation in the consumer goods, heavy industry, high-tech, manufacturing, medical, recreational vehicle, and transportation sectors. multidisciplinary team of engineering experts.",
+        "We have built an enviable reputation in classical homeopathy, digital case taking, repertorization, materia medica, clinical practice, patient care, and telemedicine services. multidisciplinary team of experts.",
     bullets: [
-        "Homeo Centrum is the perfect cloud based tool for accurate prescription finding systems. It assists both beginner and master homeopathic practitioners to treat any simple to complicated cases, of any pathology in an easy way.",
+        "Homeocentrum is the perfect cloud based tool for accurate prescription finding systems. It assists both beginner and master homeopathic practitioners to treat any simple to complicated cases, of any pathology in an easy way.",
         "It minimizes the time period of case taking and finds the predictable possibilities of the patient's information in keyword format in just one click which will give a bird eye view to the practitioner. First time ever in homeopathic history.",
-        "Homeo Centrum displays a timeframe of evolutionary development of a patient's condition. It also differentiates the layer wise problem of the patient so it augments the vision on the totality concept of homeopathy.",
+        "Homeocentrum displays a timeframe of evolutionary development of a patient's condition. It also differentiates the layer wise problem of the patient so it augments the vision on the totality concept of homeopathy.",
     ],
     footerNote: "Easy Homeopathy | Easy Practice | Easy Remedy Hunting",
     aboutHome: {
-        title: "About Homeo Centrum",
-        text: "We have built an enviable reputation in the consumer goods, heavy industry, high-tech, manufacturing, medical, recreational vehicle, and our transportation sectors. multidisciplinary team of experts.",
+        title: "About Homeocentrum",
+        text: "We have built an enviable reputation in classical homeopathy, digital case taking, repertorization, materia medica, clinical practice, patient care, and telemedicine services. multidisciplinary team of experts.",
     },
     whatWeDo: {
         title: "What We Do",
