@@ -303,6 +303,401 @@ $value in $theme-colors {
         margin: 1.25rem 0;
     }
 
+    .user-profile-page__tabs {
+        display: flex !important;
+        width: 100%;
+        margin-bottom: 0;
+        flex-wrap: nowrap;
+        border-bottom: 1px solid #e9ecef !important;
+
+        .nav-item {
+            flex: 1 1 0;
+            min-width: 0;
+            text-align: center;
+        }
+
+        .nav-item .nav-link {
+            width: 100%;
+            text-align: center;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #64748b;
+            padding: 0.65rem 0.35rem;
+            border: none;
+            background: transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+
+            &:hover {
+                color: #25a0e2;
+            }
+
+            &.active {
+                color: #25a0e2 !important;
+                border-bottom: 2px solid #25a0e2 !important;
+                background: transparent !important;
+            }
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .user-profile-page__tabs {
+            flex-wrap: wrap;
+
+            .nav-item {
+                flex: 1 1 33.333%;
+            }
+        }
+    }
+
+    .user-profile-page__tab-content {
+        min-height: 12rem;
+    }
+
+    .user-profile-page__coming-soon {
+        border: 1px dashed #d7e3ef;
+        border-radius: 10px;
+        background: #fafcff;
+    }
+
+    .user-profile-page__fee-block {
+        border: 1px solid #e2ebf3;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #fff;
+    }
+
+    .user-profile-page__fee-block-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.85rem;
+        flex-wrap: wrap;
+    }
+
+    .user-profile-page__fee-block-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #25a0e2;
+
+        i {
+            font-size: 1.05rem;
+            line-height: 1;
+        }
+    }
+
+    .user-profile-page__fee-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+
+        .form-check-input {
+            width: 2.2em;
+            margin-left: 0;
+            cursor: pointer;
+        }
+
+        .form-check-label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+        }
+    }
+
+    .user-profile-page__fee-validity {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-top: 0.9rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 10px;
+        background: #eef7ff;
+        border: 1px solid #d6ebfa;
+
+        &.is-disabled {
+            opacity: 0.65;
+        }
+    }
+
+    .user-profile-page__fee-validity-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #334155;
+
+        i {
+            color: #25a0e2;
+            font-size: 1rem;
+            line-height: 1;
+        }
+    }
+
+    .user-profile-page__fee-validity-input {
+        width: 4.5rem;
+        max-width: 30%;
+        text-align: center;
+    }
+
+    .user-profile-page__photo-card {
+        border: 1px solid #e2ebf3;
+        border-radius: 12px;
+        padding: 1.15rem 1rem 1.35rem;
+        background: #fff;
+    }
+
+    .user-profile-page__photo-body {
+        max-width: 28rem;
+        margin: 0 auto;
+    }
+
+    .user-profile-page__photo-preview-wrap {
+        width: 148px;
+        height: 148px;
+        margin: 0.35rem auto 1.15rem;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid #e8f5ff;
+        background: #e8f5ff;
+        box-shadow: 0 0 0 4px rgba(37, 160, 226, 0.08);
+    }
+
+    .user-profile-page__photo-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .user-profile-page__photo-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .user-profile-page__photo-change-btn,
+    .user-profile-page__photo-remove-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        border-radius: 0.45rem;
+        padding: 0.45rem 0.9rem;
+        line-height: 1.2;
+    }
+
+    .user-profile-page__photo-change-btn {
+        color: #25a0e2 !important;
+        background-color: #e8f5ff !important;
+        border: 1px solid #25a0e2 !important;
+
+        i {
+            color: #25a0e2 !important;
+        }
+
+        &:hover,
+        &:focus,
+        &:active {
+            color: #2099d4 !important;
+            background-color: #d9effc !important;
+            border-color: #2099d4 !important;
+        }
+    }
+
+    .user-profile-page__photo-remove-btn {
+        color: #f06548 !important;
+        background-color: #fff !important;
+        border: 1px solid #f06548 !important;
+
+        i {
+            color: #f06548 !important;
+        }
+
+        &:hover,
+        &:focus,
+        &:active {
+            color: #d9534f !important;
+            background-color: #fdecec !important;
+            border-color: #d9534f !important;
+        }
+    }
+
+    .user-profile-page__photo-help {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        line-height: 1.45;
+    }
+
+    .user-profile-page__qualification-form {
+        margin-bottom: 1.15rem;
+    }
+
+    .user-profile-page__qualification-file {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-height: var(--app-form-field-height, 1.75rem);
+        flex-wrap: wrap;
+    }
+
+    .user-profile-page__qualification-file-btn {
+        color: #25a0e2 !important;
+        background-color: #e8f5ff !important;
+        border: 1px solid #cfe9ff !important;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+
+    .user-profile-page__qualification-file-name {
+        font-size: 0.75rem;
+    }
+
+    .user-profile-page__qualification-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+
+    .user-profile-page__qualification-table {
+        border: 1px solid #e2ebf3;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .user-profile-page__qualification-view-btn {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.2rem 0.65rem;
+    }
+
+    .user-profile-page__hours-card {
+        border: 1px solid #e2ebf3;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #fff;
+    }
+
+    .user-profile-page__hours-table-wrap {
+        border: 1px solid #eef2f7;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .user-profile-page__hours-table {
+        margin-bottom: 0;
+
+        thead th {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 1px solid #e9ecef;
+            white-space: nowrap;
+            padding: 0.65rem 0.55rem;
+        }
+
+        tbody td {
+            font-size: 0.8125rem;
+            vertical-align: middle;
+            padding: 0.55rem;
+            border-color: #eef2f7;
+        }
+
+        .form-switch .form-check-input {
+            width: 2.2em;
+            margin-left: 0;
+            cursor: pointer;
+        }
+    }
+
+    .user-profile-page__hours-time-select {
+        min-width: 7.25rem;
+        font-size: 0.75rem !important;
+    }
+
+    .user-profile-page__hours-apply {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 0.9rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid #eef2f7;
+    }
+
+    .user-profile-page__hours-apply-label {
+        font-size: 0.8125rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .user-profile-page__hours-apply-days {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.65rem 0.85rem;
+        flex: 1 1 auto;
+    }
+
+    .user-profile-page__hours-apply-day {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+
+        .form-check-input {
+            margin-top: 0;
+            cursor: pointer;
+        }
+    }
+
+    .user-profile-page__hours-mode {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem 1.5rem;
+    }
+
+    .user-profile-page__hours-mode-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+
+        .form-check-input {
+            margin-top: 0;
+            cursor: pointer;
+        }
+    }
+
     .user-profile-page__form-footer {
         display: flex;
         justify-content: flex-end;
@@ -311,6 +706,27 @@ $value in $theme-colors {
         margin-top: 1.25rem;
         padding-top: 0.85rem;
         border-top: 1px solid #e9ecef;
+    }
+
+    .user-profile-page__bank-secure-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.55rem;
+        margin-top: 1.15rem;
+        padding: 0.75rem 0.9rem;
+        border-radius: 0.5rem;
+        background: #eef7fc;
+        border: 1px solid #d5ebf7;
+        color: #1f6f98;
+        font-size: 0.78rem;
+        line-height: 1.45;
+
+        i {
+            flex-shrink: 0;
+            margin-top: 0.08rem;
+            font-size: 0.9rem;
+            color: #25a0e2;
+        }
     }
 
     .user-profile-page__badge {

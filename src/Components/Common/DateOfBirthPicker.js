@@ -35,6 +35,7 @@ const DateOfBirthPicker = ({
     name,
     minDate = null,
     maxDate = 'today',
+    hideIcon = false,
 }) => {
     const wrapperRef = useRef(null);
     const popoverRef = useRef(null);
@@ -459,7 +460,7 @@ const DateOfBirthPicker = ({
     ) : null;
 
     return (
-        <div className={`dob-picker ${className}`.trim()} ref={wrapperRef}>
+        <div className={`dob-picker ${hideIcon ? 'dob-picker--no-icon' : ''} ${className}`.trim()} ref={wrapperRef}>
             <div className={`dob-picker__input-group ${hasError ? 'is-invalid' : ''}`}>
                 <button
                     type="button"

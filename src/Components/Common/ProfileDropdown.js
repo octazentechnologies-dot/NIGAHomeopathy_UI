@@ -6,8 +6,20 @@ import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from 'reactstrap
 //import images
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import { createSelector } from 'reselect';
+import { UserRole } from '../constants/roles';
+import { dispatchOpenBillingListModal } from '../../helpers/dashboard_helper';
 
 const DEFAULT_BALANCE = 5971.67;
+const DOCTOR_ONLINE_STATUS_KEY = 'doctorOnlineStatus';
+
+const readDoctorOnlineStatus = () => {
+    try {
+        const stored = sessionStorage.getItem(DOCTOR_ONLINE_STATUS_KEY);
+        return stored === null ? true : stored === 'true';
+    } catch {
+        return true;
+    }
+};
 
 const formatIndianRupeeAmount = (amount) => {
     const value = Math.round(Number(amount) || 0);
@@ -73,16 +85,42 @@ const ProfileDropdown = () => {
 
     //Dropdown Toggle
     const [isProfileDropdown, setIsProfileDropdown] = useState(false);
+    const [isOnline, setIsOnline] = useState(readDoctorOnlineStatus);
+    const isDoctor = userRole === UserRole.DOCTOR;
     const toggleProfileDropdown = () => {
         setIsProfileDropdown(!isProfileDropdown);
+    };
+    const handleOnlineToggle = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsOnline((prev) => {
+            const next = !prev;
+            try {
+                sessionStorage.setItem(DOCTOR_ONLINE_STATUS_KEY, String(next));
+            } catch {
+                /* ignore storage errors */
+            }
+            return next;
+        });
+    };
+    const handleOpenBilling = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsProfileDropdown(false);
+        dispatchOpenBillingListModal();
     };
     return (
         <React.Fragment>
             <Dropdown isOpen={isProfileDropdown} toggle={toggleProfileDropdown} className="header-item topbar-user">
                 <DropdownToggle tag="button" type="button" className="btn">
                     <span className="d-flex align-items-center">
-                        <img className="rounded-circle header-profile-user" src={avatar1}
-                            alt="Header Avatar" />
+                        <span className={`header-profile-user-wrap${isDoctor && isOnline ? " is-online" : ""}`}>
+                            <img className="rounded-circle header-profile-user" src={avatar1}
+                                alt="Header Avatar" />
+                            {isDoctor && isOnline ? (
+                                <span className="header-profile-user-status" aria-hidden="true" />
+                            ) : null}
+                        </span>
                         <span className="text-start ms-xl-2">
                             <span className="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{displayName}</span>
                             <span className="d-none d-xl-block ms-1 fs-12 text-muted user-name-sub-text">{userRole}</span>
@@ -91,6 +129,34 @@ const ProfileDropdown = () => {
                 </DropdownToggle>
                 <DropdownMenu className="dropdown-menu-end">
                     <h6 className="dropdown-header">Welcome {userName ? userName.toUpperCase() : "USER"}!</h6>
+                    {isDoctor ? (
+                        <div
+                            className="dropdown-item-text doctor-online-toggle d-flex align-items-center justify-content-between gap-2"
+                            onClick={(event) => event.stopPropagation()}
+                            onMouseDown={(event) => event.stopPropagation()}
+                        >
+                            <span className="d-flex align-items-center min-w-0">
+                                <i
+                                    className={`mdi mdi-circle fs-12 align-middle me-1 ${isOnline ? "text-success" : "text-muted"}`}
+                                    aria-hidden="true"
+                                />
+                                <span className="align-middle text-body">
+                                    {isOnline ? "Online" : "Offline"}
+                                </span>
+                            </span>
+                            <div className="form-check form-switch form-switch-success mb-0">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    id="doctorOnlineStatus"
+                                    checked={isOnline}
+                                    onChange={handleOnlineToggle}
+                                    aria-label={isOnline ? "Set offline" : "Set online"}
+                                />
+                            </div>
+                        </div>
+                    ) : null}
                     <DropdownItem className='p-0'>
                         <Link to="/profile" className="dropdown-item">
                             <i className="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
@@ -119,6 +185,18 @@ const ProfileDropdown = () => {
                                     className="align-middle">Balance : <b>₹{formatIndianRupeeAmount(userData?.balance ?? DEFAULT_BALANCE)}</b></span>
                         </Link>
                     </DropdownItem >
+                    {isDoctor ? (
+                        <DropdownItem className='p-0'>
+                            <button
+                                type="button"
+                                className="dropdown-item"
+                                onClick={handleOpenBilling}
+                            >
+                                <i className="mdi mdi-receipt-text-outline text-muted fs-16 align-middle me-1"></i>
+                                <span className="align-middle">Billing</span>
+                            </button>
+                        </DropdownItem>
+                    ) : null}
                     <DropdownItem className='p-0'>
                         <Link to="/pages-profile-settings" className="dropdown-item">
                             <i

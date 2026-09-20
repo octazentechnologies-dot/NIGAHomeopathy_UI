@@ -16,12 +16,22 @@ import ContactPage from "../Minimaltheme/pages/ContactPage";
 import PrivacyPage from "../Minimaltheme/pages/PrivacyPage";
 import TermsPage from "../Minimaltheme/pages/TermsPage";
 import AccountPage from "../Minimaltheme/pages/AccountPage";
+import FindDoctorPage from "./pages/FindDoctorPage";
+import DoctorDetailPage from "./pages/DoctorDetailPage";
 
 const HomeoJobLanding = () => {
     useEffect(() => {
         const previousTheme = document.body.getAttribute("data-bs-theme");
+        const previousOverflowX = document.body.style.overflowX;
+        const previousHtmlOverflowX = document.documentElement.style.overflowX;
+
         document.body.setAttribute("data-bs-theme", "light");
+        document.body.style.overflowX = "hidden";
+        document.documentElement.style.overflowX = "hidden";
+
         return () => {
+            document.body.style.overflowX = previousOverflowX;
+            document.documentElement.style.overflowX = previousHtmlOverflowX;
             if (previousTheme) {
                 document.body.setAttribute("data-bs-theme", previousTheme);
             } else {
@@ -46,6 +56,8 @@ const HomeoJobLanding = () => {
                     <Route path="privacy" element={<PrivacyPage />} />
                     <Route path="terms" element={<TermsPage />} />
                     <Route path="account" element={<AccountPage />} />
+                    <Route path="find-doctor" element={<FindDoctorPage />} />
+                    <Route path="find-doctor/:doctorId" element={<DoctorDetailPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
             </Routes>

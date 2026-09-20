@@ -1,5 +1,18 @@
+export const TERMS_HERO = {
+    eyebrow: "Trust • Clarity • Fair Use",
+    title: "Terms & Conditions",
+    subtitle:
+        "Please review the terms that govern your use of Homeocentrum websites, apps, and related services before continuing.",
+    chips: [
+        { icon: "ri-file-list-3-fill", label: "Clear Agreement", theme: "blue" },
+        { icon: "ri-shield-check-fill", label: "Protected Access", theme: "green" },
+        { icon: "ri-user-follow-fill", label: "Fair Use Policy", theme: "navy" },
+        { icon: "ri-handshake-fill", label: "Trusted Partnership", theme: "sky" },
+    ],
+};
+
 export const TERMS_INTRO = {
-    html: `<p><b>Homeocentrum ("Homeocentrum ","we","us")</b> provides this web site, associated apps in the AppStore and Play Store and site-related services (collectively, the "Site") subject to your compliance with the terms and conditions set forth in this agreement (the "Agreement"). This Agreement governs the relationship between Homeocentrum and you ("You" and "Your") with respect to your use of the Site. It is important that You read carefully and understand the terms and conditions of this Agreement. <br> We reserve the right at any time to:</p>`,
+    html: `<p><b>Homeocentrum ("Homeocentrum ","we","us")</b> provides this web site, associated apps in the AppStore and Play Store and site-related services (collectively, the "Site") subject to your compliance with the terms and conditions set forth in this agreement (the "Agreement"). This Agreement governs the relationship between Homeocentrum and you ("You" and "Your") with respect to your use of the Site. It is important that You read carefully and understand the terms and conditions of this Agreement.</p><p>We reserve the right at any time to:</p>`,
     list: [
         "Change the terms and conditions of this Agreement;",
         "Change the Site, including eliminating or discontinuing any content on or feature of the Site; or",
@@ -8,13 +21,87 @@ export const TERMS_INTRO = {
     after: `<p>Any changes we make will be effective immediately upon notice, which we may provide by means including, without limitation, posting on the Site. Your continued use of the Site after such notice will be deemed acceptance of such changes. Be sure to return to this page periodically to ensure familiarity with the most current version of this Agreement. Upon our request, you agree to sign a non-electronic version of this Agreement.</p>`,
 };
 
-export const TERMS_SECTIONS = [
+const stripTitle = (title) => title.replace(/^\d+\.\s*/, "").replace(/\.$/, "");
+
+const THEMES = [
+    "blue",
+    "teal",
+    "orange",
+    "purple",
+    "sky",
+    "green",
+    "pink",
+    "mint",
+    "violet",
+];
+
+const ICONS = [
+    "ri-user-add-fill",
+    "ri-key-2-fill",
+    "ri-money-rupee-circle-fill",
+    "ri-lock-password-fill",
+    "ri-bank-card-fill",
+    "ri-auction-fill",
+    "ri-book-open-fill",
+    "ri-customer-service-2-fill",
+    "ri-link",
+    "ri-copyright-fill",
+    "ri-close-circle-fill",
+    "ri-timer-flash-fill",
+    "ri-error-warning-fill",
+    "ri-scales-3-fill",
+    "ri-shield-user-fill",
+    "ri-refund-2-fill",
+    "ri-refresh-fill",
+    "ri-thunderstorms-fill",
+    "ri-file-settings-fill",
+    "ri-government-fill",
+];
+
+const SUMMARIES = [
+    "Provide accurate registration details and keep your account credentials confidential at all times.",
+    "Homeocentrum grants you a personal, non-transferable license to access and use the Site under this Agreement.",
+    "Subscription fees shown at registration must be paid to continue accessing Homeocentrum services.",
+    "Sensitive personal and health information may be collected to enable doctors and service providers to care for you.",
+    "You are responsible for subscription payments and may receive SMS or email updates related to the service.",
+    "You confirm your information is accurate and agree not to upload unlawful, harmful, or infringing content.",
+    "Medical content on the Site is informational only and should not be treated as professional medical advice.",
+    "Contact our Grievance Officer for Site-related issues under applicable intermediary guidelines.",
+    "Third-party links may appear on the Site; Homeocentrum is not responsible for their content or policies.",
+    "Site content remains Homeocentrum property and may not be copied or redistributed without permission.",
+    "Homeocentrum may terminate access for non-payment, breach, abuse, or conduct harmful to the platform.",
+    "We aim for commercially reasonable uptime of at least 95% during standard weekday service hours.",
+    "The Site and related materials are provided as-is without warranties of any kind to the fullest extent allowed.",
+    "Homeocentrum is not liable for indirect, incidental, special, or consequential damages arising from Site use.",
+    "You agree to indemnify Homeocentrum against claims arising from your breach or misuse of the Site.",
+    "Subscriptions are non-cancellable mid-term and early termination does not qualify for a refund.",
+    "Renewals can begin up to 3 months before expiry, with a 30-day grace period after each term ends.",
+    "Obligations may pause during force majeure events such as war, pandemic, or acts beyond our control.",
+    "For users in India, this Agreement is governed by Indian law and remaining terms stay enforceable if one fails.",
+    "Indian users are protected under applicable IT and contract laws, with jurisdiction in Mumbai, Maharashtra.",
+];
+
+const RAW_SECTIONS = [
     { title: "1. Registration", html: `<p>You agree to:<br> <b>(a)</b> provide accurate, current and complete information about yourself as prompted by our registration form (including your email address); and <br> <b>(b)</b> maintain and update your information (including your email address) to keep it accurate, current and complete. You acknowledge that, if any information provided by you is untrue, inaccurate, not current or incomplete, we reserve the right to terminate this Agreement and your use of the Site.</p><p>As part of the registration process, you will be asked to input your email address and select a password. You will be responsible for the confidentiality and use of your password and agree not to transfer or resell your use of or access to the Site to any third party. YOU ARE ENTIRELY RESPONSIBLE FOR MAINTAINING THE CONFIDENTIALITY OF YOUR PASSWORD AND FOR ANY AND ALL ACTIVITIES THAT ARE CONDUCTED THROUGH YOUR ACCOUNT. HOMEOCENTRUM SHALL NOT BE LIABLE FOR ANY UNAUTHORISED USE OF YOUR ACCOUNT.</p>` },
-    { title: "2. License and Site Access.", html: `<p>Conditioned upon, and subject to, Your compliance with the terms and conditions of this Agreement, Homeocentrum hereby grants You the personal, non-exclusive and non-transferable limited right and license to, during the term of this Agreement, access, install and use, as applicable the Site. Homeocentrum and its licensors reserve all rights not expressly granted to You in this Agreement including, without limitation, all right, title, and other intellectual property rights to the Site. The use of the Site is licensed, not sold.</p>` },
+    { title: "2. License and Site Access", html: `<p>Conditioned upon, and subject to, Your compliance with the terms and conditions of this Agreement, Homeocentrum hereby grants You the personal, non-exclusive and non-transferable limited right and license to, during the term of this Agreement, access, install and use, as applicable the Site. Homeocentrum and its licensors reserve all rights not expressly granted to You in this Agreement including, without limitation, all right, title, and other intellectual property rights to the Site. The use of the Site is licensed, not sold.</p>` },
     { title: "3. Respective Subscription Fee", html: `<p>You agree to pay the respective subscription fee that is set forth on the registration page and if you desire to continue accessing the Site, you agree to pay any future subscription fee as established by Homeocentrum from time to time. If you fail to pay the respective subscription fee, then Homeocentrum shall have the right to terminate this Agreement and your use of the Site. No refunds will be made for early termination of the contract prior to the end of the active subscription period(s).</p>` },
     { title: "4. Sensitive Personal Information", html: `<p><b>4.1</b> Homeocentrum may have access through the Site to your Sensitive Personal Information, which includes but is not limited to Your passwords, sexual orientation, financial information such as bank account or credit card or debit card or other payment instrument details, physical, physiological, and mental health conditions, etc.<br><b>4.2</b> Homeocentrum shall be collecting the following Sensitive Personal Information from You for the purpose of allowing your Service Providers, such as doctors, to use the Sensitive Personal Information to provide medical services to You.<br><b>4.3</b> The Sensitive Personal Information that is collected from You will be accessible to the Service Provider and shall be stored until You withdraw Your consent.<br><b>4.4</b> You shall at any time have an option to withdraw Your consent by emailing support@Homeocentrum.com with subject "Withdrawing consent to share information with Homeocentrum".<br><b>4.5</b> In the event that You withdraw your consent, Homeocentrum shall not provide the services for which the said information was sought. Please read Homeocentrum's Privacy Policy for more information.</p>` },
     { title: "5. Payment and Cancellations", html: `<p><b>5.1</b> You agree to pay the subscription fee to Homeocentrum Inc, inclusive of Goods and Services Tax ("GST"), as applicable.<br><b>5.2</b> You alone are responsible for the payments that need to be made towards the services that are being availed of by you.<br><b>5.3</b> You agree to receive SMS/Email Messages from Homeocentrum's service to the mobile phone number/Email provided in the registration form.</p>` },
-    { title: "6. Representation and Warranties", html: `<p><b>6.1</b> You represent and warrant that the information that has been provided by You is correct, complete and up to date.<br><b>6.2</b> As has been mandated by law under Rule 3(2) of the Information Technology (Intermediaries Guidelines), 2011, You are hereby prohibited from hosting, displaying, uploading, modifying, publishing, transmitting, updating or sharing any information that violates applicable law.</p>`, list: ["Belongs to another person and to which the user does not have any right to;", "Is grossly harmful, harassing, blasphemous defamatory, obscene, pornographic, or otherwise unlawful;", "Harm minors in any way;", "Infringes any patent, trademark, copyright or other proprietary rights;", "Violates any law for the time being in force;", "Deceives or misleads the addressee;", "Impersonate another person;", "Contains software viruses or any other computer code designed to interrupt, destroy or limit functionality;", "Threatens the unity, integrity, defence, security or sovereignty of India."] },
+    {
+        title: "6. Representation and Warranties",
+        html: `<p><b>6.1</b> You represent and warrant that the information that has been provided by You is correct, complete and up to date.<br><b>6.2</b> As has been mandated by law under Rule 3(2) of the Information Technology (Intermediaries Guidelines), 2011, You are hereby prohibited from hosting, displaying, uploading, modifying, publishing, transmitting, updating or sharing any information that violates applicable law.</p>`,
+        list: [
+            "Belongs to another person and to which the user does not have any right to;",
+            "Is grossly harmful, harassing, blasphemous defamatory, obscene, pornographic, or otherwise unlawful;",
+            "Harm minors in any way;",
+            "Infringes any patent, trademark, copyright or other proprietary rights;",
+            "Violates any law for the time being in force;",
+            "Deceives or misleads the addressee;",
+            "Impersonate another person;",
+            "Contains software viruses or any other computer code designed to interrupt, destroy or limit functionality;",
+            "Threatens the unity, integrity, defence, security or sovereignty of India.",
+        ],
+    },
     { title: "7. Information Provided by Homeocentrum", html: `<p>Although Homeocentrum strives to provide information that is both useful and current, medical research and information changes frequently and is subject to varying interpretations. Accordingly, although Homeocentrum endeavors to use reasonable care in assembling the information, the information may not be up-to-date, accurate or complete, and the information cannot be construed as medical or professional advice on any subject matter. You acknowledge and agree that Homeocentrum shall have no liability for accuracy or applicability of any information that is on the site.</p>` },
     { title: "8. Grievance Officer", html: `<p>In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, if You have any issues with our Site, please get in touch with our Grievance Officer.</p>` },
     { title: "9. Links", html: `<p>The Site may contain links to other Internet web sites which may or may not be owned or operated by Homeocentrum. Homeocentrum has not reviewed all of the web sites that are linked to the Site, and Homeocentrum has no control over such sites. Unless otherwise explicitly stated, Homeocentrum is not responsible for the content of such web sites.</p>` },
@@ -30,3 +117,22 @@ export const TERMS_SECTIONS = [
     { title: "19. Miscellaneous", html: `<p>If You are residing in India then, this Agreement is governed by and construed in accordance with the laws of India. If any provision of this Agreement is found to be unenforceable, then that provision shall be deemed severable from this Agreement.</p>` },
     { title: "20. Terms Specific to the Republic of India", html: `<p>If You are residing in India, then this Agreement is published in compliance of Indian law, including the Indian Contract Act, 1872; the Information Technology Act, 2000; and related rules. The courts at MUMBAI, MAHARASHTRA shall have the sole jurisdiction. Please read the Homeocentrum Privacy Policy.</p>` },
 ];
+
+export const TERMS_SECTIONS = RAW_SECTIONS.map((section, index) => {
+    const nav = stripTitle(section.title);
+    const id = nav
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+    return {
+        id: id || `section-${index + 1}`,
+        nav: nav.length > 28 ? `${nav.slice(0, 26)}…` : nav,
+        title: section.title,
+        icon: ICONS[index % ICONS.length],
+        theme: THEMES[index % THEMES.length],
+        summary: SUMMARIES[index] || "Review this section for important terms that apply to your use of Homeocentrum.",
+        html: section.html,
+        list: section.list,
+    };
+});
