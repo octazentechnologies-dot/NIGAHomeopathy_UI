@@ -43,6 +43,12 @@ export const changePasswordSecure = (payload) =>
 
 /* Doctor registration (public) — NigaHomeopathy API */
 export const registerDoctor = data => nigahomeoAPI.post(url.REGISTER_DOCTOR, data);
+export const registerDoctorWithDocuments = (formData) =>
+  nigahomeoMultipart.post(url.REGISTER_DOCTOR_WITH_DOCS, formData);
+export const getRegistrationStatus = (emailId) =>
+  nigahomeoAPI.get(url.REGISTER_STATUS, { emailId });
+export const activateByToken = (data) => nigahomeoAPI.post(url.ACTIVATE_BY_TOKEN, data);
+export const resendActivation = (data) => nigahomeoAPI.post(url.RESEND_ACTIVATION, data);
 export const activateUser = data => nigahomeoAPI.post(url.CHECK_ACTIVATION, data);
 
 const unwrapRegistrationList = (response) => {
@@ -654,7 +660,7 @@ export const getPatientProfileMe = () => nigahomeoAPI.get(url.PATIENT_PROFILE_ME
 export const savePatientProfileMe = (data) => nigahomeoAPI.put(url.PATIENT_PROFILE_ME, data);
 export const getPatientWelcome = () => nigahomeoAPI.get(url.WELCOME_PATIENT, null);
 export const getPrivacyConsentStatus = () => nigahomeoAPI.get(url.CONSENT_PRIVACY_STATUS, null);
-export const grantPrivacyConsent = (data) => nigahomeoAPI.post(url.CONSENT_GRANT_PRIVACY, data || {});
+export const grantPrivacyConsent = () => nigahomeoAPI.post(url.CONSENT_GRANT_PRIVACY, null);
 export const registerDevicePushToken = (data) => nigahomeoAPI.post(url.DEVICE_REGISTER, data);
 export const unregisterDevicePushToken = (data) => nigahomeoAPI.post(url.DEVICE_UNREGISTER, data);
 export const listMyDevicePushTokens = () => nigahomeoAPI.get(url.DEVICE_MINE, null);
@@ -670,12 +676,24 @@ export const uploadDoctorCredentialDocument = (formData) =>
 export const getAvailabilityMe = () => nigahomeoAPI.get("/Availability/Me", null);
 export const updateAvailabilityMe = (data) => nigahomeoAPI.put("/Availability/Me", data);
 export const getEnquiries = (params) => nigahomeoAPI.get("/Enquiry", params);
+export const getReceptionStaffList = (params) =>
+  nigahomeoAPI.get("/ReceptionStaff/GetReceptionStaffList", params);
+export const addReceptionStaff = (data) => nigahomeoAPI.post("/ReceptionStaff/AddReceptionStaff", data);
+export const updateReceptionStaff = (data) =>
+  nigahomeoAPI.post("/ReceptionStaff/UpdateReceptionStaff", data);
+export const deleteReceptionStaff = (data) =>
+  nigahomeoAPI.post("/ReceptionStaff/DeleteReceptionStaff", data);
 export const runCenterOfGravity = (data) =>
   nigahomeoAPI.post("/Repertorization/CenterOfGravity", data);
 export const exportCaseToPdf = (patientId, caseId) =>
   nigahomeoAPI.get(`/patient/ExportCaseToPdf/${patientId}/${caseId}`, { responseType: "blob" });
+export const exportCasesToExcel = (userId) =>
+  nigahomeoAPI.get(`/patient/ExportCasesToExcel?UserId=${userId}&PageNumber=1&PageSize=500`, {
+    responseType: "blob",
+  });
 export const getPatientComplaints = (patientId) =>
   api.get(`/patient/GetComplaints/${patientId}`, null);
 export const savePatientComplaints = (data) => api.post("/patient/SaveComplaints", data);
 export const getPatientCaseDetails = (caseId) =>
   api.get(`/patient/GetCaseDetails/${caseId}`, null);
+export const savePatientCaseDetails = (data) => api.post("/CaseDetails", data);

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { landingPath } from "../../../../constants/landingRoutes";
 import {
     createPublicBooking,
@@ -110,7 +110,9 @@ const BookingConfirmModal = ({
     consultMode,
     bookingDate,
     selectedSlot,
+    asPage = false,
 }) => {
+    const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [patient, setPatient] = useState(initialPatient);
     const [agreed, setAgreed] = useState(false);
@@ -247,6 +249,10 @@ const BookingConfirmModal = ({
             setReceiptId(created.bookingToken ?? created.BookingToken ?? "");
             setPaymentStatus(created.paymentStatus ?? created.PaymentStatus ?? "PENDING");
             setStep(3);
+            const token = created.bookingToken ?? created.BookingToken;
+            if (token) {
+                navigate(`${landingPath("book/success")}?token=${encodeURIComponent(token)}`);
+            }
         } catch (err) {
             const message =
                 typeof err === "string"
@@ -262,8 +268,14 @@ const BookingConfirmModal = ({
         if (e.target === e.currentTarget) onClose();
     };
 
+    if (!isOpen) return null;
+
     return (
-        <div className="homeojob-booking-modal" role="presentation" onClick={handleBackdrop}>
+        <div
+            className={`homeojob-booking-modal${asPage ? " homeojob-booking-modal--page" : ""}`}
+            role="presentation"
+            onClick={asPage ? undefined : handleBackdrop}
+        >
             <div
                 className="homeojob-booking-modal__dialog"
                 role="dialog"

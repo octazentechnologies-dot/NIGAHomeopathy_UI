@@ -223,7 +223,7 @@ const Navdata = () => {
             id: "enquiries",
             label: "Enquiries",
             icon: "ri-mail-line",
-            link: "/enquiries",
+            link: "/admin/enquiries",
         },
 
         {

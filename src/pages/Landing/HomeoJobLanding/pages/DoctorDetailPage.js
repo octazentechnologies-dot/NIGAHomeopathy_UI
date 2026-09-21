@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
 import { DOCTORS } from "../constants/doctorsData";
-import BookingConfirmModal from "../components/BookingConfirmModal";
 import {
     getPublicDoctor,
     getPublicDoctorRanking,
@@ -43,6 +42,7 @@ const formatBookingDate = (date) => {
 
 const DoctorDetailPage = () => {
     const { doctorId } = useParams();
+    const navigate = useNavigate();
     const mockDoctor = DOCTORS.find((doc) => String(doc.id) === String(doctorId)) || null;
     const [doctor, setDoctor] = useState(null);
     const [activeTab, setActiveTab] = useState("overview");
@@ -50,7 +50,6 @@ const DoctorDetailPage = () => {
     const [consultMode, setConsultMode] = useState("clinic");
     const [slots, setSlots] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState("");
-    const [bookingOpen, setBookingOpen] = useState(false);
     const [bookingDate, setBookingDate] = useState(() => {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -123,8 +122,13 @@ const DoctorDetailPage = () => {
     }, [doctor?.id, bookingDate]);
 
     const handleBook = () => {
-        if (!selectedSlot) return;
-        setBookingOpen(true);
+        if (!selectedSlot || !doctor?.id) return;
+        const params = new URLSearchParams({
+            date: toIsoDate(bookingDate),
+            slot: selectedSlot,
+            mode: consultMode,
+        });
+        navigate(`${landingPath(`book/${doctor.id}/confirm`)}?${params.toString()}`);
     };
 
     if (loadError && !doctor) {
@@ -436,6 +440,13 @@ const DoctorDetailPage = () => {
                                     Book Appointment
                                     <i className="ri-arrow-right-line" aria-hidden="true" />
                                 </button>
+                                <Link
+                                    className="homeojob-doctor-detail__maps-link d-inline-block mt-2"
+                                    to={`${landingPath(`book/${doctor.id}/slots`)}?mode=${consultMode}&date=${dateValue}`}
+                                >
+                                    Open full slot page
+                                    <i className="ri-arrow-right-line" aria-hidden="true" />
+                                </Link>
                             </div>
 
                             <div className="homeojob-doctor-detail__card homeojob-doctor-detail__clinic-info">
@@ -491,15 +502,6 @@ const DoctorDetailPage = () => {
                     </Col>
                 </Row>
             </Container>
-
-            <BookingConfirmModal
-                isOpen={bookingOpen}
-                onClose={() => setBookingOpen(false)}
-                doctor={doctor}
-                consultMode={consultMode}
-                bookingDate={bookingDate}
-                selectedSlot={selectedSlot}
-            />
         </section>
     );
 };

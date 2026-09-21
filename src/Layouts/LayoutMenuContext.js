@@ -80,6 +80,7 @@ export const LayoutMenuProvider = ({ children }) => {
       role === UserRole.PHARMACY ||
       role === UserRole.PHARMACY_PARTNER ||
       role === UserRole.PATIENT ||
+      role === UserRole.DOCTOR ||
       role === UserRole.ADMIN ||
       role === UserRole.MANAGEMENT;
 

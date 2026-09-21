@@ -37,6 +37,12 @@ export const LANDING_PUBLIC_PATHS = [
     "/find-doctor/:doctorId",
     "/book",
     "/book/:doctorId",
+    "/book/:doctorId/slots",
+    "/book/:doctorId/confirm",
+    "/book/success",
+    "/book/pay/:bookingId",
+    "/book/pay/:bookingId/success",
+    "/book/pay/:bookingId/failure",
 ];
 
 export const landingPath = (...segments) => {

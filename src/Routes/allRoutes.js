@@ -352,6 +352,9 @@ import ForgetPasswordPage from "../pages/Authentication/ForgetPassword";
 import ResetPassword from "../pages/Authentication/ResetPassword";
 import Logout from "../pages/Authentication/Logout";
 import Register from "../pages/Authentication/Register";
+import RegisterPendingPage from "../pages/Authentication/RegisterPendingPage";
+import RegisterStatusPage from "../pages/Authentication/RegisterStatusPage";
+import ActivateAccount from "../pages/Authentication/ActivateAccount";
 
 //Charts
 import LineCharts from "../pages/Charts/ApexCharts/LineCharts";
@@ -396,6 +399,7 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
 import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
+import ReceptionStaffPage from "../pages/Doctor/ReceptionStaff/ReceptionStaffPage";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
 
 import FileManager from "../pages/FileManager";
@@ -557,6 +561,7 @@ const authProtectedRoutes = [
   { path: "doctordashboard", component: <DoctorDashboard /> },
   { path: "doctor/patientboard", component: <PatientBoardRoute /> },
   { path: "doctor/anatomy", component: <AnatomyPage /> },
+  { path: "doctor/reception-staff", component: <ReceptionStaffPage /> },
 
 
   // Doctor Side End //
@@ -792,6 +797,7 @@ const authProtectedRoutes = [
   //User Profile
   { path: "/profile", component: <UserProfile /> },
   { path: "/enquiries", component: <EnquiryInboxPage /> },
+  { path: "/admin/enquiries", component: <EnquiryInboxPage /> },
 
   // Catch-all for authenticated app routes (landing is served from publicRoutes)
   { path: "*", component: <RoleBasedHomeRedirect /> },
@@ -811,6 +817,9 @@ const publicRoutes = [
   { path: "/reset-password", component: <ResetPassword /> },
   { path: "/reset-password/:token", component: <ResetPassword /> },
   { path: "/register", component: <Register /> },
+  { path: "/register/pending", component: <RegisterPendingPage /> },
+  { path: "/register/status", component: <RegisterStatusPage /> },
+  { path: "/activate", component: <ActivateAccount /> },
 
   //AuthenticationInner pages
   { path: "/auth-signin-basic", component: <BasicSignIn /> },

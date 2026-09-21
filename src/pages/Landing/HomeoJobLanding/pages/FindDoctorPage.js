@@ -312,7 +312,7 @@ const FindDoctorPage = () => {
 
                                     <div className="homeojob-doctor-card__actions">
                                         <Link
-                                            to={landingPath(`find-doctor/${doc.id}`)}
+                                            to={landingPath(`book/${doc.id}`)}
                                             className="homeojob-doctor-card__book"
                                         >
                                             <i className="ri-calendar-check-line" aria-hidden="true" />

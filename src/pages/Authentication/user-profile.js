@@ -41,6 +41,7 @@ import {
   uploadDoctorCredentialDocument,
   getAvailabilityMe,
   updateAvailabilityMe,
+  confirmMobileAgainstProfile,
 } from "../../helpers/realbackend_helper";
 
 const PROFILE_TABS = [
@@ -264,7 +265,36 @@ const amPmToHms = (value) => {
   return `${String(hour).padStart(2, "0")}:${minute}:00`;
 };
 
-const showSaveResult = (ok, text) =>
+const hmsToAmPm = (value) => {
+  const m = String(value || "").match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return "";
+  let hour = Number(m[1]);
+  const minute = m[2];
+  const period = hour >= 12 ? "PM" : "AM";
+  if (hour === 0) hour = 12;
+  else if (hour > 12) hour -= 12;
+  return `${String(hour).padStart(2, "0")}:${minute} ${period}`;
+};
+
+const nextDateForWeekday = (dayId) => {
+  const map = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  const target = map[dayId];
+  const now = new Date();
+  const diff = (target - now.getDay() + 7) % 7;
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const weekdayIdFromDate = (value) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][d.getDay()];
+};
+
+const showSaveResult = (ok, text) => {
   Swal.fire({
     title: ok ? "Saved!" : "Not saved",
     text,
@@ -272,6 +302,7 @@ const showSaveResult = (ok, text) =>
     timer: ok ? 1500 : 2500,
     showConfirmButton: !ok,
   });
+};
 
 const ProfileBadge = ({ tone = "neutral", children }) => (
   <span className={`user-profile-page__badge user-profile-page__badge--${tone}`}>
@@ -372,9 +403,20 @@ const UserProfile = () => {
         setClinicForm((prev) => ({
           ...prev,
           clinicName: me.clinicName || prev.clinicName,
+          addressLine1: me.addressLine1 || prev.addressLine1,
+          addressLine2: me.addressLine2 || prev.addressLine2,
           city: me.city || prev.city,
+          state: me.state || prev.state,
+          pincode: me.pincode || prev.pincode,
           contactNumber: me.mobileNo || prev.contactNumber,
           email: me.emailId || prev.email,
+        }));
+        setUserData((prev) => ({
+          ...prev,
+          firstName: me.firstName || prev.firstName,
+          lastName: me.lastName || prev.lastName,
+          email: me.emailId || prev.email,
+          userName: [me.firstName, me.lastName].filter(Boolean).join(" ").trim() || prev.userName,
         }));
         setFeesForm((prev) => ({
           ...prev,
@@ -422,13 +464,27 @@ const UserProfile = () => {
       .then((payload) => {
         if (cancelled) return;
         const me = payload?.data ?? payload;
-        const note = me?.workingHoursNote;
-        if (note) {
-          setHoursSchedule((prev) => ({
-            ...prev,
-            monday: { ...prev.monday, available: true },
-          }));
-        }
+        const rows = me?.weekSchedules ?? me?.WeekSchedules ?? [];
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        setHoursSchedule((prev) => {
+          const next = { ...prev };
+          WEEK_DAYS.forEach((day) => {
+            next[day.id] = { ...next[day.id], available: false, startTime: "", endTime: "" };
+          });
+          rows.forEach((row) => {
+            const id = weekdayIdFromDate(row.scheduleDate || row.ScheduleDate);
+            if (!id) return;
+            const start = hmsToAmPm(row.workStartTime || row.WorkStartTime);
+            const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
+            next[id] = {
+              ...createDefaultHoursDay(),
+              available: true,
+              startTime: start,
+              endTime: end,
+            };
+          });
+          return next;
+        });
       })
       .catch(() => {});
     return () => {
@@ -495,11 +551,29 @@ const UserProfile = () => {
 
     try {
       await updateDoctorProfileMe({
+        firstName: userData.firstName || undefined,
+        lastName: userData.lastName || undefined,
         clinicName: clinicForm.clinicName.trim(),
         city: clinicForm.city.trim(),
+        addressLine1: clinicForm.addressLine1.trim(),
+        addressLine2: clinicForm.addressLine2.trim(),
+        state: clinicForm.state.trim(),
+        pincode: clinicForm.pincode.trim(),
         emailId: clinicForm.email.trim(),
         mobileNo: clinicForm.contactNumber.trim(),
       });
+      if (clinicForm.contactNumber.trim()) {
+        try {
+          const check = await confirmMobileAgainstProfile({ mobileNo: clinicForm.contactNumber.trim() });
+          const matched = check?.data?.matched ?? check?.data?.Matched;
+          if (matched === false) {
+            showSaveResult(true, "Clinic saved. Mobile was stored; confirm-number now uses this number.");
+            return;
+          }
+        } catch (_) {
+          /* confirm is extra proof, clinic save already succeeded */
+        }
+      }
       showSaveResult(true, "Clinic information has been updated.");
     } catch (err) {
       showSaveResult(false, typeof err === "string" ? err : err?.message || "Clinic save failed.");
@@ -924,14 +998,17 @@ const UserProfile = () => {
     }
 
     const sourceDay = WEEK_DAYS.map((day) => hoursSchedule[day.id]).find((row) => row?.available && row.startTime && row.endTime) || hoursSchedule.monday;
+    const days = WEEK_DAYS.filter((day) => hoursSchedule[day.id]?.available && hoursSchedule[day.id].startTime && hoursSchedule[day.id].endTime).map((day) => ({
+      scheduleDate: nextDateForWeekday(day.id),
+      workStartTime: amPmToHms(hoursSchedule[day.id].startTime),
+      workEndTime: amPmToHms(hoursSchedule[day.id].endTime),
+      slotIntervalMinutes: 15,
+    }));
     try {
       await updateAvailabilityMe({
-        isOnline: true,
+        isOnline: Boolean(consultationMode.teleconsultation || consultationMode.both),
         workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
-        scheduleDate: new Date().toISOString(),
-        workStartTime: amPmToHms(sourceDay.startTime),
-        workEndTime: amPmToHms(sourceDay.endTime),
-        slotIntervalMinutes: 15,
+        days,
       });
       await updateDoctorProfileMe({
         workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,

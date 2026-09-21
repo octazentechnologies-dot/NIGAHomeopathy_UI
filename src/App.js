@@ -16,6 +16,7 @@ ensureMultiSelectGrowStyles();
 const PUBLIC_PATH_PREFIXES = [
   '/login',
   '/register',
+  '/activate',
   '/forgot-password',
   '/reset-password',
   '/auth',
@@ -24,6 +25,13 @@ const PUBLIC_PATH_PREFIXES = [
   '/privacy',
   '/terms',
   '/landing',
+  '/pricing',
+  '/about',
+  '/contact',
+  '/blog',
+  '/news',
+  '/features',
+  '/account',
 ];
 
 function isPublicPath(pathname) {

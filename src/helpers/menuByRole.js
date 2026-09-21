@@ -78,6 +78,7 @@ export const isSpaMenuLink = (link) => {
     path.startsWith("/caregiver") ||
     path.startsWith("/doctor") ||
     path.startsWith("/enquiries") ||
+    path.startsWith("/profile") ||
     path === "/dashboard" ||
     path === "/accountdashboard" ||
     path === "/pharmacydashboard" ||

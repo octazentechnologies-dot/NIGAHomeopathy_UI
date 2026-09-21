@@ -27,9 +27,11 @@ const PricingPage = () => {
                     <Row className="justify-content-center">
                         <Col lg={8}>
                             <div className="text-center mb-5">
-                                <h3 className="mb-3 fw-semibold">Choose the plan that&apos;s right for you</h3>
+                                <h3 className="mb-3 fw-semibold">Doctor SaaS plans — not patient consult fees</h3>
                                 <p className="text-muted mb-4 ff-secondary">
-                                    Subscription packages for homeopathic practitioners. All modules included. Prices in INR (₹).
+                                    These packages are for homeopathic practitioners subscribing to Homeocentrum software.
+                                    Patient in-clinic / tele consultation fees are shown on each doctor card when you{" "}
+                                    <Link to="/book">book a visit</Link>. Prices below are in INR (₹).
                                 </p>
                             </div>
                         </Col>
