@@ -18,6 +18,11 @@ import TermsPage from "../Minimaltheme/pages/TermsPage";
 import AccountPage from "../Minimaltheme/pages/AccountPage";
 import FindDoctorPage from "./pages/FindDoctorPage";
 import DoctorDetailPage from "./pages/DoctorDetailPage";
+import BookSlotsPage from "./pages/BookSlotsPage";
+import BookConfirmPage from "./pages/BookConfirmPage";
+import BookSuccessPage from "./pages/BookSuccessPage";
+import BookPayPage from "./pages/BookPayPage";
+import BookPayResultPage from "./pages/BookPayResultPage";
 
 const HomeoJobLanding = () => {
     useEffect(() => {
@@ -58,6 +63,14 @@ const HomeoJobLanding = () => {
                     <Route path="account" element={<AccountPage />} />
                     <Route path="find-doctor" element={<FindDoctorPage />} />
                     <Route path="find-doctor/:doctorId" element={<DoctorDetailPage />} />
+                    <Route path="book" element={<FindDoctorPage />} />
+                    <Route path="book/success" element={<BookSuccessPage />} />
+                    <Route path="book/pay/:bookingId/success" element={<BookPayResultPage outcome="success" />} />
+                    <Route path="book/pay/:bookingId/failure" element={<BookPayResultPage outcome="failure" />} />
+                    <Route path="book/pay/:bookingId" element={<BookPayPage />} />
+                    <Route path="book/:doctorId/slots" element={<BookSlotsPage />} />
+                    <Route path="book/:doctorId/confirm" element={<BookConfirmPage />} />
+                    <Route path="book/:doctorId" element={<DoctorDetailPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
             </Routes>

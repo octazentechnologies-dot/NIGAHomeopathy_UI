@@ -1066,6 +1066,7 @@ const BestSellingProducts = () => {
         name: patient.patientName,
         ageSex: getAgeSexDisplay(patient.dateOfBirth, patient.gender),
         place: patient.address || 'N/A',
+        lastVisitAt: patient.lastVisitAt ?? patient.LastVisitAt ?? patient.dateodFirstVisit ?? patient.DateodFirstVisit ?? null,
         ...patient // Include all original patient data
     }));
 
@@ -1745,7 +1746,15 @@ const BestSellingProducts = () => {
                             appointmentDateFallback={selectedAppointmentDate}
                         />
                     </td>
-                ) : null}
+                ) : (
+                    <td className="dashboard-patient-col-lastvisit text-nowrap text-muted small">
+                        {patient.lastVisitAt
+                            ? moment(patient.lastVisitAt).isValid()
+                                ? moment(patient.lastVisitAt).format('DD-MM-YYYY')
+                                : String(patient.lastVisitAt).slice(0, 10)
+                            : '—'}
+                    </td>
+                )}
                 <td className="dashboard-patient-col-actions-combined">
                     <div className="dashboard-patient-actions-bar">
                         <div className="dashboard-patient-actions-section dashboard-patient-actions-section--history">
@@ -2554,6 +2563,7 @@ const BestSellingProducts = () => {
                                                 <th scope="col" className="dashboard-patient-col-agesex">Age/Sex</th>
                                                 <th scope="col" className="dashboard-patient-col-place">Place</th>
                                                 <th scope="col" className="dashboard-patient-col-mobile">Mobile</th>
+                                                <th scope="col" className="dashboard-patient-col-lastvisit">Last visit</th>
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
                                                     <div className="dashboard-patient-actions-header">
                                                         <span className="dashboard-patient-actions-header__history">History</span>
@@ -2580,7 +2590,7 @@ const BestSellingProducts = () => {
                                                     {renderTableRows(allPageData, allStartIndex, 'all')}
                                                     {allPageData.length === 0 && !patientListLoading && (
                                                         <tr>
-                                                            <td colSpan={7} className='text-center text-muted'>
+                                                            <td colSpan={8} className='text-center text-muted'>
                                                                 {searchTerm ? 'No patients found matching your search' : 'No patients available'}
                                                             </td>
                                                         </tr>
@@ -2682,7 +2692,7 @@ const BestSellingProducts = () => {
                             </span>
                         </ModalHeader>
                         <ModalBody>
-                            <p className="text-muted mb-3">Choose what to export and select a file type.</p>
+                            <p className="text-muted mb-3">Choose Today or All patients, then Excel, CSV, or PDF.</p>
                             <div className="mb-3">
                                 <Label className="form-label new-patient-modal__label">
                                     <i className="ri-filter-3-line" aria-hidden="true" />
@@ -2732,9 +2742,9 @@ const BestSellingProducts = () => {
                                     disabled={exportLoading}
                                     onChange={(e) => setExportFormat(e.target.value)}
                                 >
-                                    <option value="pdf">PDF</option>
-                                    <option value="excel">Excel</option>
+                                    <option value="excel">Excel (.xlsx)</option>
                                     <option value="csv">CSV</option>
+                                    <option value="pdf">PDF</option>
                                 </Input>
                             </div>
                         </ModalBody>

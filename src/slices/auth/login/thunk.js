@@ -90,34 +90,44 @@ export const loginUser = (user, history) => async (dispatch) => {
       sessionStorage.setItem("authUser", JSON.stringify(authUser));
       dispatch(loginSuccess(authUser));
 
-      if (authUser.role === UserRole.ADMIN) {
+      const role = authUser.role || authUser.Role;
+
+      if (role === UserRole.ADMIN) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
         dispatch(changeLayout(layoutTypes.HORIZONTAL));
         history('/dashboard')
-      } else if (authUser.role === UserRole.DOCTOR) {
+      } else if (role === UserRole.DOCTOR) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
         // Clear admin horizontal layout so page-content does not keep nav-bar gap
         dispatch(changeLayout(layoutTypes.SEMIBOX));
         dispatch(fetchPatientBoardBackupSummary());
         history('/doctordashboard')
-      } else if (authUser.role === UserRole.RECEPTION) {
+      } else if (role === UserRole.RECEPTION) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
         dispatch(changeLayout(layoutTypes.SEMIBOX));
         dispatch(fetchPatientBoardBackupSummary());
         history('/doctordashboard')
-      } else if (authUser.role === UserRole.ACCOUNT) {
+      } else if (role === UserRole.ACCOUNT) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
         dispatch(changeLayout(layoutTypes.HORIZONTAL));
         history('/accountdashboard')
-      } else if (authUser.role === UserRole.PHARMACY) {
+      } else if (
+        role === UserRole.PHARMACY ||
+        role === UserRole.PHARMACY_PARTNER
+      ) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
         dispatch(changeLayout(layoutTypes.HORIZONTAL));
         history('/pharmacydashboard')
+      } else if (role === UserRole.PATIENT) {
+        dispatch(loginLoading(false));
+        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.HORIZONTAL));
+        history('/family')
       }
 
       /*  if (process.env.REACT_APP_DEFAULTAUTH === "fake") {
@@ -148,6 +158,12 @@ export const logoutUser = () => async (dispatch) => {
   try {
     dispatch(clearPatientBoardSession());
     dispatch(clearPatientBoardBackupSummary());
+    try {
+      const { logoutApi } = await import("../../../helpers/realbackend_helper");
+      await logoutApi();
+    } catch {
+      // Best-effort Old-API + New-API revoke (SEC-03.01)
+    }
     sessionStorage.removeItem("authUser");
     document.body.classList.remove('admin-layout', 'doctor-layout', 'admin-forms-ui', 'admin-dashboard-route', 'admin-mobile-topbar');
     // Reset layout attribute so the next role does not inherit admin horizontal spacing

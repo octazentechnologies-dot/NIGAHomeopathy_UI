@@ -1,34 +1,39 @@
 import React, { useEffect } from "react";
-import { Navigate, Route } from "react-router-dom";
-import { setAuthorization } from "../helpers/api_helper";
-import { useDispatch } from "react-redux";
-
-import { useProfile } from "../Components/Hooks/UserHooks";
-
-import { logoutUser } from "../slices/auth/login/thunk";
+import { Navigate, Route, useLocation, useNavigate } from "react-router-dom";
+import { setAuthorization, getLoggedinUser } from "../helpers/api_helper";
 
 const AuthProtected = (props) => {
-  const dispatch = useDispatch();
-  const { userProfile, loading, token } = useProfile();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const sessionUser = getLoggedinUser();
+  const token = sessionUser?.token;
 
   useEffect(() => {
-    if (userProfile && !loading && token) {
-      setAuthorization(token);
-    } else if (!userProfile && loading && !token) {
-      dispatch(logoutUser());
-    }
-  }, [token, userProfile, loading, dispatch]);
+    const ensureSignedIn = () => {
+      const user = getLoggedinUser();
+      if (!user?.token) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      setAuthorization(user.token);
+    };
 
-  /*
-    Navigate is un-auth access protected routes via url
-    */
+    ensureSignedIn();
+    window.addEventListener("popstate", ensureSignedIn);
+    window.addEventListener("focus", ensureSignedIn);
+    window.addEventListener("pageshow", ensureSignedIn);
+    return () => {
+      window.removeEventListener("popstate", ensureSignedIn);
+      window.removeEventListener("focus", ensureSignedIn);
+      window.removeEventListener("pageshow", ensureSignedIn);
+    };
+  }, [navigate, location.pathname]);
 
-  if (!userProfile && loading && !token) {
-    return (
-      <Navigate to={{ pathname: "/login", state: { from: props.location } }} />
-    );
+  if (!token) {
+    return <Navigate to="/login" replace />;
   }
 
+  setAuthorization(token);
   return <>{props.children}</>;
 };
 
