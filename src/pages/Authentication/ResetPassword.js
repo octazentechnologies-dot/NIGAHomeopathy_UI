@@ -19,17 +19,33 @@ import ParticlesAuth from "../AuthenticationInner/ParticlesAuth";
 import { pageTitle } from "../../common/brand";
 import logoDark from "../../assets/images/logo-dark.png";
 import { resetPasswordSecure } from "../../helpers/realbackend_helper";
+import { extractPasswordResetToken } from "../../helpers/extractPasswordResetToken";
+
+function readApiError(err, fallback) {
+  if (typeof err === "string" && err.trim()) return err;
+  if (err?.response?.data?.message) return err.response.data.message;
+  if (typeof err?.response?.data === "string" && err.response.data.trim()) {
+    return err.response.data;
+  }
+  if (err?.message) return err.message;
+  return fallback;
+}
 
 /**
- * SEC-02.03 — Consumes New-API ResetPassword token from ?token= or /reset-password/:token
+ * SEC-02.03 — Consumes New-API ResetPassword token from ?token=,
+ * /reset-password/:token, or a Gmail-wrapped google.com/url?q= link.
  */
 const ResetPassword = () => {
   const { token: pathToken } = useParams();
   const [searchParams] = useSearchParams();
-  const queryToken = searchParams.get("token");
   const token = useMemo(
-    () => (pathToken || queryToken || "").trim(),
-    [pathToken, queryToken]
+    () =>
+      extractPasswordResetToken({
+        pathToken,
+        searchParams,
+        href: typeof window !== "undefined" ? window.location.href : "",
+      }),
+    [pathToken, searchParams]
   );
 
   const [status, setStatus] = useState(token ? "form" : "expired");
@@ -67,10 +83,10 @@ const ResetPassword = () => {
         });
         setStatus("success");
       } catch (err) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          "This reset link is invalid or has expired.";
+        const msg = readApiError(
+          err,
+          "This reset link is invalid or has expired."
+        );
         setStatus("expired");
         setErrorMsg(msg);
       } finally {

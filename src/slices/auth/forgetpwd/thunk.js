@@ -14,9 +14,16 @@ export const userForgetPassword = (user) => async (dispatch) => {
     const message =
       body?.message ||
       "If an account exists for that email, a password reset link has been sent.";
-    dispatch(userForgetPasswordSuccess(message));
+    dispatch(
+      userForgetPasswordSuccess({
+        message,
+        resetLink: body?.resetLink || null,
+        mailSent: body?.mailSent,
+      })
+    );
   } catch (forgetError) {
     const msg =
+      (typeof forgetError === "string" && forgetError) ||
       forgetError?.response?.data?.message ||
       forgetError?.message ||
       "Unable to send reset link. Please try again.";

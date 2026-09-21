@@ -58,6 +58,7 @@ import {
     getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentSlots,
     getDailySchedule,
+    updateAvailabilityMe,
 } from '../../../helpers/realbackend_helper';
 import { } from "../../../slices/doctor/dashboard/reducer";
 import {
@@ -1864,6 +1865,7 @@ const Widgets = () => {
     const subscriptionSuccess = useSelector((state) => state?.DoctorDashboard?.subscriptionSuccess);
     const subscriptionError = useSelector((state) => state?.DoctorDashboard?.subscriptionError);
     const [selectedPackage, setSelectedPackage] = useState(null);
+    const [availabilityBusy, setAvailabilityBusy] = useState(false);
     const razorpayInstanceRef = useRef(null);
     const selectedPackageRef = useRef(null);
 
@@ -2788,6 +2790,89 @@ const Widgets = () => {
                             <div className="flex-grow-1">
                                 <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppComplated ?? 0}</h5>
                                 <p className="mb-0 text-muted doctor-kpi-label">COMPLETED</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="row mb-2 doctor-dashboard-chrome-row">
+                <div
+                    className="col-6 col-md-4 col-lg-2"
+                    role="button"
+                    tabIndex={0}
+                    title="Click to toggle online / offline"
+                    onClick={async (event) => {
+                        event.preventDefault();
+                        if (availabilityBusy) return;
+                        const currentlyOnline = !!(counts?.isOnline || counts?.IsOnline);
+                        try {
+                            setAvailabilityBusy(true);
+                            await updateAvailabilityMe({ isOnline: !currentlyOnline });
+                            const auth = JSON.parse(sessionStorage.getItem('authUser'));
+                            const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
+                            dispatch(fetchDoctorDashboardCounts({
+                                appointmentDate: new Date().toISOString(),
+                                status: "",
+                                userId,
+                            }));
+                        } catch (err) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Availability update failed',
+                                text: typeof err === 'string' ? err : err?.message || 'Could not toggle online status',
+                            });
+                        } finally {
+                            setAvailabilityBusy(false);
+                        }
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.currentTarget.click();
+                        }
+                    }}
+                >
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className={`avatar-title border rounded-2 fs-17 doctor-kpi-icon ${counts?.isOnline || counts?.IsOnline ? 'bg-success-subtle border-success' : 'bg-secondary-subtle border-secondary'}`}>
+                                    <i className="ri-wifi-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{availabilityBusy ? 'Saving…' : ((counts?.isOnline || counts?.IsOnline) ? 'Online' : 'Offline')}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">AVAILABILITY</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-6 col-md-4 col-lg-2">
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-vidicon-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">TELE QUEUE</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-6 col-md-4 col-lg-2">
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-warning-subtle border-warning border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-wallet-3-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.unpaidCount ?? counts?.UnpaidCount ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">UNPAID</p>
                             </div>
                         </div>
                     </div>
