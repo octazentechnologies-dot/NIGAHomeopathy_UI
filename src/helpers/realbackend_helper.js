@@ -626,7 +626,7 @@ export const pingAdminAcl = () => nigahomeoAPI.get(url.ADMIN_ACL_PING, null);
 export const getAdminAclRepertory = () => nigahomeoAPI.get(url.ADMIN_ACL_REPERTORY, null);
 export const getAdminAclCoverage = () => nigahomeoAPI.get(url.ADMIN_ACL_COVERAGE, null);
 
-/** M02 W7 ADM-B04.03 — menus by role (New-API). UI falls back to LayoutMenuData when empty/error. */
+/** M02 W7 ADM-B04.03 — menus by role (New-API). Hardcoded nav is used only when this call fails. */
 export const getMenuByRole = (userId) =>
   nigahomeoAPI.get(url.GET_MENU_BY_ROLE, userId != null ? { userId } : null);
 

@@ -52,10 +52,16 @@ const FamilyMembers = () => {
   const [error, setError] = useState(null);
 
   const relationOptions = useMemo(() => {
-    const rows = relations.map((row) => ({
-      value: String(row.relationId ?? row.RelationId),
-      label: row.relationName ?? row.RelationName,
-    }));
+    const rows = unwrapApiList(relations)
+      .map((row) => {
+        const id = row.relationId ?? row.RelationId;
+        const name = row.relationName ?? row.RelationName;
+        if (id == null || !String(name || "").trim() || String(name).toLowerCase() === "undefined") {
+          return null;
+        }
+        return { value: String(id), label: String(name).trim() };
+      })
+      .filter(Boolean);
     return [...rows, { value: ADD_NEW_VALUE, label: "+ Add new relation" }];
   }, [relations]);
 
@@ -87,7 +93,12 @@ const FamilyMembers = () => {
     setLoading(true);
     setError(null);
     try {
-      const [meRaw, listRaw] = await Promise.all([getFamilyMe(), getFamilyMembers(), loadRelations()]);
+      await loadRelations();
+    } catch {
+      setRelations([]);
+    }
+    try {
+      const [meRaw, listRaw] = await Promise.all([getFamilyMe(), getFamilyMembers()]);
       const me = meRaw?.data ?? meRaw;
       setOwnerName(me?.ownerPatientName ?? me?.OwnerPatientName ?? "");
       setMembers(unwrapApiList(listRaw?.data ?? listRaw));
@@ -158,8 +169,16 @@ const FamilyMembers = () => {
 
   const onSave = async (event) => {
     event.preventDefault();
+    if (!form.patientName || !String(form.patientName).trim()) {
+      setError("Name is required.");
+      return;
+    }
     if (showNewRelation && !form.relationId) {
       setError("Save the new relation first, or pick one from the list.");
+      return;
+    }
+    if (!form.relationId || !String(form.relation || "").trim()) {
+      setError("Select a relation.");
       return;
     }
     setSaving(true);
@@ -237,15 +256,28 @@ const FamilyMembers = () => {
                 ) : null}
                 <Form onSubmit={onSave}>
                   <FormGroup>
-                    <Label>Relation</Label>
+                    <Label htmlFor="family-relation">Relation <span className="text-danger">*</span></Label>
                     <Select
                       classNamePrefix="react-select"
                       className="react-select-container"
+                      inputId="family-relation"
                       isSearchable
                       isClearable
                       placeholder="Search relation..."
                       options={relationOptions}
                       value={selectedRelation}
+                      getOptionLabel={(option) => option.label || ""}
+                      getOptionValue={(option) => option.value || ""}
+                      filterOption={(option, input) => {
+                        const label = String(option?.label || option?.data?.label || "");
+                        const query = String(input || "").trim().toLowerCase();
+                        if (!query || query === "undefined") return true;
+                        return label.toLowerCase().includes(query);
+                      }}
+                      onInputChange={(value) => (value === "undefined" ? "" : value)}
+                      noOptionsMessage={() =>
+                        relations.length ? "No matching relation" : "Loading relations..."
+                      }
                       onChange={onRelationChange}
                     />
                   </FormGroup>
@@ -265,7 +297,7 @@ const FamilyMembers = () => {
                     </FormGroup>
                   ) : null}
                   <FormGroup>
-                    <Label>Name</Label>
+                    <Label>Name <span className="text-danger">*</span></Label>
                     <Input name="patientName" value={form.patientName} onChange={onChange} required />
                   </FormGroup>
                   <FormGroup>
@@ -276,7 +308,16 @@ const FamilyMembers = () => {
                     <Label>Email</Label>
                     <Input type="email" name="email" value={form.email} onChange={onChange} />
                   </FormGroup>
-                  <Button color="primary" type="submit" disabled={saving}>
+                  <Button
+                    color="primary"
+                    type="submit"
+                    disabled={
+                      saving
+                      || !String(form.patientName || "").trim()
+                      || !form.relationId
+                      || showNewRelation
+                    }
+                  >
                     {editingId ? "Update" : "Add"}
                   </Button>{" "}
                   {editingId ? (

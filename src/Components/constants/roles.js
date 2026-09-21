@@ -108,6 +108,12 @@ const PATIENT_APP_ROUTE_ROLES = [
     UserRole.ADMIN,
     UserRole.MANAGEMENT,
 ];
+/** DOC-02.02 — Reception may share doctor chrome until Phase 5 splits it. */
+const DOCTOR_DASHBOARD_ROUTE_ROLES = [UserRole.DOCTOR, UserRole.RECEPTION];
+/** CLN-02.02 — full case taking is treating doctor only, not Reception. */
+const DOCTOR_CASE_ROUTE_ROLES = [UserRole.DOCTOR];
+/** DOC-09 — reception-staff CRUD is owned by the treating doctor. */
+const DOCTOR_STAFF_ROUTE_ROLES = [UserRole.DOCTOR];
 
 const isAdminRoutePath = (path) => {
     if (!path || typeof path !== "string") return false;
@@ -115,7 +121,37 @@ const isAdminRoutePath = (path) => {
     return (
         normalized === "dashboard" ||
         normalized.startsWith("admin/") ||
-        normalized === "admin"
+        normalized === "admin" ||
+        normalized === "enquiries"
+    );
+};
+
+/**
+ * SEC-04.02 — Velzon template dashboards/apps stay out of production.
+ * Direct URLs must not expose CRM/ecommerce demos unless REACT_APP_SHOW_VELZON_DEMO=true.
+ * `/dashboard` is the Admin portal home, not a Velzon demo.
+ */
+const isVelzonTemplatePath = (path) => {
+    if (!path || typeof path !== "string") return false;
+    const normalized = path.replace(/^\//, "").toLowerCase();
+    if (normalized === "dashboard" || normalized === "index" || normalized === "profile") {
+        return false;
+    }
+    const prefixes = [
+        "dashboard-",
+        "apps-",
+        "charts-",
+        "ui-",
+        "advance-ui",
+        "widgets",
+        "forms-",
+        "tables-",
+        "icons-",
+        "maps-",
+        "pages-",
+    ];
+    return prefixes.some(
+        (prefix) => normalized === prefix || normalized.startsWith(prefix)
     );
 };
 
@@ -136,4 +172,8 @@ export {
     ACCOUNT_ROUTE_ROLES,
     PHARMACY_ROUTE_ROLES,
     PATIENT_APP_ROUTE_ROLES,
+    DOCTOR_DASHBOARD_ROUTE_ROLES,
+    DOCTOR_CASE_ROUTE_ROLES,
+    DOCTOR_STAFF_ROUTE_ROLES,
+    isVelzonTemplatePath,
 };

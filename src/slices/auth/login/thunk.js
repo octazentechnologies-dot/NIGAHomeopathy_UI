@@ -70,7 +70,6 @@ export const loginUser = (user, history) => async (dispatch) => {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
         dispatch(changeLayout(layoutTypes.SEMIBOX));
-        dispatch(fetchPatientBoardBackupSummary());
         history('/doctordashboard')
       } else if (role === UserRole.ACCOUNT) {
         dispatch(loginLoading(false));
