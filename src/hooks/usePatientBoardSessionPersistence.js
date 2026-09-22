@@ -19,6 +19,9 @@ const usePatientBoardSessionPersistence = ({
   patientAppId,
   appointmentDate,
   patientName,
+  visitType,
+  consultMode,
+  isTele,
   getState,
   setters,
   afterRestoreRef,
@@ -46,6 +49,9 @@ const usePatientBoardSessionPersistence = ({
     patientAppId,
     appointmentDate,
     patientName,
+    visitType,
+    consultMode,
+    isTele,
   };
 
   const persistSessionForIdentity = useCallback((identity, { force = false } = {}) => {
@@ -64,6 +70,9 @@ const usePatientBoardSessionPersistence = ({
       patientAppId: identity.patientAppId,
       appointmentDate: identity.appointmentDate,
       patientName: identity.patientName || existingSession?.patientName || '',
+      visitType: identity.visitType,
+      consultMode: identity.consultMode,
+      isTele: identity.isTele,
     });
 
     dispatch(

@@ -563,6 +563,7 @@ const authProtectedRoutes = [
   // Doctor Side End //
 
   { path: "doctordashboard", component: <DoctorDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  // CLN-01.02 — one Patient Board. These two paths are aliases, not a second app. No doctor-mobile case-taking.
   { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
   { path: "patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
