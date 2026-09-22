@@ -404,6 +404,9 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 import UserProfile from "../pages/Authentication/user-profile";
 import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
 import ReceptionStaffPage from "../pages/Doctor/ReceptionStaff/ReceptionStaffPage";
+import ReceptionHome from "../pages/Reception/ReceptionHome";
+import ReceptionSchedule from "../pages/Reception/ReceptionSchedule";
+import ReceptionCasePaper from "../pages/Reception/ReceptionCasePaper";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
 
 import FileManager from "../pages/FileManager";
@@ -570,6 +573,9 @@ const authProtectedRoutes = [
   { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },
+  { path: "reception", component: <ReceptionHome />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "reception/case-paper", component: <ReceptionCasePaper />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
 
 
   // Doctor Side End //

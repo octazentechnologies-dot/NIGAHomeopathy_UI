@@ -91,6 +91,7 @@ import {
   extractApiList,
   extractPrescriptionResultObject,
   formatAppointmentAccordionTitle,
+  getAppointmentIdFromRow,
 } from '../../../helpers/patient_history_helper';
 import { getAuthUserId } from '../../../helpers/appointmentSlotHelper';
 import {
@@ -12407,7 +12408,7 @@ const PatientBoard = () => {
         .slice(0, 8)
         .map((row) => `${row.remedyName ?? row.RemedyName} (${row.score ?? row.Score})`);
       Swal.fire({
-        icon: 'success',
+        icon: lines.length ? 'success' : 'info',
         title: 'Center of Gravity',
         html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No remedies scored for this clipboard.',
         confirmButtonColor: '#000000',
@@ -12422,6 +12423,28 @@ const PatientBoard = () => {
     }
   };
 
+  const saveExportFile = async (response, fileName) => {
+    const payload = response instanceof Blob ? response : response?.data;
+    if (!(payload instanceof Blob)) {
+      throw new Error('The server did not return a file.');
+    }
+    const header = new Uint8Array(await payload.slice(0, 5).arrayBuffer());
+    const signature = String.fromCharCode(...header);
+    const isPdf = signature.startsWith('%PDF');
+    const isExcel = signature.startsWith('PK');
+    if (!isPdf && !isExcel) {
+      throw new Error('The download is not a valid PDF or Excel file.');
+    }
+    const url = URL.createObjectURL(payload);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportCasePdf = async () => {
     if (!patientId || !caseId) {
       Swal.fire({ icon: 'warning', title: 'Missing case', text: 'Open a patient with patientId and caseId to export.', confirmButtonColor: '#000000' });
@@ -12429,16 +12452,8 @@ const PatientBoard = () => {
     }
     try {
       Swal.fire({ title: 'Exporting case PDF…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const blob = await exportCaseToPdf(patientId, caseId);
-      const file = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/pdf' });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `case-${patientId}-${caseId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      const response = await exportCaseToPdf(patientId, caseId);
+      await saveExportFile(response, `case-${patientId}-${caseId}.pdf`);
       Swal.close();
     } catch (err) {
       Swal.fire({
@@ -12458,16 +12473,8 @@ const PatientBoard = () => {
     }
     try {
       Swal.fire({ title: 'Exporting cases Excel…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const blob = await exportCasesToExcel(userId);
-      const file = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `cases-${userId}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      const response = await exportCasesToExcel(userId);
+      await saveExportFile(response, `cases-${userId}.xlsx`);
       Swal.close();
     } catch (err) {
       Swal.fire({
@@ -12536,27 +12543,28 @@ const PatientBoard = () => {
     }
     try {
       Swal.fire({ title: 'Loading visit history…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const response = await getAppointmentListByPatientId({ patientId });
+      const response = await getAppointmentListByPatientId({ patientId, pageNumber: 1, pageSize: 50 });
       const rows = extractApiList(response);
       const sorted = [...rows].sort((a, b) => {
         const da = new Date(a.appointmentDate ?? a.AppointmentDate ?? 0).getTime();
         const db = new Date(b.appointmentDate ?? b.AppointmentDate ?? 0).getTime();
         return db - da;
       });
-      if (!sorted.length) {
+      const options = {};
+      sorted.forEach((appointment) => {
+        const id = getAppointmentIdFromRow(appointment);
+        if (id) options[String(id)] = formatAppointmentAccordionTitle(appointment);
+      });
+      if (!Object.keys(options).length) {
         Swal.fire({ icon: 'info', title: 'Visit history', text: 'No visits found for this patient.', confirmButtonColor: '#000000' });
         return;
       }
-      const options = {};
-      sorted.forEach((appointment) => {
-        const id = appointment.appointmentId ?? appointment.AppointmentId ?? appointment.patientAppointmentId;
-        if (id) options[id] = formatAppointmentAccordionTitle(appointment);
-      });
       const pick = await Swal.fire({
         title: 'Visit history',
         text: 'Date-ordered visits with payment status. Select a visit to open past eRx.',
         input: 'select',
         inputOptions: options,
+        inputPlaceholder: 'Select a visit',
         showCancelButton: true,
         confirmButtonText: 'Open past eRx',
         confirmButtonColor: '#000000',
@@ -12572,7 +12580,7 @@ const PatientBoard = () => {
         ...remedies.map((item) => `Rx: ${item.remedyName ?? item.RemedyName ?? item.name ?? ''}`),
       ].filter((line) => line.replace(/^(Rubric|Rx): /, '').trim());
       Swal.fire({
-        icon: 'success',
+        icon: lines.length ? 'success' : 'info',
         title: `Past eRx #${pick.value}`,
         html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No prescription details for this visit.',
         confirmButtonColor: '#000000',
@@ -12610,7 +12618,7 @@ const PatientBoard = () => {
         .map((item) => item.complaintName ?? item.ComplaintName ?? item.name ?? String(item.chiefComplaintId ?? item.id ?? ''))
         .filter(Boolean);
       Swal.fire({
-        icon: 'success',
+        icon: names.length ? 'success' : 'info',
         title: 'Complaints',
         html: names.length ? `<pre style="text-align:left">${names.join('\n')}</pre>` : 'No complaints saved for this patient.',
         confirmButtonColor: '#000000',

@@ -425,6 +425,14 @@ export const getDailySchedule = async (params) => {
 };
 export const saveDailySchedule = data => nigahomeoAPI.post(url.SAVE_DAILY_SCHEDULE, data);
 export const getAppointmentSlots = (params) => nigahomeoAPI.get(url.GET_APPOINTMENT_SLOTS, params);
+export const rescheduleAppointment = (data) => nigahomeoAPI.post(url.RESCHEDULE_APPOINTMENT, data);
+export const cancelAppointment = (data) => nigahomeoAPI.post(url.CANCEL_APPOINTMENT, data);
+export const getAppointmentQueue = (doctorId) => nigahomeoAPI.get(url.APPOINTMENT_QUEUE + "?doctorId=" + doctorId, null);
+export const callNextAppointment = (doctorId) => nigahomeoAPI.post(url.CALL_NEXT_APPOINTMENT, { doctorId });
+export const getReceptionProfile = () => nigahomeoAPI.get(url.RECEPTION_PROFILE, null);
+export const updateReceptionProfile = (data) => nigahomeoAPI.put(url.RECEPTION_PROFILE, data);
+export const saveReceptionCasePaper = (data) => nigahomeoAPI.post(url.RECEPTION_CASE_PAPER, data);
+export const assistedBook = (data) => nigahomeoAPI.post(url.ASSISTED_BOOK, data);
 export const getPatientList = data => nigahomeoAPI.get(url.GET_PATIENT_LIST + "/" + data.userId, null);
 export const getDoctorList = data => nigahomeoAPI.get(url.GET_DOCTOR_LIST + "/" + data.userId, null);
 export const getAppointmentList = data => nigahomeoAPI.get(
@@ -443,8 +451,13 @@ export const exportPatients = data => {
   return nigahomeoAPI.get(`${url.EXPORT_PATIENTS}?${params.toString()}`, { responseType: 'blob' });
 };
 export const getAppointmentHistoryNotes = data => api.get(url.GET_APPOINTMENT_HISTORY_NOTES + "?PageNumber=" + (data.pageNumber || 1) + "&PageSize=" + (data.pageSize || 10) + (data.appointmentId ? "&AppointmentId=" + data.appointmentId : ""), null);
-export const getAppointmentListByPatientId = data =>
-  nigahomeoAPI.get(`${url.GET_APPOINTMENT_LIST_BY_PATIENT_ID}?PatientId=${data.patientId}`, null);
+export const getAppointmentListByPatientId = data => {
+  const params = new URLSearchParams();
+  params.set('PatientId', String(data.patientId));
+  params.set('PageNumber', String(data.pageNumber || 1));
+  params.set('PageSize', String(data.pageSize || 50));
+  return nigahomeoAPI.get(`${url.GET_APPOINTMENT_LIST_BY_PATIENT_ID}?${params.toString()}`, null);
+};
 export const getPrescriptionDetailsByAppointmentId = data =>
   nigahomeoAPI.get(`${url.GET_PRESCRIPTION_DETAILS_BY_APPOINTMENT_ID}?AppointmentId=${data.appointmentId}`, null);
 export const createPatient = data => nigahomeoAPI.post(url.CREATE_PATIENT, data);

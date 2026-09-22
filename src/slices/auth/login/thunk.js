@@ -72,7 +72,7 @@ export const loginUser = (user, history) => async (dispatch) => {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
         dispatch(changeLayout(layoutTypes.SEMIBOX));
-        history('/doctordashboard')
+        history('/reception')
       } else if (role === UserRole.ACCOUNT) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));

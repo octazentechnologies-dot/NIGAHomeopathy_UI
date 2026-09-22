@@ -1354,6 +1354,9 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                                                     status={appointment.status}
                                                     badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
+                                                {appointment.paymentStatus ? (
+                                                    <span className="badge bg-light text-dark ms-1">{appointment.paymentStatus}</span>
+                                                ) : null}
                                             </td>
                                         </tr>
                                     ))}
@@ -2255,6 +2258,7 @@ const Widgets = () => {
         patient: prefilledAppointmentPatient,
         doctor: null,
         appointmentDate: prefilledAppointmentPatient ? moment().format(DOB_DISPLAY_FORMAT) : '',
+        consultMode: 'InClinic',
     }), [prefilledAppointmentPatient]);
 
     const patientInitialValues = {
@@ -2304,6 +2308,8 @@ const Widgets = () => {
             status: "WAITING",
             deleteStatus: false,
             userId: userId,
+            visitType: values.consultMode || 'InClinic',
+            consultMode: values.consultMode || 'InClinic',
         };
 
         console.log("Appointment data: ", appointmentData);
@@ -3277,8 +3283,8 @@ const Widgets = () => {
                                             hasError={Boolean(errors.dateOfBirth && touched.dateOfBirth)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('dateOfBirth', dateStr, false);
                                                 setFieldTouched('dateOfBirth', true, false);
+                                                setFieldValue('dateOfBirth', dateStr, true);
                                             }}
                                             onBlur={() => setFieldTouched('dateOfBirth', true, true)}
                                         />
@@ -3574,8 +3580,8 @@ const Widgets = () => {
                                             hasError={Boolean(errors.appointmentDate && touched.appointmentDate)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('appointmentDate', dateStr, false);
                                                 setFieldTouched('appointmentDate', true, false);
+                                                setFieldValue('appointmentDate', dateStr, true);
                                                 const parsed = moment(dateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
                                                 if (parsed.isValid()) {
                                                     loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
@@ -3588,6 +3594,21 @@ const Widgets = () => {
                                                 {errors.appointmentDate}
                                             </div>
                                         )}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <Label className="form-label new-appointment-modal__label">
+                                            <i className="ri-stethoscope-line" aria-hidden="true" />
+                                            Consult mode
+                                        </Label>
+                                        <Input
+                                            type="select"
+                                            className="new-appointment-modal__field"
+                                            value={values.consultMode || 'InClinic'}
+                                            onChange={(event) => setFieldValue('consultMode', event.target.value)}
+                                        >
+                                            <option value="InClinic">In-clinic</option>
+                                            <option value="Tele">Tele</option>
+                                        </Input>
                                     </div>
                                     <div className="col-md-6">
                                         <Label className="form-label new-appointment-modal__label">

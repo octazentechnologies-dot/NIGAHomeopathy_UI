@@ -34,6 +34,7 @@ import { buildPatientApiPayload, getPatientAuthContext, getPatientEmailForEdit }
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
+import AppointmentChangeActions from './AppointmentChangeActions';
 import {
   normalizeAppointmentSlotsResponse,
   formatSlotIntervalLabel,
@@ -282,6 +283,9 @@ const AppointmentTimeCell = ({
                         <i className="ri-user-3-line" aria-hidden="true" />
                         <span>{patientName}</span>
                     </div>
+                    <p className="text-muted small mb-3">
+                        This adjusts the time on the day list only. It does not notify the patient. Reschedule is the path that records the change for the patient.
+                    </p>
                     <div className="row g-3 mb-3">
                         <div className="col-md-6">
                             <Label className="form-label appointment-time-edit-modal__label">
@@ -1827,6 +1831,12 @@ const BestSellingProducts = () => {
                     <div className="dashboard-patient-actions-bar">
                         <div className="dashboard-patient-actions-section dashboard-patient-actions-section--history">
                             <PatientDashboardActionGroup>
+                        <AppointmentChangeActions
+                            patientAppId={getPatientAppointmentId(patient)}
+                            doctorId={patient.doctorId || patient.doctorID}
+                            appointmentDate={selectedAppointmentDate}
+                            onChanged={() => loadAppointmentListForDate(selectedAppointmentDate)}
+                        />
                         <PatientDashboardActionButton
                             id={`${idPrefix}-addcase-${patient.id}`}
                             icon="ri-file-add-line"
@@ -2146,19 +2156,25 @@ const BestSellingProducts = () => {
                     width: 6.25rem;
                 }
                 .dashboard-patient-table .dashboard-patient-col-apptime {
-                    width: 4.4rem;
-                    padding-left: 0.3rem !important;
-                    padding-right: 0.2rem !important;
+                    width: 10.5rem;
+                    min-width: 10.5rem;
+                    padding-left: 0.7rem !important;
+                    padding-right: 0.85rem !important;
                 }
                 .dashboard-patient-table .dashboard-patient-col-actions-combined {
-                    width: 12.5rem;
-                    min-width: 12.5rem;
-                    padding-left: 0.3rem !important;
-                    padding-right: 0.3rem !important;
+                    width: 16rem;
+                    min-width: 16rem;
+                    padding-left: 0.85rem !important;
+                    padding-right: 0.7rem !important;
+                }
+                .dashboard-patient-table--today {
+                    table-layout: auto;
+                    width: max-content;
+                    min-width: 100%;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-actions-combined {
-                    width: 18.5rem;
-                    min-width: 18.5rem;
+                    width: auto;
+                    min-width: 26rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-name {
                     width: 20%;
@@ -2181,9 +2197,10 @@ const BestSellingProducts = () => {
                     width: 5.75rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-apptime {
-                    width: 4.4rem;
-                    padding-left: 0.3rem !important;
-                    padding-right: 0.2rem !important;
+                    width: 10.5rem;
+                    min-width: 10.5rem;
+                    padding-left: 0.7rem !important;
+                    padding-right: 0.85rem !important;
                 }
                 .dashboard-patient-actions-header span {
                     flex: 1 1 0;
@@ -2192,11 +2209,14 @@ const BestSellingProducts = () => {
                     white-space: nowrap;
                 }
                 .dashboard-patient-table--today .dashboard-patient-actions-section--history,
+                .dashboard-patient-table--today .dashboard-patient-actions-header__history {
+                    flex: 0 0 auto;
+                    min-width: max-content;
+                }
                 .dashboard-patient-table--today .dashboard-patient-actions-section--connect,
-                .dashboard-patient-table--today .dashboard-patient-actions-header__history,
                 .dashboard-patient-table--today .dashboard-patient-actions-header__connect {
-                    flex: 1.4 1 0;
-                    min-width: 5.75rem;
+                    flex: 0 0 auto;
+                    min-width: 6.5rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-actions-section--followup,
                 .dashboard-patient-table--today .dashboard-patient-actions-header__followup {
@@ -2212,8 +2232,15 @@ const BestSellingProducts = () => {
                 .dashboard-patient-actions-bar {
                     display: flex;
                     align-items: center;
-                    justify-content: space-between;
-                    gap: 0.35rem;
+                    justify-content: flex-start;
+                    gap: 0.85rem;
+                }
+                .dashboard-appointment-text-btn {
+                    margin: 0 !important;
+                    padding: 0.12rem 0.4rem !important;
+                    font-size: 0.68rem !important;
+                    line-height: 1.2 !important;
+                    white-space: nowrap;
                 }
                 .dashboard-patient-actions-section {
                     flex: 1 1 0;
@@ -2226,7 +2253,7 @@ const BestSellingProducts = () => {
                     align-items: center;
                     justify-content: center;
                     flex-wrap: nowrap;
-                    gap: 0.12rem !important;
+                    gap: 0.35rem !important;
                     width: auto !important;
                     max-width: 100%;
                 }
@@ -2356,8 +2383,8 @@ const BestSellingProducts = () => {
                 }
                 .appointment-time-cell {
                     display: inline-grid;
-                    grid-template-columns: 7.5ch 1.1rem;
-                    column-gap: 0;
+                    grid-template-columns: max-content 1.1rem;
+                    column-gap: 0.2rem;
                     align-items: center;
                     justify-items: start;
                     line-height: 1;
@@ -2369,11 +2396,10 @@ const BestSellingProducts = () => {
                     font-size: 0.6875rem;
                     line-height: 1;
                     display: block;
-                    width: 100%;
-                    min-width: 0;
+                    width: auto;
+                    min-width: 6.2rem;
                     white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: clip;
+                    overflow: visible;
                     letter-spacing: 0;
                 }
                 .appointment-time-edit-btn.edit-item-btn {
