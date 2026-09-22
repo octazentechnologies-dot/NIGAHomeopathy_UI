@@ -129,6 +129,34 @@ export const LayoutMenuProvider = ({ children }) => {
           moreMenuItems: withDropdownState(more),
         };
       }
+      // Doctor chrome hides the sidebar. Extra UserDetails menus (Tufan_Doctor
+      // has every ShowInMainMenu item) use the existing topbar More dropdown.
+      if (role === UserRole.DOCTOR) {
+        const coreLinks = new Set([
+          '/doctordashboard',
+          '/doctor/patientboard',
+          '/doctor/anatomy',
+          '/doctor/reception-staff',
+          '/profile',
+        ]);
+        const core = [];
+        const extra = [];
+        const seenExtra = new Set();
+        spaItems.forEach((item) => {
+          const link = String(item.link || '').toLowerCase();
+          if (coreLinks.has(link)) {
+            core.push(item);
+            return;
+          }
+          if (seenExtra.has(link)) return;
+          seenExtra.add(link);
+          extra.push(item);
+        });
+        return {
+          menuItems: withDropdownState(core.length ? core : spaItems),
+          moreMenuItems: withDropdownState(extra),
+        };
+      }
       return { menuItems: withDropdownState(spaItems), moreMenuItems: [] };
     }
     return {

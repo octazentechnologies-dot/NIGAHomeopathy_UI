@@ -1,4 +1,5 @@
 import React from 'react';
+import { reportClientIssue } from '../../helpers/client_error_reporter';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -12,6 +13,15 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    reportClientIssue({
+      source: "window",
+      url: window.location.href,
+      status: 500,
+      method: "CLIENT",
+      message: error ? String(error) : "React render error",
+      stack: error && error.stack ? error.stack : "",
+      componentStack: errorInfo && errorInfo.componentStack ? errorInfo.componentStack : "",
+    });
     this.setState({
       error: error,
       errorInfo: errorInfo

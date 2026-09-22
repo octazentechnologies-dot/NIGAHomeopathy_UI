@@ -75,9 +75,28 @@ const resolveUserRoleId = (userProfile) => {
     }
 };
 
+/** Dev-only: Tufan_Doctor gets extra menus/rights other Doctor logins do not. */
+const isTufanPrivilegedDoctor = (userProfile) => {
+    const role = resolveUserRole(userProfile);
+    if (String(role || "").toLowerCase() !== "doctor") return false;
+    try {
+        const sessionUser = JSON.parse(sessionStorage.getItem("authUser") || "null");
+        const info = userProfile && typeof userProfile === "object" && !Array.isArray(userProfile)
+            ? { ...(sessionUser?.data || sessionUser || {}), ...userProfile, ...(userProfile.data || {}) }
+            : (sessionUser?.data || sessionUser || {});
+        const userId = Number(info.userId ?? info.UserId);
+        if (userId === 10032) return true;
+        const name = String(info.userName ?? info.UserName ?? "").trim().toLowerCase();
+        return name === "tufan_doctor" || name === "tufan doctor";
+    } catch {
+        return false;
+    }
+};
+
 /**
  * M02 W0 — Admin Portal access (route guard + mutate UI).
  * RoleId 1 = SuperUser/Admin in RoleMaster; also Admin / Management by name.
+ * Tufan_Doctor (Dev) also allowed — other doctors are not.
  */
 const canAccessAdminPortal = (userOrRole) => {
     if (userOrRole == null) return false;
@@ -87,6 +106,8 @@ const canAccessAdminPortal = (userOrRole) => {
             (r) => r.toLowerCase() === userOrRole.trim().toLowerCase()
         );
     }
+
+    if (isTufanPrivilegedDoctor(userOrRole)) return true;
 
     const role = resolveUserRole(userOrRole);
     const roleId = resolveUserRoleId(userOrRole);
@@ -168,6 +189,7 @@ export {
     resolveUserRoleId,
     canAccessAdminPortal,
     canMutateAdminMasters,
+    isTufanPrivilegedDoctor,
     isAdminRoutePath,
     ACCOUNT_ROUTE_ROLES,
     PHARMACY_ROUTE_ROLES,

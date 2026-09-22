@@ -42,6 +42,7 @@ const FamilyMembers = () => {
   const [members, setMembers] = useState([]);
   const [relations, setRelations] = useState([]);
   const [ownerName, setOwnerName] = useState("");
+  const [actingAsCaregiver, setActingAsCaregiver] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [newRelationName, setNewRelationName] = useState("");
   const [showNewRelation, setShowNewRelation] = useState(false);
@@ -101,6 +102,7 @@ const FamilyMembers = () => {
       const [meRaw, listRaw] = await Promise.all([getFamilyMe(), getFamilyMembers()]);
       const me = meRaw?.data ?? meRaw;
       setOwnerName(me?.ownerPatientName ?? me?.OwnerPatientName ?? "");
+      setActingAsCaregiver(!!(me?.isActingAsCaregiver ?? me?.IsActingAsCaregiver ?? listRaw?.isActingAsCaregiver));
       setMembers(unwrapApiList(listRaw?.data ?? listRaw));
     } catch (err) {
       setError(typeof err === "string" ? err : "Could not load family members.");
@@ -249,9 +251,9 @@ const FamilyMembers = () => {
               <CardBody>
                 {message ? <Alert color="success">{message}</Alert> : null}
                 {error ? <Alert color="danger">{error}</Alert> : null}
-                {ownerName ? (
+                {actingAsCaregiver && ownerName ? (
                   <p className="text-muted small mb-3">
-                    Adding members under your login{ownerName ? ` (${ownerName})` : ""}. You do not enter a PatientId.
+                    Managing family for {ownerName} as caregiver.
                   </p>
                 ) : null}
                 <Form onSubmit={onSave}>

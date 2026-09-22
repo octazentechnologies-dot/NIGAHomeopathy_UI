@@ -248,7 +248,7 @@ const CaregiverAccess = () => {
                 ) : null}
                 {ownerName ? (
                   <p className="text-muted small mb-3">
-                    Granting access to your login{ownerName ? ` (${ownerName})` : ""}. You do not enter a PatientId or UserId.
+                    Granting access to your login{ownerName ? ` (${ownerName})` : ""}.
                   </p>
                 ) : null}
                 <Form onSubmit={onRequestOtp} className="mb-3">
