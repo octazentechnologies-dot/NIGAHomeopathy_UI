@@ -12,6 +12,7 @@ import avatar6 from "../../assets/images/users/avatar-6.jpg";
 
 import SimpleBar from "simplebar-react";
 import { UserRole } from '../constants/roles';
+import { readPlanActive } from '../../helpers/client_error_reporter';
 
 const MESSAGE_NOTIFICATIONS = [
     {
@@ -235,17 +236,17 @@ const NotificationDropdown = () => {
             setIsDoctorRole(isDoctor);
 
             if (isDoctor && subscriptionData) {
-                const isPlanActive = subscriptionData.isPlanActive;
-                const islastFiveDays = subscriptionData.islastFiveDays;
-                const daysRemaining = subscriptionData.daysRemaining || 0;
+                const isPlanActive = readPlanActive(subscriptionData);
+                const islastFiveDays = subscriptionData.islastFiveDays === true || subscriptionData.IslastFiveDays === true;
+                const daysRemaining = subscriptionData.daysRemaining || subscriptionData.DaysRemaining || 0;
 
-                if (isPlanActive === true && islastFiveDays === true && daysRemaining > 0) {
+                if (isPlanActive && islastFiveDays === true && daysRemaining > 0) {
                     setSubscriptionExpiration({
                         show: true,
                         daysRemaining: daysRemaining,
                         isPlanActive: true
                     });
-                } else if (isPlanActive === false) {
+                } else if (!isPlanActive) {
                     setSubscriptionExpiration({
                         show: true,
                         daysRemaining: 0,

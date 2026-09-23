@@ -75,9 +75,28 @@ const resolveUserRoleId = (userProfile) => {
     }
 };
 
+/** Dev-only: Tufan_Doctor gets extra menus/rights other Doctor logins do not. */
+const isTufanPrivilegedDoctor = (userProfile) => {
+    const role = resolveUserRole(userProfile);
+    if (String(role || "").toLowerCase() !== "doctor") return false;
+    try {
+        const sessionUser = JSON.parse(sessionStorage.getItem("authUser") || "null");
+        const info = userProfile && typeof userProfile === "object" && !Array.isArray(userProfile)
+            ? { ...(sessionUser?.data || sessionUser || {}), ...userProfile, ...(userProfile.data || {}) }
+            : (sessionUser?.data || sessionUser || {});
+        const userId = Number(info.userId ?? info.UserId);
+        if (userId === 10032) return true;
+        const name = String(info.userName ?? info.UserName ?? "").trim().toLowerCase();
+        return name === "tufan_doctor" || name === "tufan doctor";
+    } catch {
+        return false;
+    }
+};
+
 /**
  * M02 W0 — Admin Portal access (route guard + mutate UI).
  * RoleId 1 = SuperUser/Admin in RoleMaster; also Admin / Management by name.
+ * Tufan_Doctor (Dev) also allowed — other doctors are not.
  */
 const canAccessAdminPortal = (userOrRole) => {
     if (userOrRole == null) return false;
@@ -87,6 +106,8 @@ const canAccessAdminPortal = (userOrRole) => {
             (r) => r.toLowerCase() === userOrRole.trim().toLowerCase()
         );
     }
+
+    if (isTufanPrivilegedDoctor(userOrRole)) return true;
 
     const role = resolveUserRole(userOrRole);
     const roleId = resolveUserRoleId(userOrRole);
@@ -108,6 +129,12 @@ const PATIENT_APP_ROUTE_ROLES = [
     UserRole.ADMIN,
     UserRole.MANAGEMENT,
 ];
+/** DOC-02.02 — Reception may share doctor chrome until Phase 5 splits it. */
+const DOCTOR_DASHBOARD_ROUTE_ROLES = [UserRole.DOCTOR, UserRole.RECEPTION];
+/** CLN-02.02 — full case taking is treating doctor only, not Reception. */
+const DOCTOR_CASE_ROUTE_ROLES = [UserRole.DOCTOR];
+/** DOC-09 — reception-staff CRUD is owned by the treating doctor. */
+const DOCTOR_STAFF_ROUTE_ROLES = [UserRole.DOCTOR];
 
 const isAdminRoutePath = (path) => {
     if (!path || typeof path !== "string") return false;
@@ -115,7 +142,37 @@ const isAdminRoutePath = (path) => {
     return (
         normalized === "dashboard" ||
         normalized.startsWith("admin/") ||
-        normalized === "admin"
+        normalized === "admin" ||
+        normalized === "enquiries"
+    );
+};
+
+/**
+ * SEC-04.02 — Velzon template dashboards/apps stay out of production.
+ * Direct URLs must not expose CRM/ecommerce demos unless REACT_APP_SHOW_VELZON_DEMO=true.
+ * `/dashboard` is the Admin portal home, not a Velzon demo.
+ */
+const isVelzonTemplatePath = (path) => {
+    if (!path || typeof path !== "string") return false;
+    const normalized = path.replace(/^\//, "").toLowerCase();
+    if (normalized === "dashboard" || normalized === "index" || normalized === "profile") {
+        return false;
+    }
+    const prefixes = [
+        "dashboard-",
+        "apps-",
+        "charts-",
+        "ui-",
+        "advance-ui",
+        "widgets",
+        "forms-",
+        "tables-",
+        "icons-",
+        "maps-",
+        "pages-",
+    ];
+    return prefixes.some(
+        (prefix) => normalized === prefix || normalized.startsWith(prefix)
     );
 };
 
@@ -132,8 +189,13 @@ export {
     resolveUserRoleId,
     canAccessAdminPortal,
     canMutateAdminMasters,
+    isTufanPrivilegedDoctor,
     isAdminRoutePath,
     ACCOUNT_ROUTE_ROLES,
     PHARMACY_ROUTE_ROLES,
     PATIENT_APP_ROUTE_ROLES,
+    DOCTOR_DASHBOARD_ROUTE_ROLES,
+    DOCTOR_CASE_ROUTE_ROLES,
+    DOCTOR_STAFF_ROUTE_ROLES,
+    isVelzonTemplatePath,
 };

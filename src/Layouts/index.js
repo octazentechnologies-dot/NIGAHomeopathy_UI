@@ -263,7 +263,9 @@ const Layout = (props) => {
             path === '/index' ||
             path === '/index/' ||
             path === '/doctordashboard' ||
-            path === '/doctordashboard/';
+            path === '/doctordashboard/' ||
+            path === '/reception' ||
+            path.startsWith('/reception/');
         const isPatientBoard =
             path === '/doctor/patientboard' ||
             path.startsWith('/doctor/patientboard');

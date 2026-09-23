@@ -28,6 +28,7 @@ import {
     saveUpdateSubscription
 } from '../../../slices/doctor/dashboard/thunk';
 import { refreshAuthSubscriptionStatus } from '../../../slices/auth/login/thunk';
+import { readPlanActive } from '../../../helpers/client_error_reporter';
 import img3 from "../../../assets/images/small/img-3.jpg";
 import {
     buildPatientApiPayload,
@@ -168,16 +169,14 @@ const PatientListModalHeaderActions = ({ value, onChange, placeholder, extra }) 
     </div>
 );
 
+/** Local calendar day as YYYY-MM-DDT00:00:00.000Z so IST midnight is not counted as yesterday UTC. */
+const dashboardQueryDateIso = (d = new Date()) =>
+    formatCalendarDateForApi(moment(d).format('YYYY-MM-DD'));
+
 const toAppointmentListDateIso = (displayDateStr) => {
     const parsed = moment(displayDateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
     if (!parsed.isValid()) return '';
-    const now = moment();
-    return parsed
-        .hour(now.hour())
-        .minute(now.minute())
-        .second(now.second())
-        .millisecond(now.millisecond())
-        .toISOString();
+    return formatCalendarDateForApi(parsed.format('YYYY-MM-DD'));
 };
 
 const PatientListTableHead = () => (
@@ -820,7 +819,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
         if (userId) {
             dispatch(getPatientList({ userId }));
             dispatch(getAppointmentList({
-                appointmentDate: new Date().toISOString(),
+                appointmentDate: dashboardQueryDateIso(),
                 status: '',
                 userId,
             }));
@@ -881,7 +880,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
     const refreshPatientList = () => {
         const userId = getAuthUserId();
         if (userId) {
-            const now = new Date().toISOString();
+            const now = dashboardQueryDateIso();
             dispatch(getPatientList({ userId }));
             dispatch(fetchDoctorDashboardCounts({
                 appointmentDate: now,
@@ -1355,6 +1354,9 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                                                     status={appointment.status}
                                                     badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
+                                                {appointment.paymentStatus ? (
+                                                    <span className="badge bg-light text-dark ms-1">{appointment.paymentStatus}</span>
+                                                ) : null}
                                             </td>
                                         </tr>
                                     ))}
@@ -1412,7 +1414,7 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
         if (userId) {
             dispatch(getPatientList({ userId }));
             dispatch(getAppointmentList({
-                appointmentDate: new Date().toISOString(),
+                appointmentDate: dashboardQueryDateIso(),
                 status: '',
                 userId,
             }));
@@ -1879,7 +1881,7 @@ const Widgets = () => {
         const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
         const now = new Date();
         dispatch(fetchDoctorDashboardCounts({
-            appointmentDate: now.toISOString(),
+            appointmentDate: dashboardQueryDateIso(now),
             status: "",
             userId: userId
         }));
@@ -1890,7 +1892,7 @@ const Widgets = () => {
             userId: userId
         }));
         dispatch(getAppointmentList({
-            appointmentDate: now.toISOString(),
+            appointmentDate: dashboardQueryDateIso(now),
             status: "",
             userId: userId
         }));
@@ -1908,12 +1910,12 @@ const Widgets = () => {
 
             if (!subscriptionData) return;
 
-            const isPlanActive = subscriptionData.isPlanActive;
-            const islastFiveDays = subscriptionData.islastFiveDays;
-            const daysRemaining = subscriptionData.daysRemaining || 0;
+            const isPlanActive = readPlanActive(subscriptionData);
+            const islastFiveDays = subscriptionData.islastFiveDays === true || subscriptionData.IslastFiveDays === true;
+            const daysRemaining = subscriptionData.daysRemaining || subscriptionData.DaysRemaining || 0;
 
             // If plan is not active, show Purchase Plan list (non-closeable)
-            if (isPlanActive === false) {
+            if (!isPlanActive) {
                 setModalSubscriptionList(true);
                 return;
             }
@@ -2256,6 +2258,7 @@ const Widgets = () => {
         patient: prefilledAppointmentPatient,
         doctor: null,
         appointmentDate: prefilledAppointmentPatient ? moment().format(DOB_DISPLAY_FORMAT) : '',
+        consultMode: 'InClinic',
     }), [prefilledAppointmentPatient]);
 
     const patientInitialValues = {
@@ -2305,6 +2308,8 @@ const Widgets = () => {
             status: "WAITING",
             deleteStatus: false,
             userId: userId,
+            visitType: values.consultMode || 'InClinic',
+            consultMode: values.consultMode || 'InClinic',
         };
 
         console.log("Appointment data: ", appointmentData);
@@ -2315,7 +2320,7 @@ const Widgets = () => {
             await dispatch(patientNewAppointment(appointmentData));
             resetForm();
 
-            const now = new Date().toISOString();
+            const now = dashboardQueryDateIso();
             dispatch(getAppointmentList({
                 appointmentDate: now,
                 status: "",
@@ -2409,7 +2414,7 @@ const Widgets = () => {
 
             const updatedPatientList = await dispatch(getPatientList({ userId }));
             dispatch(fetchDoctorDashboardCounts({
-                appointmentDate: now.toISOString(),
+                appointmentDate: dashboardQueryDateIso(),
                 status: "",
                 userId: userId
             }));
@@ -2570,7 +2575,7 @@ const Widgets = () => {
             const auth = JSON.parse(sessionStorage.getItem('authUser'));
             // Handle both response.data structure and direct data structure
             const subscriptionData = auth?.data || auth;
-            return subscriptionData?.isPlanActive === false;
+            return !readPlanActive(subscriptionData);
         } catch {
             return false;
         }
@@ -2812,7 +2817,7 @@ const Widgets = () => {
                             const auth = JSON.parse(sessionStorage.getItem('authUser'));
                             const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
                             dispatch(fetchDoctorDashboardCounts({
-                                appointmentDate: new Date().toISOString(),
+                                appointmentDate: dashboardQueryDateIso(),
                                 status: "",
                                 userId,
                             }));
@@ -3278,8 +3283,8 @@ const Widgets = () => {
                                             hasError={Boolean(errors.dateOfBirth && touched.dateOfBirth)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('dateOfBirth', dateStr, false);
                                                 setFieldTouched('dateOfBirth', true, false);
+                                                setFieldValue('dateOfBirth', dateStr, true);
                                             }}
                                             onBlur={() => setFieldTouched('dateOfBirth', true, true)}
                                         />
@@ -3575,8 +3580,8 @@ const Widgets = () => {
                                             hasError={Boolean(errors.appointmentDate && touched.appointmentDate)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('appointmentDate', dateStr, false);
                                                 setFieldTouched('appointmentDate', true, false);
+                                                setFieldValue('appointmentDate', dateStr, true);
                                                 const parsed = moment(dateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
                                                 if (parsed.isValid()) {
                                                     loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
@@ -3589,6 +3594,21 @@ const Widgets = () => {
                                                 {errors.appointmentDate}
                                             </div>
                                         )}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <Label className="form-label new-appointment-modal__label">
+                                            <i className="ri-stethoscope-line" aria-hidden="true" />
+                                            Consult mode
+                                        </Label>
+                                        <Input
+                                            type="select"
+                                            className="new-appointment-modal__field"
+                                            value={values.consultMode || 'InClinic'}
+                                            onChange={(event) => setFieldValue('consultMode', event.target.value)}
+                                        >
+                                            <option value="InClinic">In-clinic</option>
+                                            <option value="Tele">Tele</option>
+                                        </Input>
                                     </div>
                                     <div className="col-md-6">
                                         <Label className="form-label new-appointment-modal__label">

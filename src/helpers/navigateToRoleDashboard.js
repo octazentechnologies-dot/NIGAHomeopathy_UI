@@ -29,7 +29,12 @@ export const navigateToRoleDashboard = (navigate) => {
                 return;
             }
 
-            if (userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION) {
+            if (userRole === UserRole.RECEPTION) {
+                navigate('/reception');
+                return;
+            }
+
+            if (userRole === UserRole.DOCTOR) {
                 navigate('/doctordashboard');
                 return;
             }

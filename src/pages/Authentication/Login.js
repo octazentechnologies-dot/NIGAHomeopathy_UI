@@ -49,7 +49,15 @@ const Login = (props) => {
   useEffect(() => {
     const encryptedUserId = searchParams.get("UserId");
     const token = searchParams.get("token");
-    if (!encryptedUserId && !token) return undefined;
+    const activatedFlag = (searchParams.get("activated") || searchParams.get("activation") || "").toLowerCase();
+    if (!encryptedUserId && !token) {
+      if (activatedFlag === "expired" || activatedFlag === "0" || activatedFlag === "false") {
+        setActivationNotice("This activation link expired (48 hours). Open /activate to request a new email.");
+      } else if (activatedFlag === "1" || activatedFlag === "true" || activatedFlag === "ok") {
+        setActivationNotice("Your account is activated. Please sign in to continue.");
+      }
+      return undefined;
+    }
 
     let cancelled = false;
     const run = encryptedUserId

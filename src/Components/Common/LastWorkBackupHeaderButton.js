@@ -57,7 +57,8 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
   );
 
   useEffect(() => {
-    if (userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION) {
+    // CLN-19.02 — backup APIs are DoctorOnly; Reception JWTs are 403.
+    if (userRole === UserRole.DOCTOR) {
       dispatch(fetchPatientBoardBackupSummary());
     }
   }, [dispatch, userRole]);
@@ -151,7 +152,7 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
     }
   };
 
-  if (userRole !== UserRole.DOCTOR && userRole !== UserRole.RECEPTION) {
+  if (userRole !== UserRole.DOCTOR) {
     return null;
   }
 

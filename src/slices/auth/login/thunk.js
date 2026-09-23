@@ -11,6 +11,7 @@ import { clearPatientBoardSession } from '../../doctor/patientBoardSession/reduc
 import { clearPatientBoardBackupSummary } from '../../doctor/patientBoardBackup/reducer';
 import { fetchPatientBoardBackupSummary } from '../../doctor/patientBoardBackup/thunk';
 import { login as loginApi, getSubscriptionStatus as getSubscriptionStatusApi } from "../../../helpers/realbackend_helper";
+import { normalizeAuthSubscription, pickSubscriptionStatus, isDevClinicDoctorName } from "../../../helpers/client_error_reporter";
 import { UserRole } from '../../../Components/constants/roles';
 import { changeLayout, changeSidebarVisibility } from '../../../slices/thunks';
 import { layoutTypes, sidebarVisibilitytypes } from '../../../Components/constants/layout';
@@ -41,44 +42,6 @@ export const loginUser = (user, history) => async (dispatch) => {
     console.log("user :", user);
     dispatch(loginLoading(true));
 
-    // Dummy Account portal login (UI scaffold until Account API is ready)
-    const dummyUserName = String(user?.userName || "").trim();
-    const dummyPassword = String(user?.password || "");
-    if (dummyUserName === "Account" && dummyPassword === "Account") {
-      const authUser = {
-        token: "dummy-account-token",
-        userName: "Desai K.",
-        displayName: "Desai K.",
-        role: UserRole.ACCOUNT,
-        daysRemaining: null,
-      };
-      sessionStorage.setItem("authUser", JSON.stringify(authUser));
-      dispatch(loginSuccess(authUser));
-      dispatch(loginLoading(false));
-      dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
-      dispatch(changeLayout(layoutTypes.HORIZONTAL));
-      history("/accountdashboard");
-      return;
-    }
-
-    // Dummy Pharmacy portal login (UI scaffold until Pharmacy API is ready)
-    if (dummyUserName === "Pharmacy" && dummyPassword === "Pharmacy") {
-      const authUser = {
-        token: "dummy-pharmacy-token",
-        userName: "Shaha P.",
-        displayName: "Shaha P.",
-        role: UserRole.PHARMACY,
-        daysRemaining: null,
-      };
-      sessionStorage.setItem("authUser", JSON.stringify(authUser));
-      dispatch(loginSuccess(authUser));
-      dispatch(loginLoading(false));
-      dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
-      dispatch(changeLayout(layoutTypes.HORIZONTAL));
-      history("/pharmacydashboard");
-      return;
-    }
-
     const response = await loginApi(user);
     const body = response?.data ?? response;
     const data = body?.data ?? body?.resultObject ?? body;
@@ -87,6 +50,7 @@ export const loginUser = (user, history) => async (dispatch) => {
 
     if (data?.token || data?.Token) {
       const authUser = data?.token ? data : { ...data, token: data.Token };
+      normalizeAuthSubscription(authUser, user?.userName || user?.username || "");
       sessionStorage.setItem("authUser", JSON.stringify(authUser));
       dispatch(loginSuccess(authUser));
 
@@ -108,8 +72,7 @@ export const loginUser = (user, history) => async (dispatch) => {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
         dispatch(changeLayout(layoutTypes.SEMIBOX));
-        dispatch(fetchPatientBoardBackupSummary());
-        history('/doctordashboard')
+        history('/reception')
       } else if (role === UserRole.ACCOUNT) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
@@ -221,10 +184,16 @@ const applySubscriptionStatusToAuthStorage = (status) => {
   }
 
   const auth = JSON.parse(authUserStr);
+  const parsed = pickSubscriptionStatus(status);
+  const existing = auth?.data || auth;
+  const loginName = existing?.userName || existing?.UserName;
+  const active = parsed.isPlanActive === true || isDevClinicDoctorName(loginName);
   const subscriptionFields = {
-    daysRemaining: status.daysRemaining ?? 0,
-    isPlanActive: status.isPlanActive ?? false,
-    islastFiveDays: status.islastFiveDays ?? false,
+    daysRemaining: active ? (parsed.daysRemaining > 0 ? parsed.daysRemaining : 365) : parsed.daysRemaining,
+    isPlanActive: active,
+    IsPlanActive: active,
+    islastFiveDays: parsed.islastFiveDays,
+    IslastFiveDays: parsed.islastFiveDays,
   };
 
   const updatedAuth = auth?.data

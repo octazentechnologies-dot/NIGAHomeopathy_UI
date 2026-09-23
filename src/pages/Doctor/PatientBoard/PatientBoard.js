@@ -23,6 +23,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import usePatientBoardSessionPersistence from '../../../hooks/usePatientBoardSessionPersistence';
 import useContainerInfiniteLoad, { isElementScrollable } from '../../../hooks/useContainerInfiniteLoad';
 import { collectPatientBoardSnapshot, buildPatientBoardKey, canOpenPatientSession, showPatientSessionLimitAlert } from '../../../helpers/patientBoardSessionHelper';
+import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
 import AudioCasePanel from '../../../Components/CaseTaking/AudioCasePanel';
 import { buildSummaryHistoryNoteText } from '../../../helpers/audioCaseTakingHelper';
 import { completePatientBoardSession } from '../../../slices/doctor/patientBoardSession/reducer';
@@ -90,6 +91,7 @@ import {
   extractApiList,
   extractPrescriptionResultObject,
   formatAppointmentAccordionTitle,
+  getAppointmentIdFromRow,
 } from '../../../helpers/patient_history_helper';
 import { getAuthUserId } from '../../../helpers/appointmentSlotHelper';
 import {
@@ -1242,6 +1244,9 @@ const PatientBoard = () => {
   const caseId = searchParams.get('caseId');
   const patientAppId = searchParams.get('patientAppId');
   const appointmentDateParam = searchParams.get('appointmentDate');
+  const visitTypeParam = searchParams.get('visitType') || searchParams.get('VisitType');
+  const consultModeParam = searchParams.get('consultMode') || searchParams.get('ConsultMode');
+  const isTeleParam = searchParams.get('isTele') || searchParams.get('IsTele');
   const patientNameParam = searchParams.get('patientName');
   const caseTakingMode = searchParams.get('caseTakingMode');
   const caseTakingOrigin = searchParams.get('caseTakingOrigin');
@@ -1336,6 +1341,19 @@ const PatientBoard = () => {
       : moment(appointmentDateParam, ['YYYY-MM-DD', 'DD-MM-YYYY', 'D-M-YYYY'], true);
     return parsed.isValid() ? parsed.format('Do MMMM, YYYY') : '';
   }, [appointmentDateParam]);
+
+  // CLN-01.01 — header placeholders. Live VisitType/ConsultMode bind in Phases 4 and 6.
+  const headerVisitType = useMemo(() => {
+    const raw = String(visitTypeParam || '').trim();
+    return raw || '—';
+  }, [visitTypeParam]);
+  const headerConsultMode = useMemo(() => {
+    const raw = String(consultModeParam || '').trim();
+    if (raw) return raw;
+    const tele = String(isTeleParam || '').trim().toLowerCase();
+    if (tele === 'true' || tele === '1' || tele === 'yes') return 'Tele';
+    return '—';
+  }, [consultModeParam, isTeleParam]);
 
   const eliminationRemedyData = useMemo(() => resolveRemedyLists(eliminationDataList), [eliminationDataList]);
   const baseRemedyData = useMemo(() => resolveRemedyLists(commanUnCommanRubricsDetailsList), [commanUnCommanRubricsDetailsList]);
@@ -5312,6 +5330,9 @@ const PatientBoard = () => {
     patientAppId,
     appointmentDate: appointmentDateParam,
     patientName: resolvedPatientName,
+    visitType: visitTypeParam,
+    consultMode: consultModeParam,
+    isTele: isTeleParam,
     getState: getPatientBoardSessionState,
     setters: patientBoardSessionSetters,
     afterRestoreRef: sessionAfterRestoreRef,
@@ -5445,7 +5466,11 @@ const PatientBoard = () => {
     .pb-logo-wrapper { position:absolute; left:0; right:0; top:10px; display:flex; justify-content:center; pointer-events:none; }
     .pb-logo-inner { pointer-events:auto; }
     .pb-actions { gap:8px; }
-    .pb-search { width:260px; }
+    .pb-search { width:min(260px, 46vw); min-width:132px; }
+    @media (max-width: 767.98px) {
+      .pb-header { flex-wrap: wrap; }
+      .pb-search { width: min(220px, 70vw); min-width: 0; }
+    }
     .pb-circle { width:22px; height:22px; border-radius:50%; background:#f1f3f5; border:1px solid #dee2e6; display:inline-flex; align-items:center; justify-content:center; margin-left:10px; font-size:8px; font-weight:500; vertical-align:middle; line-height:1; }
     .pb-chip { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:3px; border:1px solid #000000; background:#000000; color:#fff; font-size:10px; font-weight:400; margin-left:6px; cursor:pointer; transition:background-color .15s ease, border-color .15s ease; }
     .pb-chip:hover { background:#495057; border-color:#495057; }
@@ -6905,6 +6930,11 @@ const PatientBoard = () => {
       font-weight:600;
       border-color:#cfe3f7;
       background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+    }
+    .pb-info__chip--placeholder,
+    .pb-appointment-date--placeholder {
+      color:#64748b;
+      font-weight:500;
     }
     .pb-info__chip--due i {
       color:#0b5cab;
@@ -12378,7 +12408,7 @@ const PatientBoard = () => {
         .slice(0, 8)
         .map((row) => `${row.remedyName ?? row.RemedyName} (${row.score ?? row.Score})`);
       Swal.fire({
-        icon: 'success',
+        icon: lines.length ? 'success' : 'info',
         title: 'Center of Gravity',
         html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No remedies scored for this clipboard.',
         confirmButtonColor: '#000000',
@@ -12393,6 +12423,28 @@ const PatientBoard = () => {
     }
   };
 
+  const saveExportFile = async (response, fileName) => {
+    const payload = response instanceof Blob ? response : response?.data;
+    if (!(payload instanceof Blob)) {
+      throw new Error('The server did not return a file.');
+    }
+    const header = new Uint8Array(await payload.slice(0, 5).arrayBuffer());
+    const signature = String.fromCharCode(...header);
+    const isPdf = signature.startsWith('%PDF');
+    const isExcel = signature.startsWith('PK');
+    if (!isPdf && !isExcel) {
+      throw new Error('The download is not a valid PDF or Excel file.');
+    }
+    const url = URL.createObjectURL(payload);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportCasePdf = async () => {
     if (!patientId || !caseId) {
       Swal.fire({ icon: 'warning', title: 'Missing case', text: 'Open a patient with patientId and caseId to export.', confirmButtonColor: '#000000' });
@@ -12400,16 +12452,8 @@ const PatientBoard = () => {
     }
     try {
       Swal.fire({ title: 'Exporting case PDF…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const blob = await exportCaseToPdf(patientId, caseId);
-      const file = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/pdf' });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `case-${patientId}-${caseId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      const response = await exportCaseToPdf(patientId, caseId);
+      await saveExportFile(response, `case-${patientId}-${caseId}.pdf`);
       Swal.close();
     } catch (err) {
       Swal.fire({
@@ -12429,16 +12473,8 @@ const PatientBoard = () => {
     }
     try {
       Swal.fire({ title: 'Exporting cases Excel…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const blob = await exportCasesToExcel(userId);
-      const file = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `cases-${userId}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      const response = await exportCasesToExcel(userId);
+      await saveExportFile(response, `cases-${userId}.xlsx`);
       Swal.close();
     } catch (err) {
       Swal.fire({
@@ -12507,27 +12543,28 @@ const PatientBoard = () => {
     }
     try {
       Swal.fire({ title: 'Loading visit history…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const response = await getAppointmentListByPatientId({ patientId });
+      const response = await getAppointmentListByPatientId({ patientId, pageNumber: 1, pageSize: 50 });
       const rows = extractApiList(response);
       const sorted = [...rows].sort((a, b) => {
         const da = new Date(a.appointmentDate ?? a.AppointmentDate ?? 0).getTime();
         const db = new Date(b.appointmentDate ?? b.AppointmentDate ?? 0).getTime();
         return db - da;
       });
-      if (!sorted.length) {
+      const options = {};
+      sorted.forEach((appointment) => {
+        const id = getAppointmentIdFromRow(appointment);
+        if (id) options[String(id)] = formatAppointmentAccordionTitle(appointment);
+      });
+      if (!Object.keys(options).length) {
         Swal.fire({ icon: 'info', title: 'Visit history', text: 'No visits found for this patient.', confirmButtonColor: '#000000' });
         return;
       }
-      const options = {};
-      sorted.forEach((appointment) => {
-        const id = appointment.appointmentId ?? appointment.AppointmentId ?? appointment.patientAppointmentId;
-        if (id) options[id] = formatAppointmentAccordionTitle(appointment);
-      });
       const pick = await Swal.fire({
         title: 'Visit history',
         text: 'Date-ordered visits with payment status. Select a visit to open past eRx.',
         input: 'select',
         inputOptions: options,
+        inputPlaceholder: 'Select a visit',
         showCancelButton: true,
         confirmButtonText: 'Open past eRx',
         confirmButtonColor: '#000000',
@@ -12543,7 +12580,7 @@ const PatientBoard = () => {
         ...remedies.map((item) => `Rx: ${item.remedyName ?? item.RemedyName ?? item.name ?? ''}`),
       ].filter((line) => line.replace(/^(Rubric|Rx): /, '').trim());
       Swal.fire({
-        icon: 'success',
+        icon: lines.length ? 'success' : 'info',
         title: `Past eRx #${pick.value}`,
         html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No prescription details for this visit.',
         confirmButtonColor: '#000000',
@@ -12581,7 +12618,7 @@ const PatientBoard = () => {
         .map((item) => item.complaintName ?? item.ComplaintName ?? item.name ?? String(item.chiefComplaintId ?? item.id ?? ''))
         .filter(Boolean);
       Swal.fire({
-        icon: 'success',
+        icon: names.length ? 'success' : 'info',
         title: 'Complaints',
         html: names.length ? `<pre style="text-align:left">${names.join('\n')}</pre>` : 'No complaints saved for this patient.',
         confirmButtonColor: '#000000',
@@ -12602,9 +12639,27 @@ const PatientBoard = () => {
 
       <div className="pb-header position-relative">
         <div className="d-flex align-items-center pb-actions">
-          <div className="pb-search d-none d-md-block">
-            <div className="search-box">
-              <Input bsSize="sm" placeholder="Global Search..." />
+          <div className="pb-search">
+            <div className={`search-box${globalSubSectionSearch.trim() ? ' pb-repertory-search--active' : ''}`}>
+              <Input
+                bsSize="sm"
+                placeholder="Global Search..."
+                autoComplete="off"
+                value={globalSubSectionSearch}
+                aria-label="Global search subsections and rubrics"
+                onChange={(e) => {
+                  if (activeTab !== 'Repertory') {
+                    setActiveTab('Repertory');
+                  }
+                  handleRepertoryGlobalSearchChange(e.target.value);
+                }}
+                onFocus={() => {
+                  if (activeTab !== 'Repertory') {
+                    setActiveTab('Repertory');
+                  }
+                }}
+              />
+              <i className={`ri-${globalSubSectionSearchLoading ? 'loader-4-line' : 'search-line'} search-icon`} aria-hidden="true" />
             </div>
           </div>
           <Link to={getHomeDashboardPath()} className="btn btn-link text-decoration-none ms-2"><i className="ri-dashboard-2-line me-1" />Dashboard</Link>
@@ -12652,8 +12707,10 @@ const PatientBoard = () => {
               </div>
               <div className="pb-info__actions">
                 <Button size="sm" color="success" className="btn btn-soft-success btn-icon" onClick={() => {
+                  const number = patientDialNumber(patientDetails?.mobileNo);
                   Swal.fire({
-                    title: 'Are you sure want to connect with whatsapp chat?',
+                    title: `WhatsApp ${number}`,
+                    text: 'Are you sure want to connect with whatsapp chat?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#0ab39c',
@@ -12664,18 +12721,14 @@ const PatientBoard = () => {
                     hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                   }).then((result) => {
                     if (result.isConfirmed) {
-                      Swal.fire({
-                        title: 'Processing wait..',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                      });
-                      setTimeout(() => { Swal.close(); }, 1200);
+                      window.open(patientWhatsAppHref(patientDetails?.mobileNo), '_blank', 'noopener,noreferrer');
                     }
                   });
                 }}><i className="ri-chat-1-line" /></Button>
                 <Button size="sm" color="danger" className="btn btn-soft-danger btn-icon" onClick={() => {
+                  const number = patientDialNumber(patientDetails?.mobileNo);
                   Swal.fire({
-                    title: '+91 - 987 654 XXXX',
+                    title: number,
                     text: 'Are you sure to call person directly?',
                     icon: 'warning',
                     showCancelButton: true,
@@ -12687,18 +12740,15 @@ const PatientBoard = () => {
                     hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                   }).then((result) => {
                     if (result.isConfirmed) {
-                      Swal.fire({
-                        title: 'Processing wait..',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                      });
-                      setTimeout(() => { Swal.close(); }, 1200);
+                      window.location.href = patientCallHref(patientDetails?.mobileNo);
                     }
                   });
                 }}><i className="ri-phone-fill" /></Button>
                 <Button size="sm" color="info" className="btn btn-soft-info btn-icon" onClick={() => {
+                  const number = patientDialNumber(patientDetails?.mobileNo);
                   Swal.fire({
-                    title: 'Are you sure want to connect with whatsapp video call?',
+                    title: `WhatsApp video ${number}`,
+                    text: 'Are you sure want to connect with whatsapp video call?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#299cdb',
@@ -12709,33 +12759,32 @@ const PatientBoard = () => {
                     hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                   }).then((result) => {
                     if (result.isConfirmed) {
-                      Swal.fire({
-                        title: 'Processing wait..',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                      });
-                      setTimeout(() => { Swal.close(); }, 1200);
+                      window.open(patientWhatsAppHref(patientDetails?.mobileNo), '_blank', 'noopener,noreferrer');
                     }
                   });
                 }}><i className="ri-vidicon-2-fill" /></Button>
               </div>
             </div>
             <div className="pb-info__aside">
-              {formattedAppointmentDate ? (
-                <div className="pb-appointment-date">
-                  <i className="ri-calendar-event-line" aria-hidden="true" />
-                  {formattedAppointmentDate}
-                </div>
-              ) : null}
+              <div className={`pb-appointment-date${formattedAppointmentDate ? '' : ' pb-appointment-date--placeholder'}`}>
+                <i className="ri-calendar-event-line" aria-hidden="true" />
+                Appointment: {formattedAppointmentDate || '—'}
+              </div>
               <div className="pb-appointment-meta text-muted small d-flex flex-wrap gap-2 mb-1">
-                <span className="pb-info__chip">Visit: {searchParams.get('visitType') || searchParams.get('VisitType') || 'In-clinic'}</span>
-                <span className="pb-info__chip">Consult: {searchParams.get('consultMode') || searchParams.get('ConsultMode') || 'Clinic'}</span>
+                <span className={`pb-info__chip${headerVisitType === '—' ? ' pb-info__chip--placeholder' : ''}`}>
+                  Visit: {headerVisitType}
+                </span>
+                <span className={`pb-info__chip${headerConsultMode === '—' ? ' pb-info__chip--placeholder' : ''}`}>
+                  Consult: {headerConsultMode}
+                </span>
               </div>
               <div className="pb-info__status">
-                <span className="pb-info__chip">
-                  <i className="ri-calendar-check-line" aria-hidden="true" />
-                  No Upcoming Appointment
-                </span>
+                {!formattedAppointmentDate ? (
+                  <span className="pb-info__chip">
+                    <i className="ri-calendar-check-line" aria-hidden="true" />
+                    No Upcoming Appointment
+                  </span>
+                ) : null}
                 <span className="pb-info__chip pb-info__chip--due">
                   <i className="ri-wallet-3-line" aria-hidden="true" />
                   Due Amount : ₹ 0.00
