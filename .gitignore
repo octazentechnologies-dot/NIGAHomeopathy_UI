@@ -433,3 +433,6 @@ build/
 
 # Local Cursor/VS Code workspace (machine-specific paths)
 *.code-workspace
+
+# Local documentation (kept on this machine only)
+docs/
