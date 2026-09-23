@@ -147,6 +147,7 @@ export function reportClientIssue(payload) {
       message: payload && payload.message,
       stack: payload && payload.stack,
       componentStack: payload && payload.componentStack,
+      traceId: payload && payload.traceId,
       userName: data.userName || data.UserName || user.userName,
       displayName: (first + " " + last).trim() || data.fullName || data.FullName,
       userId: String(data.userId ?? data.UserId ?? user.userId ?? ""),

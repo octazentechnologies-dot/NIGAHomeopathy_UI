@@ -1002,8 +1002,8 @@ const getAccordionSublistView = (state, globalFilters = null) => {
     };
   }
 
-  const filteredEntries = getAccordionFilteredEntriesFromState(state, globalFilters);
-  const visibleEntries = filteredEntries.slice(0, state.visibleCount);
+  const filteredEntries = getAccordionFilteredEntriesFromState(state, globalFilters) || [];
+  const visibleEntries = filteredEntries.slice(0, Number(state.visibleCount) || 0);
   const hasMoreClient = state.visibleCount < filteredEntries.length;
   const hasMoreServer = computeAccordionHasMoreServer(state);
   const hasMoreEntries = hasMoreClient || hasMoreServer;
@@ -12551,9 +12551,9 @@ const PatientBoard = () => {
         return db - da;
       });
       const options = {};
-      sorted.forEach((appointment) => {
+      sorted.forEach((appointment, index) => {
         const id = getAppointmentIdFromRow(appointment);
-        if (id) options[String(id)] = formatAppointmentAccordionTitle(appointment);
+        if (id) options[`v${String(index).padStart(3, '0')}-${id}`] = formatAppointmentAccordionTitle(appointment);
       });
       if (!Object.keys(options).length) {
         Swal.fire({ icon: 'info', title: 'Visit history', text: 'No visits found for this patient.', confirmButtonColor: '#000000' });
@@ -12570,8 +12570,9 @@ const PatientBoard = () => {
         confirmButtonColor: '#000000',
       });
       if (!pick.isConfirmed || !pick.value) return;
+      const appointmentId = String(pick.value).replace(/^v\d+-/, '');
       Swal.fire({ title: 'Loading past eRx…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const rx = await getPrescriptionDetailsByAppointmentId({ appointmentId: pick.value });
+      const rx = await getPrescriptionDetailsByAppointmentId({ appointmentId });
       const details = extractPrescriptionResultObject(rx);
       const remedies = details.remedyDetails ?? details.RemedyDetails ?? [];
       const rubrics = details.rubricDetails ?? details.RubricDetails ?? [];
@@ -12581,7 +12582,7 @@ const PatientBoard = () => {
       ].filter((line) => line.replace(/^(Rubric|Rx): /, '').trim());
       Swal.fire({
         icon: lines.length ? 'success' : 'info',
-        title: `Past eRx #${pick.value}`,
+        title: `Past eRx #${appointmentId}`,
         html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No prescription details for this visit.',
         confirmButtonColor: '#000000',
       });
@@ -12603,26 +12604,36 @@ const PatientBoard = () => {
     try {
       Swal.fire({ title: 'Loading complaints…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const rows = await getPatientComplaints(patientId);
-      const list = rows?.data ?? rows?.resultObject ?? rows?.Data ?? (Array.isArray(rows) ? rows : []);
-      const ids = (Array.isArray(list) ? list : [])
-        .map((item) => item.chiefComplaintId ?? item.ChiefComplaintId ?? item.id)
+      const list = extractApiList(rows);
+      const names = list
+        .map((item) => item.chiefComplaintName ?? item.ChiefComplaintName ?? item.complaintName ?? item.ComplaintName ?? item.name ?? '')
+        .map((name) => String(name).trim())
         .filter(Boolean);
-      if (ids.length && caseId) {
-        await savePatientComplaints({
-          PatientId: Number(patientId),
-          CaseId: Number(caseId),
-          ChiefComplaintIds: ids.join(','),
-        });
-      }
-      const names = (Array.isArray(list) ? list : [])
-        .map((item) => item.complaintName ?? item.ComplaintName ?? item.name ?? String(item.chiefComplaintId ?? item.id ?? ''))
-        .filter(Boolean);
-      Swal.fire({
-        icon: names.length ? 'success' : 'info',
+      Swal.close();
+      const result = await Swal.fire({
         title: 'Complaints',
-        html: names.length ? `<pre style="text-align:left">${names.join('\n')}</pre>` : 'No complaints saved for this patient.',
+        html: names.length
+          ? `<pre style="text-align:left">${names.join('\n')}</pre><p class="text-start small mb-0 mt-2">Add another complaint, or Close to keep the list.</p>`
+          : '<p class="text-start mb-0">No complaints saved for this patient. Add one below.</p>',
+        input: 'text',
+        inputPlaceholder: 'New complaint (optional)',
+        showCancelButton: true,
+        confirmButtonText: 'Save (POST)',
         confirmButtonColor: '#000000',
+        cancelButtonText: 'Close',
       });
+      if (!result.isConfirmed) return;
+      const next = String(result.value || '').trim();
+      if (!next) {
+        Swal.fire({ icon: 'info', title: 'Complaints', text: 'No new complaint entered.', confirmButtonColor: '#000000' });
+        return;
+      }
+      await savePatientComplaints({
+        PatientID: Number(patientId),
+        CaseId: caseId ? Number(caseId) : undefined,
+        ChiefComplaintIds: next,
+      });
+      Swal.fire({ icon: 'success', title: 'Complaints saved', text: 'SaveComplaints POST completed.', confirmButtonColor: '#000000' });
     } catch (err) {
       Swal.fire({
         icon: 'error',

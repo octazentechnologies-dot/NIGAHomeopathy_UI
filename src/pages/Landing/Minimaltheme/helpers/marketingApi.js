@@ -98,4 +98,9 @@ export const getNewsById = (newsId) =>
     axios.get(`${API_BASE}/NewsDetail/GetNewsDetailsbyId/${newsId}`).then(unwrapItem);
 
 export const submitEnquiry = (payload) =>
-    axios.post(`${API_BASE}/EnquiryDetail`, payload);
+    axios.post(`${config.api.API_URL_NIGAHOMEOPATHY}/Enquiry`, {
+        enquiryName: payload.enquiryName,
+        emailId: payload.emailId,
+        mobileNo: payload.mobileNo,
+        enquiryDetails: payload.enquiryDetails || payload.enquiryDetails1,
+    });

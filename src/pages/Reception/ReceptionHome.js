@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row } from "reactstrap";
-import { assistedBook, callNextAppointment, getAppointmentQueue } from "../../helpers/realbackend_helper";
-import { readReceptionDoctorId, unwrap } from "./receptionSession";
+import { assistedBook, callNextAppointment, getAppointmentQueue, getAppointmentSlots } from "../../helpers/realbackend_helper";
+import { apiMessage, readReceptionDoctorId, unwrap } from "./receptionSession";
 
 const ReceptionHome = () => {
   const doctorId = readReceptionDoctorId();
@@ -11,6 +11,8 @@ const ReceptionHome = () => {
   const [receipt, setReceipt] = useState(null);
   const [book, setBook] = useState({ patientId: "", appointmentDate: "", appointmentTime: "", consultMode: "InClinic" });
   const [note, setNote] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [slotsNote, setSlotsNote] = useState("");
 
   const load = async () => {
     if (!doctorId) return;
@@ -21,16 +23,55 @@ const ReceptionHome = () => {
   };
 
   useEffect(() => {
-    load().catch((err) => setError(err?.response?.data?.message || err?.message || "Queue failed"));
+    document.title = "Reception | Homeocentrum";
+    load().catch((err) => setError(apiMessage(err, "Queue failed")));
   }, [doctorId]);
+
+  useEffect(() => {
+    const loadSlots = async () => {
+      if (!doctorId || !book.appointmentDate) {
+        setSlots([]);
+        setSlotsNote("");
+        return;
+      }
+      try {
+        const response = await getAppointmentSlots({
+          DoctorId: doctorId,
+          AppointmentDate: book.appointmentDate,
+        });
+        const body = unwrap(response);
+        const data = body.data || body.Data || body;
+        const list = data.slots || data.Slots || [];
+        const available = (Array.isArray(list) ? list : []).filter((row) =>
+          String(row.status || row.Status || "").toLowerCase() === "available"
+        );
+        setSlots(available);
+        setSlotsNote(
+          available.length
+            ? `${available.length} open slots`
+            : data.hasSchedule === false
+              ? "Daily schedule is not configured for this date."
+              : "No available slots for this date."
+        );
+        setBook((prev) => {
+          const stillOpen = available.some((row) => String(row.time || row.Time || "") === prev.appointmentTime);
+          return stillOpen ? prev : { ...prev, appointmentTime: "" };
+        });
+      } catch (err) {
+        setSlots([]);
+        setSlotsNote(apiMessage(err, "Could not load slots."));
+      }
+    };
+    loadSlots();
+  }, [doctorId, book.appointmentDate]);
 
   const callNext = async () => {
     try {
       const response = await callNextAppointment(doctorId);
-      setNote(unwrap(response).message || "Next patient called.");
+      setNote(unwrap(response).message || unwrap(response).Message || "Next patient called.");
       await load();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "No waiting patient");
+      setError(apiMessage(err, "No waiting patient"));
     }
   };
 
@@ -46,7 +87,7 @@ const ReceptionHome = () => {
       });
       setNote("Assisted booking saved. The patient was not charged here.");
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Assisted booking failed");
+      setError(apiMessage(err, "Assisted booking failed"));
     }
   };
 
@@ -111,7 +152,24 @@ const ReceptionHome = () => {
               <Label className="mt-2">Date</Label>
               <Input type="date" value={book.appointmentDate} onChange={(event) => setBook({ ...book, appointmentDate: event.target.value })} />
               <Label className="mt-2">Time</Label>
-              <Input type="time" value={book.appointmentTime} onChange={(event) => setBook({ ...book, appointmentTime: event.target.value })} />
+              <Input
+                type="select"
+                value={book.appointmentTime}
+                onChange={(event) => setBook({ ...book, appointmentTime: event.target.value })}
+                disabled={!book.appointmentDate}
+              >
+                <option value="">{book.appointmentDate ? "Select an open slot" : "Choose a date first"}</option>
+                {slots.map((row) => {
+                  const time = row.time || row.Time;
+                  const label = row.label || row.Label || time;
+                  return (
+                    <option key={time} value={time}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </Input>
+              {slotsNote ? <p className="text-muted small mb-0 mt-1">{slotsNote}</p> : null}
               <Label className="mt-2">Consult</Label>
               <Input type="select" value={book.consultMode} onChange={(event) => setBook({ ...book, consultMode: event.target.value })}>
                 <option value="InClinic">In-clinic</option>

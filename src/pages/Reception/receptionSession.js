@@ -16,3 +16,14 @@ export const readReceptionDoctorId = () => {
 };
 
 export const unwrap = (response) => response?.data ?? response ?? {};
+
+/** Clinic axios interceptor rejects with a string, not the Axios error object. */
+export const apiMessage = (err, fallback) => {
+  if (typeof err === "string" && err.trim()) return err;
+  const data = err?.response?.data;
+  const msg = data?.message ?? data?.Message ?? data?.title ?? data?.Title;
+  if (typeof msg === "string" && msg.trim()) return msg;
+  if (typeof data === "string" && data.trim()) return data;
+  if (typeof err?.message === "string" && err.message.trim()) return err.message;
+  return fallback;
+};

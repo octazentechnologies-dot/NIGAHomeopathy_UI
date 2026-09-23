@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Alert, Button, Card, CardBody, Container, Input, Label } from "reactstrap";
 import { saveReceptionCasePaper } from "../../helpers/realbackend_helper";
+import { apiMessage } from "./receptionSession";
 
 const ReceptionCasePaper = () => {
   const [patientId, setPatientId] = useState("");
@@ -9,6 +10,10 @@ const ReceptionCasePaper = () => {
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    document.title = "Case paper | Homeocentrum";
+  }, []);
 
   const save = async () => {
     setError("");
@@ -21,7 +26,7 @@ const ReceptionCasePaper = () => {
       });
       setMessage("Case paper saved for the doctor to read. Repertory was not opened.");
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Could not save the case paper.");
+      setError(apiMessage(err, "Could not save the case paper."));
     }
   };
 

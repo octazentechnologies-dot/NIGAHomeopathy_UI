@@ -10,6 +10,24 @@ const publicClient = axios.create({
 
 const unwrap = (res) => (res && res.data !== undefined ? res.data : res);
 
+const apiErrorMessage = (err) => {
+  const d = err?.response?.data;
+  if (typeof d === "string" && d.trim()) return d;
+  const msg = d?.message ?? d?.Message ?? d?.title ?? d?.Title;
+  if (typeof msg === "string" && msg.trim()) return msg;
+  return err?.message || "Request failed.";
+};
+
+publicClient.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const wrapped = new Error(apiErrorMessage(err));
+    wrapped.response = err.response;
+    wrapped.status = err.response?.status;
+    return Promise.reject(wrapped);
+  }
+);
+
 export const toIsoDate = (date) => {
   const d = date instanceof Date ? date : new Date(date);
   const y = d.getFullYear();
@@ -20,9 +38,9 @@ export const toIsoDate = (date) => {
 
 export const slotToHHmm = (slot) => {
   const raw = String(slot || "").trim();
-  const hhmm = raw.match(/^(\d{1,2}):(\d{2})$/);
-  if (hhmm) return `${String(Number(hhmm[1])).padStart(2, "0")}:${hhmm[2]}`;
-  const ampm = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  const hhmmss = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (hhmmss) return `${String(Number(hhmmss[1])).padStart(2, "0")}:${hhmmss[2]}`;
+  const ampm = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
   if (!ampm) return raw;
   let hour = Number(ampm[1]);
   const minute = ampm[2];

@@ -19,6 +19,28 @@ const getCurrentAuthUser = () => {
  * @param {string} contentType - Content type for headers (default: "application/json")
  * @returns {object} Configured axios instance
  */
+function readApiMessage(error, status) {
+  const data = error.response?.data;
+  const fields = [];
+  if (data && typeof data === "object" && data.errors) {
+    Object.keys(data.errors).forEach((key) => {
+      const list = data.errors[key];
+      if (Array.isArray(list)) list.forEach((item) => fields.push(item));
+    });
+  }
+  const fieldText = fields.filter(Boolean).join(" ");
+  if (status === 429) return "Too many requests. Please wait a moment and try again.";
+  if (status === 401) return (data && data.message) || "Invalid username or password";
+  if (status === 403) return (data && data.message) || "You are not allowed to do this.";
+  if (status === 404) return (data && data.message) || "Sorry! the data you are looking for could not be found";
+  if (typeof data === "string" && data.trim() && data.trim().charAt(0) !== "<") return data;
+  if (data && data.message) return fieldText ? data.message + " " + fieldText : data.message;
+  if (fieldText) return fieldText;
+  if (status >= 500) return "Something went wrong. Please try again.";
+  if (!status) return "The server did not respond. Please try again.";
+  return error.message || "Something went wrong. Please try again.";
+}
+
 const createAxiosClient = (baseURL, contentType = "application/json") => {
   const client = axios.create({
     baseURL: baseURL,
@@ -30,6 +52,9 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
   // Add request interceptor to dynamically set authorization header
   client.interceptors.request.use(
     function (config) {
+      if (!config.headers["X-Correlation-Id"]) {
+        config.headers["X-Correlation-Id"] = "ui-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+      }
       const authUser = getCurrentAuthUser();
       if (authUser?.token) {
         config.headers.Authorization = "Bearer " + authUser.token;
@@ -53,48 +78,20 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
       }
       return response.data ? response.data : response;
     },
-    function (error) {
-      let message;
+    async function (error) {
       const status = error.response?.status;
-      switch (status) {
-        case 500: {
-          const data = error.response?.data;
-          if (typeof data === "string" && data.trim()) {
-            message = data;
-          } else if (data?.message) {
-            message = data.message;
-          } else {
-            message = "Internal Server Error";
-          }
-          break;
-        }
-        case 401:
-          message = error.response?.data?.message || "Invalid username or password";
-          break;
-        case 403:
-          message = error.response?.data?.message || "You are not allowed to do this.";
-          break;
-        case 404:
-          message = "Sorry! the data you are looking for could not be found";
-          break;
-        case 400: {
-          const data = error.response?.data;
-          if (typeof data === 'string' && data.trim()) {
-            message = data;
-          } else if (data?.message) {
-            message = data.message;
-          } else {
-            message = error.message || error;
-          }
-          break;
-        }
-        default:
-          message = error.message || error;
+      const method = String(error.config?.method || "").toLowerCase();
+      const retryStatus = !status || status === 429 || status === 502 || status === 503;
+      if (method === "get" && error.config && !error.config.__retried && retryStatus) {
+        error.config.__retried = true;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return client.request(error.config);
       }
+      let message = readApiMessage(error, status);
       console.error("API Error:", error);
       const reqUrl = error.config?.url || error.config?.baseURL || "";
       const statusCode = status || 0;
-      if (statusCode !== 401 && statusCode !== 0) {
+      if (statusCode !== 401 && statusCode !== 0 && statusCode !== 429) {
         reportClientIssue({
           source: "axios",
           url: reqUrl,
@@ -102,6 +99,7 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
           method: error.config?.method,
           message: String(message || error.message || "API error"),
           stack: error.stack || "",
+          traceId: error.response?.data?.traceId || error.config?.headers?.["X-Correlation-Id"] || "",
         });
       }
       return Promise.reject(message);

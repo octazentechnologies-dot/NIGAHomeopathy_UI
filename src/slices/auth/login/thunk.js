@@ -113,7 +113,11 @@ export const loginUser = (user, history) => async (dispatch) => {
     }
   } catch (error) {
     dispatch(loginLoading(false));
-    dispatch(apiError(error));
+    const message =
+      typeof error === "string"
+        ? error
+        : error?.message || error?.data?.message || "Invalid username or password";
+    dispatch(apiError(message));
   }
 };
 

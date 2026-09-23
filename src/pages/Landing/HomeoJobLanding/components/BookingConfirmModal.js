@@ -97,7 +97,7 @@ const getSlotEnd = (slot) => {
     if (!match) return slot;
     let hour = Number(match[1]);
     const minute = Number(match[2]);
-    const total = hour * 60 + minute + 30;
+    const total = hour * 60 + minute + 15;
     const endHour24 = Math.floor(total / 60) % 24;
     const endMin = total % 60;
     return `${String(endHour24).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
@@ -131,7 +131,7 @@ const BookingConfirmModal = ({
     const totalAmount = fee + platformFee;
     const consultLabel =
         consultMode === "tele" ? "Tele Consultation" : "In-Clinic Consultation";
-    const timeRange = `${selectedSlot} - ${getSlotEnd(selectedSlot)}`;
+    const timeRange = `${slotToHHmm(selectedSlot)} - ${getSlotEnd(selectedSlot)}`;
     const summaryDate = useMemo(() => formatSummaryDate(bookingDate), [bookingDate]);
     const selectedPayMethod =
         PAYMENT_METHODS.find((m) => m.id === paymentMethod) || PAYMENT_METHODS[0];

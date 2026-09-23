@@ -19,7 +19,8 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import withRouter from "../../Components/Common/withRouter";
 import * as Yup from "yup";
 import { useFormik } from "formik";
-import { loginUser, resetLoginFlag } from "../../slices/thunks";
+import { loginUser } from "../../slices/thunks";
+import { reset_login_flag } from "../../slices/auth/login/reducer";
 import { activateUser, activateByToken } from "../../helpers/realbackend_helper";
 import { createSelector } from "reselect";
 import { pageTitle } from "../../common/brand";
@@ -96,19 +97,10 @@ const Login = (props) => {
       password: Yup.string().required("Please enter your password"),
     }),
     onSubmit: (values) => {
+      dispatch(reset_login_flag());
       dispatch(loginUser(values, props.router.navigate));
     },
   });
-
-  useEffect(() => {
-    if (errorMsg) {
-      const timer = setTimeout(() => {
-        dispatch(resetLoginFlag());
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [dispatch, errorMsg]);
 
   document.title = pageTitle("Sign In");
 
@@ -142,8 +134,8 @@ const Login = (props) => {
                       </Alert>
                     ) : null}
                     {error ? (
-                      <Alert color="danger" className="auth-login-alert mb-3">
-                        {error}
+                      <Alert color="danger" className="auth-login-alert mb-3" data-testid="login-error">
+                        {typeof error === "string" ? error : String(error?.message || error || "Invalid username or password")}
                       </Alert>
                     ) : null}
 

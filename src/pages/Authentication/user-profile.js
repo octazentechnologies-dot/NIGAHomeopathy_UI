@@ -1276,7 +1276,7 @@ const UserProfile = () => {
                         Clinic Information
                       </h5>
                       <p className="text-muted small mb-3">
-                        Managing clinic details for <strong>Dr. Nikhil Jamdar</strong>
+                        Managing clinic details for <strong>{displayName}</strong>
                       </p>
 
                       <Row className="g-3 new-patient-modal__fields">
