@@ -6,35 +6,16 @@ const SEED_URL_TO_SPA = {
   "/account/home": "/accountdashboard",
   "/account/earnings": "/account/doctor-earnings",
   "/pharmacy/home": "/pharmacydashboard",
-  "/admin/dashboard": "/dashboard",
-  "/admin/enquiries": "/enquiries",
 };
 
 export const getAuthUserId = () => {
   try {
     const user = JSON.parse(sessionStorage.getItem("authUser") || "null");
-    const role = user?.role || user?.Role || user?.data?.role || user?.data?.Role;
-    // Reception NameIdentifier / userId may be staff id. Dashboard queries need Doctor.UserId.
-    if (String(role || "").toLowerCase() === "reception") {
-      const doctorUserId = Number(
-        user?.doctorUserId ??
-          user?.DoctorUserID ??
-          user?.DoctorUserId ??
-          user?.data?.doctorUserId ??
-          user?.data?.DoctorUserID ??
-          user?.data?.DoctorUserId
-      );
-      if (Number.isFinite(doctorUserId) && doctorUserId > 0) return doctorUserId;
-    }
     const raw =
       user?.userId ??
       user?.UserId ??
-      user?.doctorUserId ??
-      user?.DoctorUserID ??
       user?.data?.userId ??
-      user?.data?.UserId ??
-      user?.data?.doctorUserId ??
-      user?.data?.DoctorUserID;
+      user?.data?.UserId;
     const id = Number(raw);
     return Number.isFinite(id) && id > 0 ? id : 0;
   } catch {
@@ -45,12 +26,8 @@ export const getAuthUserId = () => {
 export const unwrapApiList = (raw) => {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
-  // Newtonsoft ReferenceLoop / $values wrappers must not empty the family relation dropdown.
-  if (Array.isArray(raw.$values)) return raw.$values;
   if (Array.isArray(raw.data)) return raw.data;
-  if (Array.isArray(raw.data?.$values)) return raw.data.$values;
   if (Array.isArray(raw.Data)) return raw.Data;
-  if (Array.isArray(raw.Data?.$values)) return raw.Data.$values;
   if (Array.isArray(raw.resultObject)) return raw.resultObject;
   if (Array.isArray(raw.ResultObject)) return raw.ResultObject;
   return [];
@@ -62,104 +39,22 @@ export const normalizeMenuUrl = (url) => {
   return SEED_URL_TO_SPA[path] || path;
 };
 
-const ADMIN_HORIZONTAL_MAIN_LABELS = new Set([
-  "Existance Questions",
-  "Clinical Patterns",
-  "Repertory",
-  "Materia Medica",
-  "Adverse Effect",
-  "Deep Analytics",
-  "BU Mgmt.",
-  "3D Parts",
-  "Rubric Intelligence",
-]);
-
-export const mapMenuMasterToNavItems = (rows) => {
-  const mapped = unwrapApiList(rows)
+export const mapMenuMasterToNavItems = (rows) =>
+  unwrapApiList(rows)
     .map((menu) => {
       const menuId = menu.menuId ?? menu.MenuId;
-      const parentMenuId = menu.parentMenuId ?? menu.ParentMenuId ?? null;
       const label = menu.menuName ?? menu.MenuName;
       const icon = (menu.menuIcon ?? menu.MenuIcon) || "ri-menu-line";
       const link = normalizeMenuUrl(menu.menuUrl ?? menu.MenuUrl);
-      const seq = Number(menu.seqNo ?? menu.SeqNo ?? 0);
       if (!label) return null;
       return {
         id: menuId != null ? `menu-${menuId}` : `menu-${label}`,
-        menuId,
-        parentMenuId,
         label,
         icon,
         link,
-        seq: Number.isFinite(seq) ? seq : 0,
       };
     })
-    .filter(Boolean)
-    .sort((a, b) => a.seq - b.seq);
-
-  const byId = new Map();
-  mapped.forEach((item) => {
-    byId.set(item.menuId, { ...item, subItems: [] });
-  });
-
-  const roots = [];
-  byId.forEach((item) => {
-    const parent = item.parentMenuId != null ? byId.get(item.parentMenuId) : null;
-    if (parent) parent.subItems.push(item);
-    else roots.push(item);
-  });
-
-  const clean = (item) => {
-    const next = {
-      id: item.id,
-      label: item.label,
-      icon: item.icon,
-      link: item.link,
-    };
-    if (item.subItems?.length) {
-      next.subItems = item.subItems.map(clean);
-      if (!isSpaMenuLink(next.link)) next.link = "/#";
-    }
-    return next;
-  };
-
-  return roots.map(clean);
-};
-
-export const keepSpaNavItem = (item) => {
-  const kids = (item.subItems || []).map(keepSpaNavItem).filter(Boolean);
-  if (kids.length) {
-    return { ...item, subItems: kids, link: item.link && isSpaMenuLink(item.link) ? item.link : "/#" };
-  }
-  return isSpaMenuLink(item.link) ? item : null;
-};
-
-export const splitAdminApiNavItems = (items) => {
-  const menuItems = [];
-  const moreMenuItems = [];
-  (items || []).forEach((item) => {
-    if (item.link === "/dashboard") return;
-    if (ADMIN_HORIZONTAL_MAIN_LABELS.has(item.label) && item.subItems?.length) {
-      menuItems.push(item);
-      return;
-    }
-    moreMenuItems.push(item);
-  });
-  return { menuItems, moreMenuItems };
-};
-
-export const RECEPTION_FALLBACK_MENU = [
-  { id: "reception-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
-];
-
-/** Matches Dev RoleDetails for Doctor (no Enquiries, no Family). Used only when GetMenuByRole fails. */
-export const DOCTOR_FALLBACK_MENU = [
-  { id: "doctor-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
-  { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },
-  { id: "doctor-anatomy", label: "Anatomy", icon: "ri-body-scan-line", link: "/doctor/anatomy" },
-  { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
-  { id: "doctor-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
-];
+    .filter(Boolean);
 
 export const PATIENT_FALLBACK_MENU = [
   { id: "family", label: "Family", icon: "ri-group-line", link: "/family" },
@@ -175,7 +70,6 @@ export const PATIENT_FALLBACK_MENU = [
 export const isSpaMenuLink = (link) => {
   if (!link || typeof link !== "string" || link === "/#") return false;
   const path = link.startsWith("/") ? link : `/${link}`;
-  if (path.startsWith("/admin/nav/")) return false;
   return (
     path.startsWith("/admin") ||
     path.startsWith("/account") ||

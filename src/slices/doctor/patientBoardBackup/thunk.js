@@ -194,7 +194,7 @@ export const deletePatientBoardBackup = () => async (dispatch) => {
 
 const shouldOfferBackupOnLogout = (role, sessions = []) => {
   const normalizedRole = resolveUserRole(role) ?? role;
-  if (normalizedRole !== UserRole.DOCTOR) {
+  if (normalizedRole !== UserRole.DOCTOR && normalizedRole !== UserRole.RECEPTION) {
     return false;
   }
   return sessionsHaveBackupWork(sessions);

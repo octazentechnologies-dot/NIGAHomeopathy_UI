@@ -4,10 +4,6 @@ import {
   ACCOUNT_ROUTE_ROLES,
   PHARMACY_ROUTE_ROLES,
   PATIENT_APP_ROUTE_ROLES,
-  DOCTOR_DASHBOARD_ROUTE_ROLES,
-  DOCTOR_CASE_ROUTE_ROLES,
-  DOCTOR_STAFF_ROUTE_ROLES,
-  ADMIN_PORTAL_ROLES,
 } from "../Components/constants/roles";
 import { LANDING_SPLAT_PATH } from "../constants/landingRoutes";
 import LandingLegacyRedirect from "../pages/Landing/HomeoJobLanding/LandingLegacyRedirect";
@@ -404,9 +400,6 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 import UserProfile from "../pages/Authentication/user-profile";
 import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
 import ReceptionStaffPage from "../pages/Doctor/ReceptionStaff/ReceptionStaffPage";
-import ReceptionHome from "../pages/Reception/ReceptionHome";
-import ReceptionSchedule from "../pages/Reception/ReceptionSchedule";
-import ReceptionCasePaper from "../pages/Reception/ReceptionCasePaper";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
 
 import FileManager from "../pages/FileManager";
@@ -565,17 +558,10 @@ const authProtectedRoutes = [
 
   // Doctor Side End //
 
-  { path: "doctordashboard", component: <DoctorDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
-  // CLN-01.02 — one Patient Board. These two paths are aliases, not a second app. No doctor-mobile case-taking.
-  { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
-  // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
-  { path: "patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
-  { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
-  { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
-  { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },
-  { path: "reception", component: <ReceptionHome />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
-  { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
-  { path: "reception/case-paper", component: <ReceptionCasePaper />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctordashboard", component: <DoctorDashboard /> },
+  { path: "doctor/patientboard", component: <PatientBoardRoute /> },
+  { path: "doctor/anatomy", component: <AnatomyPage /> },
+  { path: "doctor/reception-staff", component: <ReceptionStaffPage /> },
 
 
   // Doctor Side End //
@@ -604,7 +590,7 @@ const authProtectedRoutes = [
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },
   { path: "/dashboard", component: <DashboardEcommerce /> },
-  { path: "index", component: <DoctorDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "index", component: <DoctorDashboard /> },
   { path: "/dashboard-crypto", component: <DashboardCrypto /> },
   { path: "/dashboard-projects", component: <DashboardProject /> },
   { path: "/dashboard-nft", component: <DashboardNFT /> },
@@ -810,8 +796,8 @@ const authProtectedRoutes = [
 
   //User Profile
   { path: "/profile", component: <UserProfile /> },
-  { path: "/enquiries", component: <EnquiryInboxPage />, allowedRoles: ADMIN_PORTAL_ROLES },
-  { path: "/admin/enquiries", component: <EnquiryInboxPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "/enquiries", component: <EnquiryInboxPage /> },
+  { path: "/admin/enquiries", component: <EnquiryInboxPage /> },
 
   // Catch-all for authenticated app routes (landing is served from publicRoutes)
   { path: "*", component: <RoleBasedHomeRedirect /> },

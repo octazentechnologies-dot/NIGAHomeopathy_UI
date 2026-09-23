@@ -169,13 +169,10 @@ const DateOfBirthPicker = ({
 
     const selectDate = (date) => {
         if (isDayDisabled(date)) return;
-        const formatted = formatDateValue(date);
-        onChange?.(formatted);
+        onChange?.(formatDateValue(date));
         setViewDate(date.clone());
         setIsOpen(false);
         setView('day');
-        // Wait until the new value is stored, then recheck so a valid day clears the error.
-        setTimeout(() => onBlur?.({ target: { name, value: formatted } }), 0);
     };
 
     const commitTypedDate = (rawValue) => {

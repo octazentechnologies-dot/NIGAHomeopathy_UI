@@ -32,7 +32,6 @@ import ModalActionButton from "../../Components/Common/ModalActionButton";
 import { editProfile, resetProfileFlag } from "../../slices/thunks";
 import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
 import { UserRole } from "../../Components/constants/roles";
-import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import {
   getDoctorProfileMe,
@@ -334,8 +333,6 @@ const UserProfile = () => {
   const [idx, setidx] = useState("1");
   const [userName, setUserName] = useState("Admin");
   const [activeTab, setActiveTab] = useState("clinic");
-  const isReceptionProfile = userData?.role === UserRole.RECEPTION || userData?.Role === UserRole.RECEPTION;
-  const visibleTabs = isReceptionProfile ? PROFILE_TABS.filter((tab) => tab.id === "profile") : PROFILE_TABS;
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(avatar1);
@@ -397,20 +394,7 @@ const UserProfile = () => {
   }, [dispatch, user]);
 
   useEffect(() => {
-    if (isReceptionProfile) setActiveTab("profile");
-  }, [isReceptionProfile]);
-
-  useEffect(() => {
     let cancelled = false;
-    let role = "";
-    try {
-      const stored = JSON.parse(sessionStorage.getItem("authUser") || "{}");
-      const info = stored.data || stored;
-      role = info.role || info.Role || "";
-    } catch {
-      role = "";
-    }
-    if (role === UserRole.RECEPTION || isReceptionProfile) return undefined;
     getDoctorProfileMe()
       .then((payload) => {
         if (cancelled) return;
@@ -1150,7 +1134,7 @@ const UserProfile = () => {
                   className="nav-tabs-custom rounded border-bottom-0 user-profile-page__tabs"
                   role="tablist"
                 >
-                  {visibleTabs.map((tab) => (
+                  {PROFILE_TABS.map((tab) => (
                     <NavItem key={tab.id}>
                       <NavLink
                         className={classnames({ active: activeTab === tab.id })}
@@ -1168,7 +1152,7 @@ const UserProfile = () => {
 
                 <TabContent activeTab={activeTab} className="user-profile-page__tab-content pt-3">
                   <TabPane tabId="profile">
-                    {isReceptionProfile ? <ReceptionProfileFields /> : userData ? (
+                    {userData ? (
                       <>
                         <h5 className="user-profile-page__section-title">
                           <i className="ri-information-line" aria-hidden="true" />

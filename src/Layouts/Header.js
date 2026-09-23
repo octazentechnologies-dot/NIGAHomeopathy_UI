@@ -109,9 +109,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
 
                             {userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION ? (
                                 <div className="d-flex align-items-center header-doctor-session-tools">
-                                    {userRole === UserRole.DOCTOR ? (
-                                        <LastWorkBackupHeaderButton userRole={userRole} />
-                                    ) : null}
+                                    <LastWorkBackupHeaderButton userRole={userRole} />
                                     <ReceptionStaffHeaderButton userRole={userRole} />
                                     <ActivePatientSessionsStack />
                                 </div>
