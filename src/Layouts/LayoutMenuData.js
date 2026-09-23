@@ -1550,7 +1550,7 @@ const Navdata = () => {
         },
     ];
 
-    // SEC-04.02 / FND-02.01 — role-specific menus (fallback only when GetMenuByRole fails)
+    // SEC-04.02 / FND-02.01 — role-specific menus (fallback when GetMenuByRole is empty)
     if (role === UserRole.PATIENT) {
         return (
             <React.Fragment>
@@ -1605,6 +1605,12 @@ const Navdata = () => {
             productionMenuItems = menuItems.slice(0, demoHeaderIdx);
         }
     }
+
+    productionMenuItems = [
+        ...productionMenuItems,
+        { id: "family", label: "Family", icon: "ri-group-line", link: "/family" },
+        { id: "caregiver", label: "Caregiver", icon: "ri-user-heart-line", link: "/caregiver" },
+    ];
 
     return <React.Fragment>{productionMenuItems}</React.Fragment>;
 };

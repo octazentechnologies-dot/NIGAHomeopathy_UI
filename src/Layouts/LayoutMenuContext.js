@@ -9,11 +9,8 @@ import {
 import {
   getAuthUserId,
   mapMenuMasterToNavItems,
-  keepSpaNavItem,
-  splitAdminApiNavItems,
   PATIENT_FALLBACK_MENU,
-  RECEPTION_FALLBACK_MENU,
-  DOCTOR_FALLBACK_MENU,
+  isSpaMenuLink,
 } from '../helpers/menuByRole';
 import { getMenuByRole } from '../helpers/realbackend_helper';
 import { resolveUserRole, UserRole } from '../Components/constants/roles';
@@ -29,32 +26,22 @@ export const LayoutMenuProvider = ({ children }) => {
   const navChildren = Navdata().props.children;
   const role = resolveUserRole();
   const [apiNavItems, setApiNavItems] = useState(null);
-  // idle = not loaded; ok = GetMenuByRole succeeded (including empty []); error = request failed.
-  const [apiMenuStatus, setApiMenuStatus] = useState('idle');
-  const [openIds, setOpenIds] = useState({});
 
   useEffect(() => {
     let cancelled = false;
     const userId = getAuthUserId();
-    if (!userId && role !== UserRole.RECEPTION) {
+    if (!userId) {
       setApiNavItems([]);
-      setApiMenuStatus('idle');
       return undefined;
     }
 
     (async () => {
       try {
-        const raw = await getMenuByRole(userId || 0);
+        const raw = await getMenuByRole(userId);
         const mapped = mapMenuMasterToNavItems(raw);
-        if (!cancelled) {
-          setApiNavItems(mapped);
-          setApiMenuStatus('ok');
-        }
+        if (!cancelled) setApiNavItems(mapped);
       } catch {
-        if (!cancelled) {
-          setApiNavItems([]);
-          setApiMenuStatus('error');
-        }
+        if (!cancelled) setApiNavItems([]);
       }
     })();
 
@@ -62,21 +49,6 @@ export const LayoutMenuProvider = ({ children }) => {
       cancelled = true;
     };
   }, [role]);
-
-  const withDropdownState = (items) =>
-    (items || []).map((item) => {
-      if (!item.subItems?.length) return item;
-      const id = item.id;
-      return {
-        ...item,
-        stateVariables: !!openIds[id],
-        click: (e) => {
-          e.preventDefault();
-          setOpenIds((prev) => ({ ...prev, [id]: !prev[id] }));
-        },
-        subItems: withDropdownState(item.subItems),
-      };
-    });
 
   const { menuItems, moreMenuItems } = useMemo(() => {
     const hardcodedFallback = () => {
@@ -98,72 +70,32 @@ export const LayoutMenuProvider = ({ children }) => {
           moreMenuItems: [],
         };
       }
-      if (role === UserRole.RECEPTION) {
-        return {
-          menuItems: RECEPTION_FALLBACK_MENU,
-          moreMenuItems: [],
-        };
-      }
-      if (role === UserRole.DOCTOR) {
-        return {
-          menuItems: DOCTOR_FALLBACK_MENU,
-          moreMenuItems: [],
-        };
-      }
       return getHorizontalMenuSplit(navChildren);
     };
 
     const fallback = hardcodedFallback();
+    const apiReady = Array.isArray(apiNavItems) && apiNavItems.length > 0;
+    const consumeApiForRole =
+      role === UserRole.ACCOUNT ||
+      role === UserRole.PHARMACY ||
+      role === UserRole.PHARMACY_PARTNER ||
+      role === UserRole.PATIENT ||
+      role === UserRole.DOCTOR ||
+      role === UserRole.ADMIN ||
+      role === UserRole.MANAGEMENT;
 
-    // Source of truth is GetMenuByRole when it succeeds (including empty []).
-    // Hardcoded nav is only a resilience fallback when the API is down or idle.
-    if (apiMenuStatus === 'ok') {
-      const spaItems = (apiNavItems || []).map(keepSpaNavItem).filter(Boolean);
+    if (apiReady && consumeApiForRole) {
       const isAdminRole = role === UserRole.ADMIN || role === UserRole.MANAGEMENT;
-      if (isAdminRole) {
-        const split = splitAdminApiNavItems(spaItems);
-        const main = split.menuItems.length ? split.menuItems : spaItems;
-        const more = split.menuItems.length ? split.moreMenuItems : [];
-        return {
-          menuItems: withDropdownState(main),
-          moreMenuItems: withDropdownState(more),
-        };
+      const menuItems = isAdminRole
+        ? apiNavItems.filter((item) => isSpaMenuLink(item.link))
+        : apiNavItems;
+      const minItems = isAdminRole ? 3 : 1;
+      if (menuItems.length >= minItems) {
+        return { menuItems, moreMenuItems: [] };
       }
-      // Doctor chrome hides the sidebar. Extra UserDetails menus (Tufan_Doctor
-      // has every ShowInMainMenu item) use the existing topbar More dropdown.
-      if (role === UserRole.DOCTOR) {
-        const coreLinks = new Set([
-          '/doctordashboard',
-          '/doctor/patientboard',
-          '/doctor/anatomy',
-          '/doctor/reception-staff',
-          '/profile',
-        ]);
-        const core = [];
-        const extra = [];
-        const seenExtra = new Set();
-        spaItems.forEach((item) => {
-          const link = String(item.link || '').toLowerCase();
-          if (coreLinks.has(link)) {
-            core.push(item);
-            return;
-          }
-          if (seenExtra.has(link)) return;
-          seenExtra.add(link);
-          extra.push(item);
-        });
-        return {
-          menuItems: withDropdownState(core.length ? core : spaItems),
-          moreMenuItems: withDropdownState(extra),
-        };
-      }
-      return { menuItems: withDropdownState(spaItems), moreMenuItems: [] };
     }
-    return {
-      menuItems: withDropdownState(fallback.menuItems),
-      moreMenuItems: withDropdownState(fallback.moreMenuItems),
-    };
-  }, [navChildren, role, apiNavItems, apiMenuStatus, openIds]);
+    return fallback;
+  }, [navChildren, role, apiNavItems]);
 
   return (
     <LayoutMenuContext.Provider value={{ navChildren, menuItems, moreMenuItems }}>

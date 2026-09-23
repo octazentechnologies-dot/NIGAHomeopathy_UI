@@ -1,6 +1,5 @@
 import axios from "axios";
 import { api } from "../config";
-import { reportClientIssue } from "./client_error_reporter";
 
 // Helper function to get current auth user
 const getCurrentAuthUser = () => {
@@ -57,17 +56,9 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
       let message;
       const status = error.response?.status;
       switch (status) {
-        case 500: {
-          const data = error.response?.data;
-          if (typeof data === "string" && data.trim()) {
-            message = data;
-          } else if (data?.message) {
-            message = data.message;
-          } else {
-            message = "Internal Server Error";
-          }
+        case 500:
+          message = "Internal Server Error";
           break;
-        }
         case 401:
           message = error.response?.data?.message || "Invalid username or password";
           break;
@@ -92,18 +83,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
           message = error.message || error;
       }
       console.error("API Error:", error);
-      const reqUrl = error.config?.url || error.config?.baseURL || "";
-      const statusCode = status || 0;
-      if (statusCode !== 401 && statusCode !== 0) {
-        reportClientIssue({
-          source: "axios",
-          url: reqUrl,
-          status: statusCode,
-          method: error.config?.method,
-          message: String(message || error.message || "API error"),
-          stack: error.stack || "",
-        });
-      }
       return Promise.reject(message);
     }
   );

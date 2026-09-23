@@ -18,7 +18,6 @@ import {
     canOpenPatientSession,
     showPatientSessionLimitAlert,
 } from '../../../helpers/patientBoardSessionHelper';
-import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
 import CaseTakingModeModal from '../../../Components/CaseTaking/CaseTakingModeModal';
 import {
     getAppointmentList,
@@ -34,7 +33,6 @@ import { buildPatientApiPayload, getPatientAuthContext, getPatientEmailForEdit }
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
-import AppointmentChangeActions from './AppointmentChangeActions';
 import {
   normalizeAppointmentSlotsResponse,
   formatSlotIntervalLabel,
@@ -74,7 +72,8 @@ import img6 from "../../../assets/images/small/img-6.jpg";
 import img7 from "../../../assets/images/small/img-7.jpg";
 import img8 from "../../../assets/images/small/img-8.jpg";
 
-const IS_ADD_CASE_NOTES_ENABLED = true;
+/** Set to true when Add Case Notes action should be enabled again. */
+const IS_ADD_CASE_NOTES_ENABLED = false;
 
 const PatientDashboardActionButton = ({
     id,
@@ -283,9 +282,6 @@ const AppointmentTimeCell = ({
                         <i className="ri-user-3-line" aria-hidden="true" />
                         <span>{patientName}</span>
                     </div>
-                    <p className="text-muted small mb-3">
-                        This adjusts the time on the day list only. It does not notify the patient. Reschedule is the path that records the change for the patient.
-                    </p>
                     <div className="row g-3 mb-3">
                         <div className="col-md-6">
                             <Label className="form-label appointment-time-edit-modal__label">
@@ -701,11 +697,7 @@ const BestSellingProducts = () => {
     const [savingCaseNote, setSavingCaseNote] = useState(false);
 
     const getPatientAppointmentId = (patient) =>
-        patient?.appointmentId
-        || patient?.patientAppId
-        || patient?.patientAppID
-        || patient?.PatientAppId
-        || null;
+        patient?.appointmentId || patient?.id || patient?.patientAppId || null;
 
     const convertHtmlToEditorState = (html) => {
         if (!html) {
@@ -889,85 +881,21 @@ const BestSellingProducts = () => {
 
     // Add Case Notes modal state
     const [addCaseModalOpen, setAddCaseModalOpen] = useState(false);
-    const [savingAddCaseNote, setSavingAddCaseNote] = useState(false);
-    const [selectedPatientForAddCase, setSelectedPatientForAddCase] = useState(null);
     const [addCaseForm, setAddCaseForm] = useState({
         patientName: '',
         prescriptionType: 'New Prescription',
-        notes: ''
+        notes: '<p>Enter case notes here...</p>'
     });
 
     const openAddCaseModal = (patient) => {
-        if (isReceptionUser) return;
-        setSelectedPatientForAddCase(patient);
         setAddCaseForm({
             patientName: patient?.name || '',
             prescriptionType: 'New Prescription',
-            notes: ''
+            notes: '<p>Enter case notes here...</p>'
         });
         setAddCaseModalOpen(true);
     };
-    const closeAddCaseModal = () => {
-        setAddCaseModalOpen(false);
-        setSavingAddCaseNote(false);
-        setSelectedPatientForAddCase(null);
-    };
-
-    const handleSaveAddCaseNote = async () => {
-        const appointmentId = getPatientAppointmentId(selectedPatientForAddCase);
-        const notesHtml = String(addCaseForm.notes || '').trim();
-        const stripped = notesHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-        if (!appointmentId) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Warning',
-                text: 'Appointment ID is missing for this patient.',
-                confirmButtonColor: '#000000',
-            });
-            return;
-        }
-        if (!stripped) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Warning',
-                text: 'Please enter case notes before saving.',
-                confirmButtonColor: '#000000',
-            });
-            return;
-        }
-        const typeLine = addCaseForm.prescriptionType
-            ? `<p><strong>${addCaseForm.prescriptionType}</strong></p>`
-            : '';
-        const historyNote = `${typeLine}${notesHtml}`.endsWith('\n')
-            ? `${typeLine}${notesHtml}`
-            : `${typeLine}${notesHtml}\n`;
-        try {
-            setSavingAddCaseNote(true);
-            await dispatch(saveUpdateAppointmentHistoryNote({
-                historyId: 0,
-                appointmentId: String(appointmentId),
-                historyNote,
-            }));
-            Swal.fire({
-                icon: 'success',
-                title: 'Saved',
-                text: 'Case notes saved successfully.',
-                confirmButtonColor: '#000000',
-                timer: 2000,
-                showConfirmButton: false,
-            });
-            closeAddCaseModal();
-        } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Save failed',
-                text: typeof error === 'string' ? error : error?.message || 'Could not save case notes.',
-                confirmButtonColor: '#000000',
-            });
-        } finally {
-            setSavingAddCaseNote(false);
-        }
-    };
+    const closeAddCaseModal = () => setAddCaseModalOpen(false);
 
     // Helper function to calculate age (years, months, days) from date of birth
     const calculateAgeYMD = (dateOfBirth) => {
@@ -1831,27 +1759,15 @@ const BestSellingProducts = () => {
                     <div className="dashboard-patient-actions-bar">
                         <div className="dashboard-patient-actions-section dashboard-patient-actions-section--history">
                             <PatientDashboardActionGroup>
-                        <AppointmentChangeActions
-                            patientAppId={getPatientAppointmentId(patient)}
-                            doctorId={patient.doctorId || patient.doctorID}
-                            appointmentDate={selectedAppointmentDate}
-                            onChanged={() => loadAppointmentListForDate(selectedAppointmentDate)}
-                        />
                         <PatientDashboardActionButton
                             id={`${idPrefix}-addcase-${patient.id}`}
                             icon="ri-file-add-line"
                             label="Add Case"
                             btnClass="btn-soft-warning"
-                            disabled={!IS_ADD_CASE_NOTES_ENABLED || isReceptionUser || !getPatientAppointmentId(patient)}
-                            tooltip={
-                                isReceptionUser
-                                    ? 'Add Case Notes (disabled for reception)'
-                                    : !getPatientAppointmentId(patient)
-                                        ? 'Add Case Notes (no appointment on this row)'
-                                        : 'Add Case Notes'
-                            }
+                            disabled={!IS_ADD_CASE_NOTES_ENABLED}
+                            tooltip={IS_ADD_CASE_NOTES_ENABLED ? 'Add Case Notes' : 'Add Case Notes (temporarily unavailable)'}
                             onClick={() => {
-                                if (IS_ADD_CASE_NOTES_ENABLED && !isReceptionUser) {
+                                if (IS_ADD_CASE_NOTES_ENABLED) {
                                     openAddCaseModal(patient);
                                 }
                             }}
@@ -1901,10 +1817,8 @@ const BestSellingProducts = () => {
                                 btnClass="btn-soft-success"
                                 tooltip="Chat on WhatsApp"
                                 onClick={() => {
-                                    const number = patientDialNumber(patient.mobileNo);
                                     Swal.fire({
-                                        title: `WhatsApp ${number}`,
-                                        text: 'Are you sure want to connect with whatsapp chat?',
+                                        title: 'Are you sure want to connect with whatsapp chat?',
                                         icon: 'warning',
                                         showCancelButton: true,
                                         confirmButtonColor: '#0ab39c',
@@ -1915,7 +1829,16 @@ const BestSellingProducts = () => {
                                         hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                                     }).then((result) => {
                                         if (result.isConfirmed) {
-                                            window.open(patientWhatsAppHref(patient.mobileNo), '_blank', 'noopener,noreferrer');
+                                            Swal.fire({
+                                                title: 'Processing wait..',
+                                                allowOutsideClick: false,
+                                                didOpen: () => {
+                                                    Swal.showLoading();
+                                                }
+                                            });
+                                            setTimeout(() => {
+                                                Swal.close();
+                                            }, 1200);
                                         }
                                     });
                                 }}
@@ -1927,9 +1850,8 @@ const BestSellingProducts = () => {
                                 btnClass="btn-soft-info"
                                 tooltip="Call Patient"
                                 onClick={() => {
-                                    const number = patientDialNumber(patient.mobileNo);
                                     Swal.fire({
-                                        title: number,
+                                        title: patient.mobileNo ? `+91 - ${patient.mobileNo}` : '+91 - 987 654 XXXX',
                                         text: 'Are you sure to call person directly?',
                                         icon: 'warning',
                                         showCancelButton: true,
@@ -1941,7 +1863,16 @@ const BestSellingProducts = () => {
                                         hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                                     }).then((result) => {
                                         if (result.isConfirmed) {
-                                            window.location.href = patientCallHref(patient.mobileNo);
+                                            Swal.fire({
+                                                title: 'Processing wait..',
+                                                allowOutsideClick: false,
+                                                didOpen: () => {
+                                                    Swal.showLoading();
+                                                }
+                                            });
+                                            setTimeout(() => {
+                                                Swal.close();
+                                            }, 1200);
                                         }
                                     });
                                 }}
@@ -1953,10 +1884,8 @@ const BestSellingProducts = () => {
                                 btnClass="btn-soft-dark"
                                 tooltip="WhatsApp Video Call"
                                 onClick={() => {
-                                    const number = patientDialNumber(patient.mobileNo);
                                     Swal.fire({
-                                        title: `WhatsApp video ${number}`,
-                                        text: 'Are you sure want to connect with whatsapp video call?',
+                                        title: 'Are you sure want to connect with whatsapp video call?',
                                         icon: 'warning',
                                         showCancelButton: true,
                                         confirmButtonColor: '#299cdb',
@@ -1967,7 +1896,16 @@ const BestSellingProducts = () => {
                                         hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                                     }).then((result) => {
                                         if (result.isConfirmed) {
-                                            window.open(patientWhatsAppHref(patient.mobileNo), '_blank', 'noopener,noreferrer');
+                                            Swal.fire({
+                                                title: 'Processing wait..',
+                                                allowOutsideClick: false,
+                                                didOpen: () => {
+                                                    Swal.showLoading();
+                                                }
+                                            });
+                                            setTimeout(() => {
+                                                Swal.close();
+                                            }, 1200);
                                         }
                                     });
                                 }}
@@ -2156,25 +2094,19 @@ const BestSellingProducts = () => {
                     width: 6.25rem;
                 }
                 .dashboard-patient-table .dashboard-patient-col-apptime {
-                    width: 10.5rem;
-                    min-width: 10.5rem;
-                    padding-left: 0.7rem !important;
-                    padding-right: 0.85rem !important;
+                    width: 4.4rem;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.2rem !important;
                 }
                 .dashboard-patient-table .dashboard-patient-col-actions-combined {
-                    width: 16rem;
-                    min-width: 16rem;
-                    padding-left: 0.85rem !important;
-                    padding-right: 0.7rem !important;
-                }
-                .dashboard-patient-table--today {
-                    table-layout: auto;
-                    width: max-content;
-                    min-width: 100%;
+                    width: 12.5rem;
+                    min-width: 12.5rem;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.3rem !important;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-actions-combined {
-                    width: auto;
-                    min-width: 26rem;
+                    width: 18.5rem;
+                    min-width: 18.5rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-name {
                     width: 20%;
@@ -2197,10 +2129,9 @@ const BestSellingProducts = () => {
                     width: 5.75rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-apptime {
-                    width: 10.5rem;
-                    min-width: 10.5rem;
-                    padding-left: 0.7rem !important;
-                    padding-right: 0.85rem !important;
+                    width: 4.4rem;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.2rem !important;
                 }
                 .dashboard-patient-actions-header span {
                     flex: 1 1 0;
@@ -2209,14 +2140,11 @@ const BestSellingProducts = () => {
                     white-space: nowrap;
                 }
                 .dashboard-patient-table--today .dashboard-patient-actions-section--history,
-                .dashboard-patient-table--today .dashboard-patient-actions-header__history {
-                    flex: 0 0 auto;
-                    min-width: max-content;
-                }
                 .dashboard-patient-table--today .dashboard-patient-actions-section--connect,
+                .dashboard-patient-table--today .dashboard-patient-actions-header__history,
                 .dashboard-patient-table--today .dashboard-patient-actions-header__connect {
-                    flex: 0 0 auto;
-                    min-width: 6.5rem;
+                    flex: 1.4 1 0;
+                    min-width: 5.75rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-actions-section--followup,
                 .dashboard-patient-table--today .dashboard-patient-actions-header__followup {
@@ -2232,15 +2160,8 @@ const BestSellingProducts = () => {
                 .dashboard-patient-actions-bar {
                     display: flex;
                     align-items: center;
-                    justify-content: flex-start;
-                    gap: 0.85rem;
-                }
-                .dashboard-appointment-text-btn {
-                    margin: 0 !important;
-                    padding: 0.12rem 0.4rem !important;
-                    font-size: 0.68rem !important;
-                    line-height: 1.2 !important;
-                    white-space: nowrap;
+                    justify-content: space-between;
+                    gap: 0.35rem;
                 }
                 .dashboard-patient-actions-section {
                     flex: 1 1 0;
@@ -2253,7 +2174,7 @@ const BestSellingProducts = () => {
                     align-items: center;
                     justify-content: center;
                     flex-wrap: nowrap;
-                    gap: 0.35rem !important;
+                    gap: 0.12rem !important;
                     width: auto !important;
                     max-width: 100%;
                 }
@@ -2383,8 +2304,8 @@ const BestSellingProducts = () => {
                 }
                 .appointment-time-cell {
                     display: inline-grid;
-                    grid-template-columns: max-content 1.1rem;
-                    column-gap: 0.2rem;
+                    grid-template-columns: 7.5ch 1.1rem;
+                    column-gap: 0;
                     align-items: center;
                     justify-items: start;
                     line-height: 1;
@@ -2396,10 +2317,11 @@ const BestSellingProducts = () => {
                     font-size: 0.6875rem;
                     line-height: 1;
                     display: block;
-                    width: auto;
-                    min-width: 6.2rem;
+                    width: 100%;
+                    min-width: 0;
                     white-space: nowrap;
-                    overflow: visible;
+                    overflow: hidden;
+                    text-overflow: clip;
                     letter-spacing: 0;
                 }
                 .appointment-time-edit-btn.edit-item-btn {
@@ -2932,24 +2854,13 @@ const BestSellingProducts = () => {
                         </div>
                         <div className="col-12">
                             <label className="form-label">Notes</label>
-                            <CKEditor
-                                key={selectedPatientForAddCase?.patientAppId || selectedPatientForAddCase?.id || 'add-case'}
-                                editor={ClassicEditor}
-                                data={addCaseForm.notes}
-                                onChange={(event, editor) => setAddCaseForm({ ...addCaseForm, notes: editor.getData() })}
-                            />
+                            <CKEditor editor={ClassicEditor} data={addCaseForm.notes} onChange={(event, editor) => setAddCaseForm({ ...addCaseForm, notes: editor.getData() })} />
                         </div>
                     </div>
                 </ModalBody>
                 <ModalFooter>
-                    <ModalActionButton action="cancel" onClick={closeAddCaseModal} disabled={savingAddCaseNote} />
-                    <ModalActionButton
-                        action="save"
-                        onClick={handleSaveAddCaseNote}
-                        disabled={savingAddCaseNote}
-                        loading={savingAddCaseNote}
-                        loadingLabel="Saving..."
-                    />
+                    <ModalActionButton action="cancel" onClick={closeAddCaseModal} />
+                    <ModalActionButton action="save" onClick={closeAddCaseModal} />
                 </ModalFooter>
             </Modal>
 

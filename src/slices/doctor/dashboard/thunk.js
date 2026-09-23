@@ -59,7 +59,6 @@ import {
     saveUpdateAppointmentHistoryNote as saveUpdateAppointmentHistoryNoteApi,
     updateAppointmentStatus as updateAppointmentStatusApi
 } from '../../../helpers/realbackend_helper';
-import { getAuthUserId as readSessionUserId } from '../../../helpers/menuByRole';
 
 export const fetchDoctorDashboardCounts = (payload) => async (dispatch) => {
     try {
@@ -250,24 +249,23 @@ export const updateAppointmentStatus = (payload) => async (dispatch) => {
     }
 };
 
-const unwrapPatientStatsCharts = (response) => {
-    if (!response) return response;
-    if (response.pieChart || response.PieChart) return response;
-    const nested = response.data || response.resultObject || response.Data || response.ResultObject;
-    if (nested && (nested.pieChart || nested.PieChart)) return nested;
-    return response;
+const getAuthUserId = () => {
+    try {
+        const auth = JSON.parse(sessionStorage.getItem('authUser'));
+        return auth?.userId || auth?.user?.userId || auth?.user?.id;
+    } catch {
+        return null;
+    }
 };
 
 export const fetchPatientStatsCharts = (payload) => async (dispatch, getState) => {
     const period = payload?.period || 'ALL';
     const fromDate = payload?.fromDate || null;
     const toDate = payload?.toDate || null;
-    const userId = payload?.userId || readSessionUserId();
+    const userId = payload?.userId || getAuthUserId();
 
     if (!userId) {
-        const missing = 'userId is required to load patient stats.';
-        dispatch(setPatientStatsChartsError(missing));
-        throw new Error(missing);
+        return;
     }
 
     const cacheKey = payload?.cacheKey
@@ -280,9 +278,7 @@ export const fetchPatientStatsCharts = (payload) => async (dispatch, getState) =
 
     try {
         dispatch(setPatientStatsChartsLoading(true));
-        const response = unwrapPatientStatsCharts(
-            await getPatientStatsChartsApi({ userId, period, fromDate, toDate })
-        );
+        const response = await getPatientStatsChartsApi({ userId, period, fromDate, toDate });
         dispatch(setPatientStatsCharts({ cacheKey, data: response }));
         dispatch(setPatientStatsChartsError(null));
         return response;

@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './helpers/swalMessageIcon';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from "react-router-dom";
@@ -8,33 +7,9 @@ import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from "./slices";
 import ErrorBoundary from "./Components/Common/ErrorBoundary";
-import { reportClientIssue } from "./helpers/client_error_reporter";
 
 console.log("🚀 Initializing Niga Homeopathy App...");
 console.log("Environment:", process.env.NODE_ENV);
-
-window.onerror = function (message, source, lineno, colno, error) {
-  reportClientIssue({
-    source: "window",
-    url: source || window.location.href,
-    status: 500,
-    method: "CLIENT",
-    message: String(message || "window.onerror"),
-    stack: error && error.stack ? error.stack : "line " + lineno + " col " + colno,
-  });
-};
-
-window.addEventListener("unhandledrejection", function (event) {
-  const reason = event && event.reason;
-  reportClientIssue({
-    source: "window",
-    url: window.location.href,
-    status: 500,
-    method: "CLIENT",
-    message: reason && reason.message ? reason.message : String(reason || "unhandledrejection"),
-    stack: reason && reason.stack ? reason.stack : "",
-  });
-});
 
 const store = configureStore({ reducer: rootReducer, devTools: true });
 

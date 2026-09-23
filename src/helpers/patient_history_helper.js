@@ -1,31 +1,11 @@
 /** Normalize list payloads from various API response shapes. */
 export const extractApiList = (data) => {
     if (Array.isArray(data)) return data;
-    const nested =
-        data?.resultObject ??
-        data?.ResultObject ??
-        data?.data ??
-        data?.Data ??
-        data?.items ??
-        data?.Items;
-    if (Array.isArray(nested)) return nested;
-    if (Array.isArray(nested?.items)) return nested.items;
-    if (Array.isArray(nested?.Items)) return nested.Items;
-    if (Array.isArray(nested?.resultObject)) return nested.resultObject;
-    if (Array.isArray(nested?.ResultObject)) return nested.ResultObject;
+    if (Array.isArray(data?.resultObject)) return data.resultObject;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.items)) return data.items;
     return [];
 };
-
-/** PatientAppointment list items use PatientAppId, not AppointmentId. */
-export const getAppointmentIdFromRow = (appointment) =>
-    appointment?.patientAppId
-    ?? appointment?.PatientAppId
-    ?? appointment?.patientAppID
-    ?? appointment?.appointmentId
-    ?? appointment?.AppointmentId
-    ?? appointment?.patientAppointmentId
-    ?? appointment?.PatientAppointmentId
-    ?? null;
 
 export const extractPrescriptionResultObject = (data) => {
     if (data?.resultObject && typeof data.resultObject === 'object') {
@@ -38,15 +18,14 @@ export const getPatientIdFromRow = (patient) =>
     patient?.patientID ?? patient?.patientId ?? null;
 
 export const formatAppointmentAccordionTitle = (appointment) => {
-    const date = appointment?.appointmentDate ?? appointment?.AppointmentDate ?? '';
-    const time = appointment?.appointmentTime ?? appointment?.AppointmentTime ?? '';
-    const statusValue = appointment?.status ?? appointment?.Status ?? '';
-    const status = statusValue ? ` (${statusValue})` : '';
+    const date = appointment?.appointmentDate ?? '';
+    const time = appointment?.appointmentTime ?? '';
+    const status = appointment?.status ? ` (${appointment.status})` : '';
     const payment = appointment?.paymentStatus ?? appointment?.PaymentStatus ?? '';
     const paymentBadge = payment ? ` [${payment}]` : ' [Payment pending]';
     if (date && time) return `${date} : ${time}${status}${paymentBadge}`;
     if (date) return `${date}${status}${paymentBadge}`;
-    return `Appointment${status}${paymentBadge}`;
+    return `Appointment${status}${paymentBadge}` || 'Appointment';
 };
 
 /**
