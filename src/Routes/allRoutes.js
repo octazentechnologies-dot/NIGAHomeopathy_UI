@@ -1,12 +1,8 @@
 import React from "react";
 import RoleBasedHomeRedirect from "../Components/Common/RoleBasedHomeRedirect";
-import {
-  ACCOUNT_ROUTE_ROLES,
-  PHARMACY_ROUTE_ROLES,
-  PATIENT_APP_ROUTE_ROLES,
-} from "../Components/constants/roles";
 import { LANDING_SPLAT_PATH } from "../constants/landingRoutes";
 import LandingLegacyRedirect from "../pages/Landing/HomeoJobLanding/LandingLegacyRedirect";
+
 //Admin Start
 import AdminDashboard from "../pages/Admin/Dashboard";
 
@@ -158,8 +154,6 @@ import AccountDashboard from "../pages/Account/Dashboard";
 import AccountComingSoon from "../pages/Account/components/AccountComingSoon";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
-import FamilyMembers from "../pages/Family/FamilyMembers";
-import CaregiverAccess from "../pages/Family/CaregiverAccess";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -349,12 +343,8 @@ import APIKey from "../pages/APIKey/index";
 //login
 import Login from "../pages/Authentication/Login";
 import ForgetPasswordPage from "../pages/Authentication/ForgetPassword";
-import ResetPassword from "../pages/Authentication/ResetPassword";
 import Logout from "../pages/Authentication/Logout";
 import Register from "../pages/Authentication/Register";
-import RegisterPendingPage from "../pages/Authentication/RegisterPendingPage";
-import RegisterStatusPage from "../pages/Authentication/RegisterStatusPage";
-import ActivateAccount from "../pages/Authentication/ActivateAccount";
 
 //Charts
 import LineCharts from "../pages/Charts/ApexCharts/LineCharts";
@@ -398,8 +388,6 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 
 // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
-import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
-import ReceptionStaffPage from "../pages/Doctor/ReceptionStaff/ReceptionStaffPage";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
 
 import FileManager from "../pages/FileManager";
@@ -561,31 +549,27 @@ const authProtectedRoutes = [
   { path: "doctordashboard", component: <DoctorDashboard /> },
   { path: "doctor/patientboard", component: <PatientBoardRoute /> },
   { path: "doctor/anatomy", component: <AnatomyPage /> },
-  { path: "doctor/reception-staff", component: <ReceptionStaffPage /> },
 
 
   // Doctor Side End //
 
   // Account Side //
-  { path: "accountdashboard", component: <AccountDashboard />, allowedRoles: ACCOUNT_ROUTE_ROLES },
-  { path: "account/ledger", component: <AccountComingSoon title="Ledger" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
-  { path: "account/doctor-earnings", component: <AccountComingSoon title="Doctor Earnings" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
-  { path: "account/payouts", component: <AccountComingSoon title="Payouts" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
-  { path: "account/invoices", component: <AccountComingSoon title="Invoices" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
-  { path: "account/reports", component: <AccountComingSoon title="Reports" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "accountdashboard", component: <AccountDashboard /> },
+  { path: "account/ledger", component: <AccountComingSoon title="Ledger" /> },
+  { path: "account/doctor-earnings", component: <AccountComingSoon title="Doctor Earnings" /> },
+  { path: "account/payouts", component: <AccountComingSoon title="Payouts" /> },
+  { path: "account/invoices", component: <AccountComingSoon title="Invoices" /> },
+  { path: "account/reports", component: <AccountComingSoon title="Reports" /> },
   // Account Side End //
 
   // Pharmacy Side //
-  { path: "pharmacydashboard", component: <PharmacyDashboard />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/onboarding", component: <PharmacyComingSoon title="Onboarding" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/orders", component: <PharmacyComingSoon title="Orders" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/quotes", component: <PharmacyComingSoon title="Quotes" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacydashboard", component: <PharmacyDashboard /> },
+  { path: "pharmacy/onboarding", component: <PharmacyComingSoon title="Onboarding" /> },
+  { path: "pharmacy/orders", component: <PharmacyComingSoon title="Orders" /> },
+  { path: "pharmacy/quotes", component: <PharmacyComingSoon title="Quotes" /> },
+  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" /> },
+  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" /> },
   // Pharmacy Side End //
-
-  { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
-  { path: "caregiver", component: <CaregiverAccess />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },
@@ -796,8 +780,6 @@ const authProtectedRoutes = [
 
   //User Profile
   { path: "/profile", component: <UserProfile /> },
-  { path: "/enquiries", component: <EnquiryInboxPage /> },
-  { path: "/admin/enquiries", component: <EnquiryInboxPage /> },
 
   // Catch-all for authenticated app routes (landing is served from publicRoutes)
   { path: "*", component: <RoleBasedHomeRedirect /> },
@@ -814,12 +796,7 @@ const publicRoutes = [
   { path: "/logout", component: <Logout /> },
   { path: "/login", component: <Login /> },
   { path: "/forgot-password", component: <ForgetPasswordPage /> },
-  { path: "/reset-password", component: <ResetPassword /> },
-  { path: "/reset-password/:token", component: <ResetPassword /> },
   { path: "/register", component: <Register /> },
-  { path: "/register/pending", component: <RegisterPendingPage /> },
-  { path: "/register/status", component: <RegisterStatusPage /> },
-  { path: "/activate", component: <ActivateAccount /> },
 
   //AuthenticationInner pages
   { path: "/auth-signin-basic", component: <BasicSignIn /> },

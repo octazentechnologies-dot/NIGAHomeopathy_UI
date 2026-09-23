@@ -62,9 +62,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
         case 401:
           message = error.response?.data?.message || "Invalid username or password";
           break;
-        case 403:
-          message = error.response?.data?.message || "You are not allowed to do this.";
-          break;
         case 404:
           message = "Sorry! the data you are looking for could not be found";
           break;

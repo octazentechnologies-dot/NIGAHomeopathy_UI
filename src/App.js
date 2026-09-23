@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 //import Scss
 import './assets/scss/themes.scss';
@@ -9,53 +9,33 @@ installDocumentTitleBrand();
 //imoprt Route
 import Route from './Routes';
 import { ensureMultiSelectGrowStyles } from './helpers/neutralSelectStyles';
-import { getLoggedinUser } from './helpers/api_helper';
 
 ensureMultiSelectGrowStyles();
 
-const PUBLIC_PATH_PREFIXES = [
-  '/login',
-  '/register',
-  '/activate',
-  '/forgot-password',
-  '/reset-password',
-  '/auth',
-  '/find-doctor',
-  '/book',
-  '/privacy',
-  '/terms',
-  '/landing',
-  '/pricing',
-  '/about',
-  '/contact',
-  '/blog',
-  '/news',
-  '/features',
-  '/account',
-];
+// Import Firebase Configuration file
+// import { initFirebaseBackend } from "./helpers/firebase_helper";
 
-function isPublicPath(pathname) {
-  const path = String(pathname || '/').toLowerCase();
-  if (path === '/' || path === '') return true;
-  return PUBLIC_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
-}
+// Fake Backend 
+import fakeBackend from "./helpers/AuthType/fakeBackend";
+
+// Activating fake backend
+fakeBackend();
+
+// const firebaseConfig = {
+//   apiKey: process.env.REACT_APP_APIKEY,
+//   authDomain: process.env.REACT_APP_AUTHDOMAIN,
+//   databaseURL: process.env.REACT_APP_DATABASEURL,
+//   projectId: process.env.REACT_APP_PROJECTID,
+//   storageBucket: process.env.REACT_APP_STORAGEBUCKET,
+//   messagingSenderId: process.env.REACT_APP_MESSAGINGSENDERID,
+//   appId: process.env.REACT_APP_APPID,
+//   measurementId: process.env.REACT_APP_MEASUREMENTID,
+// };
+
+// // init firebase backend
+// initFirebaseBackend(firebaseConfig);
 
 function App() {
-  useEffect(() => {
-    const bounceIfLoggedOut = () => {
-      const token = getLoggedinUser()?.token;
-      if (token) return;
-      if (isPublicPath(window.location.pathname)) return;
-      window.location.replace('/login');
-    };
-    window.addEventListener('pageshow', bounceIfLoggedOut);
-    window.addEventListener('popstate', bounceIfLoggedOut);
-    return () => {
-      window.removeEventListener('pageshow', bounceIfLoggedOut);
-      window.removeEventListener('popstate', bounceIfLoggedOut);
-    };
-  }, []);
-
   return (
     <React.Fragment>
       <Route />

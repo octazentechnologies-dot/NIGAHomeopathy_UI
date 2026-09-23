@@ -8,7 +8,6 @@ import { landingPath } from "../../../constants/landingRoutes";
 
 const NAV_ITEMS = [
     { path: landingPath(), label: "Home", end: true },
-    { path: landingPath("book"), label: "Book" },
     { path: landingPath("about"), label: "About" },
     { path: landingPath("features"), label: "Features" },
     { path: landingPath("pricing"), label: "Pricing" },

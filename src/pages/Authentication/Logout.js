@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import React, { useEffect } from "react";
+import { Navigate } from "react-router-dom";
 
 import { logoutWithBackupPrompt } from "../../slices/thunks";
 
@@ -27,16 +28,14 @@ const Logout = (props) => {
       if (!loggedOut) {
         const fallbackPath = getHomeDashboardPath(userProfile?.role) || "/doctordashboard";
         props.router.navigate(fallbackPath, { replace: true });
-        return;
       }
-      window.location.replace("/login");
     };
 
     performLogout();
   }, [dispatch, props.router, userProfile?.role]);
 
   if (isUserLogout) {
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   return <></>;

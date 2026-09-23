@@ -20,7 +20,7 @@ import withRouter from "../../Components/Common/withRouter";
 import * as Yup from "yup";
 import { useFormik } from "formik";
 import { loginUser, resetLoginFlag } from "../../slices/thunks";
-import { activateUser, activateByToken } from "../../helpers/realbackend_helper";
+import { activateUser } from "../../helpers/realbackend_helper";
 import { createSelector } from "reselect";
 import { pageTitle } from "../../common/brand";
 import logoDark from "../../assets/images/logo-dark.png";
@@ -48,27 +48,18 @@ const Login = (props) => {
 
   useEffect(() => {
     const encryptedUserId = searchParams.get("UserId");
-    const token = searchParams.get("token");
-    if (!encryptedUserId && !token) return undefined;
+    if (!encryptedUserId) return;
 
     let cancelled = false;
-    const run = encryptedUserId
-      ? activateUser({ encryptedUserId })
-      : activateByToken({ token });
-    run
+    activateUser({ encryptedUserId })
       .then(() => {
         if (!cancelled) {
           setActivationNotice("Your account is activated. Please sign in to continue.");
         }
       })
-      .catch((err) => {
+      .catch(() => {
         if (!cancelled) {
-          const expired = err?.response?.status === 410;
-          setActivationNotice(
-            expired
-              ? "This activation link expired (48 hours). Open /activate to request a new email."
-              : "If your account is already active, you can sign in below. If the link expired, request a new activation email."
-          );
+          setActivationNotice("If your account is already active, you can sign in below.");
         }
       });
 

@@ -22,8 +22,7 @@ const Sidebar = ({ layoutType }) => {
   const moreMenuInTopbar =
     usesAdminDashboardLayout(role) &&
     role !== UserRole.ACCOUNT &&
-    role !== UserRole.PHARMACY &&
-    role !== UserRole.PHARMACY_PARTNER;
+    role !== UserRole.PHARMACY;
 
   useEffect(() => {
     var verticalOverlay = document.getElementsByClassName("vertical-overlay");

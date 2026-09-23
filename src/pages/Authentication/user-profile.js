@@ -33,16 +33,6 @@ import { editProfile, resetProfileFlag } from "../../slices/thunks";
 import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
 import { UserRole } from "../../Components/constants/roles";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
-import {
-  getDoctorProfileMe,
-  updateDoctorProfileMe,
-  uploadDoctorProfilePhoto,
-  getDoctorCredentialsMe,
-  uploadDoctorCredentialDocument,
-  getAvailabilityMe,
-  updateAvailabilityMe,
-  confirmMobileAgainstProfile,
-} from "../../helpers/realbackend_helper";
 
 const PROFILE_TABS = [
   { id: "profile", label: "Profile" },
@@ -143,7 +133,6 @@ const EMPTY_QUALIFICATION_FORM = {
   year: "",
   documentName: "",
   documentUrl: "",
-  documentFile: null,
 };
 
 const INITIAL_QUALIFICATIONS = [
@@ -249,61 +238,6 @@ const INITIAL_CONSULTATION_MODE = {
   both: false,
 };
 
-const amPmToHms = (value) => {
-  const raw = String(value || "").trim();
-  const hhmm = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if (hhmm) {
-    return `${String(Number(hhmm[1])).padStart(2, "0")}:${hhmm[2]}:${hhmm[3] || "00"}`;
-  }
-  const ampm = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!ampm) return "10:00:00";
-  let hour = Number(ampm[1]);
-  const minute = ampm[2];
-  const period = ampm[3].toUpperCase();
-  if (period === "PM" && hour !== 12) hour += 12;
-  if (period === "AM" && hour === 12) hour = 0;
-  return `${String(hour).padStart(2, "0")}:${minute}:00`;
-};
-
-const hmsToAmPm = (value) => {
-  const m = String(value || "").match(/^(\d{1,2}):(\d{2})/);
-  if (!m) return "";
-  let hour = Number(m[1]);
-  const minute = m[2];
-  const period = hour >= 12 ? "PM" : "AM";
-  if (hour === 0) hour = 12;
-  else if (hour > 12) hour -= 12;
-  return `${String(hour).padStart(2, "0")}:${minute} ${period}`;
-};
-
-const nextDateForWeekday = (dayId) => {
-  const map = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
-  const target = map[dayId];
-  const now = new Date();
-  const diff = (target - now.getDay() + 7) % 7;
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
-
-const weekdayIdFromDate = (value) => {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][d.getDay()];
-};
-
-const showSaveResult = (ok, text) => {
-  Swal.fire({
-    title: ok ? "Saved!" : "Not saved",
-    text,
-    icon: ok ? "success" : "error",
-    timer: ok ? 1500 : 2500,
-    showConfirmButton: !ok,
-  });
-};
-
 const ProfileBadge = ({ tone = "neutral", children }) => (
   <span className={`user-profile-page__badge user-profile-page__badge--${tone}`}>
     {children}
@@ -337,7 +271,6 @@ const UserProfile = () => {
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(avatar1);
   const [photoFileInputKey, setPhotoFileInputKey] = useState(0);
-  const [photoFile, setPhotoFile] = useState(null);
   const photoInputRef = useRef(null);
   const [qualifications, setQualifications] = useState(INITIAL_QUALIFICATIONS);
   const [qualificationForm, setQualificationForm] = useState(EMPTY_QUALIFICATION_FORM);
@@ -393,105 +326,6 @@ const UserProfile = () => {
     }
   }, [dispatch, user]);
 
-  useEffect(() => {
-    let cancelled = false;
-    getDoctorProfileMe()
-      .then((payload) => {
-        if (cancelled) return;
-        const me = payload?.data ?? payload?.Data ?? payload;
-        if (!me) return;
-        setClinicForm((prev) => ({
-          ...prev,
-          clinicName: me.clinicName || prev.clinicName,
-          addressLine1: me.addressLine1 || prev.addressLine1,
-          addressLine2: me.addressLine2 || prev.addressLine2,
-          city: me.city || prev.city,
-          state: me.state || prev.state,
-          pincode: me.pincode || prev.pincode,
-          contactNumber: me.mobileNo || prev.contactNumber,
-          email: me.emailId || prev.email,
-        }));
-        setUserData((prev) => ({
-          ...prev,
-          firstName: me.firstName || prev.firstName,
-          lastName: me.lastName || prev.lastName,
-          email: me.emailId || prev.email,
-          userName: [me.firstName, me.lastName].filter(Boolean).join(" ").trim() || prev.userName,
-        }));
-        setFeesForm((prev) => ({
-          ...prev,
-          inClinic: {
-            ...prev.inClinic,
-            consultationFee: me.consultFeeInClinic != null ? String(me.consultFeeInClinic) : prev.inClinic.consultationFee,
-          },
-          tele: {
-            ...prev.tele,
-            enabled: me.consultFeeTele != null,
-            consultationFee: me.consultFeeTele != null ? String(me.consultFeeTele) : prev.tele.consultationFee,
-          },
-        }));
-        if (me.kyc) {
-          setBankForm((prev) => ({
-            ...prev,
-            accountHolderName: me.kyc.accountHolder || prev.accountHolderName,
-            bankName: me.kyc.bankName || prev.bankName,
-            accountNumber: me.kyc.accountNumber || prev.accountNumber,
-            confirmAccountNumber: me.kyc.accountNumber || prev.confirmAccountNumber,
-            ifscCode: me.kyc.ifsc || prev.ifscCode,
-          }));
-        }
-      })
-      .catch(() => {});
-    getDoctorCredentialsMe()
-      .then((payload) => {
-        if (cancelled) return;
-        const docs = payload?.data?.documents ?? payload?.data?.Documents ?? [];
-        if (!Array.isArray(docs) || docs.length === 0) return;
-        setQualifications(
-          docs.map((doc, index) => ({
-            id: doc.doctorCredentialDocumentId ?? index + 1,
-            degree: doc.documentType || "Qualification",
-            specialization: "—",
-            institution: "",
-            year: "",
-            documentName: doc.fileName,
-            documentUrl: doc.filePath || "#",
-          }))
-        );
-      })
-      .catch(() => {});
-    getAvailabilityMe()
-      .then((payload) => {
-        if (cancelled) return;
-        const me = payload?.data ?? payload;
-        const rows = me?.weekSchedules ?? me?.WeekSchedules ?? [];
-        if (!Array.isArray(rows) || rows.length === 0) return;
-        setHoursSchedule((prev) => {
-          const next = { ...prev };
-          WEEK_DAYS.forEach((day) => {
-            next[day.id] = { ...next[day.id], available: false, startTime: "", endTime: "" };
-          });
-          rows.forEach((row) => {
-            const id = weekdayIdFromDate(row.scheduleDate || row.ScheduleDate);
-            if (!id) return;
-            const start = hmsToAmPm(row.workStartTime || row.WorkStartTime);
-            const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
-            next[id] = {
-              ...createDefaultHoursDay(),
-              available: true,
-              startTime: start,
-              endTime: end,
-            };
-          });
-          return next;
-        });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const validation = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -530,7 +364,7 @@ const UserProfile = () => {
     }));
   };
 
-  const handleSaveClinic = async (event) => {
+  const handleSaveClinic = (event) => {
     event.preventDefault();
     if (
       !clinicForm.clinicName.trim() ||
@@ -549,38 +383,16 @@ const UserProfile = () => {
       return;
     }
 
-    try {
-      await updateDoctorProfileMe({
-        firstName: userData.firstName || undefined,
-        lastName: userData.lastName || undefined,
-        clinicName: clinicForm.clinicName.trim(),
-        city: clinicForm.city.trim(),
-        addressLine1: clinicForm.addressLine1.trim(),
-        addressLine2: clinicForm.addressLine2.trim(),
-        state: clinicForm.state.trim(),
-        pincode: clinicForm.pincode.trim(),
-        emailId: clinicForm.email.trim(),
-        mobileNo: clinicForm.contactNumber.trim(),
-      });
-      if (clinicForm.contactNumber.trim()) {
-        try {
-          const check = await confirmMobileAgainstProfile({ mobileNo: clinicForm.contactNumber.trim() });
-          const matched = check?.data?.matched ?? check?.data?.Matched;
-          if (matched === false) {
-            showSaveResult(true, "Clinic saved. Mobile was stored; confirm-number now uses this number.");
-            return;
-          }
-        } catch (_) {
-          /* confirm is extra proof, clinic save already succeeded */
-        }
-      }
-      showSaveResult(true, "Clinic information has been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Clinic save failed.");
-    }
+    Swal.fire({
+      title: "Saved!",
+      text: "Clinic information has been updated for Dr. Nikhil Jamdar.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   };
 
-  const handleSaveFees = async (event) => {
+  const handleSaveFees = (event) => {
     event.preventDefault();
     if (!String(feesForm.inClinic.consultationFee || "").trim()) {
       Swal.fire({
@@ -603,15 +415,13 @@ const UserProfile = () => {
       return;
     }
 
-    try {
-      await updateDoctorProfileMe({
-        consultFeeInClinic: Number(feesForm.inClinic.consultationFee),
-        consultFeeTele: feesForm.tele.enabled ? Number(feesForm.tele.consultationFee) : null,
-      });
-      showSaveResult(true, "Consultation fees have been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Fee save failed.");
-    }
+    Swal.fire({
+      title: "Saved!",
+      text: "Consultation fees have been updated for Dr. Nikhil Jamdar.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   };
 
   const handleChangePhotoClick = () => {
@@ -649,7 +459,6 @@ const UserProfile = () => {
     }
 
     const objectUrl = URL.createObjectURL(file);
-    setPhotoFile(file);
     setProfilePhoto((prev) => {
       if (prev && prev !== avatar1 && typeof prev === "string" && prev.startsWith("blob:")) {
         URL.revokeObjectURL(prev);
@@ -675,20 +484,15 @@ const UserProfile = () => {
     });
   };
 
-  const handleSavePhoto = async (event) => {
+  const handleSavePhoto = (event) => {
     event.preventDefault();
-    if (!photoFile) {
-      showSaveResult(true, "No new photo selected.");
-      return;
-    }
-    try {
-      const formData = new FormData();
-      formData.append("file", photoFile);
-      await uploadDoctorProfilePhoto(formData);
-      showSaveResult(true, "Doctor profile photo has been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Photo upload failed.");
-    }
+    Swal.fire({
+      title: "Saved!",
+      text: "Doctor profile photo has been updated.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   };
 
   const updateQualificationField = (field, value) => {
@@ -740,24 +544,19 @@ const UserProfile = () => {
         ...prev,
         documentName: file.name,
         documentUrl: objectUrl,
-        documentFile: file,
       };
     });
   };
 
-  const handleSaveQualifications = async (event) => {
+  const handleSaveQualifications = (event) => {
     event.preventDefault();
-    try {
-      if (qualificationForm.documentFile) {
-        const formData = new FormData();
-        formData.append("file", qualificationForm.documentFile);
-        formData.append("documentType", "Qualification");
-        await uploadDoctorCredentialDocument(formData);
-      }
-      showSaveResult(true, "Qualifications have been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Qualification save failed.");
-    }
+    Swal.fire({
+      title: "Saved!",
+      text: "Qualifications have been updated for Dr. Nikhil Jamdar.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   };
 
   const handleAddOrUpdateQualification = (event) => {
@@ -805,12 +604,6 @@ const UserProfile = () => {
     }
 
     const nextId = qualifications.reduce((max, item) => Math.max(max, item.id), 0) + 1;
-    if (qualificationForm.documentFile) {
-      const formData = new FormData();
-      formData.append("file", qualificationForm.documentFile);
-      formData.append("documentType", "Qualification");
-      uploadDoctorCredentialDocument(formData).catch(() => {});
-    }
     setQualifications((prev) => [
       ...prev,
       {
@@ -984,7 +777,7 @@ const UserProfile = () => {
     });
   };
 
-  const handleSaveHours = async (event) => {
+  const handleSaveHours = (event) => {
     event.preventDefault();
     if (!consultationMode.inClinic && !consultationMode.teleconsultation) {
       Swal.fire({
@@ -997,33 +790,20 @@ const UserProfile = () => {
       return;
     }
 
-    const sourceDay = WEEK_DAYS.map((day) => hoursSchedule[day.id]).find((row) => row?.available && row.startTime && row.endTime) || hoursSchedule.monday;
-    const days = WEEK_DAYS.filter((day) => hoursSchedule[day.id]?.available && hoursSchedule[day.id].startTime && hoursSchedule[day.id].endTime).map((day) => ({
-      scheduleDate: nextDateForWeekday(day.id),
-      workStartTime: amPmToHms(hoursSchedule[day.id].startTime),
-      workEndTime: amPmToHms(hoursSchedule[day.id].endTime),
-      slotIntervalMinutes: 15,
-    }));
-    try {
-      await updateAvailabilityMe({
-        isOnline: Boolean(consultationMode.teleconsultation || consultationMode.both),
-        workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
-        days,
-      });
-      await updateDoctorProfileMe({
-        workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
-      });
-      showSaveResult(true, "Clinic hours have been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Hours save failed.");
-    }
+    Swal.fire({
+      title: "Saved!",
+      text: "Clinic hours have been updated for Dr. Nikhil Jamdar.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   };
 
   const updateBankField = (field, value) => {
     setBankForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveBank = async (event) => {
+  const handleSaveBank = (event) => {
     event.preventDefault();
     if (
       !bankForm.accountHolderName.trim() ||
@@ -1054,19 +834,13 @@ const UserProfile = () => {
       return;
     }
 
-    try {
-      await updateDoctorProfileMe({
-        kyc: {
-          accountHolder: bankForm.accountHolderName.trim(),
-          bankName: bankForm.bankName.trim(),
-          accountNumber: bankForm.accountNumber.trim(),
-          ifsc: bankForm.ifscCode.trim(),
-        },
-      });
-      showSaveResult(true, "Bank details have been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Bank save failed.");
-    }
+    Swal.fire({
+      title: "Saved!",
+      text: "Bank details have been updated for Dr. Nikhil Jamdar.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   };
 
   const renderHoursTimeSelect = (dayId, field, value, disabled) => (
