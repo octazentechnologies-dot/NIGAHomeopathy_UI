@@ -241,10 +241,6 @@ export const LOGIN = "/Account/Login";
 export const SUBSCRIPTION_STATUS = "/Account/SubscriptionStatus";
 export const CHECK_ACTIVATION = "/users/ActivateUser";
 export const REGISTER_DOCTOR = "/users/RegisterDoctor";
-export const REGISTER_DOCTOR_WITH_DOCS = "/users/RegisterDoctorWithDocuments";
-export const REGISTER_STATUS = "/users/RegistrationStatus";
-export const ACTIVATE_BY_TOKEN = "/users/ActivateByToken";
-export const RESEND_ACTIVATION = "/users/ResendActivation";
 export const REGISTRATION_COUNTRIES = "/registration/countries";
 export const REGISTRATION_STATES = "/registration/states";
 export const REGISTRATION_QUALIFICATIONS = "/registration/qualifications";
@@ -583,38 +579,3 @@ export const RUBRIC_INTELLIGENCE_REPERTORY_STATUS = "/AudioCaseIntelligence/repe
 /* Rubric intelligence admin */
 export const RUBRIC_INTELLIGENCE_METAPHORS = "/AudioCaseIntelligence/admin/metaphors";
 export const RUBRIC_INTELLIGENCE_ALIASES = "/AudioCaseIntelligence/admin/aliases";
-
-/* M02 W0 — Admin ACL probe (New-API only) */
-export const ADMIN_ACL_ME = "/AdminAcl/me";
-export const ADMIN_ACL_PING = "/AdminAcl/ping";
-export const ADMIN_ACL_REPERTORY = "/AdminAcl/repertory";
-export const ADMIN_ACL_COVERAGE = "/AdminAcl/coverage";
-
-/* M02 W7 — menus by role (New-API mastersAPI) */
-export const GET_MENU_BY_ROLE = "/mastersAPI/GetMenuByRole";
-
-/* CON-01 / CON-02 — family + caregiver (New-API) */
-export const FAMILY_LIST = "/Family";
-export const FAMILY_ME = "/Family/Me";
-export const FAMILY_RELATIONS = "/Family/Relations";
-export const FAMILY_LINK_PRIMARY = "/Family/LinkPrimary";
-export const FAMILY_CAN_BOOK = "/Family/CanBookAs";
-export const FAMILY_BOOK_AS = "/Family/BookAs";
-export const CAREGIVER_GRANT = "/Caregiver/Grant";
-export const CAREGIVER_REVOKE = "/Caregiver/Revoke";
-export const CAREGIVER_ME = "/Caregiver/Me";
-export const CAREGIVER_LOOKUP = "/Caregiver/Lookup";
-export const CAREGIVER_LIST_MINE = "/Caregiver/ListMine";
-export const CAREGIVER_LIST_ACTING_FOR = "/Caregiver/ListActingFor";
-export const OTP_REQUEST = "/Otp/RequestOtp";
-export const OTP_VERIFY = "/Otp/VerifyOtp";
-export const ACCOUNT_LOGIN_OTP = "/Account/LoginWithOtp";
-export const ACCOUNT_CONFIRM_MOBILE = "/Account/ConfirmMobile";
-export const PATIENT_PROFILE_ME = "/PatientProfile/Me";
-export const WELCOME_PATIENT = "/Welcome/Patient";
-export const CONSENT_PRIVACY_STATUS = "/Consent/PrivacyStatus";
-export const CONSENT_GRANT_PRIVACY = "/Consent/GrantPrivacy";
-export const DEVICE_REGISTER = "/Device/Register";
-export const DEVICE_UNREGISTER = "/Device/Unregister";
-export const DEVICE_MINE = "/Device/Mine";
-export const SECURE_FILE_SIGN = "/SecureFile/Sign";

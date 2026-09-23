@@ -9,20 +9,14 @@ import {
     PRIVACY_INTRO,
     PRIVACY_SECTIONS,
 } from "../constants/privacyContent";
-import { getPublicPolicy } from "../../../../helpers/publicBookingApi";
 
 const PrivacyPage = () => {
     const [activeId, setActiveId] = useState(PRIVACY_SECTIONS[0].id);
     const [openId, setOpenId] = useState(PRIVACY_SECTIONS[0].id);
 
-    const [policyMeta, setPolicyMeta] = useState(null);
-
     useEffect(() => {
         document.title = `${SITE.name} | Privacy & Policy`;
         window.scrollTo(0, 0);
-        getPublicPolicy("Privacy")
-            .then((row) => setPolicyMeta(row))
-            .catch(() => setPolicyMeta(null));
     }, []);
 
     const handleNavClick = (id) => {
@@ -55,12 +49,6 @@ const PrivacyPage = () => {
                             <p className="homeojob-privacy__eyebrow">{PRIVACY_HERO.eyebrow}</p>
                             <h1 className="homeojob-privacy__title">{PRIVACY_HERO.title}</h1>
                             <p className="homeojob-privacy__subtitle">{PRIVACY_HERO.subtitle}</p>
-                            {policyMeta && (
-                                <p className="text-muted small mb-0">
-                                    Policy version {policyMeta.version ?? policyMeta.Version}
-                                    {(policyMeta.title || policyMeta.Title) ? ` — ${policyMeta.title ?? policyMeta.Title}` : ""}
-                                </p>
-                            )}
                             <nav className="homeojob-privacy__breadcrumb" aria-label="Breadcrumb">
                                 <Link to={landingPath()}>
                                     <i className="ri-home-5-line" aria-hidden="true" />

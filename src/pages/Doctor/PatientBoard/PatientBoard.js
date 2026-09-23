@@ -76,22 +76,7 @@ import {
   getRubricRemedyDetails as getRubricRemedyDetailsApi,
   searchRubricsByKeyword as searchRubricsByKeywordApi,
   getMateriaMedicaHeadingByAuthorId as getMateriaMedicaHeadingByAuthorIdApi,
-  runCenterOfGravity,
-  exportCaseToPdf,
-  exportCasesToExcel,
-  getPatientComplaints,
-  savePatientComplaints,
-  getPatientCaseDetails,
-  savePatientCaseDetails,
-  getAppointmentListByPatientId,
-  getPrescriptionDetailsByAppointmentId,
 } from '../../../helpers/realbackend_helper';
-import {
-  extractApiList,
-  extractPrescriptionResultObject,
-  formatAppointmentAccordionTitle,
-} from '../../../helpers/patient_history_helper';
-import { getAuthUserId } from '../../../helpers/appointmentSlotHelper';
 import {
   buildSubSectionSearchTree,
   getSubSectionSearchSuggestions,
@@ -3454,25 +3439,12 @@ const PatientBoard = () => {
 
   // Handle delete rubric from repertorization
   const handleDeleteRepertorizationRubric = (rubricId) => {
-    Swal.fire({
-      title: 'Remove this rubric from clipboard?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#299cdb',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Yes, remove',
-      cancelButtonText: 'Cancel',
-    }).then((result) => {
-      if (!result.isConfirmed) {
-        return;
-      }
-      const isEliminationRubric = filledPyramidIcons.has(rubricId);
-      setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
-      if (isEliminationRubric) {
-        setFilledPyramidIcons(new Set());
-        dispatch(setEliminationDataList(null));
-      }
-    });
+    const isEliminationRubric = filledPyramidIcons.has(rubricId);
+    setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
+    if (isEliminationRubric) {
+      setFilledPyramidIcons(new Set());
+      dispatch(setEliminationDataList(null));
+    }
   };
 
   const handleEliminationToggle = async (event, rubric) => {
@@ -12356,246 +12328,6 @@ const PatientBoard = () => {
     }
   };
 
-  const handleRunCenterOfGravity = async () => {
-    const rubrics = (repertorizationRubrics || [])
-      .map((rubric) => ({
-        subSectionId: Number(rubric.rubricId ?? rubric.subsectionId ?? rubric.subSectionId),
-        intensity: Number(rubric.intensityNo ?? rubric.intensityId ?? 1),
-      }))
-      .filter((item) => Number.isFinite(item.subSectionId) && item.subSectionId > 0);
-    if (rubrics.length === 0) {
-      Swal.fire({ icon: 'info', title: 'Clipboard empty', text: 'Add rubrics before Center of Gravity.', confirmButtonColor: '#000000' });
-      return;
-    }
-    try {
-      Swal.fire({ title: 'Running Center of Gravity…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const result = await runCenterOfGravity({
-        patientId: patientId ? Number(patientId) : null,
-        rubrics,
-      });
-      const rows = result?.data ?? result?.Data ?? [];
-      const lines = (Array.isArray(rows) ? rows : [])
-        .slice(0, 8)
-        .map((row) => `${row.remedyName ?? row.RemedyName} (${row.score ?? row.Score})`);
-      Swal.fire({
-        icon: 'success',
-        title: 'Center of Gravity',
-        html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No remedies scored for this clipboard.',
-        confirmButtonColor: '#000000',
-      });
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Center of Gravity failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
-        confirmButtonColor: '#000000',
-      });
-    }
-  };
-
-  const handleExportCasePdf = async () => {
-    if (!patientId || !caseId) {
-      Swal.fire({ icon: 'warning', title: 'Missing case', text: 'Open a patient with patientId and caseId to export.', confirmButtonColor: '#000000' });
-      return;
-    }
-    try {
-      Swal.fire({ title: 'Exporting case PDF…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const blob = await exportCaseToPdf(patientId, caseId);
-      const file = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/pdf' });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `case-${patientId}-${caseId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      Swal.close();
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Export failed',
-        text: typeof err === 'string' ? err : err?.message || 'PDF export failed',
-        confirmButtonColor: '#000000',
-      });
-    }
-  };
-
-  const handleExportCasesExcel = async () => {
-    const userId = getAuthUserId();
-    if (!userId) {
-      Swal.fire({ icon: 'warning', title: 'Missing doctor', text: 'Sign in as a doctor to export cases.', confirmButtonColor: '#000000' });
-      return;
-    }
-    try {
-      Swal.fire({ title: 'Exporting cases Excel…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const blob = await exportCasesToExcel(userId);
-      const file = blob instanceof Blob ? blob : new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `cases-${userId}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      Swal.close();
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Export failed',
-        text: typeof err === 'string' ? err : err?.message || 'Excel export failed',
-        confirmButtonColor: '#000000',
-      });
-    }
-  };
-
-  const handleLoadSaveCaseDetails = async () => {
-    if (!caseId) {
-      Swal.fire({ icon: 'warning', title: 'Missing case', text: 'Open a patient with caseId to save case details.', confirmButtonColor: '#000000' });
-      return;
-    }
-    try {
-      Swal.fire({ title: 'Loading case details…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const rows = await getPatientCaseDetails(caseId);
-      const list = extractApiList(rows);
-      const first = list[0] || {};
-      const existingSub = first.subsectionId ?? first.SubsectionId ?? first.subSectionId ?? '';
-      const existingInt = first.intensityId ?? first.IntensityId ?? '';
-      Swal.close();
-      const result = await Swal.fire({
-        title: 'Case details',
-        html: `
-          <p class="text-start small mb-2">Existing rows: ${list.length}. POST SaveCaseDetails on classic API.</p>
-          <input id="swal-case-sub" class="swal2-input" placeholder="SubsectionId" value="${existingSub}">
-          <input id="swal-case-int" class="swal2-input" placeholder="IntensityId" value="${existingInt}">
-        `,
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonText: 'Save (POST)',
-        confirmButtonColor: '#000000',
-        preConfirm: () => ({
-          subsectionId: document.getElementById('swal-case-sub')?.value,
-          intensityId: document.getElementById('swal-case-int')?.value,
-        }),
-      });
-      if (!result.isConfirmed) return;
-      const subsectionId = Number(result.value?.subsectionId);
-      const intensityId = Number(result.value?.intensityId);
-      const payload = [{
-        CaseDetailId: first.caseDetailId ?? first.CaseDetailId ?? 0,
-        CaseId: Number(caseId),
-        SubsectionId: Number.isFinite(subsectionId) && subsectionId > 0 ? subsectionId : null,
-        IntensityId: Number.isFinite(intensityId) && intensityId > 0 ? intensityId : null,
-      }];
-      await savePatientCaseDetails(payload);
-      Swal.fire({ icon: 'success', title: 'Case details saved', text: 'SaveCaseDetails POST completed.', confirmButtonColor: '#000000' });
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Case details failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
-        confirmButtonColor: '#000000',
-      });
-    }
-  };
-
-  const handleOpenVisitHistory = async () => {
-    if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Missing patient', text: 'Open a patient to view visit history.', confirmButtonColor: '#000000' });
-      return;
-    }
-    try {
-      Swal.fire({ title: 'Loading visit history…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const response = await getAppointmentListByPatientId({ patientId });
-      const rows = extractApiList(response);
-      const sorted = [...rows].sort((a, b) => {
-        const da = new Date(a.appointmentDate ?? a.AppointmentDate ?? 0).getTime();
-        const db = new Date(b.appointmentDate ?? b.AppointmentDate ?? 0).getTime();
-        return db - da;
-      });
-      if (!sorted.length) {
-        Swal.fire({ icon: 'info', title: 'Visit history', text: 'No visits found for this patient.', confirmButtonColor: '#000000' });
-        return;
-      }
-      const options = {};
-      sorted.forEach((appointment) => {
-        const id = appointment.appointmentId ?? appointment.AppointmentId ?? appointment.patientAppointmentId;
-        if (id) options[id] = formatAppointmentAccordionTitle(appointment);
-      });
-      const pick = await Swal.fire({
-        title: 'Visit history',
-        text: 'Date-ordered visits with payment status. Select a visit to open past eRx.',
-        input: 'select',
-        inputOptions: options,
-        showCancelButton: true,
-        confirmButtonText: 'Open past eRx',
-        confirmButtonColor: '#000000',
-      });
-      if (!pick.isConfirmed || !pick.value) return;
-      Swal.fire({ title: 'Loading past eRx…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const rx = await getPrescriptionDetailsByAppointmentId({ appointmentId: pick.value });
-      const details = extractPrescriptionResultObject(rx);
-      const remedies = details.remedyDetails ?? details.RemedyDetails ?? [];
-      const rubrics = details.rubricDetails ?? details.RubricDetails ?? [];
-      const lines = [
-        ...rubrics.map((item) => `Rubric: ${item.rubricName ?? item.RubricName ?? item.name ?? ''}`),
-        ...remedies.map((item) => `Rx: ${item.remedyName ?? item.RemedyName ?? item.name ?? ''}`),
-      ].filter((line) => line.replace(/^(Rubric|Rx): /, '').trim());
-      Swal.fire({
-        icon: 'success',
-        title: `Past eRx #${pick.value}`,
-        html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No prescription details for this visit.',
-        confirmButtonColor: '#000000',
-      });
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Visit history failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
-        confirmButtonColor: '#000000',
-      });
-    }
-  };
-
-  const handleLoadSaveComplaints = async () => {
-    if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Missing patient', text: 'Open a patient to load complaints.', confirmButtonColor: '#000000' });
-      return;
-    }
-    try {
-      Swal.fire({ title: 'Loading complaints…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const rows = await getPatientComplaints(patientId);
-      const list = rows?.data ?? rows?.resultObject ?? rows?.Data ?? (Array.isArray(rows) ? rows : []);
-      const ids = (Array.isArray(list) ? list : [])
-        .map((item) => item.chiefComplaintId ?? item.ChiefComplaintId ?? item.id)
-        .filter(Boolean);
-      if (ids.length && caseId) {
-        await savePatientComplaints({
-          PatientId: Number(patientId),
-          CaseId: Number(caseId),
-          ChiefComplaintIds: ids.join(','),
-        });
-      }
-      const names = (Array.isArray(list) ? list : [])
-        .map((item) => item.complaintName ?? item.ComplaintName ?? item.name ?? String(item.chiefComplaintId ?? item.id ?? ''))
-        .filter(Boolean);
-      Swal.fire({
-        icon: 'success',
-        title: 'Complaints',
-        html: names.length ? `<pre style="text-align:left">${names.join('\n')}</pre>` : 'No complaints saved for this patient.',
-        confirmButtonColor: '#000000',
-      });
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Complaints failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
-        confirmButtonColor: '#000000',
-      });
-    }
-  };
-
   return (
     <div className="container-fluid patient-board-page">
       <style>{headerStyles}</style>
@@ -12727,10 +12459,6 @@ const PatientBoard = () => {
                   {formattedAppointmentDate}
                 </div>
               ) : null}
-              <div className="pb-appointment-meta text-muted small d-flex flex-wrap gap-2 mb-1">
-                <span className="pb-info__chip">Visit: {searchParams.get('visitType') || searchParams.get('VisitType') || 'In-clinic'}</span>
-                <span className="pb-info__chip">Consult: {searchParams.get('consultMode') || searchParams.get('ConsultMode') || 'Clinic'}</span>
-              </div>
               <div className="pb-info__status">
                 <span className="pb-info__chip">
                   <i className="ri-calendar-check-line" aria-hidden="true" />
@@ -12825,21 +12553,6 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
-              <Button type="button" className="btn btn-sm me-1" onClick={handleLoadSaveComplaints} title="GET/POST complaints on classic api">
-                Complaints
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleLoadSaveCaseDetails} title="GET/POST SaveCaseDetails">
-                Case details
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} title="Date-ordered visits and past eRx">
-                History
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasePdf} title="Export case PDF">
-                Export PDF
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasesExcel} title="Export this doctor cases to Excel">
-                Export Excel
-              </Button>
               {activeTab === 'Repertorize' && (
                 <Button
                   type="button"
@@ -14105,10 +13818,6 @@ const PatientBoard = () => {
                           </span>
                           Repertorization
                           <span className="pb-repertorize-count-pill">{repertorizationRubrics.length}</span>
-                          <span className="text-muted small fw-normal ms-1">COG uses this clipboard</span>
-                          <Button type="button" className="btn btn-sm ms-2" onClick={handleRunCenterOfGravity}>
-                            Run COG
-                          </Button>
                         </div>
                         {/* Ascending / descending sort icons — hidden per request
                         <div className="d-flex gap-1">

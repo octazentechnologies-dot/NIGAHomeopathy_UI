@@ -1,32 +1,42 @@
-import { userForgetPasswordSuccess, userForgetPasswordError } from "./reducer";
-import { forgotPasswordSecure } from "../../../helpers/realbackend_helper";
+import { userForgetPasswordSuccess, userForgetPasswordError } from "./reducer"
 
-/** SEC-02.03 — real New-API ForgotPassword (no fake/Firebase). */
-export const userForgetPassword = (user) => async (dispatch) => {
+//Include Both Helper File with needed methods
+import { getFirebaseBackend } from "../../../helpers/firebase_helper";
+
+import {
+  postFakeForgetPwd,
+  postJwtForgetPwd,
+} from "../../../helpers/fakebackend_helper";
+
+const fireBaseBackend = getFirebaseBackend();
+
+export const userForgetPassword = (user, history) => async (dispatch) => {
   try {
-    const email = user?.email;
-    if (!email) {
-      dispatch(userForgetPasswordError("Please Enter Your Email"));
-      return;
-    }
-    const response = await forgotPasswordSecure(email);
-    const body = response?.data ?? response;
-    const message =
-      body?.message ||
-      "If an account exists for that email, a password reset link has been sent.";
-    dispatch(
-      userForgetPasswordSuccess({
-        message,
-        resetLink: body?.resetLink || null,
-        mailSent: body?.mailSent,
-      })
-    );
+      let response;
+      if (process.env.REACT_APP_DEFAULTAUTH === "firebase") {
+
+          response = fireBaseBackend.forgetPassword(
+              user.email
+          )
+
+      } else if (process.env.REACT_APP_DEFAULTAUTH === "jwt") {
+          response = postJwtForgetPwd(
+              user.email
+          )
+      } else {
+          response = postFakeForgetPwd(
+              user.email
+          )
+      }
+
+      const data = await response;
+
+      if (data) {
+          dispatch(userForgetPasswordSuccess(
+              "Reset link are sended to your mailbox, check there first"
+          ))
+      }
   } catch (forgetError) {
-    const msg =
-      (typeof forgetError === "string" && forgetError) ||
-      forgetError?.response?.data?.message ||
-      forgetError?.message ||
-      "Unable to send reset link. Please try again.";
-    dispatch(userForgetPasswordError(msg));
+      dispatch(userForgetPasswordError(forgetError))
   }
-};
+}

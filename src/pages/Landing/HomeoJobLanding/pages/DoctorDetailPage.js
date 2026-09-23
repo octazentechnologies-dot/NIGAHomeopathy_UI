@@ -1,24 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
-import { DOCTORS } from "../constants/doctorsData";
-import {
-    getPublicDoctor,
-    getPublicDoctorRanking,
-    getPublicDoctorSlots,
-    listPublicArticles,
-    mapPublicDoctorCard,
-    toIsoDate,
-} from "../../../../helpers/publicBookingApi";
+import { getDoctorById } from "../constants/doctorsData";
+import BookingConfirmModal from "../components/BookingConfirmModal";
 
 const TABS = [
     { id: "overview", label: "Overview", icon: "ri-file-text-line" },
     { id: "clinic", label: "Clinic Details", icon: "ri-map-pin-line" },
     { id: "reviews", label: "Reviews", icon: "ri-star-line" },
     { id: "articles", label: "Articles", icon: "ri-article-line" },
+];
+
+const TIME_SLOTS = [
+    "10:00 AM",
+    "10:30 AM",
+    "11:00 AM",
+    "11:30 AM",
+    "05:00 PM",
+    "05:30 PM",
+    "06:00 PM",
+    "06:30 PM",
 ];
 
 const formatBookingDate = (date) => {
@@ -42,118 +46,24 @@ const formatBookingDate = (date) => {
 
 const DoctorDetailPage = () => {
     const { doctorId } = useParams();
-    const navigate = useNavigate();
-    const mockDoctor = DOCTORS.find((doc) => String(doc.id) === String(doctorId)) || null;
-    const [doctor, setDoctor] = useState(null);
+    const doctor = getDoctorById(doctorId);
     const [activeTab, setActiveTab] = useState("overview");
     const [favorite, setFavorite] = useState(false);
     const [consultMode, setConsultMode] = useState("clinic");
-    const [slots, setSlots] = useState([]);
-    const [selectedSlot, setSelectedSlot] = useState("");
-    const [bookingDate, setBookingDate] = useState(() => {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        return d;
-    });
-    const [loadError, setLoadError] = useState("");
-    const [articles, setArticles] = useState([]);
+    const [selectedSlot, setSelectedSlot] = useState(TIME_SLOTS[0]);
+    const [bookingOpen, setBookingOpen] = useState(false);
+    const bookingDate = useMemo(() => new Date(2026, 8, 18), []);
 
     useEffect(() => {
+        document.title = `${doctor.name} | ${SITE.name}`;
         window.scrollTo(0, 0);
-        let cancelled = false;
-        setLoadError("");
-        getPublicDoctor(doctorId)
-            .then(async (row) => {
-                if (cancelled) return;
-                const mapped = mapPublicDoctorCard(row, mockDoctor || {});
-                try {
-                    const ranking = await getPublicDoctorRanking(doctorId);
-                    mapped.rankingSummary = ranking.summary || ranking.rankingSummary || mapped.rankingSummary;
-                    mapped.rankingReasons = ranking.reasons || ranking.rankingReasons || [];
-                } catch {
-                    // profile already has rankingSummary
-                }
-                setDoctor(mapped);
-            })
-            .catch(() => {
-                if (cancelled) return;
-                if (mockDoctor) setDoctor(mockDoctor);
-                else setLoadError("Doctor not found or not verified for directory.");
-            });
-        listPublicArticles({ pageNumber: 1, pageSize: 6 })
-            .then((list) => {
-                if (!cancelled) setArticles(Array.isArray(list) ? list : []);
-            })
-            .catch(() => {
-                if (!cancelled) setArticles([]);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [doctorId]);
-
-    useEffect(() => {
-        if (doctor?.name) document.title = `${doctor.name} | ${SITE.name}`;
-    }, [doctor?.name]);
-
-    useEffect(() => {
-        if (!doctor?.id) return undefined;
-        let cancelled = false;
-        getPublicDoctorSlots(doctor.id, bookingDate)
-            .then((payload) => {
-                if (cancelled) return;
-                const list = (payload.slots || payload.Slots || []).filter(
-                    (slot) => (slot.status || slot.Status || "available") !== "booked"
-                );
-                setSlots(list);
-                setSelectedSlot((prev) => {
-                    if (prev && list.some((slot) => (slot.time || slot.label) === prev)) return prev;
-                    return list[0]?.time || list[0]?.label || "";
-                });
-            })
-            .catch(() => {
-                if (cancelled) return;
-                setSlots([]);
-                setSelectedSlot("");
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [doctor?.id, bookingDate]);
+    }, [doctor.name]);
 
     const handleBook = () => {
-        if (!selectedSlot || !doctor?.id) return;
-        const params = new URLSearchParams({
-            date: toIsoDate(bookingDate),
-            slot: selectedSlot,
-            mode: consultMode,
-        });
-        navigate(`${landingPath(`book/${doctor.id}/confirm`)}?${params.toString()}`);
+        setBookingOpen(true);
     };
 
-    if (loadError && !doctor) {
-        return (
-            <section className="homeojob-doctor-detail">
-                <Container>
-                    <p className="text-danger py-5">{loadError}</p>
-                    <Link to={landingPath("find-doctor")}>Back to Find a Doctor</Link>
-                </Container>
-            </section>
-        );
-    }
-
-    if (!doctor) {
-        return (
-            <section className="homeojob-doctor-detail">
-                <Container>
-                    <p className="text-muted py-5">Loading doctor profile…</p>
-                </Container>
-            </section>
-        );
-    }
-
     const phone = doctor.phone || "+91 98765 43210";
-    const dateValue = toIsoDate(bookingDate);
 
     return (
         <section className="homeojob-doctor-detail">
@@ -328,24 +238,10 @@ const DoctorDetailPage = () => {
                             {activeTab === "articles" && (
                                 <div className="homeojob-doctor-detail__content">
                                     <h2 className="homeojob-doctor-detail__section-title">Articles</h2>
-                                    {articles.length === 0 ? (
                                     <p className="homeojob-doctor-detail__about">
-                                        Health tips from {doctor.name} will appear here when published.
+                                        Health tips and clinic insights from {doctor.name} will appear
+                                        here soon.
                                     </p>
-                                    ) : (
-                                        <ul className="mb-3">
-                                            {articles.map((item) => {
-                                                const id = item.blogId ?? item.BlogId;
-                                                return (
-                                                    <li key={id}>
-                                                        <Link to={landingPath(`blog/${id}`)}>
-                                                            {item.blogHead ?? item.BlogHead}
-                                                        </Link>
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    )}
                                     <Link
                                         to={landingPath("blog")}
                                         className="homeojob-doctor-detail__maps-link"
@@ -389,40 +285,28 @@ const DoctorDetailPage = () => {
                                 <label className="homeojob-doctor-detail__date">
                                     <i className="ri-calendar-line" aria-hidden="true" />
                                     <input
-                                        type="date"
-                                        value={dateValue}
-                                        onChange={(e) => {
-                                            const next = e.target.value ? new Date(`${e.target.value}T00:00:00`) : new Date();
-                                            next.setHours(0, 0, 0, 0);
-                                            setBookingDate(next);
-                                        }}
+                                        type="text"
+                                        readOnly
+                                        value={formatBookingDate(bookingDate)}
                                         aria-label="Appointment date"
                                     />
                                 </label>
-                                <p className="text-muted small mb-2">{formatBookingDate(bookingDate)}</p>
 
                                 <div className="homeojob-doctor-detail__slots">
                                     <h3>Available Slots</h3>
                                     <div className="homeojob-doctor-detail__slot-grid">
-                                        {slots.length === 0 ? (
-                                            <p className="text-muted small mb-0">No open slots for this date.</p>
-                                        ) : (
-                                        slots.map((slot) => {
-                                            const value = slot.time || slot.label;
-                                            return (
+                                        {TIME_SLOTS.map((slot) => (
                                             <button
-                                                key={value}
+                                                key={slot}
                                                 type="button"
                                                 className={
-                                                    selectedSlot === value ? "is-active" : undefined
+                                                    selectedSlot === slot ? "is-active" : undefined
                                                 }
-                                                onClick={() => setSelectedSlot(value)}
+                                                onClick={() => setSelectedSlot(slot)}
                                             >
-                                                {slot.label || value}
+                                                {slot}
                                             </button>
-                                            );
-                                        })
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
 
@@ -435,18 +319,10 @@ const DoctorDetailPage = () => {
                                     type="button"
                                     className="homeojob-doctor-detail__book"
                                     onClick={handleBook}
-                                    disabled={!selectedSlot}
                                 >
                                     Book Appointment
                                     <i className="ri-arrow-right-line" aria-hidden="true" />
                                 </button>
-                                <Link
-                                    className="homeojob-doctor-detail__maps-link d-inline-block mt-2"
-                                    to={`${landingPath(`book/${doctor.id}/slots`)}?mode=${consultMode}&date=${dateValue}`}
-                                >
-                                    Open full slot page
-                                    <i className="ri-arrow-right-line" aria-hidden="true" />
-                                </Link>
                             </div>
 
                             <div className="homeojob-doctor-detail__card homeojob-doctor-detail__clinic-info">
@@ -502,6 +378,15 @@ const DoctorDetailPage = () => {
                     </Col>
                 </Row>
             </Container>
+
+            <BookingConfirmModal
+                isOpen={bookingOpen}
+                onClose={() => setBookingOpen(false)}
+                doctor={doctor}
+                consultMode={consultMode}
+                bookingDate={bookingDate}
+                selectedSlot={selectedSlot}
+            />
         </section>
     );
 };

@@ -19,13 +19,8 @@ export const navigateToRoleDashboard = (navigate) => {
                 return;
             }
 
-            if (userRole === UserRole.PHARMACY || userRole === UserRole.PHARMACY_PARTNER) {
+            if (userRole === UserRole.PHARMACY) {
                 navigate('/pharmacydashboard');
-                return;
-            }
-
-            if (userRole === UserRole.PATIENT) {
-                navigate('/family');
                 return;
             }
 

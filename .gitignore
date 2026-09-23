@@ -55,8 +55,6 @@ bld/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
-.DS_Store
-build/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
@@ -430,15 +428,8 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# macOS Finder metadata
-.DS_Store
-**/.DS_Store
-
 # React production build
 build/
 
 # Local Cursor/VS Code workspace (machine-specific paths)
 *.code-workspace
-
-# Local documentation (keep on machine; do not push)
-docs/

@@ -21,11 +21,9 @@ export const formatAppointmentAccordionTitle = (appointment) => {
     const date = appointment?.appointmentDate ?? '';
     const time = appointment?.appointmentTime ?? '';
     const status = appointment?.status ? ` (${appointment.status})` : '';
-    const payment = appointment?.paymentStatus ?? appointment?.PaymentStatus ?? '';
-    const paymentBadge = payment ? ` [${payment}]` : ' [Payment pending]';
-    if (date && time) return `${date} : ${time}${status}${paymentBadge}`;
-    if (date) return `${date}${status}${paymentBadge}`;
-    return `Appointment${status}${paymentBadge}` || 'Appointment';
+    if (date && time) return `${date} : ${time}${status}`;
+    if (date) return `${date}${status}`;
+    return `Appointment${status}` || 'Appointment';
 };
 
 /**
