@@ -122,13 +122,13 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
  */
 const APIClients = {
   // Default API client (HOMOCENTRUM)
-  default: createAxiosClient(api.API_URL, "application/json"),
+  default: createAxiosClient(api.Old_API_Base_URL, "application/json"),
 
   // Nigahomeopathy API client with JSON content type
-  nigahomeo: createAxiosClient(api.API_URL_NIGAHOMEOPATHY, "application/json"),
+  nigahomeo: createAxiosClient(api.New_API_Base_URL, "application/json"),
 
   // Nigahomeopathy API client with multipart/form-data content type
-  nigahomeoMultipart: createAxiosClient(api.API_URL_NIGAHOMEOPATHY, "multipart/form-data"),
+  nigahomeoMultipart: createAxiosClient(api.New_API_Base_URL, "multipart/form-data"),
 };
 
 /**

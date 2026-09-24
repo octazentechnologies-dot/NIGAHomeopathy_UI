@@ -8,9 +8,9 @@ import { importAPI } from './api_helper';
 
 /*
  * M01 FND-01.03 — Dual-API placement rule:
- * - New domain modules / new HTTP APIs → New-API only (nigahomeoAPI / API_URL_NIGAHOMEOPATHY).
+ * - New domain modules / new HTTP APIs → New-API only (nigahomeoAPI / New_API_Base_URL).
  * - Do not create a third API.
- * - Keep on classic (api / API_URL) until explicit cut-over: Login, Rx-write, Razorpay.
+ * - Keep on classic (api / Old_API_Base_URL) until explicit cut-over: Login, Rx-write, Razorpay.
  * - Do not silently switch hosts for an existing call.
  */
 

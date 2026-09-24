@@ -130,7 +130,7 @@ function collectClientContext() {
 
 export function reportClientIssue(payload) {
   try {
-    const base = (api && api.API_URL_NIGAHOMEOPATHY) || "";
+    const base = (api && api.New_API_Base_URL) || "";
     if (!base) return;
     const url = String((payload && payload.url) || "");
     if (url.toLowerCase().includes("diagnostics")) return;

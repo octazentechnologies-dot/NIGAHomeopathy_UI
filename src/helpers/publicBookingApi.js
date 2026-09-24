@@ -4,7 +4,7 @@ import Avatar1 from "../assets/images/users/avatar-1.jpg";
 
 /** Anonymous New-API client for public find-doctor / booking / policies / articles. */
 const publicClient = axios.create({
-  baseURL: api.API_URL_NIGAHOMEOPATHY,
+  baseURL: api.New_API_Base_URL,
   headers: { "Content-Type": "application/json" },
 });
 

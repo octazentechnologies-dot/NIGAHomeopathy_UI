@@ -2,7 +2,7 @@ import axios from "axios";
 import config from "../../../../config";
 import { listPublicArticles, getPublicArticle } from "../../../../helpers/publicBookingApi";
 
-const API_BASE = config.api.API_URL;
+const API_BASE = config.api.Old_API_Base_URL;
 
 export const unwrapList = (response) => {
     const payload = response?.data;
@@ -98,7 +98,7 @@ export const getNewsById = (newsId) =>
     axios.get(`${API_BASE}/NewsDetail/GetNewsDetailsbyId/${newsId}`).then(unwrapItem);
 
 export const submitEnquiry = (payload) =>
-    axios.post(`${config.api.API_URL_NIGAHOMEOPATHY}/Enquiry`, {
+    axios.post(`${config.api.New_API_Base_URL}/Enquiry`, {
         enquiryName: payload.enquiryName,
         emailId: payload.emailId,
         mobileNo: payload.mobileNo,

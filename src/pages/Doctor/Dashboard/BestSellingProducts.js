@@ -1851,10 +1851,8 @@ const BestSellingProducts = () => {
                             : '—'}
                     </td>
                 )}
-                <td className="dashboard-patient-col-actions-combined">
-                    <div className="dashboard-patient-actions-bar">
-                        <div className="dashboard-patient-actions-section dashboard-patient-actions-section--history">
-                            <PatientDashboardActionGroup>
+                {isTodayTab ? (
+                    <td className="dashboard-patient-col-manage" data-testid="appointment-manage-actions">
                         <AppointmentChangeActions
                             patientAppId={getPatientAppointmentId(patient)}
                             doctorId={patient.doctorId || patient.doctorID}
@@ -1863,8 +1861,14 @@ const BestSellingProducts = () => {
                             status={patient.appStatus}
                             onChanged={() => loadAppointmentListForDate(selectedAppointmentDate)}
                         />
+                    </td>
+                ) : null}
+                <td className="dashboard-patient-col-actions-combined">
+                    <div className="dashboard-patient-actions">
+                        <div className="dashboard-patient-actions-bar">
                         {!isReceptionUser ? (
-                        <>
+                        <div className="dashboard-patient-actions-section dashboard-patient-actions-section--history">
+                            <PatientDashboardActionGroup>
                         <PatientDashboardActionButton
                             id={`${idPrefix}-addcase-${patient.id}`}
                             icon="ri-file-add-line"
@@ -1898,10 +1902,9 @@ const BestSellingProducts = () => {
                             tooltip="View Case Notes"
                             onClick={() => openCaseNotesModal(patient)}
                         />
-                        </>
-                        ) : null}
                             </PatientDashboardActionGroup>
                         </div>
+                        ) : null}
                         <div className="dashboard-patient-actions-section dashboard-patient-actions-section--connect">
                             <PatientDashboardActionGroup>
                             <PatientDashboardActionButton
@@ -2025,6 +2028,7 @@ const BestSellingProducts = () => {
                                 </>
                             )}
                             </PatientDashboardActionGroup>
+                        </div>
                         </div>
                     </div>
                 </td>
@@ -2186,7 +2190,7 @@ const BestSellingProducts = () => {
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-actions-combined {
                     width: auto;
-                    min-width: 26rem;
+                    min-width: 15.5rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-name {
                     width: 20%;
@@ -2216,51 +2220,80 @@ const BestSellingProducts = () => {
                     padding-right: 0.35rem !important;
                     white-space: nowrap;
                 }
+                .dashboard-patient-col-manage {
+                    width: 8.25rem;
+                    min-width: 8.25rem;
+                    max-width: 8.25rem;
+                    vertical-align: middle;
+                    white-space: nowrap;
+                    padding-left: 1rem !important;
+                    padding-right: 0.5rem !important;
+                }
+                .dashboard-patient-col-manage .dashboard-appointment-change-actions {
+                    display: inline-flex;
+                    align-items: center;
+                    flex-wrap: nowrap;
+                    gap: 0.25rem;
+                }
+                .dashboard-patient-col-actions-combined {
+                    min-width: 15.5rem;
+                    width: 15.5rem;
+                    vertical-align: middle;
+                }
+                .dashboard-patient-table--reception .dashboard-patient-col-actions-combined {
+                    min-width: 9.5rem;
+                    width: 9.5rem;
+                }
+                .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-col-actions-combined {
+                    min-width: 18rem;
+                    width: 18rem;
+                }
+                .dashboard-patient-actions {
+                    display: flex;
+                    align-items: center;
+                    width: 100%;
+                }
+                .dashboard-patient-actions-header,
+                .dashboard-patient-actions-bar {
+                    display: grid;
+                    grid-template-columns: 5.75rem 5.75rem 2.75rem;
+                    column-gap: 0.65rem;
+                    align-items: center;
+                    width: max-content;
+                    max-width: 100%;
+                }
+                .dashboard-patient-table--reception .dashboard-patient-actions-header,
+                .dashboard-patient-table--reception .dashboard-patient-actions-bar {
+                    grid-template-columns: 5.75rem 2.75rem;
+                }
+                .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-actions-header,
+                .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-actions-bar {
+                    grid-template-columns: 5.75rem 5.75rem 5.75rem;
+                }
                 .dashboard-patient-actions-header span {
-                    flex: 1 1 0;
                     text-align: center;
                     font-size: 0.72rem;
                     white-space: nowrap;
-                }
-                .dashboard-patient-table--today .dashboard-patient-actions-section--history,
-                .dashboard-patient-table--today .dashboard-patient-actions-header__history {
-                    flex: 0 0 auto;
-                    min-width: max-content;
-                }
-                .dashboard-patient-table--today .dashboard-patient-actions-section--connect,
-                .dashboard-patient-table--today .dashboard-patient-actions-header__connect {
-                    flex: 0 0 auto;
-                    min-width: 6.5rem;
-                }
-                .dashboard-patient-table--today .dashboard-patient-actions-section--followup,
-                .dashboard-patient-table--today .dashboard-patient-actions-header__followup {
-                    flex: 0.75 1 0;
-                    min-width: 2.75rem;
-                }
-                .dashboard-patient-actions-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 0.35rem;
-                }
-                .dashboard-patient-actions-bar {
-                    display: flex;
-                    align-items: center;
-                    justify-content: flex-start;
-                    gap: 0.85rem;
+                    margin: 0;
                 }
                 .dashboard-appointment-text-btn {
                     margin: 0 !important;
-                    padding: 0.12rem 0.4rem !important;
-                    font-size: 0.68rem !important;
-                    line-height: 1.2 !important;
+                    padding: 0.1rem 0.35rem !important;
+                    font-size: 0.66rem !important;
+                    line-height: 1.15 !important;
                     white-space: nowrap;
                 }
                 .dashboard-patient-actions-section {
-                    flex: 1 1 0;
                     display: flex;
                     justify-content: center;
+                    align-items: center;
                     min-width: 0;
+                    width: 100%;
+                }
+                .dashboard-patient-actions-section__spacer {
+                    display: inline-block;
+                    width: 1.35rem;
+                    height: 1.35rem;
                 }
                 .dashboard-patient-action-group {
                     display: inline-flex !important;
@@ -2615,7 +2648,7 @@ const BestSellingProducts = () => {
                         <TabContent activeTab={customHoverTab} className="text-muted">
                             <TabPane tabId="1" id="custom-hover-customere">
                                 <div className="table-responsive">
-                                    <table className="table table-hover mb-0 dashboard-patient-table dashboard-patient-table--today">
+                                    <table className={`table table-hover mb-0 dashboard-patient-table dashboard-patient-table--today${isReceptionUser ? ' dashboard-patient-table--reception' : ''}`}>
                                         <thead>
                                             <tr>
                                                 <th scope="col" className='text-center dashboard-patient-col-index'>#</th>
@@ -2625,9 +2658,12 @@ const BestSellingProducts = () => {
                                                 <th scope="col" className="dashboard-patient-col-mobile">Mobile</th>
                                                 <th scope="col" className="dashboard-patient-col-status">App.Status</th>
                                                 <th scope="col" className="dashboard-patient-col-apptime">App.Time</th>
+                                                <th scope="col" className="dashboard-patient-col-manage" />
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
                                                     <div className="dashboard-patient-actions-header">
-                                                        <span className="dashboard-patient-actions-header__history">History</span>
+                                                        {!isReceptionUser ? (
+                                                            <span className="dashboard-patient-actions-header__history">History</span>
+                                                        ) : null}
                                                         <span className="dashboard-patient-actions-header__connect">Connect</span>
                                                         <span className="dashboard-patient-actions-header__followup">F/U</span>
                                                     </div>
@@ -2637,7 +2673,7 @@ const BestSellingProducts = () => {
                                         <tbody>
                                             {appointmentListLoading ? (
                                                 <tr>
-                                                    <td colSpan={8} className='text-center text-muted'>
+                                                    <td colSpan={9} className='text-center text-muted'>
                                                         <div className="d-flex justify-content-center align-items-center">
                                                             <div className="spinner-border spinner-border-sm me-2" role="status">
                                                                 <span className="visually-hidden">Loading...</span>
@@ -2651,7 +2687,7 @@ const BestSellingProducts = () => {
                                                     {renderTableRows(todayPageData, todayStartIndex, 'today', true)}
                                                     {todayPageData.length === 0 && !appointmentListLoading && (
                                                         <tr>
-                                                            <td colSpan={8} className='text-center text-muted'>
+                                                            <td colSpan={9} className='text-center text-muted'>
                                                                 {searchTerm ? 'No appointments found matching your search' : 'No appointments available'}
                                                             </td>
                                                         </tr>
@@ -2701,7 +2737,7 @@ const BestSellingProducts = () => {
                                                     {renderTableRows(allPageData, allStartIndex, 'all')}
                                                     {allPageData.length === 0 && !patientListLoading && (
                                                         <tr>
-                                                            <td colSpan={8} className='text-center text-muted'>
+                                                            <td colSpan={7} className='text-center text-muted'>
                                                                 {searchTerm ? 'No patients found matching your search' : 'No patients available'}
                                                             </td>
                                                         </tr>

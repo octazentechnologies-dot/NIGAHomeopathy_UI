@@ -10,7 +10,7 @@ const AppointmentChangeActions = ({ patientAppId, doctorId, appointmentDate, app
   if (!patientAppId || alreadyCancelled) return null;
 
   return (
-    <>
+    <div className="dashboard-appointment-change-actions d-inline-flex align-items-center gap-1">
       <Button size="sm" color="soft-info" className="dashboard-appointment-text-btn" onClick={() => setOpen("reschedule")}>Reschedule</Button>
       <Button size="sm" color="soft-danger" className="dashboard-appointment-text-btn" onClick={() => setOpen("cancel")}>Cancel</Button>
       <RescheduleModal
@@ -28,7 +28,7 @@ const AppointmentChangeActions = ({ patientAppId, doctorId, appointmentDate, app
         patientAppId={patientAppId}
         onSaved={onChanged}
       />
-    </>
+    </div>
   );
 };
 
