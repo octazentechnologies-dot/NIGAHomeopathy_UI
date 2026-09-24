@@ -474,10 +474,58 @@ export const SAVE_DAILY_SCHEDULE = "/PatientAppointment/SaveDailySchedule";
 export const GET_APPOINTMENT_SLOTS = "/PatientAppointment/GetAppointmentSlots";
 export const RESCHEDULE_APPOINTMENT = "/PatientAppointment/RescheduleAppointment";
 export const CANCEL_APPOINTMENT = "/PatientAppointment/CancelAppointment";
+/** PAT-20.02 — appointment change history (patient who owns visit, or treating doctor). */
+export const APPOINTMENT_CHANGE_LOG = (patientAppId) =>
+  `/PatientAppointment/ChangeLog/${patientAppId}`;
 export const APPOINTMENT_QUEUE = "/PatientAppointment/Queue";
 export const CALL_NEXT_APPOINTMENT = "/PatientAppointment/CallNext";
 export const RECEPTION_PROFILE = "/Reception/Profile";
 export const RECEPTION_CASE_PAPER = "/Reception/CasePaper";
+export const RECEPTION_PATIENT_OPEN = "/Reception/PatientOpen";
+/** TEL-02.04 — poll tele waiting queue (not SignalR in S3). */
+export const TELE_QUEUE = "/Tele/Queue";
+/** TEL-04.01 — client-agnostic session join token (web + mobile same URL/JSON). */
+export const TELE_SESSION_TOKEN = (sessionId) => `/Tele/Sessions/${sessionId}/Token`;
+export const TELE_SESSION_REJOIN = (sessionId) => `/Tele/Sessions/${sessionId}/Rejoin`;
+/** TEL-04.01 — waiting-room status poll (patient or doctor JWT). */
+export const TELE_SESSION_STATUS = (sessionId) => `/Tele/Sessions/${sessionId}`;
+/** TEL-03.02 — doctor create / start / end tele room. */
+export const TELE_SESSIONS = "/Tele/Sessions";
+export const TELE_SESSION_START = (sessionId) => `/Tele/Sessions/${sessionId}/Start`;
+export const TELE_SESSION_END = (sessionId) => `/Tele/Sessions/${sessionId}/End`;
+/** TEL-10.02 — case-linked chat post/list (doctor + patient only). */
+export const TELE_CHAT = "/Tele/Chat";
+export const TELE_CHAT_LIST = (sessionId) => `/Tele/Chat/${sessionId}`;
+/** PAT-20.02 / TEL-11 — consultation summaries for an appointment (patient or treating doctor). */
+export const TELE_SUMMARY = (patientAppId) => `/Tele/Summary/${patientAppId}`;
+export const TELE_SUMMARY_SAVE = "/Tele/Summary";
+/** PAT-24.02 / TEL-12 — patient instant consult request; doctor offers + accept. */
+export const TELE_INSTANT = "/Tele/Instant";
+export const TELE_INSTANT_OFFERS = "/Tele/Instant/Offers";
+export const TELE_INSTANT_ACCEPT = (requestId) => `/Tele/Instant/${requestId}/Accept`;
+export const TELE_AVAILABILITY = "/Tele/Availability";
+export const TELE_AVAILABILITY_PUBLIC = (doctorId) => `/Tele/Availability/${doctorId}`;
+/** PAT-26.02 — tele device check stub (anonymous; camera/mic checked on device). */
+export const TELE_DEVICE_CHECK = "/Tele/DeviceCheck";
+/** PAT-29.02 — recording consent (doctor + patient; recordAllowed only when both accept). */
+export const TELE_CONSENT = "/Tele/Consent";
+/** DMO-07.02 — doctor mobile patient context card (name, age, CC, last visit, payment, tele). */
+export const DOCTOR_MOBILE_CONTEXT = (patientAppId) =>
+  `/DoctorMobile/Context/${patientAppId}`;
+/** DMO-09.02 — doctor refill inbox + approve/reject (snapshot not editable). */
+export const REFILL_LIST = "/Refill";
+export const REFILL_APPROVE = (refillId) => `/Refill/${refillId}/Approve`;
+export const REFILL_REJECT = (refillId) => `/Refill/${refillId}/Reject`;
+/** SUP-01.02 — patient create / list-mine support tickets. */
+export const SUPPORT_TICKETS = "/Support/Tickets";
+export const SUPPORT_TICKETS_MINE = "/Support/Tickets/Mine";
+/** SUP-04.01 — ticket message thread + attachment metadata. */
+export const SUPPORT_TICKET_MESSAGES = (ticketId) => `/Support/Tickets/${ticketId}/Messages`;
+export const SUPPORT_TICKET_MESSAGE = (ticketId, messageId) =>
+  `/Support/Tickets/${ticketId}/Messages/${messageId}`;
+/** SUP-07.02 — patient assistance request; staff AssistedBook. */
+export const SUPPORT_ASSISTANCE_REQUEST = "/Support/AssistanceRequest";
+export const SUPPORT_ASSISTANCE_REQUESTS = "/Support/AssistanceRequests";
 export const DAILY_SCHEDULE = "/PatientAppointment/GetDailySchedule";
 export const ASSISTED_BOOK = "/Support/AssistedBook";
 export const GET_PATIENT_LIST = "/patientApp/GetCasesByUser";

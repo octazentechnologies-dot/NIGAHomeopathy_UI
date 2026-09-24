@@ -26,6 +26,7 @@ import {
   updateFamilyMember,
 } from "../../helpers/realbackend_helper";
 import { unwrapApiList } from "../../helpers/menuByRole";
+import PatientAssistedBookingCta from "../../Components/Common/PatientAssistedBookingCta";
 
 const emptyForm = {
   relationId: "",
@@ -42,6 +43,8 @@ const FamilyMembers = () => {
   const [members, setMembers] = useState([]);
   const [relations, setRelations] = useState([]);
   const [ownerName, setOwnerName] = useState("");
+  const [ownerPatientId, setOwnerPatientId] = useState(null);
+  const [ownerMobile, setOwnerMobile] = useState("");
   const [actingAsCaregiver, setActingAsCaregiver] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [newRelationName, setNewRelationName] = useState("");
@@ -102,6 +105,8 @@ const FamilyMembers = () => {
       const [meRaw, listRaw] = await Promise.all([getFamilyMe(), getFamilyMembers()]);
       const me = meRaw?.data ?? meRaw;
       setOwnerName(me?.ownerPatientName ?? me?.OwnerPatientName ?? "");
+      setOwnerPatientId(me?.ownerPatientId ?? me?.OwnerPatientId ?? me?.patientId ?? me?.PatientId ?? null);
+      setOwnerMobile(me?.ownerMobileNo ?? me?.OwnerMobileNo ?? me?.mobileNo ?? me?.MobileNo ?? "");
       setActingAsCaregiver(!!(me?.isActingAsCaregiver ?? me?.IsActingAsCaregiver ?? listRaw?.isActingAsCaregiver));
       setMembers(unwrapApiList(listRaw?.data ?? listRaw));
     } catch (err) {
@@ -242,6 +247,17 @@ const FamilyMembers = () => {
   return (
     <div className="page-content">
       <Container fluid>
+        <Row>
+          <Col xs={12}>
+            <h4 className="mb-3">Family{ownerName ? ` · ${ownerName}` : ""}</h4>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={12}>
+            {/* SUP-07.03 — patient CTA for assisted booking */}
+            <PatientAssistedBookingCta patientId={ownerPatientId} contactMobile={ownerMobile} />
+          </Col>
+        </Row>
         <Row>
           <Col lg={5}>
             <Card>

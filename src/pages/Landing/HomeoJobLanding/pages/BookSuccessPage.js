@@ -4,27 +4,37 @@ import { Container } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
-import { getPublicBooking } from "../../../../helpers/publicBookingApi";
+import { getPaymentStatus } from "../../../../helpers/publicBookingApi";
 
 const BookSuccessPage = () => {
     const [searchParams] = useSearchParams();
     const token = searchParams.get("token") || "";
     const [booking, setBooking] = useState(null);
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(Boolean(token));
 
     useEffect(() => {
         document.title = `${SITE.name} | Booking hold`;
         if (!token) {
             setError("Missing booking token.");
+            setLoading(false);
             return undefined;
         }
         let cancelled = false;
-        getPublicBooking(token)
+        setLoading(true);
+        // PAT-19.02 — paymentStatus from GET Public/Bookings only
+        getPaymentStatus(token)
             .then((row) => {
-                if (!cancelled) setBooking(row);
+                if (!cancelled) {
+                    setBooking(row);
+                    setError("");
+                }
             })
-            .catch(() => {
-                if (!cancelled) setError("Could not load this booking hold.");
+            .catch((err) => {
+                if (!cancelled) setError(err?.message || "Could not load this booking hold.");
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
             });
         return () => {
             cancelled = true;
@@ -39,24 +49,33 @@ const BookSuccessPage = () => {
                 {booking ? (
                     <div className="homeojob-doctor-detail__card p-4 mb-3">
                         <p className="mb-2">
-                            <strong>Token:</strong> {booking.bookingToken ?? booking.BookingToken ?? token}
+                            <strong>Token:</strong> {booking.bookingToken ?? token}
                         </p>
                         <p className="mb-2">
-                            <strong>Payment:</strong>{" "}
-                            {booking.paymentStatus ?? booking.PaymentStatus ?? "PENDING"}
+                            <strong>Payment:</strong> {booking.paymentLabel}
                         </p>
                         <p className="mb-0 text-muted">
-                            Slot is held. Razorpay checkout stays on the classic clinic API. Pay at the clinic
-                            or continue to the pay page.
+                            Your appointment time is held. Please pay at the clinic.
                         </p>
                     </div>
-                ) : !error ? (
+                ) : loading ? (
                     <p className="text-muted">Loading booking…</p>
                 ) : null}
                 {token ? (
-                    <Link className="btn btn-primary me-2" to={landingPath(`book/pay/${encodeURIComponent(token)}`)}>
-                        Continue to pay
-                    </Link>
+                    <>
+                        <Link
+                            className="btn btn-primary me-2"
+                            to={landingPath(`book/appointment/${encodeURIComponent(token)}`)}
+                        >
+                            Appointment detail
+                        </Link>
+                        <Link
+                            className="btn btn-outline-primary me-2"
+                            to={landingPath(`book/pay/${encodeURIComponent(token)}`)}
+                        >
+                            View payment status
+                        </Link>
+                    </>
                 ) : null}
                 <Link className="btn btn-outline-secondary" to={landingPath("book")}>
                     Book another doctor

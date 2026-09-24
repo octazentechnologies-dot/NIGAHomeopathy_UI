@@ -9,50 +9,30 @@ installDocumentTitleBrand();
 //imoprt Route
 import Route from './Routes';
 import { ensureMultiSelectGrowStyles } from './helpers/neutralSelectStyles';
-import { getLoggedinUser } from './helpers/api_helper';
+import { bootToLoginIfSignedOut, mustLeaveClinic } from './helpers/signedOutHistory';
 
 ensureMultiSelectGrowStyles();
-
-const PUBLIC_PATH_PREFIXES = [
-  '/login',
-  '/register',
-  '/activate',
-  '/forgot-password',
-  '/reset-password',
-  '/auth',
-  '/find-doctor',
-  '/book',
-  '/privacy',
-  '/terms',
-  '/landing',
-  '/pricing',
-  '/about',
-  '/contact',
-  '/blog',
-  '/news',
-  '/features',
-  '/account',
-];
-
-function isPublicPath(pathname) {
-  const path = String(pathname || '/').toLowerCase();
-  if (path === '/' || path === '') return true;
-  return PUBLIC_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
-}
 
 function App() {
   useEffect(() => {
     const bounceIfLoggedOut = () => {
-      const token = getLoggedinUser()?.token;
-      if (token) return;
-      if (isPublicPath(window.location.pathname)) return;
-      window.location.replace('/login');
+      bootToLoginIfSignedOut();
     };
+    const blankClinicOnLeave = () => {
+      if (!mustLeaveClinic()) return;
+      try {
+        document.documentElement.style.visibility = "hidden";
+        if (document.body) document.body.textContent = "";
+      } catch (e) { /* document is unloading */ }
+    };
+    bootToLoginIfSignedOut();
     window.addEventListener('pageshow', bounceIfLoggedOut);
     window.addEventListener('popstate', bounceIfLoggedOut);
+    window.addEventListener('pagehide', blankClinicOnLeave);
     return () => {
       window.removeEventListener('pageshow', bounceIfLoggedOut);
       window.removeEventListener('popstate', bounceIfLoggedOut);
+      window.removeEventListener('pagehide', blankClinicOnLeave);
     };
   }, []);
 

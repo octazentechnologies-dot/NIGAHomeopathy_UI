@@ -1,21 +1,22 @@
 import React, { useEffect } from "react";
-import { Navigate, Route, useLocation, useNavigate } from "react-router-dom";
+import { Route, useLocation } from "react-router-dom";
 import { setAuthorization, getLoggedinUser } from "../helpers/api_helper";
+import { bootToLoginIfSignedOut, isSignedOut } from "../helpers/signedOutHistory";
 
 const AuthProtected = (props) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const sessionUser = getLoggedinUser();
   const token = sessionUser?.token;
+  const signedOut = isSignedOut();
 
   useEffect(() => {
     const ensureSignedIn = () => {
-      const user = getLoggedinUser();
-      if (!user?.token) {
-        navigate("/login", { replace: true });
+      if (isSignedOut() || !getLoggedinUser()?.token) {
+        bootToLoginIfSignedOut();
+        window.location.replace("/login");
         return;
       }
-      setAuthorization(user.token);
+      setAuthorization(getLoggedinUser().token);
     };
 
     ensureSignedIn();
@@ -27,10 +28,12 @@ const AuthProtected = (props) => {
       window.removeEventListener("focus", ensureSignedIn);
       window.removeEventListener("pageshow", ensureSignedIn);
     };
-  }, [navigate, location.pathname]);
+  }, [location.pathname]);
 
-  if (!token) {
-    return <Navigate to="/login" replace />;
+  if (!token || signedOut) {
+    bootToLoginIfSignedOut();
+    window.location.replace("/login");
+    return null;
   }
 
   setAuthorization(token);

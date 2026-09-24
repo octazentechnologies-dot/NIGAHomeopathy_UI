@@ -24,6 +24,7 @@ import { reset_login_flag } from "../../slices/auth/login/reducer";
 import { activateUser, activateByToken } from "../../helpers/realbackend_helper";
 import { createSelector } from "reselect";
 import { pageTitle } from "../../common/brand";
+import { holdLoginAgainstBack } from "../../helpers/signedOutHistory";
 import logoDark from "../../assets/images/logo-dark.png";
 
 const Login = (props) => {
@@ -46,6 +47,8 @@ const Login = (props) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [infoNotice] = useState(location.state?.notice || "");
   const [activationNotice, setActivationNotice] = useState("");
+
+  useEffect(() => holdLoginAgainstBack(), []);
 
   useEffect(() => {
     const encryptedUserId = searchParams.get("UserId");

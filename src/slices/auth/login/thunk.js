@@ -15,6 +15,7 @@ import { normalizeAuthSubscription, pickSubscriptionStatus, isDevClinicDoctorNam
 import { UserRole } from '../../../Components/constants/roles';
 import { changeLayout, changeSidebarVisibility } from '../../../slices/thunks';
 import { layoutTypes, sidebarVisibilitytypes } from '../../../Components/constants/layout';
+import { clearSignedOut, markSignedOut } from '../../../helpers/signedOutHistory';
 
 // const fireBaseBackend = getFirebaseBackend();
 
@@ -52,6 +53,7 @@ export const loginUser = (user, history) => async (dispatch) => {
       const authUser = data?.token ? data : { ...data, token: data.Token };
       normalizeAuthSubscription(authUser, user?.userName || user?.username || "");
       sessionStorage.setItem("authUser", JSON.stringify(authUser));
+      clearSignedOut();
       dispatch(loginSuccess(authUser));
 
       const role = authUser.role || authUser.Role;
@@ -131,7 +133,7 @@ export const logoutUser = () => async (dispatch) => {
     } catch {
       // Best-effort Old-API + New-API revoke (SEC-03.01)
     }
-    sessionStorage.removeItem("authUser");
+    markSignedOut();
     document.body.classList.remove('admin-layout', 'doctor-layout', 'admin-forms-ui', 'admin-dashboard-route', 'admin-mobile-topbar');
     // Reset layout attribute so the next role does not inherit admin horizontal spacing
     dispatch(changeLayout(layoutTypes.SEMIBOX));

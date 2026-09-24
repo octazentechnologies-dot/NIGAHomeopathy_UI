@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { landingPath } from "../../../../constants/landingRoutes";
 import {
-    createPublicBooking,
-    getPublicPolicy,
+    createBookingWithConsent,
+    getBookingConsentPolicy,
     requestPatientAuthOtp,
     slotToHHmm,
     toIsoDate,
@@ -123,6 +123,10 @@ const BookingConfirmModal = ({
     const [otpCode, setOtpCode] = useState("");
     const [otpHint, setOtpHint] = useState("");
     const [policyVersion, setPolicyVersion] = useState("2026.09");
+    const [policyTitle, setPolicyTitle] = useState("Booking consent");
+    const [policyBodyHtml, setPolicyBodyHtml] = useState("");
+    const [policyLoading, setPolicyLoading] = useState(false);
+    const [policyError, setPolicyError] = useState("");
     const [bookingError, setBookingError] = useState("");
     const [paymentStatus, setPaymentStatus] = useState("");
 
@@ -167,9 +171,22 @@ const BookingConfirmModal = ({
         setOtpHint("");
         setBookingError("");
         setPaymentStatus("");
-        getPublicPolicy("Booking")
-            .then((policy) => setPolicyVersion(policy.version ?? policy.Version ?? "2026.09"))
-            .catch(() => setPolicyVersion("2026.09"));
+        setPolicyError("");
+        setPolicyLoading(true);
+        // PAT-17.02 — load Booking policy from New-API (version + body for review/consent).
+        getBookingConsentPolicy()
+            .then((policy) => {
+                setPolicyVersion(policy.version || "2026.09");
+                setPolicyTitle(policy.title || "Booking consent");
+                setPolicyBodyHtml(policy.bodyHtml || "");
+            })
+            .catch(() => {
+                setPolicyVersion("2026.09");
+                setPolicyTitle("Booking consent");
+                setPolicyBodyHtml("");
+                setPolicyError("Could not load booking consent policy. You can still agree to continue.");
+            })
+            .finally(() => setPolicyLoading(false));
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -234,7 +251,7 @@ const BookingConfirmModal = ({
                 code: otpCode.trim(),
             });
             const sessionId = verified.bookingSessionId ?? verified.BookingSessionId;
-            const created = await createPublicBooking(doctor.id, {
+            const created = await createBookingWithConsent(doctor.id, {
                 mobile: patient.phone.trim(),
                 patientName: patient.fullName.trim(),
                 email: patient.email.trim(),
@@ -678,7 +695,9 @@ const BookingConfirmModal = ({
                                         onChange={(e) => setAgreed(e.target.checked)}
                                     />
                                     <span>
-                                        I agree to the{" "}
+                                        I have reviewed and agree to{" "}
+                                        <strong>{policyTitle}</strong>
+                                        {policyVersion ? ` (v${policyVersion})` : ""}, the{" "}
                                         <Link to={landingPath("terms")} target="_blank">
                                             Terms &amp; Conditions
                                         </Link>{" "}
@@ -713,7 +732,7 @@ const BookingConfirmModal = ({
                                         </button>
                                         <p className="homeojob-booking-modal__razorpay">
                                             <i className="ri-lock-line" aria-hidden="true" />
-                                            Clinic hold now. Razorpay stays on classic api.
+                                            Pay at the clinic when you arrive.
                                         </p>
                                     </div>
                                 </div>
@@ -728,7 +747,7 @@ const BookingConfirmModal = ({
                                     <i className="ri-checkbox-circle-fill" />
                                 </span>
                                 <h3>Booking hold created</h3>
-                                <p>Slot held as {paymentStatus || "PENDING"}. Pay at clinic or later on classic Razorpay.</p>
+                                <p>Your time is held. Please pay at the clinic.</p>
                             </div>
 
                             <div className="homeojob-booking-modal__receipt-card">
@@ -738,7 +757,7 @@ const BookingConfirmModal = ({
                                 </div>
                                 <div className="homeojob-booking-modal__receipt-row">
                                     <span>Payment</span>
-                                    <strong>{paymentStatus || "PENDING"}</strong>
+                                    <strong>{String(paymentStatus || "PENDING").toUpperCase() === "PENDING" ? "Pay at the clinic" : (paymentStatus || "Pay at the clinic")}</strong>
                                 </div>
                                 <div className="homeojob-booking-modal__receipt-row">
                                     <span>Patient</span>
@@ -856,17 +875,37 @@ const BookingConfirmModal = ({
                                     }}
                                 />
                                 <span>
-                                    I agree to the{" "}
+                                    I have reviewed and agree to the{" "}
+                                    <strong>{policyTitle}</strong>
+                                    {policyVersion ? ` (v${policyVersion})` : ""}{" "}
+                                    and the{" "}
                                     <Link to={landingPath("terms")} target="_blank">
                                         Terms &amp; Conditions
                                     </Link>{" "}
-                                    and{" "}
+                                    /{" "}
                                     <Link to={landingPath("privacy")} target="_blank">
                                         Privacy Policy
                                     </Link>
                                     .
                                 </span>
                             </label>
+                            {policyLoading && (
+                                <p className="text-muted small mb-2" data-testid="booking-consent-loading">
+                                    Loading booking consent…
+                                </p>
+                            )}
+                            {policyError && (
+                                <p className="text-warning small mb-2" data-testid="booking-consent-error">
+                                    {policyError}
+                                </p>
+                            )}
+                            {policyBodyHtml ? (
+                                <div
+                                    className="homeojob-booking-modal__policy-review small border rounded p-2 mb-2"
+                                    data-testid="booking-consent-body"
+                                    dangerouslySetInnerHTML={{ __html: policyBodyHtml }}
+                                />
+                            ) : null}
                             {errors.agreed && (
                                 <small className="homeojob-booking-modal__error homeojob-booking-modal__error--footer">
                                     {errors.agreed}

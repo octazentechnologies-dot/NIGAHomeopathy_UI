@@ -92,6 +92,7 @@ import {
   extractPrescriptionResultObject,
   formatAppointmentAccordionTitle,
   getAppointmentIdFromRow,
+  isVisitOnOrBeforeToday,
 } from '../../../helpers/patient_history_helper';
 import { getAuthUserId } from '../../../helpers/appointmentSlotHelper';
 import {
@@ -2009,6 +2010,81 @@ const PatientBoard = () => {
   // ###### Dj UI Code End - Repertorization Rubric Modal State ######
   // Prescription Modal State
   const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
+  const [complaintsModalOpen, setComplaintsModalOpen] = useState(false);
+  const [complaintRows, setComplaintRows] = useState([]);
+  const [complaintDraft, setComplaintDraft] = useState('');
+  const [complaintsLoading, setComplaintsLoading] = useState(false);
+  const [complaintsSaving, setComplaintsSaving] = useState(false);
+  const [complaintsNotice, setComplaintsNotice] = useState('');
+  const [caseDetailsModalOpen, setCaseDetailsModalOpen] = useState(false);
+  const [caseDetailRows, setCaseDetailRows] = useState([]);
+  const [caseDetailsLoading, setCaseDetailsLoading] = useState(false);
+  const [caseDetailsSaving, setCaseDetailsSaving] = useState(false);
+  const [caseDetailsNotice, setCaseDetailsNotice] = useState('');
+  const [caseSymptomQuery, setCaseSymptomQuery] = useState('');
+  const [caseSymptomHits, setCaseSymptomHits] = useState([]);
+  const [caseSymptomSearching, setCaseSymptomSearching] = useState(false);
+  const [selectedCaseSymptom, setSelectedCaseSymptom] = useState(null);
+  const [selectedCaseIntensityId, setSelectedCaseIntensityId] = useState(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyVisits, setHistoryVisits] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRxLoading, setHistoryRxLoading] = useState(false);
+  const [historyRx, setHistoryRx] = useState(null);
+  const [historyRxAppointmentId, setHistoryRxAppointmentId] = useState(null);
+  const historyRxRowRef = useRef(null);
+  useEffect(() => {
+    if (!historyRxAppointmentId || historyRxLoading) return;
+    const row = historyRxRowRef.current;
+    if (!row) return;
+    let scroller = row.parentElement;
+    while (scroller && scroller !== document.body) {
+      const style = window.getComputedStyle(scroller);
+      if (/(auto|scroll)/.test(style.overflowY) && scroller.scrollHeight > scroller.clientHeight + 1) break;
+      scroller = scroller.parentElement;
+    }
+    if (!scroller || scroller === document.body) {
+      row.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    const rowRect = row.getBoundingClientRect();
+    const boxRect = scroller.getBoundingClientRect();
+    if (rowRect.bottom > boxRect.bottom - 8) {
+      scroller.scrollTop += rowRect.bottom - boxRect.bottom + 12;
+    } else if (rowRect.top < boxRect.top + 8) {
+      scroller.scrollTop -= boxRect.top - rowRect.top + 12;
+    }
+  }, [historyRxAppointmentId, historyRxLoading, historyRx]);
+  const [cogModalOpen, setCogModalOpen] = useState(false);
+  const [cogRows, setCogRows] = useState([]);
+  const [cogLoading, setCogLoading] = useState(false);
+  const [cogNotice, setCogNotice] = useState('');
+  const caseSymptomSearchRequestRef = useRef(0);
+  useEffect(() => {
+    if (!caseDetailsModalOpen) return undefined;
+    const term = caseSymptomQuery.trim();
+    if (term.length < MIN_SUBSECTION_SEARCH_LENGTH) {
+      setCaseSymptomHits([]);
+      setCaseSymptomSearching(false);
+      return undefined;
+    }
+    const requestId = caseSymptomSearchRequestRef.current + 1;
+    caseSymptomSearchRequestRef.current = requestId;
+    const timer = setTimeout(async () => {
+      setCaseSymptomSearching(true);
+      try {
+        const response = await searchSubSectionsGlobal({ query: term, top: SUBSECTION_SEARCH_TOP });
+        if (requestId !== caseSymptomSearchRequestRef.current) return;
+        const results = Array.isArray(response) ? response : (response?.data || response?.resultObject || []);
+        setCaseSymptomHits(Array.isArray(results) ? results.slice(0, 8) : []);
+      } catch (error) {
+        if (requestId === caseSymptomSearchRequestRef.current) setCaseSymptomHits([]);
+      } finally {
+        if (requestId === caseSymptomSearchRequestRef.current) setCaseSymptomSearching(false);
+      }
+    }, SUBSECTION_SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [caseDetailsModalOpen, caseSymptomQuery]);
   const [prescriptionTab, setPrescriptionTab] = useState('Prescription');
   const [prescriptionRemedyDetailList, setPrescriptionRemedyDetailList] = useState([]);
   const [selectedPrescriptionRemedy, setSelectedPrescriptionRemedy] = useState(null);
@@ -5474,6 +5550,11 @@ const PatientBoard = () => {
     .pb-circle { width:22px; height:22px; border-radius:50%; background:#f1f3f5; border:1px solid #dee2e6; display:inline-flex; align-items:center; justify-content:center; margin-left:10px; font-size:8px; font-weight:500; vertical-align:middle; line-height:1; }
     .pb-chip { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:3px; border:1px solid #000000; background:#000000; color:#fff; font-size:10px; font-weight:400; margin-left:6px; cursor:pointer; transition:background-color .15s ease, border-color .15s ease; }
     .pb-chip:hover { background:#495057; border-color:#495057; }
+    .pb-finding-grades { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-start; }
+    .pb-finding-grade { display:inline-flex; flex-direction:column; align-items:center; gap:4px; margin:0; padding:0; border:0; background:transparent; cursor:pointer; }
+    .pb-finding-grade__num { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; border:2px solid #000; background:#fff; color:#000; font-size:15px; font-weight:700; line-height:1; }
+    .pb-finding-grade.is-selected .pb-finding-grade__num { background:#000; color:#fff; box-shadow:0 0 0 3px #b7ebc6; }
+    .pb-finding-grade__note { max-width:92px; font-size:11px; line-height:1.2; color:#6c757d; text-align:center; }
     .pb-remedy-score-bar { position:relative; flex-shrink:0; width:88px; min-width:88px; margin-left:8px; }
     .pb-remedy-score-bar__track {
       position:relative;
@@ -12393,33 +12474,31 @@ const PatientBoard = () => {
         intensity: Number(rubric.intensityNo ?? rubric.intensityId ?? 1),
       }))
       .filter((item) => Number.isFinite(item.subSectionId) && item.subSectionId > 0);
+    setCogModalOpen(true);
+    setCogRows([]);
     if (rubrics.length === 0) {
-      Swal.fire({ icon: 'info', title: 'Clipboard empty', text: 'Add rubrics before Center of Gravity.', confirmButtonColor: '#000000' });
+      setCogNotice('Add symptoms on the repertorization list first.');
+      setCogLoading(false);
       return;
     }
+    setCogNotice('');
+    setCogLoading(true);
     try {
-      Swal.fire({ title: 'Running Center of Gravity…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const result = await runCenterOfGravity({
         patientId: patientId ? Number(patientId) : null,
         rubrics,
       });
       const rows = result?.data ?? result?.Data ?? [];
-      const lines = (Array.isArray(rows) ? rows : [])
-        .slice(0, 8)
-        .map((row) => `${row.remedyName ?? row.RemedyName} (${row.score ?? row.Score})`);
-      Swal.fire({
-        icon: lines.length ? 'success' : 'info',
-        title: 'Center of Gravity',
-        html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No remedies scored for this clipboard.',
-        confirmButtonColor: '#000000',
-      });
+      const list = (Array.isArray(rows) ? rows : []).slice(0, 8).map((row) => ({
+        name: row.remedyName ?? row.RemedyName ?? 'Remedy',
+        score: row.score ?? row.Score ?? '',
+      }));
+      setCogRows(list);
+      setCogNotice(list.length ? '' : 'No remedies matched these symptoms.');
     } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Center of Gravity failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
-        confirmButtonColor: '#000000',
-      });
+      setCogNotice(typeof err === 'string' ? err : err?.message || 'Could not compare remedies. Please try again.');
+    } finally {
+      setCogLoading(false);
     }
   };
 
@@ -12447,7 +12526,7 @@ const PatientBoard = () => {
 
   const handleExportCasePdf = async () => {
     if (!patientId || !caseId) {
-      Swal.fire({ icon: 'warning', title: 'Missing case', text: 'Open a patient with patientId and caseId to export.', confirmButtonColor: '#000000' });
+      Swal.fire({ icon: 'warning', title: 'Open a case', text: 'Choose a patient case before exporting.', confirmButtonColor: '#000000' });
       return;
     }
     try {
@@ -12486,63 +12565,98 @@ const PatientBoard = () => {
     }
   };
 
-  const handleLoadSaveCaseDetails = async () => {
+  const readCaseDetailRow = (row) => ({
+    caseDetailId: row.caseDetailId ?? row.CaseDetailId ?? 0,
+    subsectionId: row.subsectionId ?? row.SubsectionId ?? null,
+    symptom: row.subsectionName ?? row.SubsectionName ?? row.subSectionName ?? '',
+    intensityId: row.intensityId ?? row.IntensityId ?? null,
+    grade: row.intensityNo ?? row.IntensityNo ?? null,
+    gradeNote: row.intensityDescription ?? row.IntensityDescription ?? '',
+  });
+
+  const openCaseDetails = async () => {
     if (!caseId) {
-      Swal.fire({ icon: 'warning', title: 'Missing case', text: 'Open a patient with caseId to save case details.', confirmButtonColor: '#000000' });
+      Swal.fire({ icon: 'warning', title: 'Open a case', text: 'Choose a patient case before recording findings.', confirmButtonColor: '#000000' });
       return;
     }
+    setCaseDetailsModalOpen(true);
+    setCaseDetailsNotice('');
+    setCaseSymptomQuery('');
+    setCaseSymptomHits([]);
+    setSelectedCaseSymptom(null);
+    setSelectedCaseIntensityId(null);
+    setCaseDetailsLoading(true);
     try {
-      Swal.fire({ title: 'Loading case details…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const rows = await getPatientCaseDetails(caseId);
-      const list = extractApiList(rows);
-      const first = list[0] || {};
-      const existingSub = first.subsectionId ?? first.SubsectionId ?? first.subSectionId ?? '';
-      const existingInt = first.intensityId ?? first.IntensityId ?? '';
-      Swal.close();
-      const result = await Swal.fire({
-        title: 'Case details',
-        html: `
-          <p class="text-start small mb-2">Existing rows: ${list.length}. POST SaveCaseDetails on classic API.</p>
-          <input id="swal-case-sub" class="swal2-input" placeholder="SubsectionId" value="${existingSub}">
-          <input id="swal-case-int" class="swal2-input" placeholder="IntensityId" value="${existingInt}">
-        `,
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonText: 'Save (POST)',
+      setCaseDetailRows(extractApiList(rows).map(readCaseDetailRow));
+    } catch (err) {
+      setCaseDetailRows([]);
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not load findings',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
         confirmButtonColor: '#000000',
-        preConfirm: () => ({
-          subsectionId: document.getElementById('swal-case-sub')?.value,
-          intensityId: document.getElementById('swal-case-int')?.value,
-        }),
       });
-      if (!result.isConfirmed) return;
-      const subsectionId = Number(result.value?.subsectionId);
-      const intensityId = Number(result.value?.intensityId);
-      const payload = [{
-        CaseDetailId: first.caseDetailId ?? first.CaseDetailId ?? 0,
+    } finally {
+      setCaseDetailsLoading(false);
+    }
+  };
+
+  const saveCaseFinding = async () => {
+    const subsectionId = Number(selectedCaseSymptom?.subSectionId ?? selectedCaseSymptom?.SubSectionId);
+    const intensityId = Number(selectedCaseIntensityId);
+    if (!Number.isFinite(subsectionId) || subsectionId <= 0 || !Number.isFinite(intensityId) || intensityId <= 0) {
+      setCaseDetailsNotice('Choose a symptom and a grade.');
+      return;
+    }
+    const existing = caseDetailRows.find((row) => Number(row.subsectionId) === subsectionId);
+    const symptomName = selectedCaseSymptom?.subSectionName || selectedCaseSymptom?.SubSectionName || 'This symptom';
+    const chosenGrade = (intensitiesForPatientList || []).find(
+      (item) => Number(item.intensityId) === intensityId
+    );
+    const gradeNo = chosenGrade?.intensityNo ?? chosenGrade?.IntensityNo;
+    setCaseDetailsSaving(true);
+    setCaseDetailsNotice('');
+    try {
+      await savePatientCaseDetails([{
+        CaseDetailId: existing?.caseDetailId || 0,
         CaseId: Number(caseId),
-        SubsectionId: Number.isFinite(subsectionId) && subsectionId > 0 ? subsectionId : null,
-        IntensityId: Number.isFinite(intensityId) && intensityId > 0 ? intensityId : null,
-      }];
-      await savePatientCaseDetails(payload);
-      Swal.fire({ icon: 'success', title: 'Case details saved', text: 'SaveCaseDetails POST completed.', confirmButtonColor: '#000000' });
+        SubsectionId: subsectionId,
+        IntensityId: intensityId,
+      }]);
+      const rows = await getPatientCaseDetails(caseId);
+      setCaseDetailRows(extractApiList(rows).map(readCaseDetailRow));
+      setCaseSymptomQuery('');
+      setCaseSymptomHits([]);
+      setSelectedCaseSymptom(null);
+      setSelectedCaseIntensityId(null);
+      setCaseDetailsNotice(
+        gradeNo == null
+          ? `Saved. ${symptomName} is on this case.`
+          : `Saved. ${symptomName} is recorded as grade ${gradeNo}.`
+      );
     } catch (err) {
       Swal.fire({
         icon: 'error',
-        title: 'Case details failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
+        title: 'Could not save the finding',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
         confirmButtonColor: '#000000',
       });
+    } finally {
+      setCaseDetailsSaving(false);
     }
   };
 
   const handleOpenVisitHistory = async () => {
     if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Missing patient', text: 'Open a patient to view visit history.', confirmButtonColor: '#000000' });
+      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient to see past visits.', confirmButtonColor: '#000000' });
       return;
     }
+    setHistoryModalOpen(true);
+    setHistoryRx(null);
+    setHistoryRxAppointmentId(null);
+    setHistoryLoading(true);
     try {
-      Swal.fire({ title: 'Loading visit history…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const response = await getAppointmentListByPatientId({ patientId, pageNumber: 1, pageSize: 50 });
       const rows = extractApiList(response);
       const sorted = [...rows].sort((a, b) => {
@@ -12550,97 +12664,111 @@ const PatientBoard = () => {
         const db = new Date(b.appointmentDate ?? b.AppointmentDate ?? 0).getTime();
         return db - da;
       });
-      const options = {};
-      sorted.forEach((appointment, index) => {
-        const id = getAppointmentIdFromRow(appointment);
-        if (id) options[`v${String(index).padStart(3, '0')}-${id}`] = formatAppointmentAccordionTitle(appointment);
-      });
-      if (!Object.keys(options).length) {
-        Swal.fire({ icon: 'info', title: 'Visit history', text: 'No visits found for this patient.', confirmButtonColor: '#000000' });
-        return;
-      }
-      const pick = await Swal.fire({
-        title: 'Visit history',
-        text: 'Date-ordered visits with payment status. Select a visit to open past eRx.',
-        input: 'select',
-        inputOptions: options,
-        inputPlaceholder: 'Select a visit',
-        showCancelButton: true,
-        confirmButtonText: 'Open past eRx',
+      setHistoryVisits(sorted.filter((appointment) => getAppointmentIdFromRow(appointment) && isVisitOnOrBeforeToday(appointment)));
+    } catch (err) {
+      setHistoryVisits([]);
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not load visits',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
         confirmButtonColor: '#000000',
       });
-      if (!pick.isConfirmed || !pick.value) return;
-      const appointmentId = String(pick.value).replace(/^v\d+-/, '');
-      Swal.fire({ title: 'Loading past eRx…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openPastPrescription = async (appointment) => {
+    const appointmentId = getAppointmentIdFromRow(appointment);
+    if (!appointmentId) return;
+    setHistoryRxAppointmentId(appointmentId);
+    setHistoryRxLoading(true);
+    setHistoryRx({ title: formatAppointmentAccordionTitle(appointment), symptoms: [], medicines: [] });
+    try {
       const rx = await getPrescriptionDetailsByAppointmentId({ appointmentId });
       const details = extractPrescriptionResultObject(rx);
       const remedies = details.remedyDetails ?? details.RemedyDetails ?? [];
       const rubrics = details.rubricDetails ?? details.RubricDetails ?? [];
-      const lines = [
-        ...rubrics.map((item) => `Rubric: ${item.rubricName ?? item.RubricName ?? item.name ?? ''}`),
-        ...remedies.map((item) => `Rx: ${item.remedyName ?? item.RemedyName ?? item.name ?? ''}`),
-      ].filter((line) => line.replace(/^(Rubric|Rx): /, '').trim());
-      Swal.fire({
-        icon: lines.length ? 'success' : 'info',
-        title: `Past eRx #${appointmentId}`,
-        html: lines.length ? `<pre style="text-align:left">${lines.join('\n')}</pre>` : 'No prescription details for this visit.',
-        confirmButtonColor: '#000000',
+      setHistoryRx({
+        title: formatAppointmentAccordionTitle(appointment),
+        symptoms: rubrics.map((item) => item.rubricName ?? item.RubricName ?? item.name ?? '').map((name) => String(name).trim()).filter(Boolean),
+        medicines: remedies.map((item) => item.remedyName ?? item.RemedyName ?? item.name ?? '').map((name) => String(name).trim()).filter(Boolean),
       });
     } catch (err) {
+      setHistoryRx(null);
+      setHistoryRxAppointmentId(null);
       Swal.fire({
         icon: 'error',
-        title: 'Visit history failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
+        title: 'Could not open this visit',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
         confirmButtonColor: '#000000',
       });
+    } finally {
+      setHistoryRxLoading(false);
     }
   };
 
-  const handleLoadSaveComplaints = async () => {
+  const complaintNameOf = (item) => String(
+    item.chiefComplaintName ?? item.ChiefComplaintName ?? item.complaintName ?? item.ComplaintName ?? item.name ?? ''
+  ).trim();
+
+  const openComplaints = async () => {
     if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Missing patient', text: 'Open a patient to load complaints.', confirmButtonColor: '#000000' });
+      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient before recording complaints.', confirmButtonColor: '#000000' });
       return;
     }
+    setComplaintsModalOpen(true);
+    setComplaintsNotice('');
+    setComplaintDraft('');
+    setComplaintsLoading(true);
     try {
-      Swal.fire({ title: 'Loading complaints…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const rows = await getPatientComplaints(patientId);
-      const list = extractApiList(rows);
-      const names = list
-        .map((item) => item.chiefComplaintName ?? item.ChiefComplaintName ?? item.complaintName ?? item.ComplaintName ?? item.name ?? '')
-        .map((name) => String(name).trim())
-        .filter(Boolean);
-      Swal.close();
-      const result = await Swal.fire({
-        title: 'Complaints',
-        html: names.length
-          ? `<pre style="text-align:left">${names.join('\n')}</pre><p class="text-start small mb-0 mt-2">Add another complaint, or Close to keep the list.</p>`
-          : '<p class="text-start mb-0">No complaints saved for this patient. Add one below.</p>',
-        input: 'text',
-        inputPlaceholder: 'New complaint (optional)',
-        showCancelButton: true,
-        confirmButtonText: 'Save (POST)',
+      setComplaintRows(extractApiList(rows));
+    } catch (err) {
+      setComplaintRows([]);
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not load complaints',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
         confirmButtonColor: '#000000',
-        cancelButtonText: 'Close',
       });
-      if (!result.isConfirmed) return;
-      const next = String(result.value || '').trim();
-      if (!next) {
-        Swal.fire({ icon: 'info', title: 'Complaints', text: 'No new complaint entered.', confirmButtonColor: '#000000' });
-        return;
-      }
+    } finally {
+      setComplaintsLoading(false);
+    }
+  };
+
+  const saveComplaint = async () => {
+    const next = complaintDraft.trim();
+    if (!next) {
+      setComplaintsNotice('Type the complaint, then save.');
+      return;
+    }
+    const already = complaintRows.some((item) => complaintNameOf(item).toLowerCase() === next.toLowerCase());
+    if (already) {
+      setComplaintsNotice('This complaint is already on the list.');
+      return;
+    }
+    setComplaintsSaving(true);
+    setComplaintsNotice('');
+    try {
       await savePatientComplaints({
         PatientID: Number(patientId),
         CaseId: caseId ? Number(caseId) : undefined,
         ChiefComplaintIds: next,
       });
-      Swal.fire({ icon: 'success', title: 'Complaints saved', text: 'SaveComplaints POST completed.', confirmButtonColor: '#000000' });
+      const rows = await getPatientComplaints(patientId);
+      setComplaintRows(extractApiList(rows));
+      setComplaintDraft('');
+      setComplaintsNotice(`Saved. ${next} is on this patient's complaints.`);
     } catch (err) {
       Swal.fire({
         icon: 'error',
-        title: 'Complaints failed',
-        text: typeof err === 'string' ? err : err?.message || 'Request failed',
+        title: 'Could not save the complaint',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
         confirmButtonColor: '#000000',
       });
+    } finally {
+      setComplaintsSaving(false);
     }
   };
 
@@ -12885,13 +13013,13 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
-              <Button type="button" className="btn btn-sm me-1" onClick={handleLoadSaveComplaints} title="GET/POST complaints on classic api">
+              <Button type="button" className="btn btn-sm me-1" onClick={openComplaints} title="Chief complaints for this patient">
                 Complaints
               </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleLoadSaveCaseDetails} title="GET/POST SaveCaseDetails">
+              <Button type="button" className="btn btn-sm me-1" onClick={openCaseDetails} title="Symptoms and grades for this case">
                 Case details
               </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} title="Date-ordered visits and past eRx">
+              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} title="Past visits and prescriptions">
                 History
               </Button>
               <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasePdf} title="Export case PDF">
@@ -14165,9 +14293,8 @@ const PatientBoard = () => {
                           </span>
                           Repertorization
                           <span className="pb-repertorize-count-pill">{repertorizationRubrics.length}</span>
-                          <span className="text-muted small fw-normal ms-1">COG uses this clipboard</span>
                           <Button type="button" className="btn btn-sm ms-2" onClick={handleRunCenterOfGravity}>
-                            Run COG
+                            Center of gravity
                           </Button>
                         </div>
                         {/* Ascending / descending sort icons — hidden per request
@@ -15332,6 +15459,254 @@ const PatientBoard = () => {
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">
           <ModalActionButton action="cancel" onClick={() => setQuestionRubricModalOpen(false)} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={historyModalOpen} toggle={() => setHistoryModalOpen(false)} centered size="lg" scrollable>
+        <ModalHeader toggle={() => setHistoryModalOpen(false)}>Visit history</ModalHeader>
+        <ModalBody>
+          {historyLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Loading visits…</div>
+          ) : historyVisits.length === 0 ? (
+            <p className="text-muted mb-0">No visits found for this patient.</p>
+          ) : (
+            <ul className="list-group mb-0">
+              {historyVisits.map((appointment) => {
+                const id = getAppointmentIdFromRow(appointment);
+                const open = String(historyRxAppointmentId) === String(id);
+                return (
+                  <li
+                    key={id}
+                    ref={open ? historyRxRowRef : null}
+                    className="list-group-item py-2"
+                  >
+                    <div className="d-flex justify-content-between align-items-center gap-2">
+                      <span>{formatAppointmentAccordionTitle(appointment)}</span>
+                      <button type="button" className="btn btn-sm btn-soft-primary" onClick={() => openPastPrescription(appointment)}>
+                        View prescription
+                      </button>
+                    </div>
+                    {open && historyRxLoading ? (
+                      <div className="mt-2 pt-2 border-top text-muted">
+                        <Spinner size="sm" /> Loading prescription…
+                      </div>
+                    ) : null}
+                    {open && historyRx && !historyRxLoading ? (
+                      <div className="mt-2 pt-2 border-top">
+                        {historyRx.symptoms.length === 0 && historyRx.medicines.length === 0 ? (
+                          <p className="text-muted mb-0">No prescription was saved for this visit.</p>
+                        ) : (
+                          <>
+                            {historyRx.symptoms.length > 0 ? (
+                              <>
+                                <p className="mb-1 fw-semibold">Symptoms</p>
+                                <ul className="mb-2">{historyRx.symptoms.map((name) => <li key={name}>{name}</li>)}</ul>
+                              </>
+                            ) : null}
+                            {historyRx.medicines.length > 0 ? (
+                              <>
+                                <p className="mb-1 fw-semibold">Medicines</p>
+                                <ul className="mb-0">{historyRx.medicines.map((name) => <li key={name}>{name}</li>)}</ul>
+                              </>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="close" onClick={() => setHistoryModalOpen(false)} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={cogModalOpen} toggle={() => setCogModalOpen(false)} centered scrollable>
+        <ModalHeader toggle={() => setCogModalOpen(false)}>Center of gravity</ModalHeader>
+        <ModalBody>
+          {cogLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Comparing remedies…</div>
+          ) : cogRows.length === 0 ? (
+            <p className="text-muted mb-0">{cogNotice || 'No remedies matched these symptoms.'}</p>
+          ) : (
+            <ul className="list-group">
+              {cogRows.map((row) => (
+                <li key={row.name} className="list-group-item py-2 d-flex justify-content-between">
+                  <span>{row.name}</span>
+                  <span className="text-muted">{row.score}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="close" onClick={() => setCogModalOpen(false)} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={complaintsModalOpen} toggle={() => setComplaintsModalOpen(false)} centered scrollable>
+        <ModalHeader toggle={() => setComplaintsModalOpen(false)}>Chief complaints</ModalHeader>
+        <ModalBody>
+          {complaintsLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Loading complaints…</div>
+          ) : complaintRows.length === 0 ? (
+            <p className="text-muted mb-3">No complaints recorded for this patient yet.</p>
+          ) : (
+            <ul className="list-group mb-3">
+              {complaintRows.filter((item) => complaintNameOf(item)).map((item) => {
+                const name = complaintNameOf(item);
+                const key = item.caseChiefComplaintId ?? item.CaseChiefComplaintId ?? name;
+                return <li key={key} className="list-group-item py-2">{name}</li>;
+              })}
+            </ul>
+          )}
+          <Label for="pb-complaint-draft">Add a complaint</Label>
+          <Input
+            id="pb-complaint-draft"
+            value={complaintDraft}
+            placeholder="For example, headache since two weeks"
+            onChange={(e) => setComplaintDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                saveComplaint();
+              }
+            }}
+          />
+          {complaintsNotice ? (
+            <div
+              className={`alert ${complaintsNotice.startsWith('Saved.') ? 'alert-success' : 'alert-warning'} py-2 mt-3 mb-0`}
+              role="status"
+            >
+              {complaintsNotice}
+            </div>
+          ) : null}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="cancel" onClick={() => setComplaintsModalOpen(false)} />
+          <ModalActionButton action="save" loading={complaintsSaving} onClick={saveComplaint} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={caseDetailsModalOpen} toggle={() => setCaseDetailsModalOpen(false)} centered size="lg" scrollable>
+        <ModalHeader toggle={() => setCaseDetailsModalOpen(false)}>Case findings</ModalHeader>
+        <ModalBody>
+          {caseDetailsLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Loading findings…</div>
+          ) : caseDetailRows.length === 0 ? (
+            <p className="text-muted mb-3">No findings recorded for this case yet.</p>
+          ) : (
+            <ul className="list-group mb-3">
+              {caseDetailRows.map((row) => (
+                <li key={row.caseDetailId || `${row.subsectionId}-${row.intensityId}`} className="list-group-item py-2 d-flex justify-content-between align-items-center">
+                  <span>{row.symptom || 'Symptom'}</span>
+                  <span className="badge bg-light text-dark border">Grade {row.grade ?? '—'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Label for="pb-case-symptom">Symptom</Label>
+          <Input
+            id="pb-case-symptom"
+            value={selectedCaseSymptom ? (selectedCaseSymptom.subSectionName || selectedCaseSymptom.SubSectionName || '') : caseSymptomQuery}
+            placeholder="Search a symptom"
+            onChange={(e) => {
+              setSelectedCaseSymptom(null);
+              setCaseSymptomQuery(e.target.value);
+              setCaseDetailsNotice('');
+            }}
+          />
+          {selectedCaseSymptom ? (
+            <button type="button" className="btn btn-link btn-sm px-0" onClick={() => { setSelectedCaseSymptom(null); setCaseSymptomQuery(''); }}>
+              Choose a different symptom
+            </button>
+          ) : null}
+          {!selectedCaseSymptom && caseSymptomSearching ? <p className="small text-muted mt-2 mb-0">Searching…</p> : null}
+          {!selectedCaseSymptom && caseSymptomHits.length > 0 ? (
+            <div className="list-group mt-2">
+              {caseSymptomHits.map((hit) => {
+                const id = hit.subSectionId ?? hit.SubSectionId;
+                const name = hit.subSectionName ?? hit.SubSectionName ?? '';
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className="list-group-item list-group-item-action py-2"
+                    onClick={() => {
+                      setSelectedCaseSymptom(hit);
+                      setCaseSymptomHits([]);
+                      setCaseSymptomQuery('');
+                    }}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          <Label className="mt-3 d-block">Grade</Label>
+          <div className="pb-finding-grades" role="group" aria-label="Grade">
+            {(() => {
+              const grades = [...(intensitiesForPatientList || [])].sort(
+                (a, b) => (b.intensityNo ?? b.IntensityNo ?? 0) - (a.intensityNo ?? a.IntensityNo ?? 0)
+              );
+              const numberCount = grades.reduce((counts, item) => {
+                const number = item.intensityNo ?? item.IntensityNo;
+                counts[number] = (counts[number] || 0) + 1;
+                return counts;
+              }, {});
+              return grades.map((intensity) => {
+                const selected = Number(selectedCaseIntensityId) === Number(intensity.intensityId);
+                const number = intensity.intensityNo ?? intensity.IntensityNo;
+                const note = intensity.description || intensity.Description || '';
+                const sharedNumber = numberCount[number] > 1;
+                return (
+                  <button
+                    key={intensity.intensityId}
+                    type="button"
+                    aria-pressed={selected}
+                    className={`pb-finding-grade${selected ? ' is-selected' : ''}`}
+                    onClick={() => {
+                      setSelectedCaseIntensityId(intensity.intensityId);
+                      setCaseDetailsNotice('');
+                    }}
+                    title={note || `Grade ${number}`}
+                  >
+                    <span className="pb-finding-grade__num">{number}</span>
+                    {sharedNumber && note ? <span className="pb-finding-grade__note">{note}</span> : null}
+                  </button>
+                );
+              });
+            })()}
+          </div>
+          <p className="mt-2 mb-0 fw-semibold">
+            {(() => {
+              const chosen = (intensitiesForPatientList || []).find(
+                (item) => Number(item.intensityId) === Number(selectedCaseIntensityId)
+              );
+              const number = chosen?.intensityNo ?? chosen?.IntensityNo;
+              const note = chosen?.description || chosen?.Description || '';
+              if (number == null) return 'Choose a grade.';
+              return note ? `Selected grade: ${number} · ${note}` : `Selected grade: ${number}`;
+            })()}
+          </p>
+          {caseDetailsNotice ? (
+            <div
+              className={`alert ${caseDetailsNotice.startsWith('Saved.') ? 'alert-success' : 'alert-warning'} py-2 mt-3 mb-0`}
+              role="status"
+            >
+              {caseDetailsNotice}
+            </div>
+          ) : null}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="cancel" onClick={() => setCaseDetailsModalOpen(false)} />
+          <ModalActionButton action="save" loading={caseDetailsSaving} onClick={saveCaseFinding}>
+            Save finding
+          </ModalActionButton>
         </ModalFooter>
       </Modal>
 

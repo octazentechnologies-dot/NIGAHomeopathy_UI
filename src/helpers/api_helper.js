@@ -102,6 +102,14 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
           traceId: error.response?.data?.traceId || error.config?.headers?.["X-Correlation-Id"] || "",
         });
       }
+      if (error.config?.returnErrorBody) {
+        const body = error.response?.data;
+        return Promise.reject({
+          message,
+          status: statusCode,
+          data: body && typeof body === "object" ? body : null,
+        });
+      }
       return Promise.reject(message);
     }
   );
@@ -178,7 +186,7 @@ const createAPIHelpers = (client) => ({
     }
   },
 
-  post: (url, data) => client.post(url, data),
+  post: (url, data, config) => client.post(url, data, config),
 
   put: (url, data) => client.put(url, data),
 

@@ -149,8 +149,38 @@ export const splitAdminApiNavItems = (items) => {
 };
 
 export const RECEPTION_FALLBACK_MENU = [
-  { id: "reception-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
+  { id: "reception-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/reception" },
+  { id: "reception-case-paper", label: "Case paper", icon: "ri-file-list-3-line", link: "/reception/case-paper" },
+  { id: "reception-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
+
+const CLINICAL_NAV_MARKERS = ["patientboard", "anatomy", "repertor", "materia", "clinical", "doctordashboard"];
+
+/** REC-03.01 — drop Patient Board / repertory / doctor-dashboard links from reception chrome. */
+export const isClinicalNavLink = (link) => {
+  if (!link || typeof link !== "string" || link === "/#") return false;
+  const path = link.split("?")[0].toLowerCase();
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized === "/reception" || normalized.startsWith("/reception/")) return false;
+  return CLINICAL_NAV_MARKERS.some((marker) => normalized.includes(marker));
+};
+
+export const filterReceptionChromeItems = (items) =>
+  (items || [])
+    .map((item) => {
+      const kids = filterReceptionChromeItems(item.subItems || []);
+      if (kids.length) return { ...item, subItems: kids };
+      if (isClinicalNavLink(item.link)) return null;
+      if (!item.link || item.link === "/#") return null;
+      return item;
+    })
+    .filter(Boolean);
+
+export const receptionChromeFromApi = (items) => {
+  const filtered = filterReceptionChromeItems(items);
+  const hasHome = filtered.some((item) => String(item.link || "").toLowerCase().startsWith("/reception"));
+  return hasHome ? filtered : [...RECEPTION_FALLBACK_MENU, ...filtered];
+};
 
 /** Matches Dev RoleDetails for Doctor (no Enquiries, no Family). Used only when GetMenuByRole fails. */
 export const DOCTOR_FALLBACK_MENU = [
@@ -183,6 +213,7 @@ export const isSpaMenuLink = (link) => {
     path.startsWith("/family") ||
     path.startsWith("/caregiver") ||
     path.startsWith("/doctor") ||
+    path.startsWith("/reception") ||
     path.startsWith("/enquiries") ||
     path.startsWith("/profile") ||
     path === "/dashboard" ||

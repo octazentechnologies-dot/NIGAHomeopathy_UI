@@ -14,6 +14,7 @@ import {
   PATIENT_FALLBACK_MENU,
   RECEPTION_FALLBACK_MENU,
   DOCTOR_FALLBACK_MENU,
+  receptionChromeFromApi,
 } from '../helpers/menuByRole';
 import { getMenuByRole } from '../helpers/realbackend_helper';
 import { resolveUserRole, UserRole } from '../Components/constants/roles';
@@ -119,6 +120,12 @@ export const LayoutMenuProvider = ({ children }) => {
     // Hardcoded nav is only a resilience fallback when the API is down or idle.
     if (apiMenuStatus === 'ok') {
       const spaItems = (apiNavItems || []).map(keepSpaNavItem).filter(Boolean);
+      if (role === UserRole.RECEPTION) {
+        return {
+          menuItems: withDropdownState(receptionChromeFromApi(spaItems)),
+          moreMenuItems: [],
+        };
+      }
       const isAdminRole = role === UserRole.ADMIN || role === UserRole.MANAGEMENT;
       if (isAdminRole) {
         const split = splitAdminApiNavItems(spaItems);

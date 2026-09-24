@@ -41,7 +41,7 @@ const EnquiryInboxPage = () => {
         <Row className="mb-3 align-items-center">
           <Col>
             <h4 className="mb-1">Enquiry inbox</h4>
-            <p className="text-muted mb-0">New-API GET /api/Enquiry — TicketStatus and AssignedTo</p>
+            <p className="text-muted mb-0">Messages sent from the website.</p>
           </Col>
           <Col md={3}>
             <Input type="select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter status">

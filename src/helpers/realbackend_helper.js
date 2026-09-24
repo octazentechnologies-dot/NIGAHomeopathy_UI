@@ -425,13 +425,125 @@ export const getDailySchedule = async (params) => {
 };
 export const saveDailySchedule = data => nigahomeoAPI.post(url.SAVE_DAILY_SCHEDULE, data);
 export const getAppointmentSlots = (params) => nigahomeoAPI.get(url.GET_APPOINTMENT_SLOTS, params);
-export const rescheduleAppointment = (data) => nigahomeoAPI.post(url.RESCHEDULE_APPOINTMENT, data);
+export const rescheduleAppointment = (data) =>
+  nigahomeoAPI.post(url.RESCHEDULE_APPOINTMENT, data, { returnErrorBody: true });
 export const cancelAppointment = (data) => nigahomeoAPI.post(url.CANCEL_APPOINTMENT, data);
 export const getAppointmentQueue = (doctorId) => nigahomeoAPI.get(url.APPOINTMENT_QUEUE + "?doctorId=" + doctorId, null);
 export const callNextAppointment = (doctorId) => nigahomeoAPI.post(url.CALL_NEXT_APPOINTMENT, { doctorId });
 export const getReceptionProfile = () => nigahomeoAPI.get(url.RECEPTION_PROFILE, null);
 export const updateReceptionProfile = (data) => nigahomeoAPI.put(url.RECEPTION_PROFILE, data);
 export const saveReceptionCasePaper = (data) => nigahomeoAPI.post(url.RECEPTION_CASE_PAPER, data);
+export const getReceptionCasePapers = (patientId) =>
+  nigahomeoAPI.get(url.RECEPTION_CASE_PAPER + "?patientId=" + patientId, null);
+export const getReceptionPatientOpen = (patientId) =>
+  nigahomeoAPI.get(url.RECEPTION_PATIENT_OPEN + "?patientId=" + patientId, null);
+/** TEL-02.04 — single poll of today's tele queue (treating doctor JWT). */
+export const getTeleQueue = () => nigahomeoAPI.get(url.TELE_QUEUE, null);
+/** TEL-04.01 — same Token POST for web and mobile (no clientType body). */
+export const getTeleSessionToken = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_TOKEN(sessionId), null);
+export const rejoinTeleSession = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_REJOIN(sessionId), null);
+/** TEL-06.02 — GET session status for patient waiting-room poll. */
+export const getTeleSessionStatus = (sessionId) =>
+  nigahomeoAPI.get(url.TELE_SESSION_STATUS(sessionId), null);
+export const createTeleSession = (data) => nigahomeoAPI.post(url.TELE_SESSIONS, data);
+/** TEL-03.02 — doctor starts / ends the room (Active / Ended). */
+export const startTeleSession = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_START(sessionId), null);
+export const endTeleSession = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_END(sessionId), null);
+
+/**
+ * DMO-08.02 — normalize Token / Rejoin JSON (web + mobile same shape).
+ * Never invent vendor token, Active status, or paid/signed state locally.
+ */
+export const mapTeleSessionTokenPayload = (payload) => {
+  const hasTopToken = payload?.token != null || payload?.Token != null;
+  const root = !hasTopToken && payload?.data !== undefined ? payload.data : payload;
+  const data = (root && (root.data || root.Data)) || root || {};
+  const clientsRaw = data.clients || data.Clients || ["web", "mobile"];
+  const status = data.status || data.Status || null;
+  return {
+    success: Boolean(payload?.success ?? payload?.Success ?? data.success ?? true),
+    vendor: data.vendor || data.Vendor || "stub",
+    clients: Array.isArray(clientsRaw) ? clientsRaw : ["web", "mobile"],
+    teleSessionId: data.teleSessionId || data.TeleSessionId || null,
+    roomId: data.roomId || data.RoomId || null,
+    token: data.token || data.Token || null,
+    expiresAt: data.expiresAt || data.ExpiresAt || null,
+    recordAllowed: Boolean(data.recordAllowed ?? data.RecordAllowed),
+    status,
+    isStub: String(data.vendor || data.Vendor || "stub").toLowerCase() === "stub",
+  };
+};
+
+/** DMO-08.02 — doctor/patient join token (Active session). */
+export const issueTeleSessionToken = async (sessionId) => {
+  const raw = await getTeleSessionToken(sessionId);
+  return mapTeleSessionTokenPayload(raw);
+};
+
+/** DMO-08.02 — rejoin while Active only (409 otherwise). */
+export const issueTeleSessionRejoinToken = async (sessionId) => {
+  const raw = await rejoinTeleSession(sessionId);
+  return mapTeleSessionTokenPayload(raw);
+};
+/** TEL-10.02 — post/list tele chat (doctor and mapped patient only). */
+export const postTeleChat = (data) => nigahomeoAPI.post(url.TELE_CHAT, data);
+export const listTeleChat = (sessionId) => nigahomeoAPI.get(url.TELE_CHAT_LIST(sessionId), null);
+/** PAT-20.02 — appointment change log (JWT: owning patient or treating doctor). */
+export const getAppointmentChangeLog = (patientAppId) =>
+  nigahomeoAPI.get(url.APPOINTMENT_CHANGE_LOG(patientAppId), null);
+/** PAT-20.02 — tele consultation summaries for appointment detail. */
+export const getTeleConsultationSummary = (patientAppId) =>
+  nigahomeoAPI.get(url.TELE_SUMMARY(patientAppId), null);
+export const saveTeleConsultationSummary = (data) =>
+  nigahomeoAPI.put(url.TELE_SUMMARY_SAVE, data);
+/** PAT-24.02 — patient requests instant consult (queuePosition + OFFERED / NO_DOCTOR). */
+export const requestInstantConsult = (data) => nigahomeoAPI.post(url.TELE_INSTANT, data);
+/** PAT-24.02 — doctor lists / accepts instant offers. */
+export const listInstantConsultOffers = () => nigahomeoAPI.get(url.TELE_INSTANT_OFFERS, null);
+export const acceptInstantConsult = (requestId) =>
+  nigahomeoAPI.post(url.TELE_INSTANT_ACCEPT(requestId), null);
+export const setTeleAvailability = (data) => nigahomeoAPI.post(url.TELE_AVAILABILITY, data);
+export const getTeleAvailability = () => nigahomeoAPI.get(url.TELE_AVAILABILITY, null);
+/** PAT-26.02 — device check stub (TOKEN = no). Phone checks camera/mic itself. */
+export const getTeleDeviceCheck = () => nigahomeoAPI.get(url.TELE_DEVICE_CHECK, null);
+/** PAT-29.02 — recording consent; recordAllowed from API only (both sides must accept). */
+export const postTeleRecordingConsent = (data) => nigahomeoAPI.post(url.TELE_CONSENT, data);
+/**
+ * DMO-07.02 — doctor patient context card (name, age, chief complaint, last visit, payment, tele).
+ * Read-only. Do not call repertory / case-taking from this helper.
+ */
+export const getDoctorMobileContext = (patientAppId) =>
+  nigahomeoAPI.get(url.DOCTOR_MOBILE_CONTEXT(patientAppId), null);
+/**
+ * DMO-09.02 — refill inbox + approve/reject. Doctor JWT only.
+ * Empty list until prescriptions exist. Reject requires reason. Snapshot not editable here.
+ */
+export const listDoctorRefills = () => nigahomeoAPI.get(url.REFILL_LIST, null);
+export const approveDoctorRefill = (refillId) =>
+  nigahomeoAPI.post(url.REFILL_APPROVE(refillId), null, { returnErrorBody: true });
+export const rejectDoctorRefill = (refillId, reason) =>
+  nigahomeoAPI.post(url.REFILL_REJECT(refillId), { reason }, { returnErrorBody: true });
+/** SUP-01.02 — patient create ticket + list mine. */
+export const createSupportTicket = (data) => nigahomeoAPI.post(url.SUPPORT_TICKETS, data);
+export const listMySupportTickets = () => nigahomeoAPI.get(url.SUPPORT_TICKETS_MINE, null);
+/** SUP-04.01 — messages CRUD + attachment (fileName on create). */
+export const listSupportTicketMessages = (ticketId) =>
+  nigahomeoAPI.get(url.SUPPORT_TICKET_MESSAGES(ticketId), null);
+export const addSupportTicketMessage = (ticketId, data) =>
+  nigahomeoAPI.post(url.SUPPORT_TICKET_MESSAGES(ticketId), data);
+export const updateSupportTicketMessage = (ticketId, messageId, data) =>
+  nigahomeoAPI.put(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId), data);
+export const deleteSupportTicketMessage = (ticketId, messageId) =>
+  nigahomeoAPI.delete(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId));
+/** SUP-07.02 — patient requests help booking; staff lists requests / AssistedBook. */
+export const requestBookingAssistance = (data) =>
+  nigahomeoAPI.post(url.SUPPORT_ASSISTANCE_REQUEST, data);
+export const listBookingAssistanceRequests = () =>
+  nigahomeoAPI.get(url.SUPPORT_ASSISTANCE_REQUESTS, null);
 export const assistedBook = (data) => nigahomeoAPI.post(url.ASSISTED_BOOK, data);
 export const getPatientList = data => nigahomeoAPI.get(url.GET_PATIENT_LIST + "/" + data.userId, null);
 export const getDoctorList = data => nigahomeoAPI.get(url.GET_DOCTOR_LIST + "/" + data.userId, null);

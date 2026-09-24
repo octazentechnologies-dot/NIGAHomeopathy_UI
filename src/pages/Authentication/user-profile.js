@@ -31,7 +31,7 @@ import Swal from "sweetalert2";
 import ModalActionButton from "../../Components/Common/ModalActionButton";
 import { editProfile, resetProfileFlag } from "../../slices/thunks";
 import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
-import { UserRole } from "../../Components/constants/roles";
+import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import {
@@ -334,7 +334,7 @@ const UserProfile = () => {
   const [idx, setidx] = useState("1");
   const [userName, setUserName] = useState("Admin");
   const [activeTab, setActiveTab] = useState("clinic");
-  const isReceptionProfile = userData?.role === UserRole.RECEPTION || userData?.Role === UserRole.RECEPTION;
+  const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
   const visibleTabs = isReceptionProfile ? PROFILE_TABS.filter((tab) => tab.id === "profile") : PROFILE_TABS;
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
@@ -1110,7 +1110,31 @@ const UserProfile = () => {
           .trim()}`
       : userName || "Admin";
 
-  document.title = "Profile | Niga Homeocentrum";
+  document.title = isReceptionProfile
+    ? "Reception profile | Niga Homeocentrum"
+    : "Profile | Niga Homeocentrum";
+
+  if (isReceptionProfile) {
+    return (
+      <div className="page-content user-profile-page doctor-dashboard-page">
+        <Container fluid>
+          <Row>
+            <Col lg={8}>
+              <Card className="user-profile-card doctor-stats-card">
+                <CardBody>
+                  <h5 className="mb-1">Reception profile</h5>
+                  <p className="text-muted">
+                    Update your own name, mobile, and email. Doctor qualifications, clinic fee, and bank are not on this page.
+                  </p>
+                  <ReceptionProfileFields />
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    );
+  }
 
   return (
     <div className="page-content user-profile-page doctor-dashboard-page">

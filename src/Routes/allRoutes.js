@@ -5,6 +5,7 @@ import {
   PHARMACY_ROUTE_ROLES,
   PATIENT_APP_ROUTE_ROLES,
   DOCTOR_DASHBOARD_ROUTE_ROLES,
+  RECEPTION_ROUTE_ROLES,
   DOCTOR_CASE_ROUTE_ROLES,
   DOCTOR_STAFF_ROUTE_ROLES,
   ADMIN_PORTAL_ROLES,
@@ -403,8 +404,13 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
 import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
+import AssistedBookingPage from "../pages/Admin/AssistedBookingPage";
 import ReceptionStaffPage from "../pages/Doctor/ReceptionStaff/ReceptionStaffPage";
 import ReceptionHome from "../pages/Reception/ReceptionHome";
+import DoctorMobileContextPage from "../pages/Doctor/Mobile/DoctorMobileContextPage";
+import DoctorVideoRoomPage from "../pages/Doctor/Mobile/DoctorVideoRoomPage";
+import RefillInboxPage from "../pages/Doctor/Mobile/RefillInboxPage";
+import RefillDetailPage from "../pages/Doctor/Mobile/RefillDetailPage";
 import ReceptionSchedule from "../pages/Reception/ReceptionSchedule";
 import ReceptionCasePaper from "../pages/Reception/ReceptionCasePaper";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
@@ -566,6 +572,14 @@ const authProtectedRoutes = [
   // Doctor Side End //
 
   { path: "doctordashboard", component: <DoctorDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  // DMO-07.02 — patient context card (Context API). No case-taking / repertory.
+  { path: "doctor/mobile/context/:patientAppId", component: <DoctorMobileContextPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/context", component: <DoctorMobileContextPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/videoroom/:sessionId", component: <DoctorVideoRoomPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/videoroom", component: <DoctorVideoRoomPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  // DMO-09.02 — refill inbox + approve/reject APIs (snapshot not editable).
+  { path: "doctor/mobile/refill/:refillId", component: <RefillDetailPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/refill", component: <RefillInboxPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   // CLN-01.02 — one Patient Board. These two paths are aliases, not a second app. No doctor-mobile case-taking.
   { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
@@ -573,9 +587,9 @@ const authProtectedRoutes = [
   { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },
-  { path: "reception", component: <ReceptionHome />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
-  { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
-  { path: "reception/case-paper", component: <ReceptionCasePaper />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "reception", component: <ReceptionHome />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/case-paper", component: <ReceptionCasePaper />, allowedRoles: RECEPTION_ROUTE_ROLES },
 
 
   // Doctor Side End //
@@ -812,6 +826,8 @@ const authProtectedRoutes = [
   { path: "/profile", component: <UserProfile /> },
   { path: "/enquiries", component: <EnquiryInboxPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "/admin/enquiries", component: <EnquiryInboxPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "/admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
 
   // Catch-all for authenticated app routes (landing is served from publicRoutes)
   { path: "*", component: <RoleBasedHomeRedirect /> },

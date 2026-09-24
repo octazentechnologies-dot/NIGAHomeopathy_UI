@@ -227,6 +227,13 @@ const Navdata = () => {
         },
 
         {
+            id: "assisted-booking",
+            label: "Assisted booking",
+            icon: "ri-calendar-check-line",
+            link: "/admin/assisted-booking",
+        },
+
+        {
             id: "existancequestions",
             label: "Existance Questions",
             icon: "ri-question-line",

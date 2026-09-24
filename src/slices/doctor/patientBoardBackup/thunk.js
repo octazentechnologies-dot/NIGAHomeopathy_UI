@@ -21,6 +21,7 @@ import { resolveUserRole } from '../../../Components/constants/roles';
 import { getAuthUserInfo } from '../../../helpers/dashboard_helper';
 import { clearPatientBoardSession } from '../patientBoardSession/reducer';
 import { logoutUserSuccess } from '../../auth/login/reducer';
+import { markSignedOut } from '../../../helpers/signedOutHistory';
 import {
   setPatientBoardBackupSummaryLoading,
   setPatientBoardBackupSummary,
@@ -271,7 +272,7 @@ export const logoutWithBackupPrompt = () => async (dispatch, getState) => {
   } catch {
     // Best-effort Old-API + New-API revoke (SEC-03.01 / SEC-03.02); always clear local session.
   }
-  sessionStorage.removeItem('authUser');
+  markSignedOut();
   dispatch(logoutUserSuccess(true));
   return true;
 };

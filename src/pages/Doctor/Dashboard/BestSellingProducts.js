@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Accordion, AccordionItem, Collapse, Nav, NavItem, NavLink, TabContent, TabPane, UncontrolledTooltip, Container, Row, Label } from 'reactstrap';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import { CKEditor } from "@ckeditor/ckeditor5-react";
@@ -19,6 +19,7 @@ import {
     showPatientSessionLimitAlert,
 } from '../../../helpers/patientBoardSessionHelper';
 import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
+import { openReceptionPatientRow } from '../../Reception/receptionSession';
 import CaseTakingModeModal from '../../../Components/CaseTaking/CaseTakingModeModal';
 import {
     getAppointmentList,
@@ -54,6 +55,7 @@ import {
     getPatientIdFromRow,
     formatAppointmentAccordionTitle,
     buildPrescriptionTableModel,
+    isVisitOnOrBeforeToday,
 } from '../../../helpers/patient_history_helper';
 import { convertToRaw, EditorState, ContentState } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';
@@ -214,7 +216,7 @@ const AppointmentTimeCell = ({
 
         setSaving(true);
         try {
-            await updateAppointmentTime({
+            const response = await updateAppointmentTime({
                 patientAppId,
                 appointmentTime: slot.time,
                 appointmentDate,
@@ -222,11 +224,12 @@ const AppointmentTimeCell = ({
             setDisplayTime(formatAppointmentTime(slot.time));
             onCancelEdit();
             onTimeUpdated?.();
+            const saved = response?.data ?? response;
             Swal.fire({
                 title: 'Updated!',
-                text: 'Appointment time has been updated.',
+                text: saved?.message || 'Appointment time updated. This does not notify the patient. Reschedule is the patient-notified path.',
                 icon: 'success',
-                timer: 1500,
+                timer: 2200,
                 showConfirmButton: false,
             });
         } catch (error) {
@@ -284,7 +287,7 @@ const AppointmentTimeCell = ({
                         <span>{patientName}</span>
                     </div>
                     <p className="text-muted small mb-3">
-                        This adjusts the time on the day list only. It does not notify the patient. Reschedule is the path that records the change for the patient.
+                        This adjusts the time on the day list only. It does not notify the patient. Reschedule is the patient-notified path.
                     </p>
                     <div className="row g-3 mb-3">
                         <div className="col-md-6">
@@ -403,6 +406,8 @@ const BestSellingProducts = () => {
     const userRole =
         resolveUserRole(userProfile) ?? resolveUserRole(loginUser) ?? getUserRoleFromAuthStorage();
     const isReceptionUser = userRole === UserRole.RECEPTION;
+    const [searchParams] = useSearchParams();
+    const focusedAppointmentId = searchParams.get('openAppointment');
 
     // Get patient data from Redux
     const patientList = useSelector((state) => state?.DoctorDashboard?.patientList);
@@ -492,7 +497,7 @@ const BestSellingProducts = () => {
         setAppointmentsLoading(true);
         try {
             const response = await getAppointmentListByPatientId({ patientId });
-            const list = extractApiList(response);
+            const list = extractApiList(response).filter(isVisitOnOrBeforeToday);
             setPatientAppointments(list);
         } catch (error) {
             console.error('Error fetching appointment list:', error);
@@ -1084,7 +1089,26 @@ const BestSellingProducts = () => {
             </span>
         );
 
-        if (isReceptionUser || isNameDisabled) {
+        if (isReceptionUser) {
+            const rowPatientId = boardPatient.patientId || boardPatient.patientID;
+            return (
+                <>
+                    <button
+                        id={tooltipId}
+                        type="button"
+                        className="btn btn-link p-0 dashboard-patient-name-text"
+                        onClick={() => openReceptionPatientRow(rowPatientId, navigate)}
+                    >
+                        {displayName}
+                    </button>
+                    <UncontrolledTooltip placement="top" target={tooltipId}>
+                        {fullName}
+                    </UncontrolledTooltip>
+                </>
+            );
+        }
+
+        if (isNameDisabled) {
             return (
                 <>
                     {nameLabel}
@@ -1834,24 +1858,26 @@ const BestSellingProducts = () => {
                         <AppointmentChangeActions
                             patientAppId={getPatientAppointmentId(patient)}
                             doctorId={patient.doctorId || patient.doctorID}
-                            appointmentDate={selectedAppointmentDate}
+                            appointmentDate={patient.appointmentDate || patient.AppointmentDate || selectedAppointmentDate}
+                            appointmentTime={patient.appointmentTime || patient.AppointmentTime}
+                            status={patient.appStatus}
                             onChanged={() => loadAppointmentListForDate(selectedAppointmentDate)}
                         />
+                        {!isReceptionUser ? (
+                        <>
                         <PatientDashboardActionButton
                             id={`${idPrefix}-addcase-${patient.id}`}
                             icon="ri-file-add-line"
                             label="Add Case"
                             btnClass="btn-soft-warning"
-                            disabled={!IS_ADD_CASE_NOTES_ENABLED || isReceptionUser || !getPatientAppointmentId(patient)}
+                            disabled={!IS_ADD_CASE_NOTES_ENABLED || !getPatientAppointmentId(patient)}
                             tooltip={
-                                isReceptionUser
-                                    ? 'Add Case Notes (disabled for reception)'
-                                    : !getPatientAppointmentId(patient)
-                                        ? 'Add Case Notes (no appointment on this row)'
-                                        : 'Add Case Notes'
+                                !getPatientAppointmentId(patient)
+                                    ? 'Add Case Notes (no appointment on this row)'
+                                    : 'Add Case Notes'
                             }
                             onClick={() => {
-                                if (IS_ADD_CASE_NOTES_ENABLED && !isReceptionUser) {
+                                if (IS_ADD_CASE_NOTES_ENABLED) {
                                     openAddCaseModal(patient);
                                 }
                             }}
@@ -1861,35 +1887,19 @@ const BestSellingProducts = () => {
                             icon="ri-history-line"
                             label="History"
                             btnClass="btn-soft-secondary"
-                            disabled={isReceptionUser && isTodayTab}
-                            tooltip={
-                                isReceptionUser && isTodayTab
-                                    ? 'View History Notes (disabled for reception)'
-                                    : 'View History Notes'
-                            }
-                            onClick={() => {
-                                if (!(isReceptionUser && isTodayTab)) {
-                                    openHistoryModal(patient);
-                                }
-                            }}
+                            tooltip="View History Notes"
+                            onClick={() => openHistoryModal(patient)}
                         />
                         <PatientDashboardActionButton
                             id={`${idPrefix}-case-${patient.id}`}
                             icon="ri-file-text-line"
                             label="Case Notes"
                             btnClass="btn-soft-primary"
-                            disabled={isReceptionUser}
-                            tooltip={
-                                isReceptionUser
-                                    ? 'View Case Notes (disabled for reception)'
-                                    : 'View Case Notes'
-                            }
-                            onClick={() => {
-                                if (!isReceptionUser) {
-                                    openCaseNotesModal(patient);
-                                }
-                            }}
+                            tooltip="View Case Notes"
+                            onClick={() => openCaseNotesModal(patient)}
                         />
+                        </>
+                        ) : null}
                             </PatientDashboardActionGroup>
                         </div>
                         <div className="dashboard-patient-actions-section dashboard-patient-actions-section--connect">
@@ -2156,10 +2166,12 @@ const BestSellingProducts = () => {
                     width: 6.25rem;
                 }
                 .dashboard-patient-table .dashboard-patient-col-apptime {
-                    width: 10.5rem;
-                    min-width: 10.5rem;
-                    padding-left: 0.7rem !important;
-                    padding-right: 0.85rem !important;
+                    width: 5.5rem;
+                    min-width: 5.5rem;
+                    max-width: 5.5rem;
+                    padding-left: 0.35rem !important;
+                    padding-right: 0.35rem !important;
+                    white-space: nowrap;
                 }
                 .dashboard-patient-table .dashboard-patient-col-actions-combined {
                     width: 16rem;
@@ -2197,10 +2209,12 @@ const BestSellingProducts = () => {
                     width: 5.75rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-apptime {
-                    width: 10.5rem;
-                    min-width: 10.5rem;
-                    padding-left: 0.7rem !important;
-                    padding-right: 0.85rem !important;
+                    width: 5.5rem;
+                    min-width: 5.5rem;
+                    max-width: 5.5rem;
+                    padding-left: 0.35rem !important;
+                    padding-right: 0.35rem !important;
+                    white-space: nowrap;
                 }
                 .dashboard-patient-actions-header span {
                     flex: 1 1 0;
@@ -2378,15 +2392,22 @@ const BestSellingProducts = () => {
                     background-color: #f0f7ff !important;
                 }
                 .appointment-time-column {
-                    min-width: 0;
+                    width: 5.5rem !important;
+                    min-width: 5.5rem !important;
+                    max-width: 5.5rem !important;
                     vertical-align: middle !important;
+                    white-space: nowrap !important;
                 }
                 .appointment-time-cell {
-                    display: inline-grid;
-                    grid-template-columns: max-content 1.1rem;
-                    column-gap: 0.2rem;
-                    align-items: center;
-                    justify-items: start;
+                    display: inline-flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    align-items: center !important;
+                    justify-content: flex-start !important;
+                    gap: 0.15rem !important;
+                    width: fit-content !important;
+                    max-width: none !important;
+                    min-width: 0 !important;
                     line-height: 1;
                     vertical-align: middle;
                 }
@@ -2395,23 +2416,31 @@ const BestSellingProducts = () => {
                     font-weight: 400;
                     font-size: 0.6875rem;
                     line-height: 1;
-                    display: block;
-                    width: auto;
-                    min-width: 6.2rem;
-                    white-space: nowrap;
+                    display: inline !important;
+                    width: auto !important;
+                    min-width: 0 !important;
+                    max-width: none !important;
+                    flex: 0 0 auto !important;
+                    white-space: nowrap !important;
                     overflow: visible;
                     letter-spacing: 0;
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
                 .appointment-time-edit-btn.edit-item-btn {
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    margin: 0 !important;
+                    flex: 0 0 auto !important;
+                    float: none !important;
+                    margin: 0 0 0 0.15rem !important;
+                    margin-left: 0.15rem !important;
+                    margin-right: 0 !important;
                     padding: 0 !important;
-                    min-width: 1.1rem !important;
-                    width: 1.1rem !important;
-                    min-height: 1.1rem !important;
-                    height: 1.1rem !important;
+                    min-width: 1rem !important;
+                    width: 1rem !important;
+                    min-height: 1rem !important;
+                    height: 1rem !important;
                     line-height: 1 !important;
                     transform: none !important;
                     vertical-align: middle;
@@ -2526,6 +2555,9 @@ const BestSellingProducts = () => {
 
                     <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header doctor-patient-nav-tabs doctor-appointments-toolbar">
                         <div className="d-flex align-items-center gap-2 flex-wrap doctor-appointments-toolbar__primary">
+                        {isReceptionUser && focusedAppointmentId ? (
+                            <div className="w-100 small text-muted">Appointment {focusedAppointmentId}. Repertory was not opened.</div>
+                        ) : null}
                         <Nav pills className="nav-customs doctor-patient-custom-nav mb-0 flex-shrink-0">
                             <NavItem>
                                 <NavLink
@@ -2536,16 +2568,17 @@ const BestSellingProducts = () => {
                                     <span className="doctor-patient-tab-label">Today</span>
                                 </NavLink>
                             </NavItem>
+                            {!isReceptionUser ? (
                             <NavItem>
                                 <NavLink
-                                    style={isReceptionUser ? { cursor: "not-allowed", opacity: 0.55, pointerEvents: "none" } : { cursor: "pointer" }}
+                                    style={{ cursor: "pointer" }}
                                     className={classnames({ active: customHoverTab === "2" })}
                                     onClick={() => { customHovertoggle("2"); }}
-                                    aria-disabled={isReceptionUser}
                                 >
                                     <span className="doctor-patient-tab-label">All</span>
                                 </NavLink>
                             </NavItem>
+                            ) : null}
                         </Nav>
                         <div className="doctor-dashboard-appointment-date flex-shrink-0">
                             <DateOfBirthPicker

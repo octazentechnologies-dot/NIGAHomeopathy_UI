@@ -1,69 +1,61 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row } from "reactstrap";
-import { assistedBook, callNextAppointment, getAppointmentQueue, getAppointmentSlots } from "../../helpers/realbackend_helper";
+import { callNextAppointment, getAppointmentQueue } from "../../helpers/realbackend_helper";
+import RescheduleModal from "../../Components/Common/RescheduleModal";
+import CancelAppointmentModal from "../../Components/Common/CancelAppointmentModal";
+import AssistedBookWizard from "../../Components/Common/AssistedBookWizard";
 import { apiMessage, readReceptionDoctorId, unwrap } from "./receptionSession";
+
+/** REC-08.03 — format wait minutes from queue API (negative = not yet due). */
+const formatWaitLabel = (waitMinutes) => {
+  if (waitMinutes == null || Number.isNaN(Number(waitMinutes))) return "—";
+  const mins = Math.trunc(Number(waitMinutes));
+  if (mins > 0) return `${mins}m wait`;
+  if (mins < 0) return `in ${Math.abs(mins)}m`;
+  return "due now";
+};
+
+const paymentBadge = (row) => {
+  const raw = String(row.paymentStatus || row.PaymentStatus || "UNPAID").trim().toUpperCase();
+  const paid = raw === "PAID";
+  return {
+    label: paid ? "Paid" : raw === "UNPAID" || !raw ? "Unpaid" : raw,
+    color: paid ? "success" : "warning",
+  };
+};
 
 const ReceptionHome = () => {
   const doctorId = readReceptionDoctorId();
   const [queue, setQueue] = useState([]);
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState(null);
-  const [book, setBook] = useState({ patientId: "", appointmentDate: "", appointmentTime: "", consultMode: "InClinic" });
   const [note, setNote] = useState("");
-  const [slots, setSlots] = useState([]);
-  const [slotsNote, setSlotsNote] = useState("");
+  const [rescheduleRow, setRescheduleRow] = useState(null);
+  const [cancelRow, setCancelRow] = useState(null);
+  const [queueLoading, setQueueLoading] = useState(false);
 
   const load = async () => {
     if (!doctorId) return;
-    const response = await getAppointmentQueue(doctorId);
-    const body = unwrap(response);
-    const rows = body.queue || body.Queue || body.data || body;
-    setQueue(Array.isArray(rows) ? rows : []);
+    setQueueLoading(true);
+    try {
+      const response = await getAppointmentQueue(doctorId);
+      const body = unwrap(response);
+      const rows = body.queue || body.Queue || body.data || body;
+      setQueue(Array.isArray(rows) ? rows : []);
+    } finally {
+      setQueueLoading(false);
+    }
   };
+
+  const waitingCount = queue.filter((row) =>
+    String(row.status || row.Status || "").toUpperCase() === "WAITING"
+  ).length;
 
   useEffect(() => {
     document.title = "Reception | Homeocentrum";
     load().catch((err) => setError(apiMessage(err, "Queue failed")));
   }, [doctorId]);
-
-  useEffect(() => {
-    const loadSlots = async () => {
-      if (!doctorId || !book.appointmentDate) {
-        setSlots([]);
-        setSlotsNote("");
-        return;
-      }
-      try {
-        const response = await getAppointmentSlots({
-          DoctorId: doctorId,
-          AppointmentDate: book.appointmentDate,
-        });
-        const body = unwrap(response);
-        const data = body.data || body.Data || body;
-        const list = data.slots || data.Slots || [];
-        const available = (Array.isArray(list) ? list : []).filter((row) =>
-          String(row.status || row.Status || "").toLowerCase() === "available"
-        );
-        setSlots(available);
-        setSlotsNote(
-          available.length
-            ? `${available.length} open slots`
-            : data.hasSchedule === false
-              ? "Daily schedule is not configured for this date."
-              : "No available slots for this date."
-        );
-        setBook((prev) => {
-          const stillOpen = available.some((row) => String(row.time || row.Time || "") === prev.appointmentTime);
-          return stillOpen ? prev : { ...prev, appointmentTime: "" };
-        });
-      } catch (err) {
-        setSlots([]);
-        setSlotsNote(apiMessage(err, "Could not load slots."));
-      }
-    };
-    loadSlots();
-  }, [doctorId, book.appointmentDate]);
 
   const callNext = async () => {
     try {
@@ -72,22 +64,6 @@ const ReceptionHome = () => {
       await load();
     } catch (err) {
       setError(apiMessage(err, "No waiting patient"));
-    }
-  };
-
-  const saveAssisted = async () => {
-    setError("");
-    try {
-      await assistedBook({
-        doctorId,
-        patientId: Number(book.patientId),
-        appointmentDate: book.appointmentDate,
-        appointmentTime: book.appointmentTime.length === 5 ? `${book.appointmentTime}:00` : book.appointmentTime,
-        consultMode: book.consultMode,
-      });
-      setNote("Assisted booking saved. The patient was not charged here.");
-    } catch (err) {
-      setError(apiMessage(err, "Assisted booking failed"));
     }
   };
 
@@ -101,85 +77,240 @@ const ReceptionHome = () => {
         <Row className="g-3">
           <Col md={6}>
             <Card><CardBody>
+              {/* REC-03.02 — five front-desk quick actions */}
               <h5>Quick actions</h5>
-              <div className="d-flex flex-wrap gap-2">
-                <Link className="btn btn-primary" to="/doctordashboard">New patient / appointment</Link>
-                <Link className="btn btn-soft-secondary" to="/reception/schedule">Schedule</Link>
+              <div className="d-flex flex-wrap gap-2" data-testid="reception-quick-actions">
+                <Link className="btn btn-primary" to="/doctordashboard?qa=newPatient">New patient</Link>
+                <Link className="btn btn-primary" to="/doctordashboard?qa=newAppointment">New appointment</Link>
+                <Button
+                  color="soft-warning"
+                  data-testid="reception-collect-payment"
+                  onClick={() => {
+                    const firstApp = queue[0]
+                      ? String(queue[0].patientAppId || queue[0].PatientAppId || "")
+                      : "";
+                    setReceipt({
+                      amount: "",
+                      method: "Cash",
+                      appointmentId: firstApp,
+                      gst: "GST — Phase 6 placeholder",
+                    });
+                  }}
+                >
+                  Collect payment
+                </Button>
                 <Link className="btn btn-soft-secondary" to="/reception/case-paper">Case paper</Link>
-                <Link className="btn btn-soft-secondary" to="/profile">Profile</Link>
-                <Button color="soft-warning" onClick={() => setReceipt({ amount: "", method: "Pay at clinic", gst: "Phase 6" })}>Collect payment</Button>
+                <Link className="btn btn-soft-secondary" to="/reception/schedule">Schedule</Link>
               </div>
             </CardBody></Card>
           </Col>
           <Col md={6}>
             <Card><CardBody>
-              <div className="d-flex justify-content-between">
-                <h5>Queue</h5>
-                <Button size="sm" color="primary" onClick={callNext} disabled={!doctorId}>Call next</Button>
+              {/* REC-08.03 — queue panel: order, wait time, paid/unpaid, Call next */}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">Queue</h5>
+                <Button
+                  size="sm"
+                  color="primary"
+                  onClick={callNext}
+                  disabled={!doctorId || waitingCount === 0 || queueLoading}
+                  data-testid="reception-call-next"
+                >
+                  Call next
+                </Button>
               </div>
-              {queue.length === 0 ? <p className="text-muted mb-0">No waiting visits.</p> : (
-                <ul className="mb-0">
-                  {queue.map((row) => (
-                    <li key={row.patientAppId || row.PatientAppId}>
-                      {row.patientName || row.PatientName || "Patient"} · {row.appointmentTime || row.AppointmentTime} · {row.paymentStatus || row.PaymentStatus || "UNPAID"}
-                    </li>
-                  ))}
+              {queueLoading && queue.length === 0 ? (
+                <p className="text-muted mb-0">Loading queue…</p>
+              ) : queue.length === 0 ? (
+                <p className="text-muted mb-0">No waiting visits.</p>
+              ) : (
+                <ul className="list-unstyled mb-0" data-testid="reception-queue-list">
+                  {queue.map((row, index) => {
+                    const rowId = row.patientAppId || row.PatientAppId;
+                    const patientId = row.patientId || row.PatientId;
+                    const order = row.queueOrder || row.QueueOrder || row.queuePosition || row.QueuePosition || index + 1;
+                    const waitLabel = formatWaitLabel(row.waitMinutes ?? row.WaitMinutes);
+                    const pay = paymentBadge(row);
+                    const status = row.status || row.Status || "";
+                    return (
+                      <li
+                        key={rowId}
+                        className="d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 border-bottom"
+                        data-testid={`reception-queue-row-${rowId}`}
+                      >
+                        <div className="d-flex align-items-start gap-2 flex-grow-1 me-2" style={{ minWidth: 0 }}>
+                          <span
+                            className="badge bg-secondary flex-shrink-0"
+                            title="Queue order"
+                            style={{ minWidth: "2rem" }}
+                          >
+                            #{order}
+                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="fw-medium text-truncate">
+                              {row.patientName || row.PatientName || "Patient"}
+                            </div>
+                            <div className="text-muted small">
+                              {row.appointmentTime || row.AppointmentTime}
+                              {" · "}
+                              <span title="Wait time">{waitLabel}</span>
+                              {" · "}
+                              <span className={`badge ${pay.color === "success" ? "bg-success" : "bg-warning text-dark"}`}>
+                                {pay.label}
+                              </span>
+                              {status ? (
+                                <>
+                                  {" · "}
+                                  <span className="text-uppercase">{status}</span>
+                                </>
+                              ) : null}
+                            {patientId ? (
+                              <>
+                                {" · "}
+                                <button
+                                  type="button"
+                                  className="btn btn-link btn-sm p-0 align-baseline"
+                                  title="Fill Assisted booking Patient id"
+                                  onClick={() => setBook((prev) => ({ ...prev, patientId: String(patientId) }))}
+                                >
+                                  ID {patientId}
+                                </button>
+                                {" · "}
+                                <Link
+                                  className="small"
+                                  to={`/reception/case-paper?patientId=${patientId}${rowId ? `&patientAppId=${rowId}` : ""}`}
+                                  title="Open case paper for this patient"
+                                >
+                                  Case paper
+                                </Link>
+                              </>
+                            ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex flex-shrink-0 gap-1">
+                          <Button
+                            size="sm"
+                            color="soft-info"
+                            onClick={() => setRescheduleRow(row)}
+                          >
+                            Reschedule
+                          </Button>
+                          <Button
+                            size="sm"
+                            color="soft-danger"
+                            onClick={() => setCancelRow(row)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </CardBody></Card>
           </Col>
           {receipt ? (
             <Col md={6}>
-              <Card><CardBody>
-                <h5>Receipt preview</h5>
-                <Label>Amount</Label>
-                <Input value={receipt.amount} onChange={(event) => setReceipt({ ...receipt, amount: event.target.value })} />
-                <Label className="mt-2">Method</Label>
-                <Input value={receipt.method} disabled />
-                <Label className="mt-2">Appointment</Label>
-                <Input value={queue[0] ? String(queue[0].patientAppId || queue[0].PatientAppId) : ""} disabled />
-                <Label className="mt-2">GST</Label>
-                <Input value={receipt.gst} disabled />
-                <p className="text-muted small mt-2">This screen does not set PaymentStatus to PAID.</p>
-              </CardBody></Card>
+              {/* REC-13.01 — receipt field shell for Phase 6 (no PaymentStatus write) */}
+              <Card data-testid="reception-receipt-shell">
+                <CardBody>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h5 className="mb-0">Receipt preview</h5>
+                    <Button size="sm" color="link" className="p-0" onClick={() => setReceipt(null)}>
+                      Close
+                    </Button>
+                  </div>
+                  <p className="text-muted small">
+                    UI shell only. Phase 6 wires cash / UPI / card / payment link and issues the real receipt.
+                  </p>
+                  <Label htmlFor="reception-receipt-amount">Amount</Label>
+                  <Input
+                    id="reception-receipt-amount"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={receipt.amount}
+                    onChange={(event) => setReceipt({ ...receipt, amount: event.target.value })}
+                    data-testid="reception-receipt-amount"
+                  />
+                  <Label className="mt-2" htmlFor="reception-receipt-method">Method</Label>
+                  <Input
+                    id="reception-receipt-method"
+                    type="select"
+                    value={receipt.method}
+                    onChange={(event) => setReceipt({ ...receipt, method: event.target.value })}
+                    data-testid="reception-receipt-method"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="Payment link">Payment link</option>
+                  </Input>
+                  <Label className="mt-2" htmlFor="reception-receipt-appointment">Appointment</Label>
+                  <Input
+                    id="reception-receipt-appointment"
+                    type="select"
+                    value={receipt.appointmentId}
+                    onChange={(event) => setReceipt({ ...receipt, appointmentId: event.target.value })}
+                    data-testid="reception-receipt-appointment"
+                  >
+                    <option value="">Select appointment</option>
+                    {queue.map((row) => {
+                      const id = row.patientAppId || row.PatientAppId;
+                      const name = row.patientName || row.PatientName || "Patient";
+                      const time = row.appointmentTime || row.AppointmentTime || "";
+                      return (
+                        <option key={id} value={String(id)}>
+                          #{id} · {name}{time ? ` · ${time}` : ""}
+                        </option>
+                      );
+                    })}
+                  </Input>
+                  <Label className="mt-2" htmlFor="reception-receipt-gst">GST</Label>
+                  <Input
+                    id="reception-receipt-gst"
+                    value={receipt.gst}
+                    disabled
+                    data-testid="reception-receipt-gst"
+                  />
+                  <p className="text-muted small mt-2 mb-0" data-testid="reception-receipt-no-paid">
+                    REC-13.02 — This screen does not set PaymentStatus to PAID. Account / webhook is the source of truth in Phase 6.
+                  </p>
+                </CardBody>
+              </Card>
             </Col>
           ) : null}
           <Col md={6}>
             <Card><CardBody>
+              {/* SUP-07.03 — assisted-book wizard + open AssistedRequest queue */}
               <h5>Assisted booking</h5>
-              <Label>Patient id</Label>
-              <Input value={book.patientId} onChange={(event) => setBook({ ...book, patientId: event.target.value })} />
-              <Label className="mt-2">Date</Label>
-              <Input type="date" value={book.appointmentDate} onChange={(event) => setBook({ ...book, appointmentDate: event.target.value })} />
-              <Label className="mt-2">Time</Label>
-              <Input
-                type="select"
-                value={book.appointmentTime}
-                onChange={(event) => setBook({ ...book, appointmentTime: event.target.value })}
-                disabled={!book.appointmentDate}
-              >
-                <option value="">{book.appointmentDate ? "Select an open slot" : "Choose a date first"}</option>
-                {slots.map((row) => {
-                  const time = row.time || row.Time;
-                  const label = row.label || row.Label || time;
-                  return (
-                    <option key={time} value={time}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </Input>
-              {slotsNote ? <p className="text-muted small mb-0 mt-1">{slotsNote}</p> : null}
-              <Label className="mt-2">Consult</Label>
-              <Input type="select" value={book.consultMode} onChange={(event) => setBook({ ...book, consultMode: event.target.value })}>
-                <option value="InClinic">In-clinic</option>
-                <option value="Tele">Tele</option>
-              </Input>
-              <Button className="mt-3" color="primary" onClick={saveAssisted} disabled={!doctorId}>Book for patient</Button>
+              <p className="text-muted small">
+                Book on behalf of a patient who asked for help. Payment is not taken on this screen.
+              </p>
+              <AssistedBookWizard doctorId={doctorId} showRequestQueue />
             </CardBody></Card>
           </Col>
         </Row>
       </Container>
+      <RescheduleModal
+        isOpen={!!rescheduleRow}
+        toggle={() => setRescheduleRow(null)}
+        patientAppId={rescheduleRow?.patientAppId || rescheduleRow?.PatientAppId}
+        doctorId={doctorId}
+        appointmentDate={rescheduleRow?.appointmentDate || rescheduleRow?.AppointmentDate}
+        appointmentTime={rescheduleRow?.appointmentTime || rescheduleRow?.AppointmentTime}
+        onSaved={load}
+      />
+      <CancelAppointmentModal
+        isOpen={!!cancelRow}
+        toggle={() => setCancelRow(null)}
+        patientAppId={cancelRow?.patientAppId || cancelRow?.PatientAppId}
+        onSaved={load}
+      />
     </div>
   );
 };

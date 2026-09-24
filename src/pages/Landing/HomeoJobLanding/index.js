@@ -23,6 +23,13 @@ import BookConfirmPage from "./pages/BookConfirmPage";
 import BookSuccessPage from "./pages/BookSuccessPage";
 import BookPayPage from "./pages/BookPayPage";
 import BookPayResultPage from "./pages/BookPayResultPage";
+import AppointmentDetailPage from "./pages/AppointmentDetailPage";
+import CancelAppointmentPage from "./pages/CancelAppointmentPage";
+import InstantConsultPage from "./pages/InstantConsultPage";
+import InstantQueueOfferPage from "./pages/InstantQueueOfferPage";
+import DeviceCheckPage from "./pages/DeviceCheckPage";
+import RecordingConsentPage from "./pages/RecordingConsentPage";
+import WaitingRoomPage from "./pages/WaitingRoomPage";
 
 const HomeoJobLanding = () => {
     useEffect(() => {
@@ -64,7 +71,15 @@ const HomeoJobLanding = () => {
                     <Route path="find-doctor" element={<FindDoctorPage />} />
                     <Route path="find-doctor/:doctorId" element={<DoctorDetailPage />} />
                     <Route path="book" element={<FindDoctorPage />} />
+                    <Route path="instant-consult" element={<InstantConsultPage />} />
+                    <Route path="instant-consult/queue" element={<InstantQueueOfferPage />} />
+                    <Route path="device-check" element={<DeviceCheckPage />} />
+                    <Route path="recording-consent" element={<RecordingConsentPage />} />
+                    <Route path="tele/waiting/:sessionId" element={<WaitingRoomPage />} />
+                    <Route path="tele/waiting" element={<WaitingRoomPage />} />
                     <Route path="book/success" element={<BookSuccessPage />} />
+                    <Route path="book/appointment/:bookingToken/cancel" element={<CancelAppointmentPage />} />
+                    <Route path="book/appointment/:bookingToken" element={<AppointmentDetailPage />} />
                     <Route path="book/pay/:bookingId/success" element={<BookPayResultPage outcome="success" />} />
                     <Route path="book/pay/:bookingId/failure" element={<BookPayResultPage outcome="failure" />} />
                     <Route path="book/pay/:bookingId" element={<BookPayPage />} />

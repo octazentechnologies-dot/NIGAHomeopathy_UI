@@ -129,8 +129,10 @@ const PATIENT_APP_ROUTE_ROLES = [
     UserRole.ADMIN,
     UserRole.MANAGEMENT,
 ];
-/** DOC-02.02 — Reception may share doctor chrome until Phase 5 splits it. */
+/** Doctor dashboard stays available to reception (old URL). Clinical tabs are hidden in that chrome. */
 const DOCTOR_DASHBOARD_ROUTE_ROLES = [UserRole.DOCTOR, UserRole.RECEPTION];
+/** REC-03.01 — front-desk route is reception only. */
+const RECEPTION_ROUTE_ROLES = [UserRole.RECEPTION];
 /** CLN-02.02 — full case taking is treating doctor only, not Reception. */
 const DOCTOR_CASE_ROUTE_ROLES = [UserRole.DOCTOR];
 /** DOC-09 — reception-staff CRUD is owned by the treating doctor. */
@@ -195,6 +197,7 @@ export {
     PHARMACY_ROUTE_ROLES,
     PATIENT_APP_ROUTE_ROLES,
     DOCTOR_DASHBOARD_ROUTE_ROLES,
+    RECEPTION_ROUTE_ROLES,
     DOCTOR_CASE_ROUTE_ROLES,
     DOCTOR_STAFF_ROUTE_ROLES,
     isVelzonTemplatePath,
