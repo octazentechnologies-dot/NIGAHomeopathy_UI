@@ -74,19 +74,24 @@ const ReceptionCasePaper = () => {
     if (!patientId || !patients.length) return;
     const match = patients.find((row) => String(patientIdOf(row)) === String(patientId));
     if (!match) return;
-    setSelectedLabel(`${nameOf(match)} · ${mobileOf(match) || "no mobile"} · ID ${patientIdOf(match)}`);
+    setSelectedLabel(`${nameOf(match)}${mobileOf(match) ? ` · ${mobileOf(match)}` : ""}`);
     if (!caseId && caseIdOf(match)) setCaseId(String(caseIdOf(match)));
   }, [patients, patientId]);
 
   const filteredPatients = useMemo(() => {
     const q = String(search || "").trim().toLowerCase();
+    const qDigits = String(search || "").replace(/\D/g, "");
     if (!q) return patients.slice(0, 12);
     return patients
       .filter((row) => {
-        const id = String(patientIdOf(row) || "");
         const name = String(nameOf(row) || "").toLowerCase();
         const mobile = String(mobileOf(row) || "").toLowerCase();
-        return name.includes(q) || mobile.includes(q) || id.includes(q);
+        const mobileDigits = String(mobileOf(row) || "").replace(/\D/g, "");
+        return (
+          name.includes(q) ||
+          mobile.includes(q) ||
+          (qDigits.length >= 3 && mobileDigits.includes(qDigits))
+        );
       })
       .slice(0, 20);
   }, [patients, search]);
@@ -96,7 +101,7 @@ const ReceptionCasePaper = () => {
     const cId = caseIdOf(row);
     setPatientId(id ? String(id) : "");
     setCaseId(cId ? String(cId) : "");
-    setSelectedLabel(`${nameOf(row)} · ${mobileOf(row) || "no mobile"} · ID ${id}`);
+    setSelectedLabel(`${nameOf(row)}${mobileOf(row) ? ` · ${mobileOf(row)}` : ""}`);
     setSearch("");
     setError("");
     setMessage("");
@@ -167,7 +172,7 @@ const ReceptionCasePaper = () => {
       <Container fluid>
         <h4>Case paper</h4>
         <p className="text-muted">
-          Log the reason for visit before consultation. Search the clinic patient list — you do not need to memorize numeric IDs.
+          Log the reason for visit before consultation. Search by patient name or mobile.
         </p>
         <Row className="g-3">
           <Col lg={6}>
@@ -182,7 +187,7 @@ const ReceptionCasePaper = () => {
                   id="rec-cc-search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Type name, mobile, or id"
+                  placeholder="Type name or mobile"
                   autoComplete="off"
                 />
                 <div className="d-flex justify-content-between align-items-center mt-1 mb-2">
@@ -211,8 +216,7 @@ const ReceptionCasePaper = () => {
                         >
                           <div className="fw-medium text-truncate">{nameOf(row)}</div>
                           <small className={active ? "" : "text-muted"}>
-                            {mobileOf(row) || "No mobile"} · ID {id}
-                            {caseIdOf(row) ? ` · Case ${caseIdOf(row)}` : ""}
+                            {mobileOf(row) || "No mobile"}
                           </small>
                         </ListGroupItem>
                       );
@@ -228,7 +232,7 @@ const ReceptionCasePaper = () => {
                     Selected: <strong>{selectedLabel}</strong>
                   </Alert>
                 ) : (
-                  <p className="text-muted small">Or open Case paper from Reception queue after clicking the patient <strong>ID</strong> link.</p>
+                  <p className="text-muted small">Or open Case paper from the Reception queue.</p>
                 )}
 
                 <Label className="mt-1" htmlFor="rec-cc-text">Chief complaint</Label>

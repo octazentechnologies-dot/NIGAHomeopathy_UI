@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  createTeleSession,
   endTeleSession,
+  getTeleQueue,
   getTeleSessionStatus,
   issueTeleSessionRejoinToken,
   issueTeleSessionToken,
@@ -22,6 +24,12 @@ const unwrapSession = (payload) => {
   };
 };
 
+const unwrapList = (payload) => {
+  const root = payload?.data !== undefined ? payload.data : payload;
+  const nested = root?.data ?? root?.Data ?? root;
+  return Array.isArray(nested) ? nested : Array.isArray(root) ? root : [];
+};
+
 const messageOf = (err, fallback) =>
   err?.response?.data?.message ||
   err?.response?.data?.Message ||
@@ -31,21 +39,43 @@ const messageOf = (err, fallback) =>
 
 /**
  * DMO-08.01 / DMO-08.02 — VideoRoom + tele session tokens (Token / Rejoin).
- * Uses New-API only. Stub vendor token — do not invent in-call or paid state.
+ * Session id comes from route after create, or open a visit from today's tele queue —
+ * doctor never types TeleSessionId.
  */
-const TeleVideoRoom = ({ sessionId, className = "" }) => {
+const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, className = "" }) => {
+  const [activeSessionId, setActiveSessionId] = useState(sessionId ? String(sessionId) : "");
   const [session, setSession] = useState(null);
   const [tokenPayload, setTokenPayload] = useState(null);
   const [phase, setPhase] = useState("loading");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [queue, setQueue] = useState([]);
+  const [queueNote, setQueueNote] = useState("");
+
+  useEffect(() => {
+    if (sessionId) setActiveSessionId(String(sessionId));
+  }, [sessionId]);
+
+  const loadQueue = useCallback(async () => {
+    setQueueNote("");
+    try {
+      const payload = await getTeleQueue();
+      const rows = unwrapList(payload);
+      setQueue(rows);
+      if (!rows.length) setQueueNote("No tele visits in today's queue.");
+    } catch (err) {
+      setQueue([]);
+      setQueueNote(messageOf(err, "Could not load tele queue."));
+    }
+  }, []);
 
   const loadStatus = useCallback(() => {
-    const id = Number(sessionId);
+    const id = Number(activeSessionId);
     if (!id) {
-      setPhase("empty");
-      setError("Missing tele session id.");
+      setPhase("pick");
+      setError("");
       setSession(null);
+      loadQueue();
       return undefined;
     }
     let cancelled = false;
@@ -80,7 +110,7 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [activeSessionId, loadQueue]);
 
   useEffect(() => loadStatus(), [loadStatus]);
 
@@ -98,9 +128,39 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
     }
   };
 
+  const openFromVisit = async (appId) => {
+    const pid = Number(appId);
+    if (!pid) {
+      setError("Pick a tele visit from the queue.");
+      return;
+    }
+    try {
+      const payload = await runAction("create", () =>
+        createTeleSession({ patientAppId: pid })
+      );
+      const row = unwrapSession(payload) || {};
+      const createdId =
+        row.teleSessionId ||
+        payload?.teleSessionId ||
+        payload?.TeleSessionId ||
+        payload?.data?.teleSessionId ||
+        payload?.data?.TeleSessionId;
+      if (!createdId) {
+        setError("Session create returned no id.");
+        return;
+      }
+      setActiveSessionId(String(createdId));
+      if (typeof onSessionCreated === "function") {
+        onSessionCreated(String(createdId), String(pid));
+      }
+    } catch {
+      /* error set */
+    }
+  };
+
   const onStart = async () => {
     try {
-      await runAction("start", () => startTeleSession(Number(sessionId)));
+      await runAction("start", () => startTeleSession(Number(activeSessionId)));
       loadStatus();
     } catch {
       /* error set */
@@ -109,7 +169,7 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
 
   const onJoinToken = async () => {
     try {
-      const tok = await runAction("token", () => issueTeleSessionToken(Number(sessionId)));
+      const tok = await runAction("token", () => issueTeleSessionToken(Number(activeSessionId)));
       setTokenPayload(tok);
       if (tok.status) {
         setSession((prev) => (prev ? { ...prev, status: tok.status } : prev));
@@ -122,7 +182,7 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
   const onRejoin = async () => {
     try {
       const tok = await runAction("rejoin", () =>
-        issueTeleSessionRejoinToken(Number(sessionId))
+        issueTeleSessionRejoinToken(Number(activeSessionId))
       );
       setTokenPayload(tok);
     } catch {
@@ -132,7 +192,7 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
 
   const onEnd = async () => {
     try {
-      await runAction("end", () => endTeleSession(Number(sessionId)));
+      await runAction("end", () => endTeleSession(Number(activeSessionId)));
       setTokenPayload(null);
       loadStatus();
     } catch {
@@ -150,10 +210,63 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
 
   return (
     <div className={className} data-testid="tele-video-room">
-      {phase === "empty" ? (
-        <p className="text-muted" data-testid="videoroom-empty" role="status">
-          No session id. Open <code>/doctor/mobile/videoroom/&#123;sessionId&#125;</code>.
-        </p>
+      {phase === "pick" ? (
+        <div data-testid="videoroom-pick" role="status">
+          <p className="text-muted mb-2">
+            Open a tele visit from today&apos;s queue.
+          </p>
+          {patientAppId ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm mb-3"
+              disabled={!!busy}
+              onClick={() => openFromVisit(patientAppId)}
+              data-testid="videoroom-open-from-context"
+            >
+              {busy === "create" ? "Opening…" : "Open room for this visit"}
+            </button>
+          ) : null}
+          {queueNote ? <p className="text-muted small">{queueNote}</p> : null}
+          {queue.length > 0 ? (
+            <ul className="list-unstyled mb-0" data-testid="videoroom-queue">
+              {queue.map((row) => {
+                const appId = row.patientAppId ?? row.PatientAppId;
+                const name = row.patientName ?? row.PatientName ?? "Patient";
+                const time = row.appointmentTime ?? row.AppointmentTime ?? "";
+                return (
+                  <li key={appId} className="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">
+                    <span className="text-truncate">
+                      {name}
+                      {time ? ` · ${time}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary btn-sm flex-shrink-0"
+                      disabled={!!busy}
+                      onClick={() => openFromVisit(appId)}
+                      data-testid={`videoroom-queue-${appId}`}
+                    >
+                      Open room
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-link btn-sm px-0 mt-2"
+            onClick={loadQueue}
+            disabled={!!busy}
+          >
+            Refresh queue
+          </button>
+          {error ? (
+            <p className="text-danger small mt-2" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {phase === "loading" ? (
         <p className="text-muted" data-testid="videoroom-loading" role="status" aria-busy="true">
@@ -168,22 +281,24 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
       {phase === "error" ? (
         <div role="alert" data-testid="videoroom-error">
           <p className="text-danger mb-2">{error}</p>
-          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={loadStatus}>
+          <button type="button" className="btn btn-outline-secondary btn-sm me-2" onClick={loadStatus}>
             Retry
+          </button>
+          <button
+            type="button"
+            className="btn btn-link btn-sm"
+            onClick={() => {
+              setActiveSessionId("");
+              setPhase("pick");
+            }}
+          >
+            Pick another visit
           </button>
         </div>
       ) : null}
 
       {phase === "ready" && session ? (
         <div className="border rounded p-3 bg-light" data-testid="videoroom-body">
-          <p className="mb-2">
-            <strong>Session #</strong>
-            {session.teleSessionId}
-          </p>
-          <p className="mb-2">
-            <strong>Visit #</strong>
-            {session.patientAppId}
-          </p>
           <p className="mb-2">
             <strong>Room:</strong> {session.roomId}
           </p>
@@ -255,7 +370,9 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
             <div className="border rounded p-3 bg-white" data-testid="videoroom-token" aria-live="polite">
               <p className="mb-1">
                 <strong>Vendor:</strong> {tokenPayload.vendor}{" "}
-                {tokenPayload.isStub ? "(stub — not a live vendor call)" : ""}
+                {tokenPayload.isStub
+                  ? "(stub / keys not ready — no live A/V media)"
+                  : "(client SDK can join with token + clientConfig)"}
               </p>
               <p className="mb-1">
                 <strong>Clients:</strong> {(tokenPayload.clients || []).join(", ")}
@@ -266,9 +383,16 @@ const TeleVideoRoom = ({ sessionId, className = "" }) => {
               <p className="mb-1">
                 <strong>Expires:</strong> {tokenPayload.expiresAt || "—"}
               </p>
+              {tokenPayload.clientConfig ? (
+                <p className="mb-1 small text-muted" data-testid="videoroom-client-config">
+                  <strong>Client config:</strong>{" "}
+                  <code>{JSON.stringify(tokenPayload.clientConfig)}</code>
+                </p>
+              ) : null}
               <p className="mb-0 small text-muted">
                 Recording allowed: {tokenPayload.recordAllowed ? "yes" : "no"} · Status{" "}
-                {tokenPayload.status || session.status}. Payment / signed state is not set here.
+                {tokenPayload.status || session.status}. Waiting room / rejoin / chat use poll APIs — no
+                SignalR. Live A/V starts when TeleVideo vendor keys are set.
               </p>
             </div>
           ) : (

@@ -34,6 +34,9 @@ const ReceptionHome = () => {
   const [rescheduleRow, setRescheduleRow] = useState(null);
   const [cancelRow, setCancelRow] = useState(null);
   const [queueLoading, setQueueLoading] = useState(false);
+  const [assistedPatientId, setAssistedPatientId] = useState("");
+  const [assistedPatientName, setAssistedPatientName] = useState("");
+  const [assistedPickKey, setAssistedPickKey] = useState(0);
 
   const load = async () => {
     if (!doctorId) return;
@@ -170,10 +173,17 @@ const ReceptionHome = () => {
                                 <button
                                   type="button"
                                   className="btn btn-link btn-sm p-0 align-baseline"
-                                  title="Fill Assisted booking Patient id"
-                                  onClick={() => setBook((prev) => ({ ...prev, patientId: String(patientId) }))}
+                                  title="Use this patient in Assisted booking"
+                                  data-testid={`reception-queue-pick-patient-${patientId}`}
+                                  onClick={() => {
+                                    setAssistedPatientId(String(patientId));
+                                    setAssistedPatientName(
+                                      row.patientName || row.PatientName || ""
+                                    );
+                                    setAssistedPickKey((n) => n + 1);
+                                  }}
                                 >
-                                  ID {patientId}
+                                  Book for {row.patientName || row.PatientName || "this patient"}
                                 </button>
                                 {" · "}
                                 <Link
@@ -291,7 +301,13 @@ const ReceptionHome = () => {
               <p className="text-muted small">
                 Book on behalf of a patient who asked for help. Payment is not taken on this screen.
               </p>
-              <AssistedBookWizard doctorId={doctorId} showRequestQueue />
+              <AssistedBookWizard
+                doctorId={doctorId}
+                showRequestQueue
+                selectedPatientId={assistedPatientId}
+                patientNameHint={assistedPatientName}
+                patientPickKey={assistedPickKey}
+              />
             </CardBody></Card>
           </Col>
         </Row>

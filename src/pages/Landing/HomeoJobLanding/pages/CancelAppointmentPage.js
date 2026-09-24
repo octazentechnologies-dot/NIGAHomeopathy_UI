@@ -159,10 +159,6 @@ const CancelAppointmentPage = () => {
                 {(phase === "ready" || phase === "done") && detail ? (
                     <div className="homeojob-doctor-detail__card p-4 mb-3" data-testid="cancel-body">
                         <p className="mb-2">
-                            <strong>Visit #</strong>
-                            {detail.patientAppId}
-                        </p>
-                        <p className="mb-2">
                             <strong>When:</strong> {detail.appointmentDate} {detail.appointmentTime}
                         </p>
                         <p className="mb-2">

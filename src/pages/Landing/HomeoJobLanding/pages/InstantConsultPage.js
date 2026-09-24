@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Container } from "reactstrap";
 
@@ -6,11 +6,14 @@ import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
 import {
     getPublicTeleAvailability,
+    listPublicDoctors,
+    mapPublicDoctorCard,
     requestInstantConsult,
 } from "../../../../helpers/publicBookingApi";
 
 /**
  * PAT-24.02 — instant consult request via POST /api/Tele/Instant (Bearer).
+ * PatientId comes from login JWT on the API — UI must not ask the patient to type it.
  * On success navigates to PAT-25.02 queue & doctor offer screen with API result.
  */
 const InstantConsultPage = () => {
@@ -20,8 +23,11 @@ const InstantConsultPage = () => {
 
     const [contactName, setContactName] = useState("Sanjay Patil");
     const [contactMobile, setContactMobile] = useState("7768046064");
-    const [patientId, setPatientId] = useState("");
-    const [doctorHintId, setDoctorHintId] = useState("1010");
+    const [doctorHintId, setDoctorHintId] = useState("");
+    const [doctorSearch, setDoctorSearch] = useState("");
+    const [doctors, setDoctors] = useState([]);
+    const [doctorsLoading, setDoctorsLoading] = useState(false);
+    const [selectedDoctorLabel, setSelectedDoctorLabel] = useState("");
     const [availability, setAvailability] = useState(null);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -31,6 +37,33 @@ const InstantConsultPage = () => {
     useEffect(() => {
         document.title = `${SITE.name} | Instant consult`;
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        setDoctorsLoading(true);
+        const handle = setTimeout(() => {
+            listPublicDoctors({
+                q: doctorSearch.trim() || undefined,
+                teleOnly: true,
+                pageNumber: 1,
+                pageSize: 20,
+            })
+                .then((result) => {
+                    if (cancelled) return;
+                    setDoctors((result.data || []).map((row) => mapPublicDoctorCard(row)));
+                })
+                .catch(() => {
+                    if (!cancelled) setDoctors([]);
+                })
+                .finally(() => {
+                    if (!cancelled) setDoctorsLoading(false);
+                });
+        }, 280);
+        return () => {
+            cancelled = true;
+            clearTimeout(handle);
+        };
+    }, [doctorSearch]);
 
     useEffect(() => {
         const id = Number(doctorHintId);
@@ -63,6 +96,25 @@ const InstantConsultPage = () => {
         };
     }, [doctorHintId]);
 
+    const doctorMatches = useMemo(() => {
+        const q = doctorSearch.trim().toLowerCase();
+        if (!q) return doctors.slice(0, 6);
+        return doctors
+            .filter((row) => {
+                const name = String(row.name || "").toLowerCase();
+                const clinic = String(row.clinicName || row.location || "").toLowerCase();
+                return name.includes(q) || clinic.includes(q);
+            })
+            .slice(0, 8);
+    }, [doctors, doctorSearch]);
+
+    const selectDoctorHint = (row) => {
+        const id = row.id ?? row.doctorId;
+        setDoctorHintId(id ? String(id) : "");
+        setSelectedDoctorLabel(row.name || "Doctor");
+        setDoctorSearch("");
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -73,13 +125,12 @@ const InstantConsultPage = () => {
         }
         setLoading(true);
         try {
+            // PatientId omitted — New-API resolves from Bearer when linked (do not ask user to type it).
             const row = await requestInstantConsult({
-                patientId: patientId ? Number(patientId) : undefined,
                 contactName,
                 contactMobile,
                 accessToken,
             });
-            // PAT-25.02 — hand off API queue/offer fields only (no local invent).
             navigate(landingPath("instant-consult/queue"), {
                 state: { instantResult: row },
                 replace: false,
@@ -110,28 +161,60 @@ const InstantConsultPage = () => {
                 ) : null}
 
                 <div className="homeojob-doctor-detail__card p-4 mb-3">
-                    <label className="form-label small mb-1" htmlFor="instant-doctor-hint">
-                        Check doctor online (optional)
+                    <label className="form-label small mb-1" htmlFor="instant-doctor-search">
+                        Check a doctor online (optional)
                     </label>
                     <input
-                        id="instant-doctor-hint"
+                        id="instant-doctor-search"
                         className="form-control mb-2"
-                        value={doctorHintId}
-                        onChange={(e) => setDoctorHintId(e.target.value)}
-                        inputMode="numeric"
-                        aria-label="Doctor id to check availability"
+                        value={doctorSearch}
+                        onChange={(e) => setDoctorSearch(e.target.value)}
+                        placeholder="Search by doctor name or clinic"
+                        autoComplete="off"
+                        aria-label="Search doctor for availability"
+                        data-testid="instant-doctor-search"
                     />
+                    {doctorsLoading ? (
+                        <p className="text-muted small mb-2">Loading doctors…</p>
+                    ) : null}
+                    {doctorMatches.length > 0 ? (
+                        <ul className="list-unstyled mb-2" data-testid="instant-doctor-matches">
+                            {doctorMatches.map((row) => {
+                                const id = row.id ?? row.doctorId;
+                                return (
+                                    <li key={id} className="mb-1">
+                                        <button
+                                            type="button"
+                                            className="btn btn-link btn-sm p-0"
+                                            onClick={() => selectDoctorHint(row)}
+                                            data-testid={`instant-doctor-${id}`}
+                                        >
+                                            {row.name}
+                                            {row.clinicName ? ` · ${row.clinicName}` : ""}
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    ) : null}
+                    {selectedDoctorLabel ? (
+                        <p className="small mb-1" data-testid="instant-doctor-selected">
+                            Checking: <strong>{selectedDoctorLabel}</strong>
+                        </p>
+                    ) : null}
                     {availLoading ? (
                         <p className="text-muted small mb-0" data-testid="instant-consult-avail-loading">
                             Checking availability…
                         </p>
                     ) : availability ? (
                         <p className="small mb-0" data-testid="instant-consult-availability">
-                            Doctor {availability.doctorId}:{" "}
+                            {selectedDoctorLabel || `Doctor ${availability.doctorId}`}:{" "}
                             {availability.isOnline ? "online" : "offline"}
                         </p>
                     ) : (
-                        <p className="text-muted small mb-0">Availability unknown.</p>
+                        <p className="text-muted small mb-0">
+                            Optional — instant match still finds any online doctor when you submit.
+                        </p>
                     )}
                 </div>
 
@@ -167,19 +250,9 @@ const InstantConsultPage = () => {
                             aria-label="Contact mobile"
                         />
                     </div>
-                    <div className="mb-3">
-                        <label className="form-label" htmlFor="instant-patient-id">
-                            Patient id (optional)
-                        </label>
-                        <input
-                            id="instant-patient-id"
-                            className="form-control"
-                            value={patientId}
-                            onChange={(e) => setPatientId(e.target.value)}
-                            inputMode="numeric"
-                            aria-label="Patient id"
-                        />
-                    </div>
+                    <p className="text-muted small mb-3">
+                        Your profile comes from sign-in — only name and mobile are needed here.
+                    </p>
                     <button
                         type="submit"
                         className="btn btn-primary"
@@ -198,29 +271,21 @@ const InstantConsultPage = () => {
 
                 {offline ? (
                     <p className="text-warning" data-testid="instant-consult-offline">
+                        {error || "You appear to be offline."}
+                    </p>
+                ) : null}
+
+                {error && !offline ? (
+                    <p className="text-danger" data-testid="instant-consult-error" role="alert">
                         {error}
                     </p>
                 ) : null}
 
-                {!loading && error && !offline ? (
-                    <p className="text-danger" data-testid="instant-consult-error">
-                        {error}
-                    </p>
-                ) : null}
-
-                <Link
-                    className="btn btn-outline-secondary me-2"
-                    to={
-                        accessToken
-                            ? `${landingPath("instant-consult/queue")}?accessToken=${encodeURIComponent(accessToken)}`
-                            : landingPath("instant-consult/queue")
-                    }
-                >
-                    Queue &amp; offer
-                </Link>
-                <Link className="btn btn-outline-secondary" to={landingPath("book")}>
-                    Book a scheduled visit instead
-                </Link>
+                <p className="mt-4 mb-0">
+                    <Link to={landingPath("find-doctor")}>Find a doctor</Link>
+                    {" · "}
+                    <Link to={landingPath("")}>Home</Link>
+                </p>
             </Container>
         </section>
     );

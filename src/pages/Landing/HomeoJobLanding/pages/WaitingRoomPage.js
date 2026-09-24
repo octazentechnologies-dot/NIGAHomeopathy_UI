@@ -28,7 +28,7 @@ const WaitingRoomPage = () => {
         document.title = `${SITE.name} | Waiting room`;
         if (!sessionId) {
             setPhase("empty");
-            setError("Missing tele session id.");
+            setError("No tele visit on this link.");
             setSession(null);
             return undefined;
         }
@@ -74,8 +74,8 @@ const WaitingRoomPage = () => {
 
                 {phase === "empty" ? (
                     <p className="text-muted" data-testid="waiting-room-empty" role="status">
-                        No session id. Open{" "}
-                        <code>/tele/waiting/&#123;sessionId&#125;?accessToken=…</code>.
+                        No tele visit on this link. Open waiting room from your instant consult or
+                        booking confirmation after the clinic starts the session.
                     </p>
                 ) : null}
 
@@ -116,14 +116,6 @@ const WaitingRoomPage = () => {
                         aria-live="polite"
                     >
                         <p className="mb-2">
-                            <strong>Session #</strong>
-                            {session.teleSessionId}
-                        </p>
-                        <p className="mb-2">
-                            <strong>Visit #</strong>
-                            {session.patientAppId}
-                        </p>
-                        <p className="mb-2">
                             <strong>Room:</strong> {session.roomId}
                         </p>
                         <p className="mb-2">
@@ -139,8 +131,7 @@ const WaitingRoomPage = () => {
                                 data-testid="waiting-room-status"
                             >
                                 {session.statusLabel}
-                            </span>{" "}
-                            <span className="text-muted">({session.status})</span>
+                            </span>
                         </p>
                         <p className="mb-2 small text-muted">
                             Recording allowed: {session.recordAllowed ? "yes" : "no"} (from API only)

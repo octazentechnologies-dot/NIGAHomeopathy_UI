@@ -93,10 +93,6 @@ const AppointmentDetailPage = () => {
                         data-testid="appointment-detail-body"
                     >
                         <p className="mb-2">
-                            <strong>Visit #</strong>
-                            {detail.patientAppId}
-                        </p>
-                        <p className="mb-2">
                             <strong>When:</strong> {detail.appointmentDate} {detail.appointmentTime}
                         </p>
                         <p className="mb-2">
@@ -116,8 +112,8 @@ const AppointmentDetailPage = () => {
                             </p>
                         ) : null}
                         <p className="mb-0 text-muted small">
-                            Token {detail.bookingToken}. Payment and visit status come from the API
-                            only — nothing is marked paid or signed on this device.
+                            Payment and visit status come from the API only — nothing is marked paid
+                            or signed on this device.
                         </p>
                     </div>
                 ) : null}

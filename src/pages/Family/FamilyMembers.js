@@ -365,7 +365,6 @@ const FamilyMembers = () => {
                         <tr>
                           <th>Name</th>
                           <th>Relation</th>
-                          <th>PatientId</th>
                           <th>Mobile</th>
                           <th></th>
                         </tr>
@@ -373,7 +372,7 @@ const FamilyMembers = () => {
                       <tbody>
                         {members.length === 0 ? (
                           <tr>
-                            <td colSpan={5}>No family members yet.</td>
+                            <td colSpan={4}>No family members yet.</td>
                           </tr>
                         ) : (
                           members.map((row) => {
@@ -382,7 +381,6 @@ const FamilyMembers = () => {
                               <tr key={id}>
                                 <td>{row.patientName ?? row.PatientName}</td>
                                 <td>{row.relation ?? row.Relation}</td>
-                                <td>{row.memberPatientId ?? row.MemberPatientId}</td>
                                 <td>{row.mobileNo ?? row.MobileNo}</td>
                                 <td className="text-end">
                                   <Button color="link" size="sm" onClick={() => onEdit(row)}>

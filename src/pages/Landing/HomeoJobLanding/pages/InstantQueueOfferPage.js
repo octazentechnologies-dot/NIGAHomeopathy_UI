@@ -82,9 +82,6 @@ const InstantQueueOfferPage = () => {
             const next = await loadInstantQueueOfferScreen({
                 contactName: searchParams.get("contactName") || "Patient",
                 contactMobile: searchParams.get("contactMobile") || "7768046064",
-                patientId: searchParams.get("patientId")
-                    ? Number(searchParams.get("patientId"))
-                    : undefined,
                 accessToken,
             });
             setView(next);
@@ -164,20 +161,15 @@ const InstantQueueOfferPage = () => {
                                 data-testid="instant-queue-body"
                             >
                                 <p className="mb-2">
-                                    <strong>Request #</strong>
-                                    {view.instantConsultRequestId}
-                                </p>
-                                <p className="mb-2">
                                     <strong>Queue position:</strong>{" "}
                                     {view.queuePosition != null ? view.queuePosition : "—"}
                                 </p>
                                 <p className="mb-2">
-                                    <strong>Status:</strong> {view.statusLabel}{" "}
-                                    <span className="text-muted">({view.status})</span>
+                                    <strong>Status:</strong> {view.statusLabel}
                                 </p>
                                 {view.hasOffer && view.doctorId != null ? (
                                     <p className="mb-0" data-testid="instant-doctor-offer">
-                                        <strong>Doctor offer:</strong> Doctor {view.doctorId}{" "}
+                                        <strong>Doctor offer:</strong> A doctor is available
                                         (status from API — not marked paid here)
                                     </p>
                                 ) : view.statusKind === "no_doctor" ? (

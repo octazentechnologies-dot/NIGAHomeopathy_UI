@@ -464,17 +464,29 @@ export const mapTeleSessionTokenPayload = (payload) => {
   const data = (root && (root.data || root.Data)) || root || {};
   const clientsRaw = data.clients || data.Clients || ["web", "mobile"];
   const status = data.status || data.Status || null;
+  const vendor = data.vendor || data.Vendor || "stub";
+  const clientConfig = data.clientConfig || data.ClientConfig || null;
+  const readyFlag =
+    clientConfig && typeof clientConfig === "object"
+      ? String(clientConfig.ready ?? clientConfig.Ready ?? "")
+      : "";
+  const isStub =
+    data.isStub === true ||
+    data.IsStub === true ||
+    String(vendor).toLowerCase() === "stub" ||
+    readyFlag === "false";
   return {
     success: Boolean(payload?.success ?? payload?.Success ?? data.success ?? true),
-    vendor: data.vendor || data.Vendor || "stub",
+    vendor,
     clients: Array.isArray(clientsRaw) ? clientsRaw : ["web", "mobile"],
     teleSessionId: data.teleSessionId || data.TeleSessionId || null,
     roomId: data.roomId || data.RoomId || null,
     token: data.token || data.Token || null,
     expiresAt: data.expiresAt || data.ExpiresAt || null,
     recordAllowed: Boolean(data.recordAllowed ?? data.RecordAllowed),
+    clientConfig,
     status,
-    isStub: String(data.vendor || data.Vendor || "stub").toLowerCase() === "stub",
+    isStub,
   };
 };
 
