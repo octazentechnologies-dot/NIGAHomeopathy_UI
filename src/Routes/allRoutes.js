@@ -1,8 +1,17 @@
 import React from "react";
 import RoleBasedHomeRedirect from "../Components/Common/RoleBasedHomeRedirect";
+import {
+  ACCOUNT_ROUTE_ROLES,
+  PHARMACY_ROUTE_ROLES,
+  PATIENT_APP_ROUTE_ROLES,
+  DOCTOR_DASHBOARD_ROUTE_ROLES,
+  RECEPTION_ROUTE_ROLES,
+  DOCTOR_CASE_ROUTE_ROLES,
+  DOCTOR_STAFF_ROUTE_ROLES,
+  ADMIN_PORTAL_ROLES,
+} from "../Components/constants/roles";
 import { LANDING_SPLAT_PATH } from "../constants/landingRoutes";
 import LandingLegacyRedirect from "../pages/Landing/HomeoJobLanding/LandingLegacyRedirect";
-
 //Admin Start
 import AdminDashboard from "../pages/Admin/Dashboard";
 
@@ -154,6 +163,8 @@ import AccountDashboard from "../pages/Account/Dashboard";
 import AccountComingSoon from "../pages/Account/components/AccountComingSoon";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
+import FamilyMembers from "../pages/Family/FamilyMembers";
+import CaregiverAccess from "../pages/Family/CaregiverAccess";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -343,8 +354,12 @@ import APIKey from "../pages/APIKey/index";
 //login
 import Login from "../pages/Authentication/Login";
 import ForgetPasswordPage from "../pages/Authentication/ForgetPassword";
+import ResetPassword from "../pages/Authentication/ResetPassword";
 import Logout from "../pages/Authentication/Logout";
 import Register from "../pages/Authentication/Register";
+import RegisterPendingPage from "../pages/Authentication/RegisterPendingPage";
+import RegisterStatusPage from "../pages/Authentication/RegisterStatusPage";
+import ActivateAccount from "../pages/Authentication/ActivateAccount";
 
 //Charts
 import LineCharts from "../pages/Charts/ApexCharts/LineCharts";
@@ -388,6 +403,16 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 
 // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
+import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
+import AssistedBookingPage from "../pages/Admin/AssistedBookingPage";
+import ReceptionStaffPage from "../pages/Doctor/ReceptionStaff/ReceptionStaffPage";
+import ReceptionHome from "../pages/Reception/ReceptionHome";
+import DoctorMobileContextPage from "../pages/Doctor/Mobile/DoctorMobileContextPage";
+import DoctorVideoRoomPage from "../pages/Doctor/Mobile/DoctorVideoRoomPage";
+import RefillInboxPage from "../pages/Doctor/Mobile/RefillInboxPage";
+import RefillDetailPage from "../pages/Doctor/Mobile/RefillDetailPage";
+import ReceptionSchedule from "../pages/Reception/ReceptionSchedule";
+import ReceptionCasePaper from "../pages/Reception/ReceptionCasePaper";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
 
 import FileManager from "../pages/FileManager";
@@ -546,35 +571,54 @@ const authProtectedRoutes = [
 
   // Doctor Side End //
 
-  { path: "doctordashboard", component: <DoctorDashboard /> },
-  { path: "doctor/patientboard", component: <PatientBoardRoute /> },
-  { path: "doctor/anatomy", component: <AnatomyPage /> },
+  { path: "doctordashboard", component: <DoctorDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  // DMO-07.02 — patient context card (Context API). No case-taking / repertory.
+  { path: "doctor/mobile/context/:patientAppId", component: <DoctorMobileContextPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/context", component: <DoctorMobileContextPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/videoroom/:sessionId", component: <DoctorVideoRoomPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/videoroom", component: <DoctorVideoRoomPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  // DMO-09.02 — refill inbox + approve/reject APIs (snapshot not editable).
+  { path: "doctor/mobile/refill/:refillId", component: <RefillDetailPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/mobile/refill", component: <RefillInboxPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  // CLN-01.02 — one Patient Board. These two paths are aliases, not a second app. No doctor-mobile case-taking.
+  { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
+  // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
+  { path: "patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
+  { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
+  { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
+  { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },
+  { path: "reception", component: <ReceptionHome />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/case-paper", component: <ReceptionCasePaper />, allowedRoles: RECEPTION_ROUTE_ROLES },
 
 
   // Doctor Side End //
 
   // Account Side //
-  { path: "accountdashboard", component: <AccountDashboard /> },
-  { path: "account/ledger", component: <AccountComingSoon title="Ledger" /> },
-  { path: "account/doctor-earnings", component: <AccountComingSoon title="Doctor Earnings" /> },
-  { path: "account/payouts", component: <AccountComingSoon title="Payouts" /> },
-  { path: "account/invoices", component: <AccountComingSoon title="Invoices" /> },
-  { path: "account/reports", component: <AccountComingSoon title="Reports" /> },
+  { path: "accountdashboard", component: <AccountDashboard />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/ledger", component: <AccountComingSoon title="Ledger" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/doctor-earnings", component: <AccountComingSoon title="Doctor Earnings" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/payouts", component: <AccountComingSoon title="Payouts" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/invoices", component: <AccountComingSoon title="Invoices" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/reports", component: <AccountComingSoon title="Reports" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   // Account Side End //
 
   // Pharmacy Side //
-  { path: "pharmacydashboard", component: <PharmacyDashboard /> },
-  { path: "pharmacy/onboarding", component: <PharmacyComingSoon title="Onboarding" /> },
-  { path: "pharmacy/orders", component: <PharmacyComingSoon title="Orders" /> },
-  { path: "pharmacy/quotes", component: <PharmacyComingSoon title="Quotes" /> },
-  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" /> },
-  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" /> },
+  { path: "pharmacydashboard", component: <PharmacyDashboard />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/onboarding", component: <PharmacyComingSoon title="Onboarding" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/orders", component: <PharmacyComingSoon title="Orders" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/quotes", component: <PharmacyComingSoon title="Quotes" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   // Pharmacy Side End //
+
+  { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "caregiver", component: <CaregiverAccess />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },
   { path: "/dashboard", component: <DashboardEcommerce /> },
-  { path: "index", component: <DoctorDashboard /> },
+  { path: "index", component: <DoctorDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "/dashboard-crypto", component: <DashboardCrypto /> },
   { path: "/dashboard-projects", component: <DashboardProject /> },
   { path: "/dashboard-nft", component: <DashboardNFT /> },
@@ -780,6 +824,10 @@ const authProtectedRoutes = [
 
   //User Profile
   { path: "/profile", component: <UserProfile /> },
+  { path: "/enquiries", component: <EnquiryInboxPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "/admin/enquiries", component: <EnquiryInboxPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "/admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
 
   // Catch-all for authenticated app routes (landing is served from publicRoutes)
   { path: "*", component: <RoleBasedHomeRedirect /> },
@@ -796,7 +844,12 @@ const publicRoutes = [
   { path: "/logout", component: <Logout /> },
   { path: "/login", component: <Login /> },
   { path: "/forgot-password", component: <ForgetPasswordPage /> },
+  { path: "/reset-password", component: <ResetPassword /> },
+  { path: "/reset-password/:token", component: <ResetPassword /> },
   { path: "/register", component: <Register /> },
+  { path: "/register/pending", component: <RegisterPendingPage /> },
+  { path: "/register/status", component: <RegisterStatusPage /> },
+  { path: "/activate", component: <ActivateAccount /> },
 
   //AuthenticationInner pages
   { path: "/auth-signin-basic", component: <BasicSignIn /> },

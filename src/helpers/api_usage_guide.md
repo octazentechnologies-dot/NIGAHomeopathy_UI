@@ -166,8 +166,8 @@ The base URLs are configured in `config.js`:
 ```javascript
 module.exports = {
   api: {
-    API_URL: "https://api1.homeocentrum.com/api",           // Default API
-    API_URL_NIGAHOMEOPATHY: "https://api.nigahomeopathy.com/api"  // Nigahomeopathy API
+    Old_API_Base_URL: "https://api1.homeocentrum.com/api",           // Default API
+    New_API_Base_URL: "https://api.nigahomeopathy.com/api"  // Nigahomeopathy API
   }
 };
 ```

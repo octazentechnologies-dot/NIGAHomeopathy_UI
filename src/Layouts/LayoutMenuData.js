@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { UserRole, resolveUserRole } from "../Components/constants/roles";
+import { useProfile } from "../Components/Hooks/UserHooks";
 
 const Navdata = () => {
     const history = useNavigate();
+    const { userProfile } = useProfile();
+    const role = resolveUserRole(userProfile);
     //state data
     const [isAdminDashboard, setIsAdminDashboard] = useState(false);
     const [isExistanceQuestions, setIsExistanceQuestions] = useState(false);
@@ -213,6 +217,20 @@ const Navdata = () => {
                 setIscurrentState('AdminDashboard');
                 updateIconSidebar(e);
             },
+        },
+
+        {
+            id: "enquiries",
+            label: "Enquiries",
+            icon: "ri-mail-line",
+            link: "/admin/enquiries",
+        },
+
+        {
+            id: "assisted-booking",
+            label: "Assisted booking",
+            icon: "ri-calendar-check-line",
+            link: "/admin/assisted-booking",
         },
 
         {
@@ -1538,6 +1556,63 @@ const Navdata = () => {
             ],
         },
     ];
-    return <React.Fragment>{menuItems}</React.Fragment>;
+
+    // SEC-04.02 / FND-02.01 — role-specific menus (fallback only when GetMenuByRole fails)
+    if (role === UserRole.PATIENT) {
+        return (
+            <React.Fragment>
+                {[
+                    { label: "Patient", isHeader: true },
+                    { id: "family", label: "Family", icon: "ri-group-line", link: "/family" },
+                    { id: "caregiver", label: "Caregiver", icon: "ri-user-heart-line", link: "/caregiver" },
+                ]}
+            </React.Fragment>
+        );
+    }
+
+    if (role === UserRole.ACCOUNT) {
+        return (
+            <React.Fragment>
+                {[
+                    { label: "Account", isHeader: true },
+                    { id: "account-home", label: "Home", icon: "ri-home-line", link: "/accountdashboard" },
+                    { id: "account-ledger", label: "Ledger", icon: "ri-book-line", link: "/account/ledger" },
+                    { id: "account-earnings", label: "Doctor Earnings", icon: "ri-money-dollar-circle-line", link: "/account/doctor-earnings" },
+                    { id: "account-payouts", label: "Payouts", icon: "ri-bank-card-line", link: "/account/payouts" },
+                    { id: "account-invoices", label: "Invoices", icon: "ri-file-list-3-line", link: "/account/invoices" },
+                    { id: "account-reports", label: "Reports", icon: "ri-bar-chart-line", link: "/account/reports" },
+                ]}
+            </React.Fragment>
+        );
+    }
+
+    if (role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER) {
+        return (
+            <React.Fragment>
+                {[
+                    { label: "Pharmacy", isHeader: true },
+                    { id: "pharmacy-home", label: "Home", icon: "ri-capsule-line", link: "/pharmacydashboard" },
+                    { id: "pharmacy-onboarding", label: "Onboarding", icon: "ri-user-add-line", link: "/pharmacy/onboarding" },
+                    { id: "pharmacy-orders", label: "Orders", icon: "ri-shopping-bag-line", link: "/pharmacy/orders" },
+                    { id: "pharmacy-quotes", label: "Quotes", icon: "ri-file-list-2-line", link: "/pharmacy/quotes" },
+                    { id: "pharmacy-inventory", label: "Inventory", icon: "ri-archive-line", link: "/pharmacy/inventory" },
+                    { id: "pharmacy-prescriptions", label: "Prescriptions", icon: "ri-file-paper-2-line", link: "/pharmacy/prescriptions" },
+                ]}
+            </React.Fragment>
+        );
+    }
+
+    const showVelzonDemo = process.env.REACT_APP_SHOW_VELZON_DEMO === "true";
+    let productionMenuItems = menuItems;
+    if (!showVelzonDemo) {
+        const demoHeaderIdx = menuItems.findIndex(
+            (item) => item.isHeader && item.label === "Menu"
+        );
+        if (demoHeaderIdx >= 0) {
+            productionMenuItems = menuItems.slice(0, demoHeaderIdx);
+        }
+    }
+
+    return <React.Fragment>{productionMenuItems}</React.Fragment>;
 };
 export default Navdata;

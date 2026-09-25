@@ -41,8 +41,8 @@ const Home = () => {
                                 const query = params.toString();
                                 navigate(
                                     query
-                                        ? `${landingPath("find-doctor")}?${query}`
-                                        : landingPath("find-doctor")
+                                        ? `${landingPath("book")}?${query}`
+                                        : landingPath("book")
                                 );
                             }}
                         >

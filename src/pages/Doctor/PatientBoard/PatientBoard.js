@@ -23,6 +23,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import usePatientBoardSessionPersistence from '../../../hooks/usePatientBoardSessionPersistence';
 import useContainerInfiniteLoad, { isElementScrollable } from '../../../hooks/useContainerInfiniteLoad';
 import { collectPatientBoardSnapshot, buildPatientBoardKey, canOpenPatientSession, showPatientSessionLimitAlert } from '../../../helpers/patientBoardSessionHelper';
+import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
 import AudioCasePanel from '../../../Components/CaseTaking/AudioCasePanel';
 import { buildSummaryHistoryNoteText } from '../../../helpers/audioCaseTakingHelper';
 import { completePatientBoardSession } from '../../../slices/doctor/patientBoardSession/reducer';
@@ -76,7 +77,24 @@ import {
   getRubricRemedyDetails as getRubricRemedyDetailsApi,
   searchRubricsByKeyword as searchRubricsByKeywordApi,
   getMateriaMedicaHeadingByAuthorId as getMateriaMedicaHeadingByAuthorIdApi,
+  runCenterOfGravity,
+  exportCaseToPdf,
+  exportCasesToExcel,
+  getPatientComplaints,
+  savePatientComplaints,
+  getPatientCaseDetails,
+  savePatientCaseDetails,
+  getAppointmentListByPatientId,
+  getPrescriptionDetailsByAppointmentId,
 } from '../../../helpers/realbackend_helper';
+import {
+  extractApiList,
+  extractPrescriptionResultObject,
+  formatAppointmentAccordionTitle,
+  getAppointmentIdFromRow,
+  isVisitOnOrBeforeToday,
+} from '../../../helpers/patient_history_helper';
+import { getAuthUserId } from '../../../helpers/appointmentSlotHelper';
 import {
   buildSubSectionSearchTree,
   getSubSectionSearchSuggestions,
@@ -985,8 +1003,8 @@ const getAccordionSublistView = (state, globalFilters = null) => {
     };
   }
 
-  const filteredEntries = getAccordionFilteredEntriesFromState(state, globalFilters);
-  const visibleEntries = filteredEntries.slice(0, state.visibleCount);
+  const filteredEntries = getAccordionFilteredEntriesFromState(state, globalFilters) || [];
+  const visibleEntries = filteredEntries.slice(0, Number(state.visibleCount) || 0);
   const hasMoreClient = state.visibleCount < filteredEntries.length;
   const hasMoreServer = computeAccordionHasMoreServer(state);
   const hasMoreEntries = hasMoreClient || hasMoreServer;
@@ -1227,6 +1245,9 @@ const PatientBoard = () => {
   const caseId = searchParams.get('caseId');
   const patientAppId = searchParams.get('patientAppId');
   const appointmentDateParam = searchParams.get('appointmentDate');
+  const visitTypeParam = searchParams.get('visitType') || searchParams.get('VisitType');
+  const consultModeParam = searchParams.get('consultMode') || searchParams.get('ConsultMode');
+  const isTeleParam = searchParams.get('isTele') || searchParams.get('IsTele');
   const patientNameParam = searchParams.get('patientName');
   const caseTakingMode = searchParams.get('caseTakingMode');
   const caseTakingOrigin = searchParams.get('caseTakingOrigin');
@@ -1321,6 +1342,19 @@ const PatientBoard = () => {
       : moment(appointmentDateParam, ['YYYY-MM-DD', 'DD-MM-YYYY', 'D-M-YYYY'], true);
     return parsed.isValid() ? parsed.format('Do MMMM, YYYY') : '';
   }, [appointmentDateParam]);
+
+  // CLN-01.01 — header placeholders. Live VisitType/ConsultMode bind in Phases 4 and 6.
+  const headerVisitType = useMemo(() => {
+    const raw = String(visitTypeParam || '').trim();
+    return raw || '—';
+  }, [visitTypeParam]);
+  const headerConsultMode = useMemo(() => {
+    const raw = String(consultModeParam || '').trim();
+    if (raw) return raw;
+    const tele = String(isTeleParam || '').trim().toLowerCase();
+    if (tele === 'true' || tele === '1' || tele === 'yes') return 'Tele';
+    return '—';
+  }, [consultModeParam, isTeleParam]);
 
   const eliminationRemedyData = useMemo(() => resolveRemedyLists(eliminationDataList), [eliminationDataList]);
   const baseRemedyData = useMemo(() => resolveRemedyLists(commanUnCommanRubricsDetailsList), [commanUnCommanRubricsDetailsList]);
@@ -1976,6 +2010,81 @@ const PatientBoard = () => {
   // ###### Dj UI Code End - Repertorization Rubric Modal State ######
   // Prescription Modal State
   const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
+  const [complaintsModalOpen, setComplaintsModalOpen] = useState(false);
+  const [complaintRows, setComplaintRows] = useState([]);
+  const [complaintDraft, setComplaintDraft] = useState('');
+  const [complaintsLoading, setComplaintsLoading] = useState(false);
+  const [complaintsSaving, setComplaintsSaving] = useState(false);
+  const [complaintsNotice, setComplaintsNotice] = useState('');
+  const [caseDetailsModalOpen, setCaseDetailsModalOpen] = useState(false);
+  const [caseDetailRows, setCaseDetailRows] = useState([]);
+  const [caseDetailsLoading, setCaseDetailsLoading] = useState(false);
+  const [caseDetailsSaving, setCaseDetailsSaving] = useState(false);
+  const [caseDetailsNotice, setCaseDetailsNotice] = useState('');
+  const [caseSymptomQuery, setCaseSymptomQuery] = useState('');
+  const [caseSymptomHits, setCaseSymptomHits] = useState([]);
+  const [caseSymptomSearching, setCaseSymptomSearching] = useState(false);
+  const [selectedCaseSymptom, setSelectedCaseSymptom] = useState(null);
+  const [selectedCaseIntensityId, setSelectedCaseIntensityId] = useState(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyVisits, setHistoryVisits] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRxLoading, setHistoryRxLoading] = useState(false);
+  const [historyRx, setHistoryRx] = useState(null);
+  const [historyRxAppointmentId, setHistoryRxAppointmentId] = useState(null);
+  const historyRxRowRef = useRef(null);
+  useEffect(() => {
+    if (!historyRxAppointmentId || historyRxLoading) return;
+    const row = historyRxRowRef.current;
+    if (!row) return;
+    let scroller = row.parentElement;
+    while (scroller && scroller !== document.body) {
+      const style = window.getComputedStyle(scroller);
+      if (/(auto|scroll)/.test(style.overflowY) && scroller.scrollHeight > scroller.clientHeight + 1) break;
+      scroller = scroller.parentElement;
+    }
+    if (!scroller || scroller === document.body) {
+      row.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    const rowRect = row.getBoundingClientRect();
+    const boxRect = scroller.getBoundingClientRect();
+    if (rowRect.bottom > boxRect.bottom - 8) {
+      scroller.scrollTop += rowRect.bottom - boxRect.bottom + 12;
+    } else if (rowRect.top < boxRect.top + 8) {
+      scroller.scrollTop -= boxRect.top - rowRect.top + 12;
+    }
+  }, [historyRxAppointmentId, historyRxLoading, historyRx]);
+  const [cogModalOpen, setCogModalOpen] = useState(false);
+  const [cogRows, setCogRows] = useState([]);
+  const [cogLoading, setCogLoading] = useState(false);
+  const [cogNotice, setCogNotice] = useState('');
+  const caseSymptomSearchRequestRef = useRef(0);
+  useEffect(() => {
+    if (!caseDetailsModalOpen) return undefined;
+    const term = caseSymptomQuery.trim();
+    if (term.length < MIN_SUBSECTION_SEARCH_LENGTH) {
+      setCaseSymptomHits([]);
+      setCaseSymptomSearching(false);
+      return undefined;
+    }
+    const requestId = caseSymptomSearchRequestRef.current + 1;
+    caseSymptomSearchRequestRef.current = requestId;
+    const timer = setTimeout(async () => {
+      setCaseSymptomSearching(true);
+      try {
+        const response = await searchSubSectionsGlobal({ query: term, top: SUBSECTION_SEARCH_TOP });
+        if (requestId !== caseSymptomSearchRequestRef.current) return;
+        const results = Array.isArray(response) ? response : (response?.data || response?.resultObject || []);
+        setCaseSymptomHits(Array.isArray(results) ? results.slice(0, 8) : []);
+      } catch (error) {
+        if (requestId === caseSymptomSearchRequestRef.current) setCaseSymptomHits([]);
+      } finally {
+        if (requestId === caseSymptomSearchRequestRef.current) setCaseSymptomSearching(false);
+      }
+    }, SUBSECTION_SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [caseDetailsModalOpen, caseSymptomQuery]);
   const [prescriptionTab, setPrescriptionTab] = useState('Prescription');
   const [prescriptionRemedyDetailList, setPrescriptionRemedyDetailList] = useState([]);
   const [selectedPrescriptionRemedy, setSelectedPrescriptionRemedy] = useState(null);
@@ -3439,12 +3548,25 @@ const PatientBoard = () => {
 
   // Handle delete rubric from repertorization
   const handleDeleteRepertorizationRubric = (rubricId) => {
-    const isEliminationRubric = filledPyramidIcons.has(rubricId);
-    setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
-    if (isEliminationRubric) {
-      setFilledPyramidIcons(new Set());
-      dispatch(setEliminationDataList(null));
-    }
+    Swal.fire({
+      title: 'Remove this rubric from clipboard?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#299cdb',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, remove',
+      cancelButtonText: 'Cancel',
+    }).then((result) => {
+      if (!result.isConfirmed) {
+        return;
+      }
+      const isEliminationRubric = filledPyramidIcons.has(rubricId);
+      setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
+      if (isEliminationRubric) {
+        setFilledPyramidIcons(new Set());
+        dispatch(setEliminationDataList(null));
+      }
+    });
   };
 
   const handleEliminationToggle = async (event, rubric) => {
@@ -5284,6 +5406,9 @@ const PatientBoard = () => {
     patientAppId,
     appointmentDate: appointmentDateParam,
     patientName: resolvedPatientName,
+    visitType: visitTypeParam,
+    consultMode: consultModeParam,
+    isTele: isTeleParam,
     getState: getPatientBoardSessionState,
     setters: patientBoardSessionSetters,
     afterRestoreRef: sessionAfterRestoreRef,
@@ -5417,10 +5542,19 @@ const PatientBoard = () => {
     .pb-logo-wrapper { position:absolute; left:0; right:0; top:10px; display:flex; justify-content:center; pointer-events:none; }
     .pb-logo-inner { pointer-events:auto; }
     .pb-actions { gap:8px; }
-    .pb-search { width:260px; }
+    .pb-search { width:min(260px, 46vw); min-width:132px; }
+    @media (max-width: 767.98px) {
+      .pb-header { flex-wrap: wrap; }
+      .pb-search { width: min(220px, 70vw); min-width: 0; }
+    }
     .pb-circle { width:22px; height:22px; border-radius:50%; background:#f1f3f5; border:1px solid #dee2e6; display:inline-flex; align-items:center; justify-content:center; margin-left:10px; font-size:8px; font-weight:500; vertical-align:middle; line-height:1; }
     .pb-chip { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:3px; border:1px solid #000000; background:#000000; color:#fff; font-size:10px; font-weight:400; margin-left:6px; cursor:pointer; transition:background-color .15s ease, border-color .15s ease; }
     .pb-chip:hover { background:#495057; border-color:#495057; }
+    .pb-finding-grades { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-start; }
+    .pb-finding-grade { display:inline-flex; flex-direction:column; align-items:center; gap:4px; margin:0; padding:0; border:0; background:transparent; cursor:pointer; }
+    .pb-finding-grade__num { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; border:2px solid #000; background:#fff; color:#000; font-size:15px; font-weight:700; line-height:1; }
+    .pb-finding-grade.is-selected .pb-finding-grade__num { background:#000; color:#fff; box-shadow:0 0 0 3px #b7ebc6; }
+    .pb-finding-grade__note { max-width:92px; font-size:11px; line-height:1.2; color:#6c757d; text-align:center; }
     .pb-remedy-score-bar { position:relative; flex-shrink:0; width:88px; min-width:88px; margin-left:8px; }
     .pb-remedy-score-bar__track {
       position:relative;
@@ -6877,6 +7011,11 @@ const PatientBoard = () => {
       font-weight:600;
       border-color:#cfe3f7;
       background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+    }
+    .pb-info__chip--placeholder,
+    .pb-appointment-date--placeholder {
+      color:#64748b;
+      font-weight:500;
     }
     .pb-info__chip--due i {
       color:#0b5cab;
@@ -12328,15 +12467,338 @@ const PatientBoard = () => {
     }
   };
 
+  const handleRunCenterOfGravity = async () => {
+    const rubrics = (repertorizationRubrics || [])
+      .map((rubric) => ({
+        subSectionId: Number(rubric.rubricId ?? rubric.subsectionId ?? rubric.subSectionId),
+        intensity: Number(rubric.intensityNo ?? rubric.intensityId ?? 1),
+      }))
+      .filter((item) => Number.isFinite(item.subSectionId) && item.subSectionId > 0);
+    setCogModalOpen(true);
+    setCogRows([]);
+    if (rubrics.length === 0) {
+      setCogNotice('Add symptoms on the repertorization list first.');
+      setCogLoading(false);
+      return;
+    }
+    setCogNotice('');
+    setCogLoading(true);
+    try {
+      const result = await runCenterOfGravity({
+        patientId: patientId ? Number(patientId) : null,
+        rubrics,
+      });
+      const rows = result?.data ?? result?.Data ?? [];
+      const list = (Array.isArray(rows) ? rows : []).slice(0, 8).map((row) => ({
+        name: row.remedyName ?? row.RemedyName ?? 'Remedy',
+        score: row.score ?? row.Score ?? '',
+      }));
+      setCogRows(list);
+      setCogNotice(list.length ? '' : 'No remedies matched these symptoms.');
+    } catch (err) {
+      setCogNotice(typeof err === 'string' ? err : err?.message || 'Could not compare remedies. Please try again.');
+    } finally {
+      setCogLoading(false);
+    }
+  };
+
+  const saveExportFile = async (response, fileName) => {
+    const payload = response instanceof Blob ? response : response?.data;
+    if (!(payload instanceof Blob)) {
+      throw new Error('The server did not return a file.');
+    }
+    const header = new Uint8Array(await payload.slice(0, 5).arrayBuffer());
+    const signature = String.fromCharCode(...header);
+    const isPdf = signature.startsWith('%PDF');
+    const isExcel = signature.startsWith('PK');
+    if (!isPdf && !isExcel) {
+      throw new Error('The download is not a valid PDF or Excel file.');
+    }
+    const url = URL.createObjectURL(payload);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCasePdf = async () => {
+    if (!patientId || !caseId) {
+      Swal.fire({ icon: 'warning', title: 'Open a case', text: 'Choose a patient case before exporting.', confirmButtonColor: '#000000' });
+      return;
+    }
+    try {
+      Swal.fire({ title: 'Exporting case PDF…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const response = await exportCaseToPdf(patientId, caseId);
+      await saveExportFile(response, `case-${patientId}-${caseId}.pdf`);
+      Swal.close();
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Export failed',
+        text: typeof err === 'string' ? err : err?.message || 'PDF export failed',
+        confirmButtonColor: '#000000',
+      });
+    }
+  };
+
+  const handleExportCasesExcel = async () => {
+    const userId = getAuthUserId();
+    if (!userId) {
+      Swal.fire({ icon: 'warning', title: 'Missing doctor', text: 'Sign in as a doctor to export cases.', confirmButtonColor: '#000000' });
+      return;
+    }
+    try {
+      Swal.fire({ title: 'Exporting cases Excel…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const response = await exportCasesToExcel(userId);
+      await saveExportFile(response, `cases-${userId}.xlsx`);
+      Swal.close();
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Export failed',
+        text: typeof err === 'string' ? err : err?.message || 'Excel export failed',
+        confirmButtonColor: '#000000',
+      });
+    }
+  };
+
+  const readCaseDetailRow = (row) => ({
+    caseDetailId: row.caseDetailId ?? row.CaseDetailId ?? 0,
+    subsectionId: row.subsectionId ?? row.SubsectionId ?? null,
+    symptom: row.subsectionName ?? row.SubsectionName ?? row.subSectionName ?? '',
+    intensityId: row.intensityId ?? row.IntensityId ?? null,
+    grade: row.intensityNo ?? row.IntensityNo ?? null,
+    gradeNote: row.intensityDescription ?? row.IntensityDescription ?? '',
+  });
+
+  const openCaseDetails = async () => {
+    if (!caseId) {
+      Swal.fire({ icon: 'warning', title: 'Open a case', text: 'Choose a patient case before recording findings.', confirmButtonColor: '#000000' });
+      return;
+    }
+    setCaseDetailsModalOpen(true);
+    setCaseDetailsNotice('');
+    setCaseSymptomQuery('');
+    setCaseSymptomHits([]);
+    setSelectedCaseSymptom(null);
+    setSelectedCaseIntensityId(null);
+    setCaseDetailsLoading(true);
+    try {
+      const rows = await getPatientCaseDetails(caseId);
+      setCaseDetailRows(extractApiList(rows).map(readCaseDetailRow));
+    } catch (err) {
+      setCaseDetailRows([]);
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not load findings',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
+        confirmButtonColor: '#000000',
+      });
+    } finally {
+      setCaseDetailsLoading(false);
+    }
+  };
+
+  const saveCaseFinding = async () => {
+    const subsectionId = Number(selectedCaseSymptom?.subSectionId ?? selectedCaseSymptom?.SubSectionId);
+    const intensityId = Number(selectedCaseIntensityId);
+    if (!Number.isFinite(subsectionId) || subsectionId <= 0 || !Number.isFinite(intensityId) || intensityId <= 0) {
+      setCaseDetailsNotice('Choose a symptom and a grade.');
+      return;
+    }
+    const existing = caseDetailRows.find((row) => Number(row.subsectionId) === subsectionId);
+    const symptomName = selectedCaseSymptom?.subSectionName || selectedCaseSymptom?.SubSectionName || 'This symptom';
+    const chosenGrade = (intensitiesForPatientList || []).find(
+      (item) => Number(item.intensityId) === intensityId
+    );
+    const gradeNo = chosenGrade?.intensityNo ?? chosenGrade?.IntensityNo;
+    setCaseDetailsSaving(true);
+    setCaseDetailsNotice('');
+    try {
+      await savePatientCaseDetails([{
+        CaseDetailId: existing?.caseDetailId || 0,
+        CaseId: Number(caseId),
+        SubsectionId: subsectionId,
+        IntensityId: intensityId,
+      }]);
+      const rows = await getPatientCaseDetails(caseId);
+      setCaseDetailRows(extractApiList(rows).map(readCaseDetailRow));
+      setCaseSymptomQuery('');
+      setCaseSymptomHits([]);
+      setSelectedCaseSymptom(null);
+      setSelectedCaseIntensityId(null);
+      setCaseDetailsNotice(
+        gradeNo == null
+          ? `Saved. ${symptomName} is on this case.`
+          : `Saved. ${symptomName} is recorded as grade ${gradeNo}.`
+      );
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not save the finding',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
+        confirmButtonColor: '#000000',
+      });
+    } finally {
+      setCaseDetailsSaving(false);
+    }
+  };
+
+  const handleOpenVisitHistory = async () => {
+    if (!patientId) {
+      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient to see past visits.', confirmButtonColor: '#000000' });
+      return;
+    }
+    setHistoryModalOpen(true);
+    setHistoryRx(null);
+    setHistoryRxAppointmentId(null);
+    setHistoryLoading(true);
+    try {
+      const response = await getAppointmentListByPatientId({ patientId, pageNumber: 1, pageSize: 50 });
+      const rows = extractApiList(response);
+      const sorted = [...rows].sort((a, b) => {
+        const da = new Date(a.appointmentDate ?? a.AppointmentDate ?? 0).getTime();
+        const db = new Date(b.appointmentDate ?? b.AppointmentDate ?? 0).getTime();
+        return db - da;
+      });
+      setHistoryVisits(sorted.filter((appointment) => getAppointmentIdFromRow(appointment) && isVisitOnOrBeforeToday(appointment)));
+    } catch (err) {
+      setHistoryVisits([]);
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not load visits',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
+        confirmButtonColor: '#000000',
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openPastPrescription = async (appointment) => {
+    const appointmentId = getAppointmentIdFromRow(appointment);
+    if (!appointmentId) return;
+    setHistoryRxAppointmentId(appointmentId);
+    setHistoryRxLoading(true);
+    setHistoryRx({ title: formatAppointmentAccordionTitle(appointment), symptoms: [], medicines: [] });
+    try {
+      const rx = await getPrescriptionDetailsByAppointmentId({ appointmentId });
+      const details = extractPrescriptionResultObject(rx);
+      const remedies = details.remedyDetails ?? details.RemedyDetails ?? [];
+      const rubrics = details.rubricDetails ?? details.RubricDetails ?? [];
+      setHistoryRx({
+        title: formatAppointmentAccordionTitle(appointment),
+        symptoms: rubrics.map((item) => item.rubricName ?? item.RubricName ?? item.name ?? '').map((name) => String(name).trim()).filter(Boolean),
+        medicines: remedies.map((item) => item.remedyName ?? item.RemedyName ?? item.name ?? '').map((name) => String(name).trim()).filter(Boolean),
+      });
+    } catch (err) {
+      setHistoryRx(null);
+      setHistoryRxAppointmentId(null);
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not open this visit',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
+        confirmButtonColor: '#000000',
+      });
+    } finally {
+      setHistoryRxLoading(false);
+    }
+  };
+
+  const complaintNameOf = (item) => String(
+    item.chiefComplaintName ?? item.ChiefComplaintName ?? item.complaintName ?? item.ComplaintName ?? item.name ?? ''
+  ).trim();
+
+  const openComplaints = async () => {
+    if (!patientId) {
+      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient before recording complaints.', confirmButtonColor: '#000000' });
+      return;
+    }
+    setComplaintsModalOpen(true);
+    setComplaintsNotice('');
+    setComplaintDraft('');
+    setComplaintsLoading(true);
+    try {
+      const rows = await getPatientComplaints(patientId);
+      setComplaintRows(extractApiList(rows));
+    } catch (err) {
+      setComplaintRows([]);
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not load complaints',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
+        confirmButtonColor: '#000000',
+      });
+    } finally {
+      setComplaintsLoading(false);
+    }
+  };
+
+  const saveComplaint = async () => {
+    const next = complaintDraft.trim();
+    if (!next) {
+      setComplaintsNotice('Type the complaint, then save.');
+      return;
+    }
+    const already = complaintRows.some((item) => complaintNameOf(item).toLowerCase() === next.toLowerCase());
+    if (already) {
+      setComplaintsNotice('This complaint is already on the list.');
+      return;
+    }
+    setComplaintsSaving(true);
+    setComplaintsNotice('');
+    try {
+      await savePatientComplaints({
+        PatientID: Number(patientId),
+        CaseId: caseId ? Number(caseId) : undefined,
+        ChiefComplaintIds: next,
+      });
+      const rows = await getPatientComplaints(patientId);
+      setComplaintRows(extractApiList(rows));
+      setComplaintDraft('');
+      setComplaintsNotice(`Saved. ${next} is on this patient's complaints.`);
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Could not save the complaint',
+        text: typeof err === 'string' ? err : err?.message || 'Please try again.',
+        confirmButtonColor: '#000000',
+      });
+    } finally {
+      setComplaintsSaving(false);
+    }
+  };
+
   return (
     <div className="container-fluid patient-board-page">
       <style>{headerStyles}</style>
 
       <div className="pb-header position-relative">
         <div className="d-flex align-items-center pb-actions">
-          <div className="pb-search d-none d-md-block">
-            <div className="search-box">
-              <Input bsSize="sm" placeholder="Global Search..." />
+          <div className="pb-search">
+            <div className={`search-box${globalSubSectionSearch.trim() ? ' pb-repertory-search--active' : ''}`}>
+              <Input
+                bsSize="sm"
+                placeholder="Global Search..."
+                autoComplete="off"
+                value={globalSubSectionSearch}
+                aria-label="Global search subsections and rubrics"
+                onChange={(e) => {
+                  if (activeTab !== 'Repertory') {
+                    setActiveTab('Repertory');
+                  }
+                  handleRepertoryGlobalSearchChange(e.target.value);
+                }}
+                onFocus={() => {
+                  if (activeTab !== 'Repertory') {
+                    setActiveTab('Repertory');
+                  }
+                }}
+              />
+              <i className={`ri-${globalSubSectionSearchLoading ? 'loader-4-line' : 'search-line'} search-icon`} aria-hidden="true" />
             </div>
           </div>
           <Link to={getHomeDashboardPath()} className="btn btn-link text-decoration-none ms-2"><i className="ri-dashboard-2-line me-1" />Dashboard</Link>
@@ -12384,8 +12846,10 @@ const PatientBoard = () => {
               </div>
               <div className="pb-info__actions">
                 <Button size="sm" color="success" className="btn btn-soft-success btn-icon" onClick={() => {
+                  const number = patientDialNumber(patientDetails?.mobileNo);
                   Swal.fire({
-                    title: 'Are you sure want to connect with whatsapp chat?',
+                    title: `WhatsApp ${number}`,
+                    text: 'Are you sure want to connect with whatsapp chat?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#0ab39c',
@@ -12396,18 +12860,14 @@ const PatientBoard = () => {
                     hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                   }).then((result) => {
                     if (result.isConfirmed) {
-                      Swal.fire({
-                        title: 'Processing wait..',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                      });
-                      setTimeout(() => { Swal.close(); }, 1200);
+                      window.open(patientWhatsAppHref(patientDetails?.mobileNo), '_blank', 'noopener,noreferrer');
                     }
                   });
                 }}><i className="ri-chat-1-line" /></Button>
                 <Button size="sm" color="danger" className="btn btn-soft-danger btn-icon" onClick={() => {
+                  const number = patientDialNumber(patientDetails?.mobileNo);
                   Swal.fire({
-                    title: '+91 - 987 654 XXXX',
+                    title: number,
                     text: 'Are you sure to call person directly?',
                     icon: 'warning',
                     showCancelButton: true,
@@ -12419,18 +12879,15 @@ const PatientBoard = () => {
                     hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                   }).then((result) => {
                     if (result.isConfirmed) {
-                      Swal.fire({
-                        title: 'Processing wait..',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                      });
-                      setTimeout(() => { Swal.close(); }, 1200);
+                      window.location.href = patientCallHref(patientDetails?.mobileNo);
                     }
                   });
                 }}><i className="ri-phone-fill" /></Button>
                 <Button size="sm" color="info" className="btn btn-soft-info btn-icon" onClick={() => {
+                  const number = patientDialNumber(patientDetails?.mobileNo);
                   Swal.fire({
-                    title: 'Are you sure want to connect with whatsapp video call?',
+                    title: `WhatsApp video ${number}`,
+                    text: 'Are you sure want to connect with whatsapp video call?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#299cdb',
@@ -12441,29 +12898,32 @@ const PatientBoard = () => {
                     hideClass: { popup: 'animate__animated animate__fadeOutUp' }
                   }).then((result) => {
                     if (result.isConfirmed) {
-                      Swal.fire({
-                        title: 'Processing wait..',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                      });
-                      setTimeout(() => { Swal.close(); }, 1200);
+                      window.open(patientWhatsAppHref(patientDetails?.mobileNo), '_blank', 'noopener,noreferrer');
                     }
                   });
                 }}><i className="ri-vidicon-2-fill" /></Button>
               </div>
             </div>
             <div className="pb-info__aside">
-              {formattedAppointmentDate ? (
-                <div className="pb-appointment-date">
-                  <i className="ri-calendar-event-line" aria-hidden="true" />
-                  {formattedAppointmentDate}
-                </div>
-              ) : null}
-              <div className="pb-info__status">
-                <span className="pb-info__chip">
-                  <i className="ri-calendar-check-line" aria-hidden="true" />
-                  No Upcoming Appointment
+              <div className={`pb-appointment-date${formattedAppointmentDate ? '' : ' pb-appointment-date--placeholder'}`}>
+                <i className="ri-calendar-event-line" aria-hidden="true" />
+                Appointment: {formattedAppointmentDate || '—'}
+              </div>
+              <div className="pb-appointment-meta text-muted small d-flex flex-wrap gap-2 mb-1">
+                <span className={`pb-info__chip${headerVisitType === '—' ? ' pb-info__chip--placeholder' : ''}`}>
+                  Visit: {headerVisitType}
                 </span>
+                <span className={`pb-info__chip${headerConsultMode === '—' ? ' pb-info__chip--placeholder' : ''}`}>
+                  Consult: {headerConsultMode}
+                </span>
+              </div>
+              <div className="pb-info__status">
+                {!formattedAppointmentDate ? (
+                  <span className="pb-info__chip">
+                    <i className="ri-calendar-check-line" aria-hidden="true" />
+                    No Upcoming Appointment
+                  </span>
+                ) : null}
                 <span className="pb-info__chip pb-info__chip--due">
                   <i className="ri-wallet-3-line" aria-hidden="true" />
                   Due Amount : ₹ 0.00
@@ -12553,6 +13013,21 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
+              <Button type="button" className="btn btn-sm me-1" onClick={openComplaints} title="Chief complaints for this patient">
+                Complaints
+              </Button>
+              <Button type="button" className="btn btn-sm me-1" onClick={openCaseDetails} title="Symptoms and grades for this case">
+                Case details
+              </Button>
+              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} title="Past visits and prescriptions">
+                History
+              </Button>
+              <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasePdf} title="Export case PDF">
+                Export PDF
+              </Button>
+              <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasesExcel} title="Export this doctor cases to Excel">
+                Export Excel
+              </Button>
               {activeTab === 'Repertorize' && (
                 <Button
                   type="button"
@@ -13818,6 +14293,9 @@ const PatientBoard = () => {
                           </span>
                           Repertorization
                           <span className="pb-repertorize-count-pill">{repertorizationRubrics.length}</span>
+                          <Button type="button" className="btn btn-sm ms-2" onClick={handleRunCenterOfGravity}>
+                            Center of gravity
+                          </Button>
                         </div>
                         {/* Ascending / descending sort icons — hidden per request
                         <div className="d-flex gap-1">
@@ -14981,6 +15459,254 @@ const PatientBoard = () => {
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">
           <ModalActionButton action="cancel" onClick={() => setQuestionRubricModalOpen(false)} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={historyModalOpen} toggle={() => setHistoryModalOpen(false)} centered size="lg" scrollable>
+        <ModalHeader toggle={() => setHistoryModalOpen(false)}>Visit history</ModalHeader>
+        <ModalBody>
+          {historyLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Loading visits…</div>
+          ) : historyVisits.length === 0 ? (
+            <p className="text-muted mb-0">No visits found for this patient.</p>
+          ) : (
+            <ul className="list-group mb-0">
+              {historyVisits.map((appointment) => {
+                const id = getAppointmentIdFromRow(appointment);
+                const open = String(historyRxAppointmentId) === String(id);
+                return (
+                  <li
+                    key={id}
+                    ref={open ? historyRxRowRef : null}
+                    className="list-group-item py-2"
+                  >
+                    <div className="d-flex justify-content-between align-items-center gap-2">
+                      <span>{formatAppointmentAccordionTitle(appointment)}</span>
+                      <button type="button" className="btn btn-sm btn-soft-primary" onClick={() => openPastPrescription(appointment)}>
+                        View prescription
+                      </button>
+                    </div>
+                    {open && historyRxLoading ? (
+                      <div className="mt-2 pt-2 border-top text-muted">
+                        <Spinner size="sm" /> Loading prescription…
+                      </div>
+                    ) : null}
+                    {open && historyRx && !historyRxLoading ? (
+                      <div className="mt-2 pt-2 border-top">
+                        {historyRx.symptoms.length === 0 && historyRx.medicines.length === 0 ? (
+                          <p className="text-muted mb-0">No prescription was saved for this visit.</p>
+                        ) : (
+                          <>
+                            {historyRx.symptoms.length > 0 ? (
+                              <>
+                                <p className="mb-1 fw-semibold">Symptoms</p>
+                                <ul className="mb-2">{historyRx.symptoms.map((name) => <li key={name}>{name}</li>)}</ul>
+                              </>
+                            ) : null}
+                            {historyRx.medicines.length > 0 ? (
+                              <>
+                                <p className="mb-1 fw-semibold">Medicines</p>
+                                <ul className="mb-0">{historyRx.medicines.map((name) => <li key={name}>{name}</li>)}</ul>
+                              </>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="close" onClick={() => setHistoryModalOpen(false)} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={cogModalOpen} toggle={() => setCogModalOpen(false)} centered scrollable>
+        <ModalHeader toggle={() => setCogModalOpen(false)}>Center of gravity</ModalHeader>
+        <ModalBody>
+          {cogLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Comparing remedies…</div>
+          ) : cogRows.length === 0 ? (
+            <p className="text-muted mb-0">{cogNotice || 'No remedies matched these symptoms.'}</p>
+          ) : (
+            <ul className="list-group">
+              {cogRows.map((row) => (
+                <li key={row.name} className="list-group-item py-2 d-flex justify-content-between">
+                  <span>{row.name}</span>
+                  <span className="text-muted">{row.score}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="close" onClick={() => setCogModalOpen(false)} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={complaintsModalOpen} toggle={() => setComplaintsModalOpen(false)} centered scrollable>
+        <ModalHeader toggle={() => setComplaintsModalOpen(false)}>Chief complaints</ModalHeader>
+        <ModalBody>
+          {complaintsLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Loading complaints…</div>
+          ) : complaintRows.length === 0 ? (
+            <p className="text-muted mb-3">No complaints recorded for this patient yet.</p>
+          ) : (
+            <ul className="list-group mb-3">
+              {complaintRows.filter((item) => complaintNameOf(item)).map((item) => {
+                const name = complaintNameOf(item);
+                const key = item.caseChiefComplaintId ?? item.CaseChiefComplaintId ?? name;
+                return <li key={key} className="list-group-item py-2">{name}</li>;
+              })}
+            </ul>
+          )}
+          <Label for="pb-complaint-draft">Add a complaint</Label>
+          <Input
+            id="pb-complaint-draft"
+            value={complaintDraft}
+            placeholder="For example, headache since two weeks"
+            onChange={(e) => setComplaintDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                saveComplaint();
+              }
+            }}
+          />
+          {complaintsNotice ? (
+            <div
+              className={`alert ${complaintsNotice.startsWith('Saved.') ? 'alert-success' : 'alert-warning'} py-2 mt-3 mb-0`}
+              role="status"
+            >
+              {complaintsNotice}
+            </div>
+          ) : null}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="cancel" onClick={() => setComplaintsModalOpen(false)} />
+          <ModalActionButton action="save" loading={complaintsSaving} onClick={saveComplaint} />
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={caseDetailsModalOpen} toggle={() => setCaseDetailsModalOpen(false)} centered size="lg" scrollable>
+        <ModalHeader toggle={() => setCaseDetailsModalOpen(false)}>Case findings</ModalHeader>
+        <ModalBody>
+          {caseDetailsLoading ? (
+            <div className="text-center py-3"><Spinner size="sm" /> Loading findings…</div>
+          ) : caseDetailRows.length === 0 ? (
+            <p className="text-muted mb-3">No findings recorded for this case yet.</p>
+          ) : (
+            <ul className="list-group mb-3">
+              {caseDetailRows.map((row) => (
+                <li key={row.caseDetailId || `${row.subsectionId}-${row.intensityId}`} className="list-group-item py-2 d-flex justify-content-between align-items-center">
+                  <span>{row.symptom || 'Symptom'}</span>
+                  <span className="badge bg-light text-dark border">Grade {row.grade ?? '—'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Label for="pb-case-symptom">Symptom</Label>
+          <Input
+            id="pb-case-symptom"
+            value={selectedCaseSymptom ? (selectedCaseSymptom.subSectionName || selectedCaseSymptom.SubSectionName || '') : caseSymptomQuery}
+            placeholder="Search a symptom"
+            onChange={(e) => {
+              setSelectedCaseSymptom(null);
+              setCaseSymptomQuery(e.target.value);
+              setCaseDetailsNotice('');
+            }}
+          />
+          {selectedCaseSymptom ? (
+            <button type="button" className="btn btn-link btn-sm px-0" onClick={() => { setSelectedCaseSymptom(null); setCaseSymptomQuery(''); }}>
+              Choose a different symptom
+            </button>
+          ) : null}
+          {!selectedCaseSymptom && caseSymptomSearching ? <p className="small text-muted mt-2 mb-0">Searching…</p> : null}
+          {!selectedCaseSymptom && caseSymptomHits.length > 0 ? (
+            <div className="list-group mt-2">
+              {caseSymptomHits.map((hit) => {
+                const id = hit.subSectionId ?? hit.SubSectionId;
+                const name = hit.subSectionName ?? hit.SubSectionName ?? '';
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className="list-group-item list-group-item-action py-2"
+                    onClick={() => {
+                      setSelectedCaseSymptom(hit);
+                      setCaseSymptomHits([]);
+                      setCaseSymptomQuery('');
+                    }}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          <Label className="mt-3 d-block">Grade</Label>
+          <div className="pb-finding-grades" role="group" aria-label="Grade">
+            {(() => {
+              const grades = [...(intensitiesForPatientList || [])].sort(
+                (a, b) => (b.intensityNo ?? b.IntensityNo ?? 0) - (a.intensityNo ?? a.IntensityNo ?? 0)
+              );
+              const numberCount = grades.reduce((counts, item) => {
+                const number = item.intensityNo ?? item.IntensityNo;
+                counts[number] = (counts[number] || 0) + 1;
+                return counts;
+              }, {});
+              return grades.map((intensity) => {
+                const selected = Number(selectedCaseIntensityId) === Number(intensity.intensityId);
+                const number = intensity.intensityNo ?? intensity.IntensityNo;
+                const note = intensity.description || intensity.Description || '';
+                const sharedNumber = numberCount[number] > 1;
+                return (
+                  <button
+                    key={intensity.intensityId}
+                    type="button"
+                    aria-pressed={selected}
+                    className={`pb-finding-grade${selected ? ' is-selected' : ''}`}
+                    onClick={() => {
+                      setSelectedCaseIntensityId(intensity.intensityId);
+                      setCaseDetailsNotice('');
+                    }}
+                    title={note || `Grade ${number}`}
+                  >
+                    <span className="pb-finding-grade__num">{number}</span>
+                    {sharedNumber && note ? <span className="pb-finding-grade__note">{note}</span> : null}
+                  </button>
+                );
+              });
+            })()}
+          </div>
+          <p className="mt-2 mb-0 fw-semibold">
+            {(() => {
+              const chosen = (intensitiesForPatientList || []).find(
+                (item) => Number(item.intensityId) === Number(selectedCaseIntensityId)
+              );
+              const number = chosen?.intensityNo ?? chosen?.IntensityNo;
+              const note = chosen?.description || chosen?.Description || '';
+              if (number == null) return 'Choose a grade.';
+              return note ? `Selected grade: ${number} · ${note}` : `Selected grade: ${number}`;
+            })()}
+          </p>
+          {caseDetailsNotice ? (
+            <div
+              className={`alert ${caseDetailsNotice.startsWith('Saved.') ? 'alert-success' : 'alert-warning'} py-2 mt-3 mb-0`}
+              role="status"
+            >
+              {caseDetailsNotice}
+            </div>
+          ) : null}
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton action="cancel" onClick={() => setCaseDetailsModalOpen(false)} />
+          <ModalActionButton action="save" loading={caseDetailsSaving} onClick={saveCaseFinding}>
+            Save finding
+          </ModalActionButton>
         </ModalFooter>
       </Modal>
 

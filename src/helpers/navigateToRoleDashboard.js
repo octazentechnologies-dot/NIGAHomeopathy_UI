@@ -19,12 +19,22 @@ export const navigateToRoleDashboard = (navigate) => {
                 return;
             }
 
-            if (userRole === UserRole.PHARMACY) {
+            if (userRole === UserRole.PHARMACY || userRole === UserRole.PHARMACY_PARTNER) {
                 navigate('/pharmacydashboard');
                 return;
             }
 
-            if (userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION) {
+            if (userRole === UserRole.PATIENT) {
+                navigate('/family');
+                return;
+            }
+
+            if (userRole === UserRole.RECEPTION) {
+                navigate('/reception');
+                return;
+            }
+
+            if (userRole === UserRole.DOCTOR) {
                 navigate('/doctordashboard');
                 return;
             }

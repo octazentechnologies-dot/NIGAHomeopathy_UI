@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import CountUp from "react-countup";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Alert, Button, Card, CardBody, Col, Container, Input, Modal, ModalBody, ModalHeader, ModalFooter, PopoverBody, PopoverHeader, Row, UncontrolledPopover, UncontrolledTooltip, Pagination, PaginationItem, PaginationLink, Label, Form, FormGroup, UncontrolledAlert } from 'reactstrap';
 import Swal from 'sweetalert2';
@@ -13,6 +13,8 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { ecomWidgets } from "../../../common/data";
 import { useDispatch, useSelector } from 'react-redux';
+import { UserRole, resolveUserRole } from '../../../Components/constants/roles';
+import { openReceptionPatientRow } from '../../Reception/receptionSession';
 import {
     fetchDoctorDashboardCounts,
     patientNewAppointment,
@@ -28,6 +30,7 @@ import {
     saveUpdateSubscription
 } from '../../../slices/doctor/dashboard/thunk';
 import { refreshAuthSubscriptionStatus } from '../../../slices/auth/login/thunk';
+import { readPlanActive } from '../../../helpers/client_error_reporter';
 import img3 from "../../../assets/images/small/img-3.jpg";
 import {
     buildPatientApiPayload,
@@ -58,6 +61,7 @@ import {
     getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentSlots,
     getDailySchedule,
+    updateAvailabilityMe,
 } from '../../../helpers/realbackend_helper';
 import { } from "../../../slices/doctor/dashboard/reducer";
 import {
@@ -167,16 +171,14 @@ const PatientListModalHeaderActions = ({ value, onChange, placeholder, extra }) 
     </div>
 );
 
+/** Local calendar day as YYYY-MM-DDT00:00:00.000Z so IST midnight is not counted as yesterday UTC. */
+const dashboardQueryDateIso = (d = new Date()) =>
+    formatCalendarDateForApi(moment(d).format('YYYY-MM-DD'));
+
 const toAppointmentListDateIso = (displayDateStr) => {
     const parsed = moment(displayDateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
     if (!parsed.isValid()) return '';
-    const now = moment();
-    return parsed
-        .hour(now.hour())
-        .minute(now.minute())
-        .second(now.second())
-        .millisecond(now.millisecond())
-        .toISOString();
+    return formatCalendarDateForApi(parsed.format('YYYY-MM-DD'));
 };
 
 const PatientListTableHead = () => (
@@ -202,18 +204,34 @@ const PatientListTableHead = () => (
     </thead>
 );
 
-const PatientListNameCell = ({ appointment }) => (
-    <div className="d-flex align-items-center patient-list-modal__name">
-        <div className="flex-shrink-0 me-2">
-            <img
-                src={appointment.avatar || img3}
-                alt=""
-                className="avatar-xxs rounded-circle patient-list-modal__avatar"
-            />
+const PatientListNameCell = ({ appointment }) => {
+    const navigate = useNavigate();
+    const isReception = resolveUserRole() === UserRole.RECEPTION;
+    const patientId = appointment.patientID ?? appointment.patientId ?? appointment.PatientId;
+    const name = appointment.patientName || 'N/A';
+    return (
+        <div className="d-flex align-items-center patient-list-modal__name">
+            <div className="flex-shrink-0 me-2">
+                <img
+                    src={appointment.avatar || img3}
+                    alt=""
+                    className="avatar-xxs rounded-circle patient-list-modal__avatar"
+                />
+            </div>
+            {isReception && patientId ? (
+                <button
+                    type="button"
+                    className="btn btn-link p-0 text-start patient-list-modal__name-text"
+                    onClick={() => openReceptionPatientRow(patientId, navigate)}
+                >
+                    {name}
+                </button>
+            ) : (
+                <div className="flex-grow-1 patient-list-modal__name-text">{name}</div>
+            )}
         </div>
-        <div className="flex-grow-1 patient-list-modal__name-text">{appointment.patientName || 'N/A'}</div>
-    </div>
-);
+    );
+};
 
 const PatientListAgeCell = ({ appointment }) => (
     <span className="patient-list-modal__meta">
@@ -261,6 +279,7 @@ const getPatientListStatusBadgeClass = (status) => {
     if (statusMatches(status, 'Walk-in') || statusMatches(status, 'WALK-IN')) return 'bg-info';
     if (statusMatches(status, 'E-Consult') || statusMatches(status, 'E-CONSULT')) return 'bg-purple';
     if (statusMatches(status, 'Remaining') || statusMatches(status, 'REMAINING')) return 'bg-warning';
+    if (statusMatches(status, 'Cancelled') || statusMatches(status, 'CANCELLED')) return 'bg-danger';
     return 'bg-secondary';
 };
 
@@ -819,7 +838,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
         if (userId) {
             dispatch(getPatientList({ userId }));
             dispatch(getAppointmentList({
-                appointmentDate: new Date().toISOString(),
+                appointmentDate: dashboardQueryDateIso(),
                 status: '',
                 userId,
             }));
@@ -880,7 +899,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
     const refreshPatientList = () => {
         const userId = getAuthUserId();
         if (userId) {
-            const now = new Date().toISOString();
+            const now = dashboardQueryDateIso();
             dispatch(getPatientList({ userId }));
             dispatch(fetchDoctorDashboardCounts({
                 appointmentDate: now,
@@ -1354,6 +1373,9 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
                                                     status={appointment.status}
                                                     badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
+                                                {appointment.paymentStatus ? (
+                                                    <span className="badge bg-light text-dark ms-1">{appointment.paymentStatus}</span>
+                                                ) : null}
                                             </td>
                                         </tr>
                                     ))}
@@ -1411,7 +1433,7 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
         if (userId) {
             dispatch(getPatientList({ userId }));
             dispatch(getAppointmentList({
-                appointmentDate: new Date().toISOString(),
+                appointmentDate: dashboardQueryDateIso(),
                 status: '',
                 userId,
             }));
@@ -1864,6 +1886,7 @@ const Widgets = () => {
     const subscriptionSuccess = useSelector((state) => state?.DoctorDashboard?.subscriptionSuccess);
     const subscriptionError = useSelector((state) => state?.DoctorDashboard?.subscriptionError);
     const [selectedPackage, setSelectedPackage] = useState(null);
+    const [availabilityBusy, setAvailabilityBusy] = useState(false);
     const razorpayInstanceRef = useRef(null);
     const selectedPackageRef = useRef(null);
 
@@ -1877,7 +1900,7 @@ const Widgets = () => {
         const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
         const now = new Date();
         dispatch(fetchDoctorDashboardCounts({
-            appointmentDate: now.toISOString(),
+            appointmentDate: dashboardQueryDateIso(now),
             status: "",
             userId: userId
         }));
@@ -1888,7 +1911,7 @@ const Widgets = () => {
             userId: userId
         }));
         dispatch(getAppointmentList({
-            appointmentDate: now.toISOString(),
+            appointmentDate: dashboardQueryDateIso(now),
             status: "",
             userId: userId
         }));
@@ -1906,12 +1929,12 @@ const Widgets = () => {
 
             if (!subscriptionData) return;
 
-            const isPlanActive = subscriptionData.isPlanActive;
-            const islastFiveDays = subscriptionData.islastFiveDays;
-            const daysRemaining = subscriptionData.daysRemaining || 0;
+            const isPlanActive = readPlanActive(subscriptionData);
+            const islastFiveDays = subscriptionData.islastFiveDays === true || subscriptionData.IslastFiveDays === true;
+            const daysRemaining = subscriptionData.daysRemaining || subscriptionData.DaysRemaining || 0;
 
             // If plan is not active, show Purchase Plan list (non-closeable)
-            if (isPlanActive === false) {
+            if (!isPlanActive) {
                 setModalSubscriptionList(true);
                 return;
             }
@@ -1995,6 +2018,11 @@ const Widgets = () => {
     const [modal_completed, setmodal_completed] = useState(false);
     function tog_completed() {
         setmodal_completed(!modal_completed);
+    }
+
+    const [modal_cancelled, setmodal_cancelled] = useState(false);
+    function tog_cancelled() {
+        setmodal_cancelled(!modal_cancelled);
     }
 
     const clearCreateNewButtonFocus = () => {
@@ -2147,6 +2175,32 @@ const Widgets = () => {
         };
     }, []);
 
+    // REC-03.02 — reception Quick actions open New patient / New appointment via ?qa=
+    // sessionStorage survives React Strict Mode remount; clear on a timeout so the
+    // second mount still sees the pending action.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const qaFromUrl = (params.get("qa") || "").trim().toLowerCase();
+        if (qaFromUrl === "newpatient" || qaFromUrl === "newappointment") {
+            sessionStorage.setItem("hc_rec_qa", qaFromUrl);
+            params.delete("qa");
+            const next = params.toString();
+            const path = `${window.location.pathname}${next ? `?${next}` : ""}${window.location.hash || ""}`;
+            window.history.replaceState({}, "", path);
+        }
+        const pending = sessionStorage.getItem("hc_rec_qa");
+        if (pending === "newpatient") {
+            setModalNewPatient(true);
+        } else if (pending === "newappointment") {
+            setPrefilledAppointmentPatient(null);
+            setModalNewAppointment(true);
+        } else {
+            return undefined;
+        }
+        const clearTimer = window.setTimeout(() => sessionStorage.removeItem("hc_rec_qa"), 0);
+        return () => window.clearTimeout(clearTimer);
+    }, []);
+
     useEffect(() => {
         const onOpenBillingList = () => {
             setModalBillingList(true);
@@ -2254,6 +2308,7 @@ const Widgets = () => {
         patient: prefilledAppointmentPatient,
         doctor: null,
         appointmentDate: prefilledAppointmentPatient ? moment().format(DOB_DISPLAY_FORMAT) : '',
+        consultMode: 'InClinic',
     }), [prefilledAppointmentPatient]);
 
     const patientInitialValues = {
@@ -2303,6 +2358,8 @@ const Widgets = () => {
             status: "WAITING",
             deleteStatus: false,
             userId: userId,
+            visitType: values.consultMode || 'InClinic',
+            consultMode: values.consultMode || 'InClinic',
         };
 
         console.log("Appointment data: ", appointmentData);
@@ -2313,7 +2370,7 @@ const Widgets = () => {
             await dispatch(patientNewAppointment(appointmentData));
             resetForm();
 
-            const now = new Date().toISOString();
+            const now = dashboardQueryDateIso();
             dispatch(getAppointmentList({
                 appointmentDate: now,
                 status: "",
@@ -2372,13 +2429,16 @@ const Widgets = () => {
         console.log("handlePatientSubmit called with values:", values);
         const auth = JSON.parse(sessionStorage.getItem('authUser'));
         const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
-        const loggedInUser = auth?.userId || auth?.user?.userId || auth?.user?.id;
+        const clinicDoctorId = auth?.doctorId || auth?.DoctorId || 0;
+        const doctorUserId = auth?.doctorUserId || auth?.DoctorUserId || userId;
+        const loggedInUser = doctorUserId;
 
         const formattedDateOfBirth = formatDateOfBirthForApi(values.dateOfBirth) || values.dateOfBirth;
         const now = new Date();
         const isWhatsAppOptIn = Boolean(values.isWhatsAppOptIn);
         const patientData = {
-            loggedInUser: parseInt(loggedInUser),
+            loggedInUser: parseInt(loggedInUser, 10) || 0,
+            doctorID: parseInt(clinicDoctorId, 10) || 0,
             patientID: 0,
             patientName: `${values.firstName} ${values.lastName}`.trim(),
             address: values.address,
@@ -2407,7 +2467,7 @@ const Widgets = () => {
 
             const updatedPatientList = await dispatch(getPatientList({ userId }));
             dispatch(fetchDoctorDashboardCounts({
-                appointmentDate: now.toISOString(),
+                appointmentDate: dashboardQueryDateIso(),
                 status: "",
                 userId: userId
             }));
@@ -2568,7 +2628,7 @@ const Widgets = () => {
             const auth = JSON.parse(sessionStorage.getItem('authUser'));
             // Handle both response.data structure and direct data structure
             const subscriptionData = auth?.data || auth;
-            return subscriptionData?.isPlanActive === false;
+            return !readPlanActive(subscriptionData);
         } catch {
             return false;
         }
@@ -2697,6 +2757,31 @@ const Widgets = () => {
     const completedPageItems = completedFiltered.slice(completedStartIndex, completedStartIndex + completedPageSize);
 
     const todayAppointmentCount = Array.isArray(appointmentList) ? appointmentList.length : 0;
+    const cancelledCount = appointmentList.filter((apt) =>
+        statusMatches(apt.status, 'Cancelled') || statusMatches(apt.status, 'CANCELLED')
+    ).length;
+
+    const [cancelledSearch, setCancelledSearch] = useState("");
+    const [cancelledPage, setCancelledPage] = useState(1);
+    const cancelledPageSize = 10;
+    const cancelledFiltered = appointmentList.filter((appointment) => {
+        if (!statusMatches(appointment.status, 'Cancelled') && !statusMatches(appointment.status, 'CANCELLED')) {
+            return false;
+        }
+        const needle = cancelledSearch.trim().toLowerCase();
+        if (!needle) return true;
+        const ageSex = getAgeSexDisplay(appointment.dateOfBirth, appointment.gender);
+        return (
+            (appointment.patientName || '').toLowerCase().includes(needle) ||
+            (appointment.address || appointment.place || '').toLowerCase().includes(needle) ||
+            ageSex.toLowerCase().includes(needle) ||
+            (appointment.mobileNo || '').toString().includes(needle)
+        );
+    });
+    const cancelledTotalPages = Math.max(1, Math.ceil(cancelledFiltered.length / cancelledPageSize));
+    const cancelledSafePage = Math.min(cancelledPage, cancelledTotalPages);
+    const cancelledStartIndex = (cancelledSafePage - 1) * cancelledPageSize;
+    const cancelledPageItems = cancelledFiltered.slice(cancelledStartIndex, cancelledStartIndex + cancelledPageSize);
 
     return (
 
@@ -2788,6 +2873,104 @@ const Widgets = () => {
                             <div className="flex-grow-1">
                                 <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppComplated ?? 0}</h5>
                                 <p className="mb-0 text-muted doctor-kpi-label">COMPLETED</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_cancelled()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_cancelled(); } }}>
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-danger-subtle border-danger border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-close-circle-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{cancelledCount}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">CANCELLED</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="row mb-2 doctor-dashboard-chrome-row">
+                <div
+                    className="col-6 col-md-4 col-lg-2"
+                    role="button"
+                    tabIndex={0}
+                    title="Click to toggle online / offline"
+                    onClick={async (event) => {
+                        event.preventDefault();
+                        if (availabilityBusy) return;
+                        const currentlyOnline = !!(counts?.isOnline || counts?.IsOnline);
+                        try {
+                            setAvailabilityBusy(true);
+                            await updateAvailabilityMe({ isOnline: !currentlyOnline });
+                            const auth = JSON.parse(sessionStorage.getItem('authUser'));
+                            const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
+                            dispatch(fetchDoctorDashboardCounts({
+                                appointmentDate: dashboardQueryDateIso(),
+                                status: "",
+                                userId,
+                            }));
+                        } catch (err) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Availability update failed',
+                                text: typeof err === 'string' ? err : err?.message || 'Could not toggle online status',
+                            });
+                        } finally {
+                            setAvailabilityBusy(false);
+                        }
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.currentTarget.click();
+                        }
+                    }}
+                >
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className={`avatar-title border rounded-2 fs-17 doctor-kpi-icon ${counts?.isOnline || counts?.IsOnline ? 'bg-success-subtle border-success' : 'bg-secondary-subtle border-secondary'}`}>
+                                    <i className="ri-wifi-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{availabilityBusy ? 'Saving…' : ((counts?.isOnline || counts?.IsOnline) ? 'Online' : 'Offline')}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">AVAILABILITY</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-6 col-md-4 col-lg-2">
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-vidicon-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">TELE QUEUE</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-6 col-md-4 col-lg-2">
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-warning-subtle border-warning border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-wallet-3-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.unpaidCount ?? counts?.UnpaidCount ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">UNPAID</p>
                             </div>
                         </div>
                     </div>
@@ -3193,8 +3376,8 @@ const Widgets = () => {
                                             hasError={Boolean(errors.dateOfBirth && touched.dateOfBirth)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('dateOfBirth', dateStr, false);
                                                 setFieldTouched('dateOfBirth', true, false);
+                                                setFieldValue('dateOfBirth', dateStr, true);
                                             }}
                                             onBlur={() => setFieldTouched('dateOfBirth', true, true)}
                                         />
@@ -3490,8 +3673,8 @@ const Widgets = () => {
                                             hasError={Boolean(errors.appointmentDate && touched.appointmentDate)}
                                             placeholder={DOB_DISPLAY_FORMAT}
                                             onChange={(dateStr) => {
-                                                setFieldValue('appointmentDate', dateStr, false);
                                                 setFieldTouched('appointmentDate', true, false);
+                                                setFieldValue('appointmentDate', dateStr, true);
                                                 const parsed = moment(dateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
                                                 if (parsed.isValid()) {
                                                     loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
@@ -3504,6 +3687,21 @@ const Widgets = () => {
                                                 {errors.appointmentDate}
                                             </div>
                                         )}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <Label className="form-label new-appointment-modal__label">
+                                            <i className="ri-stethoscope-line" aria-hidden="true" />
+                                            Consult mode
+                                        </Label>
+                                        <Input
+                                            type="select"
+                                            className="new-appointment-modal__field"
+                                            value={values.consultMode || 'InClinic'}
+                                            onChange={(event) => setFieldValue('consultMode', event.target.value)}
+                                        >
+                                            <option value="InClinic">In-clinic</option>
+                                            <option value="Tele">Tele</option>
+                                        </Input>
                                     </div>
                                     <div className="col-md-6">
                                         <Label className="form-label new-appointment-modal__label">
@@ -3931,6 +4129,93 @@ const Widgets = () => {
                                 <CompactModalPaginationPages currentPage={completedSafePage} totalPages={completedTotalPages} onPageChange={setCompletedPage} />
                                 <PaginationItem disabled={completedSafePage === completedTotalPages}>
                                     <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCompletedPage(Math.min(completedTotalPages, completedSafePage + 1)); }} />
+                                </PaginationItem>
+                            </Pagination>
+                        )}
+                    </div>
+                </ModalBody>
+            </Modal>
+
+            <Modal size="xl" id="cancelledPatientsModal" isOpen={modal_cancelled} toggle={() => { tog_cancelled(); }} className="patient-list-modal">
+                <ModalHeader id="cancelledPatientsModalLabel" className="patient-list-modal__header" toggle={() => { tog_cancelled(); }}>
+                    <PatientListModalTitle
+                        icon="ri-close-circle-line"
+                        title="Cancelled Patients"
+                        variant="simple"
+                        iconColor="#f06548"
+                    />
+                    <PatientListModalHeaderActions
+                        value={cancelledSearch}
+                        onChange={(e) => { setCancelledSearch(e.target.value); setCancelledPage(1); }}
+                    />
+                </ModalHeader>
+                <ModalBody>
+                    <div className="table-responsive patient-list-modal__table-wrap">
+                        <table className="table mb-0 align-middle patient-list-modal__table">
+                            <PatientListTableHead />
+                            <tbody>
+                                {appointmentListLoading ? (
+                                    <tr>
+                                        <td colSpan={6} className='text-center text-muted'>
+                                            <div className="d-flex justify-content-center align-items-center">
+                                                <div className="spinner-border spinner-border-sm me-2" role="status">
+                                                    <span className="visually-hidden">Loading...</span>
+                                                </div>
+                                                Loading cancelled patients...
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    cancelledPageItems.map((appointment, index) => (
+                                        <tr key={appointment.id || index}>
+                                            <td className='text-center patient-list-modal__index'>{cancelledStartIndex + index + 1}</td>
+                                            <td>
+                                                <PatientListNameCell appointment={appointment} />
+                                            </td>
+                                            <td>
+                                                <PatientListAgeCell appointment={appointment} />
+                                            </td>
+                                            <td>
+                                                <PatientListPlaceCell appointment={appointment} />
+                                            </td>
+                                            <td>
+                                                <PatientListTimeCell appointment={appointment} />
+                                            </td>
+                                            <td>
+                                                <PatientListStatusBadge
+                                                    status={appointment.status}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                                {cancelledPageItems.length === 0 && !appointmentListLoading && (
+                                    <tr>
+                                        <PatientListEmptyCell
+                                            message={cancelledSearch ? 'No cancelled patients found matching your search' : 'No cancelled patients available'}
+                                        />
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
+                        <div className="text-muted patient-list-modal__footer-text">
+                            {appointmentListLoading ? (
+                                'Loading...'
+                            ) : (
+                                `Showing ${cancelledPageItems.length} of ${cancelledFiltered.length} Cancelled Patients`
+                            )}
+                        </div>
+                        {!appointmentListLoading && cancelledTotalPages > 1 && (
+                            <Pagination className="pagination-separated mb-0 doctor-dashboard-pagination">
+                                <PaginationItem disabled={cancelledSafePage === 1}>
+                                    <PaginationLink href="#" previous onClick={(e) => { e.preventDefault(); setCancelledPage(Math.max(1, cancelledSafePage - 1)); }} />
+                                </PaginationItem>
+                                <CompactModalPaginationPages currentPage={cancelledSafePage} totalPages={cancelledTotalPages} onPageChange={setCancelledPage} />
+                                <PaginationItem disabled={cancelledSafePage === cancelledTotalPages}>
+                                    <PaginationLink href="#" next onClick={(e) => { e.preventDefault(); setCancelledPage(Math.min(cancelledTotalPages, cancelledSafePage + 1)); }} />
                                 </PaginationItem>
                             </Pagination>
                         )}

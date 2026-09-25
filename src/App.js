@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 //import Scss
 import './assets/scss/themes.scss';
@@ -9,33 +9,33 @@ installDocumentTitleBrand();
 //imoprt Route
 import Route from './Routes';
 import { ensureMultiSelectGrowStyles } from './helpers/neutralSelectStyles';
+import { bootToLoginIfSignedOut, mustLeaveClinic } from './helpers/signedOutHistory';
 
 ensureMultiSelectGrowStyles();
 
-// Import Firebase Configuration file
-// import { initFirebaseBackend } from "./helpers/firebase_helper";
-
-// Fake Backend 
-import fakeBackend from "./helpers/AuthType/fakeBackend";
-
-// Activating fake backend
-fakeBackend();
-
-// const firebaseConfig = {
-//   apiKey: process.env.REACT_APP_APIKEY,
-//   authDomain: process.env.REACT_APP_AUTHDOMAIN,
-//   databaseURL: process.env.REACT_APP_DATABASEURL,
-//   projectId: process.env.REACT_APP_PROJECTID,
-//   storageBucket: process.env.REACT_APP_STORAGEBUCKET,
-//   messagingSenderId: process.env.REACT_APP_MESSAGINGSENDERID,
-//   appId: process.env.REACT_APP_APPID,
-//   measurementId: process.env.REACT_APP_MEASUREMENTID,
-// };
-
-// // init firebase backend
-// initFirebaseBackend(firebaseConfig);
-
 function App() {
+  useEffect(() => {
+    const bounceIfLoggedOut = () => {
+      bootToLoginIfSignedOut();
+    };
+    const blankClinicOnLeave = () => {
+      if (!mustLeaveClinic()) return;
+      try {
+        document.documentElement.style.visibility = "hidden";
+        if (document.body) document.body.textContent = "";
+      } catch (e) { /* document is unloading */ }
+    };
+    bootToLoginIfSignedOut();
+    window.addEventListener('pageshow', bounceIfLoggedOut);
+    window.addEventListener('popstate', bounceIfLoggedOut);
+    window.addEventListener('pagehide', blankClinicOnLeave);
+    return () => {
+      window.removeEventListener('pageshow', bounceIfLoggedOut);
+      window.removeEventListener('popstate', bounceIfLoggedOut);
+      window.removeEventListener('pagehide', blankClinicOnLeave);
+    };
+  }, []);
+
   return (
     <React.Fragment>
       <Route />

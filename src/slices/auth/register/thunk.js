@@ -1,4 +1,7 @@
-import { registerDoctor as registerDoctorApi } from "../../../helpers/realbackend_helper";
+import {
+  registerDoctor as registerDoctorApi,
+  registerDoctorWithDocuments,
+} from "../../../helpers/realbackend_helper";
 import {
   registerUserSuccessful,
   registerUserFailed,
@@ -10,14 +13,26 @@ import {
 export const registerUser = (user) => async (dispatch) => {
   try {
     dispatch(registerUserLoading());
-    const response = await registerDoctorApi(user);
+    const response =
+      typeof FormData !== "undefined" && user instanceof FormData
+        ? await registerDoctorWithDocuments(user)
+        : await registerDoctorApi(user);
 
     if (response?.success === true || (typeof response === "string" && response.toLowerCase().includes("success"))) {
-      dispatch(registerUserSuccessful({
-        message: response?.message || response || "Registration successful",
-        userName: user.userName,
-        emailId: user.emailId,
-      }));
+    const userName =
+      typeof FormData !== "undefined" && user instanceof FormData
+        ? user.get("userName")
+        : user.userName;
+    const emailId =
+      typeof FormData !== "undefined" && user instanceof FormData
+        ? user.get("emailId")
+        : user.emailId;
+
+    dispatch(registerUserSuccessful({
+      message: response?.message || response || "Registration successful",
+      userName,
+      emailId,
+    }));
       return;
     }
 

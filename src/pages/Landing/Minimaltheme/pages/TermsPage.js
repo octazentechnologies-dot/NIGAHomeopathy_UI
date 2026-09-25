@@ -5,14 +5,20 @@ import { Col, Container, Row } from "reactstrap";
 import { landingPath } from "../../../../constants/landingRoutes";
 import { SITE } from "../constants/siteContent";
 import { TERMS_HERO, TERMS_INTRO, TERMS_SECTIONS } from "../constants/termsContent";
+import { getPublicPolicy } from "../../../../helpers/publicBookingApi";
 
 const TermsPage = () => {
     const [activeId, setActiveId] = useState(TERMS_SECTIONS[0].id);
     const [openId, setOpenId] = useState(TERMS_SECTIONS[0].id);
 
+    const [policyMeta, setPolicyMeta] = useState(null);
+
     useEffect(() => {
         document.title = `${SITE.name} | Terms & Conditions`;
         window.scrollTo(0, 0);
+        getPublicPolicy("Terms")
+            .then((row) => setPolicyMeta(row))
+            .catch(() => setPolicyMeta(null));
     }, []);
 
     const handleNavClick = (id) => {
@@ -45,6 +51,12 @@ const TermsPage = () => {
                             <p className="homeojob-privacy__eyebrow">{TERMS_HERO.eyebrow}</p>
                             <h1 className="homeojob-privacy__title">{TERMS_HERO.title}</h1>
                             <p className="homeojob-privacy__subtitle">{TERMS_HERO.subtitle}</p>
+                            {policyMeta && (
+                                <p className="text-muted small mb-0">
+                                    Policy version {policyMeta.version ?? policyMeta.Version}
+                                    {(policyMeta.title || policyMeta.Title) ? ` — ${policyMeta.title ?? policyMeta.Title}` : ""}
+                                </p>
+                            )}
                             <nav className="homeojob-privacy__breadcrumb" aria-label="Breadcrumb">
                                 <Link to={landingPath()}>
                                     <i className="ri-home-5-line" aria-hidden="true" />

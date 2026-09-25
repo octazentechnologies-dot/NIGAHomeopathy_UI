@@ -19,10 +19,12 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import withRouter from "../../Components/Common/withRouter";
 import * as Yup from "yup";
 import { useFormik } from "formik";
-import { loginUser, resetLoginFlag } from "../../slices/thunks";
-import { activateUser } from "../../helpers/realbackend_helper";
+import { loginUser } from "../../slices/thunks";
+import { reset_login_flag } from "../../slices/auth/login/reducer";
+import { activateUser, activateByToken } from "../../helpers/realbackend_helper";
 import { createSelector } from "reselect";
 import { pageTitle } from "../../common/brand";
+import { holdLoginAgainstBack } from "../../helpers/signedOutHistory";
 import logoDark from "../../assets/images/logo-dark.png";
 
 const Login = (props) => {
@@ -46,20 +48,39 @@ const Login = (props) => {
   const [infoNotice] = useState(location.state?.notice || "");
   const [activationNotice, setActivationNotice] = useState("");
 
+  useEffect(() => holdLoginAgainstBack(), []);
+
   useEffect(() => {
     const encryptedUserId = searchParams.get("UserId");
-    if (!encryptedUserId) return;
+    const token = searchParams.get("token");
+    const activatedFlag = (searchParams.get("activated") || searchParams.get("activation") || "").toLowerCase();
+    if (!encryptedUserId && !token) {
+      if (activatedFlag === "expired" || activatedFlag === "0" || activatedFlag === "false") {
+        setActivationNotice("This activation link expired (48 hours). Open /activate to request a new email.");
+      } else if (activatedFlag === "1" || activatedFlag === "true" || activatedFlag === "ok") {
+        setActivationNotice("Your account is activated. Please sign in to continue.");
+      }
+      return undefined;
+    }
 
     let cancelled = false;
-    activateUser({ encryptedUserId })
+    const run = encryptedUserId
+      ? activateUser({ encryptedUserId })
+      : activateByToken({ token });
+    run
       .then(() => {
         if (!cancelled) {
           setActivationNotice("Your account is activated. Please sign in to continue.");
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
-          setActivationNotice("If your account is already active, you can sign in below.");
+          const expired = err?.response?.status === 410;
+          setActivationNotice(
+            expired
+              ? "This activation link expired (48 hours). Open /activate to request a new email."
+              : "If your account is already active, you can sign in below. If the link expired, request a new activation email."
+          );
         }
       });
 
@@ -79,19 +100,10 @@ const Login = (props) => {
       password: Yup.string().required("Please enter your password"),
     }),
     onSubmit: (values) => {
+      dispatch(reset_login_flag());
       dispatch(loginUser(values, props.router.navigate));
     },
   });
-
-  useEffect(() => {
-    if (errorMsg) {
-      const timer = setTimeout(() => {
-        dispatch(resetLoginFlag());
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [dispatch, errorMsg]);
 
   document.title = pageTitle("Sign In");
 
@@ -125,8 +137,8 @@ const Login = (props) => {
                       </Alert>
                     ) : null}
                     {error ? (
-                      <Alert color="danger" className="auth-login-alert mb-3">
-                        {error}
+                      <Alert color="danger" className="auth-login-alert mb-3" data-testid="login-error">
+                        {typeof error === "string" ? error : String(error?.message || error || "Invalid username or password")}
                       </Alert>
                     ) : null}
 

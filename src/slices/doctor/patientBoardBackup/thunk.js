@@ -21,6 +21,7 @@ import { resolveUserRole } from '../../../Components/constants/roles';
 import { getAuthUserInfo } from '../../../helpers/dashboard_helper';
 import { clearPatientBoardSession } from '../patientBoardSession/reducer';
 import { logoutUserSuccess } from '../../auth/login/reducer';
+import { markSignedOut } from '../../../helpers/signedOutHistory';
 import {
   setPatientBoardBackupSummaryLoading,
   setPatientBoardBackupSummary,
@@ -194,7 +195,7 @@ export const deletePatientBoardBackup = () => async (dispatch) => {
 
 const shouldOfferBackupOnLogout = (role, sessions = []) => {
   const normalizedRole = resolveUserRole(role) ?? role;
-  if (normalizedRole !== UserRole.DOCTOR && normalizedRole !== UserRole.RECEPTION) {
+  if (normalizedRole !== UserRole.DOCTOR) {
     return false;
   }
   return sessionsHaveBackupWork(sessions);
@@ -265,7 +266,13 @@ export const logoutWithBackupPrompt = () => async (dispatch, getState) => {
 
   dispatch(clearPatientBoardSession());
   dispatch(clearPatientBoardBackupSummary());
-  sessionStorage.removeItem('authUser');
+  try {
+    const { logoutApi } = await import('../../../helpers/realbackend_helper');
+    await logoutApi();
+  } catch {
+    // Best-effort Old-API + New-API revoke (SEC-03.01 / SEC-03.02); always clear local session.
+  }
+  markSignedOut();
   dispatch(logoutUserSuccess(true));
   return true;
 };

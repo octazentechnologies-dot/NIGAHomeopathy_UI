@@ -6,6 +6,14 @@ import * as url from "./url_helper";
 
 import { importAPI } from './api_helper';
 
+/*
+ * M01 FND-01.03 — Dual-API placement rule:
+ * - New domain modules / new HTTP APIs → New-API only (nigahomeoAPI / New_API_Base_URL).
+ * - Do not create a third API.
+ * - Keep on classic (api / Old_API_Base_URL) until explicit cut-over: Login, Rx-write, Razorpay.
+ * - Do not silently switch hosts for an existing call.
+ */
+
 //default client using apiHelpers for enhanced API methods
 const api = apiHelpers.default;
 
@@ -20,9 +28,27 @@ const nigahomeoMultipart = apiHelpers.nigahomeoMultipart;
 
 export const login = data => api.post(url.LOGIN, data);
 export const getSubscriptionStatus = () => api.get(url.SUBSCRIPTION_STATUS, null);
+/** SEC-03.01 — classic login token on Old-API; New-API denylist when the JWT is accepted there. */
+export const logoutApi = () =>
+  Promise.allSettled([
+    api.post("/Account/Logout"),
+    nigahomeoAPI.post("/Account/Logout"),
+  ]);
+export const forgotPasswordSecure = (email) =>
+  nigahomeoAPI.post("/Account/ForgotPassword", { email });
+export const resetPasswordSecure = (payload) =>
+  nigahomeoAPI.post("/Account/ResetPassword", payload);
+export const changePasswordSecure = (payload) =>
+  nigahomeoAPI.post("/Account/ChangePassword", payload);
 
 /* Doctor registration (public) — NigaHomeopathy API */
 export const registerDoctor = data => nigahomeoAPI.post(url.REGISTER_DOCTOR, data);
+export const registerDoctorWithDocuments = (formData) =>
+  nigahomeoMultipart.post(url.REGISTER_DOCTOR_WITH_DOCS, formData);
+export const getRegistrationStatus = (emailId) =>
+  nigahomeoAPI.get(url.REGISTER_STATUS, { emailId });
+export const activateByToken = (data) => nigahomeoAPI.post(url.ACTIVATE_BY_TOKEN, data);
+export const resendActivation = (data) => nigahomeoAPI.post(url.RESEND_ACTIVATION, data);
 export const activateUser = data => nigahomeoAPI.post(url.CHECK_ACTIVATION, data);
 
 const unwrapRegistrationList = (response) => {
@@ -64,6 +90,8 @@ export const getUserById = userId => api.get(url.GET_USER_BY_ID + "/" + userId, 
 export const createUser = data => api.post(url.CREATE_USER, data);
 export const updateUser = data => api.post(url.UPDATE_USER, data);
 
+/* M02 W1 dual-API (Repertory): Section/Language/Intensity/BodyPart/Remedy/Grade admin CRUD → Old-API (`api`).
+   Rubric–remedy save + Excel import/status/export + subsection Excel/search-by-keyword → New-API (`nigahomeo`). Do not silently switch. */
 export const getSectionList = data => api.get(url.GET_SECTIONS, data);
 
 export const createOrUpdateSection = data => api.post(url.CREATE_SECTION, data);
@@ -71,6 +99,7 @@ export const createOrUpdateSection = data => api.post(url.CREATE_SECTION, data);
 export const deleteSection = data => api.post(url.DELETE_SECTION, data);
 
 export const getAuthorsList = data => api.get(url.GET_AUTHORS, data);
+/* M02 W2 dual-API: Author / Materia Medica / Heads admin CRUD → Old-API. Do not switch. */
 
 export const createOrUpdateAuthor = data => api.post(url.CREATE_AUTHOR, data);
 
@@ -153,6 +182,7 @@ export const getClinicalQuestionsKeywordBodyPart = data => api.post(url.GET_CLIN
 export const getClinicalRubricData = data => api.post(url.GET_CLINICAL_RUBRIC_DATA, data);
 // 3D Body Part
 export const getMeshKeyMasterList = data => nigahomeoAPI.get(url.GET_MESH_KEY_MASTER, data);
+/* M02 W6 dual-API: 3D Mesh/Section/Hotspot already New-API — confirmed; mutate requires AdminPortal. */
 export const deleteMeshKeyMaster = data => nigahomeoAPI.post(url.DELETE_MESH_KEY_MASTER, data);
 export const createMeshKeyMaster = data => nigahomeoAPI.post(url.ADD_MESH_KEY_MASTER, data);
 export const updateMeshKeyMaster = data => nigahomeoAPI.post(url.UPDATE_MESH_KEY_MASTER, data);
@@ -244,6 +274,7 @@ export const GetLanguages = data => api.get(url.ADD_UPDATE_LANGUAGE, data);
 
 //diagnosis system
 export const getDiagnosisSystemList = data => api.get(url.GET_DIAGNOSIS_SYSTEM, data);
+/* M02 W3 dual-API: Diagnosis admin + board keyword tabs → Old-API only. */
 
 export const deleteDiagnosisSystem = data => api.post(url.DELETE_DIAGNOSIS_SYSTEM, data);
 
@@ -252,6 +283,7 @@ export const saveUpdateDiagnosisSystem = data => api.post(url.SAVE_DIAGNOSIS_SYS
 //drug system
 
 export const getDrugSystemList = data => api.get(url.GET_DRUG_SYSTEM, data);
+/* M02 W4 dual-API: Drug/Allopathic admin CRUD → Old; Patient Board dropdown → New getAllopathicDrugForDropdown. */
 
 export const deleteDrugSystem = data => api.post(url.DELETE_DRUG_SYSTEM, data);
 
@@ -285,6 +317,7 @@ export const deleteAdverseReaction = data => api.post(url.DELETE_ADVERSE_REACTIO
 // Question Sections API
 
 export const getQuestionSections = data => api.get(url.GET_QUESTION_SECTIONS, data);
+/* M02 W5 dual-API: Question taxonomy / clinical questions admin → Old-API (New has locked parity). */
 
 export const deleteQuestionSection = data => api.post(url.DELETE_QUESTION_SECTION, data);
 
@@ -302,12 +335,14 @@ export const createQuestionGroup = data => api.post(url.CREATE_QUESTION_GROUP, d
 
 /* Package API calls */
 export const getPackageList = data => api.get(url.GET_PACKAGES, data);
-export const deletePackage = data => api.delete(url.DELETE_PACKAGE, data);
+/* M02 W7 dual-API: Package admin CRUD → Old-API. PackageEntryDetail = S1 SaaS only (not S2/S5). */
+export const deletePackage = data => api.post(url.DELETE_PACKAGE, data);
 export const createPackage = data => api.post(url.CREATE_PACKAGE, data);
 export const updatePackage = data => api.post(url.CREATE_PACKAGE, data);
 
 /* Qualification Master API calls */
 export const getQualificationList = (data) => nigahomeoAPI.get(url.GET_QUALIFICATIONS, data || { PageNumber: 1, PageSize: 100 });
+/* M02 W7 dual-API: Qualifications admin → New-API (confirmed). */
 export const createQualification = (data) => nigahomeoAPI.post(url.ADD_QUALIFICATION, data);
 export const updateQualification = (data) => nigahomeoAPI.post(url.UPDATE_QUALIFICATION, data);
 export const deleteQualification = (id) => nigahomeoAPI.post(`${url.DELETE_QUALIFICATION}/${id}`, {});
@@ -315,6 +350,7 @@ export const getQualificationById = (id) => nigahomeoAPI.get(`${url.GET_QUALIFIC
 
 /* Lab Test API calls */
 export const getLabTestList = data => api.get(url.GET_LAB_TESTS, data);
+/* M02 W7 dual-API: Lab catalog admin → Old PatientLabTest; board/eRx reads still classic PatientLab. */
 export const addEditPatientLabTest = data => api.post(url.ADD_EDIT_PATIENT_LAB_TEST, data);
 export const getPatientLabTestById = labTestId => api.get(url.GET_PATIENT_LAB_TEST_BY_ID + "/" + labTestId, null);
 
@@ -389,6 +425,138 @@ export const getDailySchedule = async (params) => {
 };
 export const saveDailySchedule = data => nigahomeoAPI.post(url.SAVE_DAILY_SCHEDULE, data);
 export const getAppointmentSlots = (params) => nigahomeoAPI.get(url.GET_APPOINTMENT_SLOTS, params);
+export const rescheduleAppointment = (data) =>
+  nigahomeoAPI.post(url.RESCHEDULE_APPOINTMENT, data, { returnErrorBody: true });
+export const cancelAppointment = (data) => nigahomeoAPI.post(url.CANCEL_APPOINTMENT, data);
+export const getAppointmentQueue = (doctorId) => nigahomeoAPI.get(url.APPOINTMENT_QUEUE + "?doctorId=" + doctorId, null);
+export const callNextAppointment = (doctorId) => nigahomeoAPI.post(url.CALL_NEXT_APPOINTMENT, { doctorId });
+export const getReceptionProfile = () => nigahomeoAPI.get(url.RECEPTION_PROFILE, null);
+export const updateReceptionProfile = (data) => nigahomeoAPI.put(url.RECEPTION_PROFILE, data);
+export const saveReceptionCasePaper = (data) => nigahomeoAPI.post(url.RECEPTION_CASE_PAPER, data);
+export const getReceptionCasePapers = (patientId) =>
+  nigahomeoAPI.get(url.RECEPTION_CASE_PAPER + "?patientId=" + patientId, null);
+export const getReceptionPatientOpen = (patientId) =>
+  nigahomeoAPI.get(url.RECEPTION_PATIENT_OPEN + "?patientId=" + patientId, null);
+/** TEL-02.04 — single poll of today's tele queue (treating doctor JWT). */
+export const getTeleQueue = () => nigahomeoAPI.get(url.TELE_QUEUE, null);
+/** TEL-04.01 — same Token POST for web and mobile (no clientType body). */
+export const getTeleSessionToken = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_TOKEN(sessionId), null);
+export const rejoinTeleSession = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_REJOIN(sessionId), null);
+/** TEL-06.02 — GET session status for patient waiting-room poll. */
+export const getTeleSessionStatus = (sessionId) =>
+  nigahomeoAPI.get(url.TELE_SESSION_STATUS(sessionId), null);
+export const createTeleSession = (data) => nigahomeoAPI.post(url.TELE_SESSIONS, data);
+/** TEL-03.02 — doctor starts / ends the room (Active / Ended). */
+export const startTeleSession = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_START(sessionId), null);
+export const endTeleSession = (sessionId) =>
+  nigahomeoAPI.post(url.TELE_SESSION_END(sessionId), null);
+
+/**
+ * DMO-08.02 — normalize Token / Rejoin JSON (web + mobile same shape).
+ * Never invent vendor token, Active status, or paid/signed state locally.
+ */
+export const mapTeleSessionTokenPayload = (payload) => {
+  const hasTopToken = payload?.token != null || payload?.Token != null;
+  const root = !hasTopToken && payload?.data !== undefined ? payload.data : payload;
+  const data = (root && (root.data || root.Data)) || root || {};
+  const clientsRaw = data.clients || data.Clients || ["web", "mobile"];
+  const status = data.status || data.Status || null;
+  const vendor = data.vendor || data.Vendor || "stub";
+  const clientConfig = data.clientConfig || data.ClientConfig || null;
+  const readyFlag =
+    clientConfig && typeof clientConfig === "object"
+      ? String(clientConfig.ready ?? clientConfig.Ready ?? "")
+      : "";
+  const isStub =
+    data.isStub === true ||
+    data.IsStub === true ||
+    String(vendor).toLowerCase() === "stub" ||
+    readyFlag === "false";
+  return {
+    success: Boolean(payload?.success ?? payload?.Success ?? data.success ?? true),
+    vendor,
+    clients: Array.isArray(clientsRaw) ? clientsRaw : ["web", "mobile"],
+    teleSessionId: data.teleSessionId || data.TeleSessionId || null,
+    roomId: data.roomId || data.RoomId || null,
+    token: data.token || data.Token || null,
+    expiresAt: data.expiresAt || data.ExpiresAt || null,
+    recordAllowed: Boolean(data.recordAllowed ?? data.RecordAllowed),
+    clientConfig,
+    status,
+    isStub,
+  };
+};
+
+/** DMO-08.02 — doctor/patient join token (Active session). */
+export const issueTeleSessionToken = async (sessionId) => {
+  const raw = await getTeleSessionToken(sessionId);
+  return mapTeleSessionTokenPayload(raw);
+};
+
+/** DMO-08.02 — rejoin while Active only (409 otherwise). */
+export const issueTeleSessionRejoinToken = async (sessionId) => {
+  const raw = await rejoinTeleSession(sessionId);
+  return mapTeleSessionTokenPayload(raw);
+};
+/** TEL-10.02 — post/list tele chat (doctor and mapped patient only). */
+export const postTeleChat = (data) => nigahomeoAPI.post(url.TELE_CHAT, data);
+export const listTeleChat = (sessionId) => nigahomeoAPI.get(url.TELE_CHAT_LIST(sessionId), null);
+/** PAT-20.02 — appointment change log (JWT: owning patient or treating doctor). */
+export const getAppointmentChangeLog = (patientAppId) =>
+  nigahomeoAPI.get(url.APPOINTMENT_CHANGE_LOG(patientAppId), null);
+/** PAT-20.02 — tele consultation summaries for appointment detail. */
+export const getTeleConsultationSummary = (patientAppId) =>
+  nigahomeoAPI.get(url.TELE_SUMMARY(patientAppId), null);
+export const saveTeleConsultationSummary = (data) =>
+  nigahomeoAPI.put(url.TELE_SUMMARY_SAVE, data);
+/** PAT-24.02 — patient requests instant consult (queuePosition + OFFERED / NO_DOCTOR). */
+export const requestInstantConsult = (data) => nigahomeoAPI.post(url.TELE_INSTANT, data);
+/** PAT-24.02 — doctor lists / accepts instant offers. */
+export const listInstantConsultOffers = () => nigahomeoAPI.get(url.TELE_INSTANT_OFFERS, null);
+export const acceptInstantConsult = (requestId) =>
+  nigahomeoAPI.post(url.TELE_INSTANT_ACCEPT(requestId), null);
+export const setTeleAvailability = (data) => nigahomeoAPI.post(url.TELE_AVAILABILITY, data);
+export const getTeleAvailability = () => nigahomeoAPI.get(url.TELE_AVAILABILITY, null);
+/** PAT-26.02 — device check stub (TOKEN = no). Phone checks camera/mic itself. */
+export const getTeleDeviceCheck = () => nigahomeoAPI.get(url.TELE_DEVICE_CHECK, null);
+/** PAT-29.02 — recording consent; recordAllowed from API only (both sides must accept). */
+export const postTeleRecordingConsent = (data) => nigahomeoAPI.post(url.TELE_CONSENT, data);
+/**
+ * DMO-07.02 — doctor patient context card (name, age, chief complaint, last visit, payment, tele).
+ * Read-only. Do not call repertory / case-taking from this helper.
+ */
+export const getDoctorMobileContext = (patientAppId) =>
+  nigahomeoAPI.get(url.DOCTOR_MOBILE_CONTEXT(patientAppId), null);
+/**
+ * DMO-09.02 — refill inbox + approve/reject. Doctor JWT only.
+ * Empty list until prescriptions exist. Reject requires reason. Snapshot not editable here.
+ */
+export const listDoctorRefills = () => nigahomeoAPI.get(url.REFILL_LIST, null);
+export const approveDoctorRefill = (refillId) =>
+  nigahomeoAPI.post(url.REFILL_APPROVE(refillId), null, { returnErrorBody: true });
+export const rejectDoctorRefill = (refillId, reason) =>
+  nigahomeoAPI.post(url.REFILL_REJECT(refillId), { reason }, { returnErrorBody: true });
+/** SUP-01.02 — patient create ticket + list mine. */
+export const createSupportTicket = (data) => nigahomeoAPI.post(url.SUPPORT_TICKETS, data);
+export const listMySupportTickets = () => nigahomeoAPI.get(url.SUPPORT_TICKETS_MINE, null);
+/** SUP-04.01 — messages CRUD + attachment (fileName on create). */
+export const listSupportTicketMessages = (ticketId) =>
+  nigahomeoAPI.get(url.SUPPORT_TICKET_MESSAGES(ticketId), null);
+export const addSupportTicketMessage = (ticketId, data) =>
+  nigahomeoAPI.post(url.SUPPORT_TICKET_MESSAGES(ticketId), data);
+export const updateSupportTicketMessage = (ticketId, messageId, data) =>
+  nigahomeoAPI.put(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId), data);
+export const deleteSupportTicketMessage = (ticketId, messageId) =>
+  nigahomeoAPI.delete(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId));
+/** SUP-07.02 — patient requests help booking; staff lists requests / AssistedBook. */
+export const requestBookingAssistance = (data) =>
+  nigahomeoAPI.post(url.SUPPORT_ASSISTANCE_REQUEST, data);
+export const listBookingAssistanceRequests = () =>
+  nigahomeoAPI.get(url.SUPPORT_ASSISTANCE_REQUESTS, null);
+export const assistedBook = (data) => nigahomeoAPI.post(url.ASSISTED_BOOK, data);
 export const getPatientList = data => nigahomeoAPI.get(url.GET_PATIENT_LIST + "/" + data.userId, null);
 export const getDoctorList = data => nigahomeoAPI.get(url.GET_DOCTOR_LIST + "/" + data.userId, null);
 export const getAppointmentList = data => nigahomeoAPI.get(
@@ -407,8 +575,13 @@ export const exportPatients = data => {
   return nigahomeoAPI.get(`${url.EXPORT_PATIENTS}?${params.toString()}`, { responseType: 'blob' });
 };
 export const getAppointmentHistoryNotes = data => api.get(url.GET_APPOINTMENT_HISTORY_NOTES + "?PageNumber=" + (data.pageNumber || 1) + "&PageSize=" + (data.pageSize || 10) + (data.appointmentId ? "&AppointmentId=" + data.appointmentId : ""), null);
-export const getAppointmentListByPatientId = data =>
-  nigahomeoAPI.get(`${url.GET_APPOINTMENT_LIST_BY_PATIENT_ID}?PatientId=${data.patientId}`, null);
+export const getAppointmentListByPatientId = data => {
+  const params = new URLSearchParams();
+  params.set('PatientId', String(data.patientId));
+  params.set('PageNumber', String(data.pageNumber || 1));
+  params.set('PageSize', String(data.pageSize || 50));
+  return nigahomeoAPI.get(`${url.GET_APPOINTMENT_LIST_BY_PATIENT_ID}?${params.toString()}`, null);
+};
 export const getPrescriptionDetailsByAppointmentId = data =>
   nigahomeoAPI.get(`${url.GET_PRESCRIPTION_DETAILS_BY_APPOINTMENT_ID}?AppointmentId=${data.appointmentId}`, null);
 export const createPatient = data => nigahomeoAPI.post(url.CREATE_PATIENT, data);
@@ -457,6 +630,7 @@ export const getPatientDetails = data => api.get(url.GET_PATIENT_DETAILS + "/" +
 
 /* Role Master API calls */
 export const getRoleMaster = data => api.get(url.GET_ROLE_MASTER, data);
+/* M02 W7 dual-API: Roles/RoleDetails/MenuMaster admin → Old-API. GetMenuByRole restored on New-API mastersAPI. */
 
 /* Role Management API calls */
 export const getRoleList = data => api.get(url.GET_ROLES, data);
@@ -582,3 +756,81 @@ export const updateRubricAlias = (id, data) =>
   nigahomeoAPI.put(`${url.RUBRIC_INTELLIGENCE_ALIASES}/${id}`, data);
 export const deleteRubricAlias = (id) =>
   nigahomeoAPI.delete(`${url.RUBRIC_INTELLIGENCE_ALIASES}/${id}`, null);
+
+/** M02 W0/W1 — Admin ACL status from New-API (requires JWT with RoleId/RoleName claims after re-login). */
+export const getAdminAclMe = () => nigahomeoAPI.get(url.ADMIN_ACL_ME, null);
+export const pingAdminAcl = () => nigahomeoAPI.get(url.ADMIN_ACL_PING, null);
+export const getAdminAclRepertory = () => nigahomeoAPI.get(url.ADMIN_ACL_REPERTORY, null);
+export const getAdminAclCoverage = () => nigahomeoAPI.get(url.ADMIN_ACL_COVERAGE, null);
+
+/** M02 W7 ADM-B04.03 — menus by role (New-API). Hardcoded nav is used only when this call fails. */
+export const getMenuByRole = (userId) =>
+  nigahomeoAPI.get(url.GET_MENU_BY_ROLE, userId != null ? { userId } : null);
+
+export const linkPrimaryPatient = (data) => nigahomeoAPI.post(url.FAMILY_LINK_PRIMARY, data);
+export const getFamilyMe = () => nigahomeoAPI.get(url.FAMILY_ME, null);
+export const getFamilyRelations = () => nigahomeoAPI.get(url.FAMILY_RELATIONS, null);
+export const addFamilyRelation = (data) => nigahomeoAPI.post(url.FAMILY_RELATIONS, data);
+export const getFamilyMembers = () => nigahomeoAPI.get(url.FAMILY_LIST, null);
+export const createFamilyMember = (data) => nigahomeoAPI.post(url.FAMILY_LIST, data);
+export const updateFamilyMember = (id, data) => nigahomeoAPI.put(`${url.FAMILY_LIST}/${id}`, data);
+export const deleteFamilyMember = (id) => nigahomeoAPI.delete(`${url.FAMILY_LIST}/${id}`, null);
+export const getFamilyMember = (id) => nigahomeoAPI.get(`${url.FAMILY_LIST}/${id}`, null);
+export const canBookAsFamilyPatient = (patientId) =>
+  nigahomeoAPI.get(`${url.FAMILY_CAN_BOOK}/${patientId}`, null);
+export const bookAsFamilyMember = (data) => nigahomeoAPI.post(url.FAMILY_BOOK_AS, data);
+
+export const grantCaregiver = (data) => nigahomeoAPI.post(url.CAREGIVER_GRANT, data);
+export const revokeCaregiver = (data) => nigahomeoAPI.post(url.CAREGIVER_REVOKE, data);
+export const getCaregiverMe = () => nigahomeoAPI.get(url.CAREGIVER_ME, null);
+export const lookupCaregiver = (contact) =>
+  nigahomeoAPI.get(url.CAREGIVER_LOOKUP, contact ? { contact } : null);
+export const listMyCaregivers = () => nigahomeoAPI.get(url.CAREGIVER_LIST_MINE, null);
+export const listCaregiverActingFor = () => nigahomeoAPI.get(url.CAREGIVER_LIST_ACTING_FOR, null);
+
+export const requestOtp = (data) => nigahomeoAPI.post(url.OTP_REQUEST, data);
+export const verifyOtp = (data) => nigahomeoAPI.post(url.OTP_VERIFY, data);
+export const loginWithOtp = (data) => nigahomeoAPI.post(url.ACCOUNT_LOGIN_OTP, data);
+export const confirmMobileAgainstProfile = (data) =>
+  nigahomeoAPI.post(url.ACCOUNT_CONFIRM_MOBILE, data);
+export const getPatientProfileMe = () => nigahomeoAPI.get(url.PATIENT_PROFILE_ME, null);
+export const savePatientProfileMe = (data) => nigahomeoAPI.put(url.PATIENT_PROFILE_ME, data);
+export const getPatientWelcome = () => nigahomeoAPI.get(url.WELCOME_PATIENT, null);
+export const getPrivacyConsentStatus = () => nigahomeoAPI.get(url.CONSENT_PRIVACY_STATUS, null);
+export const grantPrivacyConsent = () => nigahomeoAPI.post(url.CONSENT_GRANT_PRIVACY, null);
+export const registerDevicePushToken = (data) => nigahomeoAPI.post(url.DEVICE_REGISTER, data);
+export const unregisterDevicePushToken = (data) => nigahomeoAPI.post(url.DEVICE_UNREGISTER, data);
+export const listMyDevicePushTokens = () => nigahomeoAPI.get(url.DEVICE_MINE, null);
+export const signSecureFileUrl = (data) => nigahomeoAPI.post(url.SECURE_FILE_SIGN, data);
+
+export const getDoctorProfileMe = () => nigahomeoAPI.get("/Profile/Me", null);
+export const updateDoctorProfileMe = (data) => nigahomeoAPI.put("/Profile/Me", data);
+export const uploadDoctorProfilePhoto = (formData) =>
+  nigahomeoMultipart.post("/Profile/Me/Photo", formData);
+export const getDoctorCredentialsMe = () => nigahomeoAPI.get("/Profile/Me/Credentials", null);
+export const uploadDoctorCredentialDocument = (formData) =>
+  nigahomeoMultipart.post("/Profile/Me/CredentialDocuments", formData);
+export const getAvailabilityMe = () => nigahomeoAPI.get("/Availability/Me", null);
+export const updateAvailabilityMe = (data) => nigahomeoAPI.put("/Availability/Me", data);
+export const getEnquiries = (params) => nigahomeoAPI.get("/Enquiry", params);
+export const getReceptionStaffList = (params) =>
+  nigahomeoAPI.get("/ReceptionStaff/GetReceptionStaffList", params);
+export const addReceptionStaff = (data) => nigahomeoAPI.post("/ReceptionStaff/AddReceptionStaff", data);
+export const updateReceptionStaff = (data) =>
+  nigahomeoAPI.post("/ReceptionStaff/UpdateReceptionStaff", data);
+export const deleteReceptionStaff = (data) =>
+  nigahomeoAPI.post("/ReceptionStaff/DeleteReceptionStaff", data);
+export const runCenterOfGravity = (data) =>
+  nigahomeoAPI.post("/Repertorization/CenterOfGravity", data);
+export const exportCaseToPdf = (patientId, caseId) =>
+  nigahomeoAPI.get(`/patient/ExportCaseToPdf/${patientId}/${caseId}`, { responseType: "blob" });
+export const exportCasesToExcel = (userId) =>
+  nigahomeoAPI.get(`/patient/ExportCasesToExcel?UserId=${userId}&PageNumber=1&PageSize=500`, {
+    responseType: "blob",
+  });
+export const getPatientComplaints = (patientId) =>
+  api.get(`/patient/GetComplaints/${patientId}`, null);
+export const savePatientComplaints = (data) => api.post("/patient/SaveComplaints", data);
+export const getPatientCaseDetails = (caseId) =>
+  api.get(`/patient/GetCaseDetails/${caseId}`, null);
+export const savePatientCaseDetails = (data) => api.post("/CaseDetails", data);

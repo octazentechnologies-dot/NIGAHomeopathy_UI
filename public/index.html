@@ -27,6 +27,82 @@
     -->
     <title>Niga Homeocentrum</title>
     <script>
+      (function () {
+        window.__hcHistoryGuard = true;
+        var LOGIN = "/login";
+        var DEPTH = 40;
+        var PUBLIC_PREFIXES = ["/login","/register","/activate","/forgot-password","/reset-password","/auth","/find-doctor","/book","/privacy","/terms","/landing","/pricing","/about","/contact","/blog","/news","/features","/account"];
+        function signedOut() {
+          try {
+            if (window.__hcSignedOut === true) return true;
+            return sessionStorage.getItem("hcSignedOut") === "1";
+          } catch (e) { return window.__hcSignedOut === true; }
+        }
+        function isPublic(path) {
+          var p = String(path || "/").toLowerCase();
+          if (p === "/" || p === "") return true;
+          for (var i = 0; i < PUBLIC_PREFIXES.length; i++) {
+            if (p.indexOf(PUBLIC_PREFIXES[i]) === 0) return true;
+          }
+          return false;
+        }
+        function mustLeave() {
+          return signedOut() && !isPublic(location.pathname);
+        }
+        function hideClinic() {
+          window.__hcSignedOut = true;
+          try {
+            sessionStorage.removeItem("authUser");
+            document.documentElement.style.visibility = "hidden";
+            if (document.body) document.body.textContent = "";
+          } catch (e) {}
+        }
+        function pushTrap() {
+          try { history.pushState({ hcSignedOut: true }, "", LOGIN); } catch (e) {}
+        }
+        function seal() {
+          for (var i = 0; i < DEPTH; i++) pushTrap();
+        }
+        function boot() {
+          if (!mustLeave()) return;
+          hideClinic();
+          location.replace(LOGIN);
+        }
+        window.addEventListener("pagehide", function () {
+          if (mustLeave()) hideClinic();
+        });
+        window.addEventListener("pageshow", function () {
+          if (mustLeave()) {
+            hideClinic();
+            location.replace(LOGIN);
+            return;
+          }
+          if (signedOut() && location.pathname === LOGIN && !window.__hcLoginSealed) {
+            window.__hcLoginSealed = true;
+            seal();
+          }
+        });
+        window.addEventListener("popstate", function () {
+          if (!signedOut()) return;
+          if (location.pathname !== LOGIN) {
+            hideClinic();
+            location.replace(LOGIN);
+            return;
+          }
+          pushTrap();
+          pushTrap();
+          pushTrap();
+        });
+        if (mustLeave()) {
+          hideClinic();
+          location.replace(LOGIN);
+        } else if (signedOut() && location.pathname === LOGIN) {
+          window.__hcLoginSealed = true;
+          seal();
+        }
+      })();
+    </script>
+    <script>
       // Immediate doctor layout fix
       (function() {
         try {
