@@ -9,6 +9,7 @@ const AppointmentSlotGrid = ({
   slots = [],
   loading = false,
   onSlotClick,
+  selectedTime = null,
   emptyMessage = 'No appointment slots available.',
   showSummaryBar = true,
 }) => {
@@ -85,12 +86,14 @@ const AppointmentSlotGrid = ({
             <div className="appointment-slot-row">
               {hourSlots.map((slot) => {
                 const isClickable = slot.status === 'available' && typeof onSlotClick === 'function';
+                const isSelected = Boolean(selectedTime) && selectedTime === slot.time;
                 return (
                   <button
                     key={slot.time}
                     type="button"
-                    className={`appointment-slot-chip ${slot.status}`}
+                    className={`appointment-slot-chip ${slot.status}${isSelected ? ' selected' : ''}`}
                     disabled={!isClickable}
+                    aria-pressed={isSelected}
                     title={
                       slot.status === 'booked'
                         ? slot.patientName || 'Booked'
@@ -101,6 +104,7 @@ const AppointmentSlotGrid = ({
                         onSlotClick(slot);
                       }
                     }}
+                    style={isSelected ? { outline: '2px solid #0d6efd', outlineOffset: '1px' } : undefined}
                   >
                     {slot.label}
                   </button>

@@ -188,6 +188,8 @@ export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },
   { id: "doctor-anatomy", label: "Anatomy", icon: "ri-body-scan-line", link: "/doctor/anatomy" },
   { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
+  { id: "doctor-videoroom", label: "Video room", icon: "ri-vidicon-line", link: "/doctor/mobile/videoroom" },
+  { id: "doctor-refill", label: "Refill inbox", icon: "ri-medicine-bottle-line", link: "/doctor/mobile/refill" },
   { id: "doctor-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
 

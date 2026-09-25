@@ -344,7 +344,7 @@ const PatientViewAllTableHead = () => (
                 <span className="patient-list-modal__th"><i className="ri-user-line" aria-hidden="true" />Gender</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Date</span>
+                <span className="patient-list-modal__th"><i className="ri-calendar-check-line" aria-hidden="true" />Last Visit</span>
             </th>
             <th scope="col">
                 <span className="patient-list-modal__th"><i className="ri-cake-2-line" aria-hidden="true" />Date of Birth</span>
@@ -1026,9 +1026,16 @@ const PatientListModal = ({ isOpen, toggle }) => {
                                                 </td>
                                                 <td>
                                                     <PatientViewAllDateCell
-                                                        value={patient.enteredDate && moment(new Date(patient.enteredDate)).isValid()
-                                                            ? moment(patient.enteredDate).format('DD-MM-YYYY')
-                                                            : '-'}
+                                                        value={(() => {
+                                                            const lastVisit = patient.lastVisitAt ?? patient.LastVisitAt;
+                                                            if (lastVisit && moment(lastVisit).isValid()) {
+                                                                return moment(lastVisit).format('DD-MM-YYYY');
+                                                            }
+                                                            if (patient.enteredDate && moment(new Date(patient.enteredDate)).isValid()) {
+                                                                return moment(patient.enteredDate).format('DD-MM-YYYY');
+                                                            }
+                                                            return '-';
+                                                        })()}
                                                     />
                                                 </td>
                                                 <td>
@@ -2055,6 +2062,7 @@ const Widgets = () => {
     const [appointmentSlotsLoading, setAppointmentSlotsLoading] = useState(false);
     const [hasAppointmentSchedule, setHasAppointmentSchedule] = useState(false);
     const [appointmentSlotInterval, setAppointmentSlotInterval] = useState(null);
+    const [selectedAppointmentSlotTime, setSelectedAppointmentSlotTime] = useState(null);
     const [bookingSlotTime, setBookingSlotTime] = useState(null);
     const [dailyScheduleModalOpen, setDailyScheduleModalOpen] = useState(false);
     const [scheduleModalDoctorId, setScheduleModalDoctorId] = useState(null);
@@ -2074,6 +2082,8 @@ const Widgets = () => {
 
     const openNewAppointmentModal = (patientOption = null) => {
         setPrefilledAppointmentPatient(patientOption);
+        setSelectedAppointmentSlotTime(null);
+        setBookingSlotTime(null);
         setModalNewAppointment(true);
     };
 
@@ -2369,6 +2379,7 @@ const Widgets = () => {
         try {
             await dispatch(patientNewAppointment(appointmentData));
             resetForm();
+            setSelectedAppointmentSlotTime(null);
 
             const now = dashboardQueryDateIso();
             dispatch(getAppointmentList({
@@ -2403,25 +2414,9 @@ const Widgets = () => {
         }
     };
 
-    const handleAppointmentSlotClick = async (slot, values, formikHelpers) => {
-        if (!values.patient || !values.doctor || !values.appointmentDate) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Complete required fields',
-                text: 'Please select patient, doctor, and appointment date first.',
-                timer: 2200,
-                showConfirmButton: false,
-            });
-            return;
-        }
-
-        setBookingSlotTime(slot.time);
-        formikHelpers.setSubmitting(true);
-        try {
-            await handleAppointmentSubmit(values, formikHelpers, slot.time);
-        } finally {
-            formikHelpers.setSubmitting(false);
-        }
+    const handleAppointmentSlotClick = (slot) => {
+        if (!slot?.time) return;
+        setSelectedAppointmentSlotTime(slot.time);
     };
 
     // Handle patient form submission
@@ -2945,7 +2940,13 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-6 col-md-4 col-lg-2">
+                <div
+                    className="col-6 col-md-4 col-lg-2"
+                    onClick={() => tog_econsult()}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_econsult(); } }}
+                >
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -2960,7 +2961,13 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-6 col-md-4 col-lg-2">
+                <div
+                    className="col-6 col-md-4 col-lg-2"
+                    onClick={() => tog_billingList()}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_billingList(); } }}
+                >
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
                             <div className="avatar-sm">
@@ -3584,10 +3591,8 @@ const Widgets = () => {
                     <Formik
                         initialValues={appointmentFormInitialValues}
                         onSubmit={(values, formikHelpers) => {
-                            console.log("Formik onSubmit triggered!");
-                            console.log("Values:", values);
-                            console.log("FormikHelpers:", formikHelpers);
-                            return handleAppointmentSubmit(values, formikHelpers);
+                            setBookingSlotTime(selectedAppointmentSlotTime);
+                            return handleAppointmentSubmit(values, formikHelpers, selectedAppointmentSlotTime);
                         }}
                         validateOnChange={false}
                         validateOnBlur={false}
@@ -3597,6 +3602,7 @@ const Widgets = () => {
                             appointmentResetFormRef.current = resetForm;
 
                             return (
+                            <>
                             <Form>
                                 <div className="row g-3 new-appointment-form-fields">
                                     <div className="col-md-6">
@@ -3640,6 +3646,7 @@ const Widgets = () => {
                                                 onChange={(option) => {
                                                     setFieldValue('doctor', option);
                                                     setFieldTouched('doctor', true);
+                                                    setSelectedAppointmentSlotTime(null);
                                                     loadAppointmentSlotsForForm(option?.value, values.appointmentDate);
                                                 }}
                                                 onBlur={() => setFieldTouched('doctor', true)}
@@ -3675,6 +3682,7 @@ const Widgets = () => {
                                             onChange={(dateStr) => {
                                                 setFieldTouched('appointmentDate', true, false);
                                                 setFieldValue('appointmentDate', dateStr, true);
+                                                setSelectedAppointmentSlotTime(null);
                                                 const parsed = moment(dateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
                                                 if (parsed.isValid()) {
                                                     loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
@@ -3765,23 +3773,63 @@ const Widgets = () => {
                                                     <AppointmentSlotGrid
                                                         slots={appointmentSlots}
                                                         loading={appointmentSlotsLoading || Boolean(bookingSlotTime)}
-                                                        onSlotClick={(slot) => handleAppointmentSlotClick(slot, values, {
-                                                            setSubmitting,
-                                                            resetForm,
-                                                        })}
+                                                        selectedTime={selectedAppointmentSlotTime}
+                                                        onSlotClick={handleAppointmentSlotClick}
                                                         emptyMessage="No slots configured for the selected date."
                                                         showSummaryBar
                                                     />
+                                                    {selectedAppointmentSlotTime ? (
+                                                        <div className="text-muted small mt-2">
+                                                            Selected slot: <strong>{selectedAppointmentSlotTime}</strong>
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             )}
                                             <div className="new-appointment-modal__hint">
                                                 <i className="ri-cursor-line" aria-hidden="true" />
-                                                Click an available slot to book the appointment instantly.
+                                                Select an available slot, then click Save to book the appointment.
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </Form>
+                            <ModalFooter className="justify-content-end">
+                                <ModalActionButton
+                                    action="cancel"
+                                    onClick={closeNewAppointmentModal}
+                                    disabled={isSubmitting || Boolean(bookingSlotTime)}
+                                />
+                                <ModalActionButton
+                                    action="save"
+                                    disabled={isSubmitting || Boolean(bookingSlotTime) || !selectedAppointmentSlotTime}
+                                    loading={isSubmitting || Boolean(bookingSlotTime)}
+                                    loadingLabel="Booking..."
+                                    onClick={() => {
+                                        if (!values.patient || !values.doctor || !values.appointmentDate) {
+                                            Swal.fire({
+                                                icon: 'warning',
+                                                title: 'Complete required fields',
+                                                text: 'Please select patient, doctor, and appointment date first.',
+                                                timer: 2200,
+                                                showConfirmButton: false,
+                                            });
+                                            return;
+                                        }
+                                        if (!selectedAppointmentSlotTime) {
+                                            Swal.fire({
+                                                icon: 'warning',
+                                                title: 'Select a time slot',
+                                                text: 'Please click an available slot, then Save.',
+                                                timer: 2200,
+                                                showConfirmButton: false,
+                                            });
+                                            return;
+                                        }
+                                        submitForm();
+                                    }}
+                                />
+                            </ModalFooter>
+                            </>
                             );
                         }}
                     </Formik>

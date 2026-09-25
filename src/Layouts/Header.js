@@ -23,6 +23,7 @@ import { WhatsAppModal } from '../Components/WhatsAppModal';
 import ActivePatientSessionsStack from '../Components/Common/ActivePatientSessionsStack';
 import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeaderButton';
 import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
+import DoctorMobileHeaderButtons from '../Components/Common/DoctorMobileHeaderButtons';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
 const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
@@ -111,6 +112,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 <div className="d-flex align-items-center header-doctor-session-tools">
                                     <LastWorkBackupHeaderButton userRole={userRole} />
                                     <ReceptionStaffHeaderButton userRole={userRole} />
+                                    <DoctorMobileHeaderButtons userRole={userRole} />
                                     <ActivePatientSessionsStack />
                                 </div>
                             ) : null}

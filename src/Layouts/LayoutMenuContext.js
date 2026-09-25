@@ -121,8 +121,14 @@ export const LayoutMenuProvider = ({ children }) => {
     if (apiMenuStatus === 'ok') {
       const spaItems = (apiNavItems || []).map(keepSpaNavItem).filter(Boolean);
       if (role === UserRole.RECEPTION) {
+        const receptionItems =
+          typeof receptionChromeFromApi === "function"
+            ? receptionChromeFromApi(spaItems)
+            : spaItems.length
+              ? spaItems
+              : RECEPTION_FALLBACK_MENU;
         return {
-          menuItems: withDropdownState(receptionChromeFromApi(spaItems)),
+          menuItems: withDropdownState(receptionItems),
           moreMenuItems: [],
         };
       }
@@ -144,23 +150,33 @@ export const LayoutMenuProvider = ({ children }) => {
           '/doctor/patientboard',
           '/doctor/anatomy',
           '/doctor/reception-staff',
+          '/doctor/mobile/videoroom',
+          '/doctor/mobile/refill',
           '/profile',
         ]);
         const core = [];
         const extra = [];
         const seenExtra = new Set();
+        const seenCore = new Set();
         spaItems.forEach((item) => {
           const link = String(item.link || '').toLowerCase();
           if (coreLinks.has(link)) {
             core.push(item);
+            seenCore.add(link);
             return;
           }
           if (seenExtra.has(link)) return;
           seenExtra.add(link);
           extra.push(item);
         });
+        DOCTOR_FALLBACK_MENU.forEach((item) => {
+          const link = String(item.link || '').toLowerCase();
+          if (!coreLinks.has(link) || seenCore.has(link)) return;
+          core.push(item);
+          seenCore.add(link);
+        });
         return {
-          menuItems: withDropdownState(core.length ? core : spaItems),
+          menuItems: withDropdownState(core.length ? core : DOCTOR_FALLBACK_MENU),
           moreMenuItems: withDropdownState(extra),
         };
       }

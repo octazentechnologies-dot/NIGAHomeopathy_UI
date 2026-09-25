@@ -188,7 +188,7 @@ const Pricing = () => {
                                                 ))}
                                             </ul>
                                             <Link
-                                                to="/register"
+                                                to={`/register?package=${encodeURIComponent(plan.name || plan.fallbackName || "")}`}
                                                 className={`homeojob-plan-card__cta${
                                                     plan.popular ? " homeojob-plan-card__cta--solid" : ""
                                                 }`}

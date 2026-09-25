@@ -16,6 +16,7 @@ import {
   Spinner,
   Table,
 } from "reactstrap";
+import Swal from "sweetalert2";
 import {
   addFamilyRelation,
   createFamilyMember,
@@ -230,7 +231,18 @@ const FamilyMembers = () => {
   const onDelete = async (row) => {
     const id = row.familyMemberId ?? row.FamilyMemberId;
     if (!id) return;
-    if (!window.confirm("Remove this family member?")) return;
+    const name = row.patientName ?? row.PatientName ?? "this family member";
+    const confirm = await Swal.fire({
+      icon: "warning",
+      title: "Remove family member?",
+      text: `${name} will be removed from your family list.`,
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, remove",
+      cancelButtonText: "Cancel",
+    });
+    if (!confirm.isConfirmed) return;
     setSaving(true);
     setError(null);
     try {

@@ -4,12 +4,14 @@ import {
   Modal, ModalBody, ModalFooter, ModalHeader, Row, Spinner,
 } from 'reactstrap';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
+import SubSectionSearchSelect from '../../../Components/Common/SubSectionSearchSelect';
 import Swal from 'sweetalert2';
 import {
   getRubricMetaphors,
   createRubricMetaphor,
   updateRubricMetaphor,
   deleteRubricMetaphor,
+  deleteAllRubricMetaphors,
   approveRubricMetaphor,
   rejectRubricMetaphor,
 } from '../../../helpers/realbackend_helper';
@@ -21,6 +23,7 @@ const emptyForm = {
   language: 'en',
   confidenceWeight: 0.85,
   subSectionId: '',
+  subSectionLabel: '',
 };
 
 const ListRubricMetaphors = () => {
@@ -44,9 +47,10 @@ const ListRubricMetaphors = () => {
         pageNumber: page,
         pageSize,
       });
-      const payload = response?.data?.resultObject ?? response?.data ?? {};
-      setItems(payload.items ?? []);
-      setTotalCount(payload.totalCount ?? 0);
+      const payload = response?.resultObject ?? response?.ResultObject ?? response?.data ?? response ?? {};
+      const list = payload.items ?? payload.Items ?? (Array.isArray(payload) ? payload : []);
+      setItems(Array.isArray(list) ? list : []);
+      setTotalCount(payload.totalCount ?? payload.TotalCount ?? list.length ?? 0);
       setCurrentPage(page);
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Load failed', text: error?.message || 'Could not load metaphors.' });
@@ -59,15 +63,15 @@ const ListRubricMetaphors = () => {
     load(1);
   }, [languageFilter]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      load(1);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [search, load]);
+
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
-  };
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      load(1);
-    }
   };
 
   const openCreate = () => {
@@ -77,14 +81,15 @@ const ListRubricMetaphors = () => {
   };
 
   const openEdit = (row) => {
-    setEditId(row.metaphorId);
+    setEditId(row.metaphorId ?? row.MetaphorId);
     setForm({
-      patientExpression: row.patientExpression || '',
-      clinicalMeaning: row.clinicalMeaning || '',
-      rubricMeaning: row.rubricMeaning || '',
-      language: row.language || 'en',
-      confidenceWeight: row.confidenceWeight ?? 0.85,
-      subSectionId: row.subSectionId ?? '',
+      patientExpression: row.patientExpression ?? row.PatientExpression ?? '',
+      clinicalMeaning: row.clinicalMeaning ?? row.ClinicalMeaning ?? '',
+      rubricMeaning: row.rubricMeaning ?? row.RubricMeaning ?? '',
+      language: row.language ?? row.Language ?? 'en',
+      confidenceWeight: row.confidenceWeight ?? row.ConfidenceWeight ?? 0.85,
+      subSectionId: row.subSectionId ?? row.SubSectionId ?? '',
+      subSectionLabel: row.subSectionName ?? row.SubSectionName ?? '',
     });
     setModalOpen(true);
   };
@@ -111,6 +116,25 @@ const ListRubricMetaphors = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const confirm = await Swal.fire({
+      icon: 'warning',
+      title: 'Delete all metaphors?',
+      text: 'This will permanently remove all rubric metaphors. This action cannot be undone!',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete all',
+    });
+    if (!confirm.isConfirmed) return;
+    try {
+      await deleteAllRubricMetaphors();
+      await load(1);
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Delete failed', text: error?.message || 'Could not delete all metaphors.' });
+    }
+  };
+
   const handleDelete = async (row) => {
     const confirm = await Swal.fire({
       icon: 'warning',
@@ -122,7 +146,7 @@ const ListRubricMetaphors = () => {
       confirmButtonText: 'Yes, delete it!',
     });
     if (!confirm.isConfirmed) return;
-    await deleteRubricMetaphor(row.metaphorId);
+    await deleteRubricMetaphor(row.metaphorId ?? row.MetaphorId);
     await load(currentPage);
   };
 
@@ -205,17 +229,16 @@ const ListRubricMetaphors = () => {
                       placeholder="Search metaphors..."
                       value={search}
                       onChange={handleSearchChange}
-                      onKeyDown={handleSearchKeyDown}
                     />
                   </div>
                   <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
                     <button
                       type="button"
-                      className="btn btn-sm admin-list-btn admin-list-btn--export"
-                      onClick={() => load(1)}
+                      className="btn btn-sm btn-soft-danger"
+                      onClick={handleDeleteAll}
                     >
-                      <i className="ri-search-line align-middle me-1" aria-hidden="true" />
-                      Search
+                      <i className="ri-delete-bin-5-line align-middle me-1" aria-hidden="true" />
+                      Delete all
                     </button>
                     <button
                       type="button"
@@ -406,8 +429,24 @@ const ListRubricMetaphors = () => {
               <Input type="number" step="0.01" min="0" max="1" value={form.confidenceWeight} onChange={(e) => setForm({ ...form, confidenceWeight: e.target.value })} />
             </Col>
             <Col md={4}>
-              <Label>SubSectionId (optional)</Label>
-              <Input value={form.subSectionId} onChange={(e) => setForm({ ...form, subSectionId: e.target.value })} />
+              <Label>SubSection (optional)</Label>
+              <SubSectionSearchSelect
+                value={
+                  form.subSectionId
+                    ? {
+                        value: Number(form.subSectionId),
+                        label: form.subSectionLabel || `SubSection #${form.subSectionId}`,
+                      }
+                    : null
+                }
+                onChange={(option) =>
+                  setForm({
+                    ...form,
+                    subSectionId: option?.value ?? '',
+                    subSectionLabel: option?.label ?? '',
+                  })
+                }
+              />
             </Col>
           </Row>
         </ModalBody>

@@ -15,6 +15,7 @@ import {
   Spinner,
   Table,
 } from "reactstrap";
+import Swal from "sweetalert2";
 import {
   getCaregiverMe,
   grantCaregiver,
@@ -169,7 +170,23 @@ const CaregiverAccess = () => {
   const onRevoke = async (row) => {
     const id = row.caregiverAuthorizationId ?? row.CaregiverAuthorizationId;
     if (!id) return;
-    if (!window.confirm("Revoke this caregiver grant?")) return;
+    const name =
+      row.caregiverDisplayName ??
+      row.CaregiverDisplayName ??
+      row.displayName ??
+      row.DisplayName ??
+      "this caregiver";
+    const confirm = await Swal.fire({
+      icon: "warning",
+      title: "Revoke caregiver access?",
+      text: `${name} will no longer be able to act on your behalf.`,
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, revoke",
+      cancelButtonText: "Cancel",
+    });
+    if (!confirm.isConfirmed) return;
     setSaving(true);
     setError(null);
     try {
