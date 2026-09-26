@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import CountUp from "react-countup";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Alert, Button, Card, CardBody, Col, Container, Input, Modal, ModalBody, ModalHeader, ModalFooter, PopoverBody, PopoverHeader, Row, UncontrolledPopover, UncontrolledTooltip, Pagination, PaginationItem, PaginationLink, Label, Form, FormGroup, UncontrolledAlert } from 'reactstrap';
 import Swal from 'sweetalert2';
@@ -42,6 +42,7 @@ import {
     buildPatientSelectOption,
     DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT,
     DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT,
+    dispatchOpenDoctorScheduleCalendar,
     formatPlanDaysRemaining,
     getPlanDaysRemaining,
     getPlanDaysRemainingToneClass,
@@ -236,10 +237,17 @@ const PatientListTimeCell = ({ appointment }) => (
     </span>
 );
 
+const formatPatientListStatusLabel = (status) => {
+    if (statusMatches(status, 'E-Consult') || statusMatches(status, 'E-CONSULT')) {
+        return 'Telemedicine';
+    }
+    return status || 'N/A';
+};
+
 const PatientListStatusBadge = ({ status, badgeClass }) => (
     <span className={`badge patient-list-modal__status ${badgeClass || 'bg-secondary'}`}>
         <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
-        {status || 'N/A'}
+        {formatPatientListStatusLabel(status)}
     </span>
 );
 
@@ -401,6 +409,54 @@ const UnpaidConsultationTableHead = () => (
     </thead>
 );
 
+/** Appointment status filter options for Patients (billing) modal. */
+const APPOINTMENT_STATUS_FILTER_OPTIONS = [
+    { value: 'all', label: 'All' },
+    { value: 'upcoming', label: 'Upcoming' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'canceled', label: 'Canceled' },
+];
+
+const getAppointmentStatusFilterBucket = (status) => {
+    if (!status) return null;
+    if (statusMatches(status, 'Completed') || statusMatches(status, 'COMPLETED')) {
+        return 'completed';
+    }
+    if (
+        statusMatches(status, 'Cancelled') ||
+        statusMatches(status, 'CANCELLED') ||
+        statusMatches(status, 'Canceled') ||
+        statusMatches(status, 'CANCELED')
+    ) {
+        return 'canceled';
+    }
+    return 'upcoming';
+};
+
+const getPatientAppointmentsSorted = (patient, appointmentList = []) => {
+    const patientId = patient?.patientID ?? patient?.patientId;
+    if (patientId == null || !Array.isArray(appointmentList) || appointmentList.length === 0) {
+        return [];
+    }
+
+    return appointmentList
+        .filter((appointment) => {
+            const appointmentPatientId = appointment?.patientID ?? appointment?.patientId;
+            return String(appointmentPatientId) === String(patientId);
+        })
+        .slice()
+        .sort((a, b) => {
+            const aDate = moment(a?.appointmentDate);
+            const bDate = moment(b?.appointmentDate);
+            const aValid = aDate.isValid();
+            const bValid = bDate.isValid();
+            if (aValid && bValid) return bDate.valueOf() - aDate.valueOf();
+            if (aValid) return -1;
+            if (bValid) return 1;
+            return 0;
+        });
+};
+
 /** Resolve last appointment date for a patient (API fields or appointment list). */
 const resolvePatientLastAppointmentDate = (patient, appointmentList = [], fallbackIndex = 0) => {
     const candidates = [
@@ -417,20 +473,12 @@ const resolvePatientLastAppointmentDate = (patient, appointmentList = [], fallba
         }
     }
 
-    const patientId = patient?.patientID ?? patient?.patientId;
-    if (patientId != null && Array.isArray(appointmentList) && appointmentList.length > 0) {
-        const matches = appointmentList
-            .filter((appointment) => {
-                const appointmentPatientId = appointment?.patientID ?? appointment?.patientId;
-                return String(appointmentPatientId) === String(patientId) && appointment?.appointmentDate;
-            })
-            .map((appointment) => moment(appointment.appointmentDate))
-            .filter((date) => date.isValid())
-            .sort((a, b) => b.valueOf() - a.valueOf());
+    const matches = getPatientAppointmentsSorted(patient, appointmentList)
+        .map((appointment) => moment(appointment.appointmentDate))
+        .filter((date) => date.isValid());
 
-        if (matches.length > 0) {
-            return matches[0].format('DD-MM-YYYY');
-        }
+    if (matches.length > 0) {
+        return matches[0].format('DD-MM-YYYY');
     }
 
     if (patient?.enteredDate && moment(new Date(patient.enteredDate)).isValid()) {
@@ -439,6 +487,16 @@ const resolvePatientLastAppointmentDate = (patient, appointmentList = [], fallba
 
     // Deterministic demo dates when API has no last-appointment value
     return moment().subtract(fallbackIndex + 1, 'days').format('DD-MM-YYYY');
+};
+
+const patientMatchesAppointmentStatusFilter = (patient, appointmentList, filterValue) => {
+    if (!filterValue || filterValue === 'all') return true;
+    const matches = getPatientAppointmentsSorted(patient, appointmentList);
+    if (matches.length === 0) return false;
+    return matches.some((appointment) => {
+        const bucket = getAppointmentStatusFilterBucket(appointment.status ?? appointment.appStatus);
+        return bucket === filterValue;
+    });
 };
 
 /** Build a fixed consultation list: unpaidCount Unpaid + paidCount Paid rows. */
@@ -1097,7 +1155,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
                     />
                 </ModalHeader>
                 <ModalBody>
-                    <div className="row g-3 new-patient-modal__fields">
+                    <div className="row g-2 new-patient-modal__fields">
                         <div className="col-md-6">
                             <Label className="form-label new-patient-modal__label">
                                 <i className="ri-user-line" aria-hidden="true" />
@@ -1402,6 +1460,7 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
     const patientListLoading = useSelector((state) => state?.DoctorDashboard?.patientListLoading);
 
     const [searchTerm, setSearchTerm] = useState("");
+    const [appointmentStatusFilter, setAppointmentStatusFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
 
@@ -1417,6 +1476,7 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
             }));
         }
         setSearchTerm("");
+        setAppointmentStatusFilter('all');
         setCurrentPage(1);
     }, [isOpen, dispatch]);
 
@@ -1426,6 +1486,10 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
     );
 
     const filtered = patientsWithStatus.filter((patient) => {
+        if (!patientMatchesAppointmentStatusFilter(patient, appointmentList, appointmentStatusFilter)) {
+            return false;
+        }
+
         const needle = searchTerm.trim().toLowerCase();
         if (!needle) return true;
 
@@ -1452,6 +1516,13 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
         setCurrentPage(1);
     };
 
+    const handleAppointmentStatusFilter = (e) => {
+        setAppointmentStatusFilter(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const hasActiveFilters = Boolean(searchTerm) || appointmentStatusFilter !== 'all';
+
     return (
         <Modal size="xl" id="billingListModal" isOpen={isOpen} toggle={toggle} className="patient-list-modal">
             <ModalHeader id="billingListModalLabel" className="patient-list-modal__header" toggle={toggle}>
@@ -1464,6 +1535,23 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
                 <PatientListModalHeaderActions
                     value={searchTerm}
                     onChange={handleSearch}
+                    extra={(
+                        <div className="patient-list-modal__status-filter">
+                            <Input
+                                type="select"
+                                bsSize="sm"
+                                value={appointmentStatusFilter}
+                                onChange={handleAppointmentStatusFilter}
+                                aria-label="Filter by appointment status"
+                            >
+                                {APPOINTMENT_STATUS_FILTER_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </Input>
+                        </div>
+                    )}
                 />
             </ModalHeader>
             <ModalBody>
@@ -1521,7 +1609,7 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
                                         <tr>
                                             <PatientListEmptyCell
                                                 colSpan={8}
-                                                message={searchTerm ? 'No patients found matching your search' : 'No unpaid consultation patients available'}
+                                                message={hasActiveFilters ? 'No patients found matching your filters' : 'No unpaid consultation patients available'}
                                             />
                                         </tr>
                                     )}
@@ -1535,7 +1623,7 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
                         {patientListLoading ? (
                             'Loading...'
                         ) : (
-                            `Showing ${pageItems.length} of ${filtered.length} Patients (${unpaidCount} Unpaid, ${paidCount} Paid)${searchTerm ? ` · filtered from ${patientsWithStatus.length}` : ''}`
+                            `Showing ${pageItems.length} of ${filtered.length} Patients (${unpaidCount} Unpaid, ${paidCount} Paid)${hasActiveFilters ? ` · filtered from ${patientsWithStatus.length}` : ''}`
                         )}
                     </div>
                     {!patientListLoading && totalPages > 1 && (
@@ -1837,6 +1925,7 @@ const formatIndianRupeeAmount = (amount) => {
 };
 
 const Widgets = () => {
+    const navigate = useNavigate();
     const dispatch = useDispatch();
     const loginUser = useSelector((state) => state?.Login?.user);
     const planDaysRemaining = useMemo(
@@ -2747,21 +2836,6 @@ const Widgets = () => {
                         </div>
                     </div>
                 </div>
-                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_econsult()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_econsult(); } }}>
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-customer-service-2-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppEConsult ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">E-CONSULT</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_remaining()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_remaining(); } }}>
                     <div className="card-animate card mb-2 doctor-kpi-card">
                         <div className="card-body d-flex gap-3 align-items-center">
@@ -2788,6 +2862,32 @@ const Widgets = () => {
                             <div className="flex-grow-1">
                                 <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppComplated ?? 0}</h5>
                                 <p className="mb-0 text-muted doctor-kpi-label">COMPLETED</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    className="col-6 col-md-4 col-lg-2"
+                    onClick={() => navigate('/doctor/telemedicine')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            navigate('/doctor/telemedicine');
+                        }
+                    }}
+                >
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-customer-service-2-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppEConsult ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">TELEMEDICINE</p>
                             </div>
                         </div>
                     </div>
@@ -2829,7 +2929,15 @@ const Widgets = () => {
                                     <a className="doctor-dashboard-action-link text-decoration-none" href="#" onClick={(e) => { e.preventDefault(); setModalAppointmentList(true); }}>View All</a>
                                 </div>
                                 <div className="avatar-sm flex-shrink-0">
-                                    <span className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon"><i className="mdi mdi-calendar-clock"></i></span>
+                                    <button
+                                        type="button"
+                                        className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon doctor-action-icon--clickable border-0"
+                                        title="Doctor Schedule Calendar"
+                                        aria-label="Open doctor schedule calendar"
+                                        onClick={dispatchOpenDoctorScheduleCalendar}
+                                    >
+                                        <i className="mdi mdi-calendar-clock" aria-hidden="true" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -2869,7 +2977,18 @@ const Widgets = () => {
                                     <a className="doctor-dashboard-action-link text-decoration-none me-3" href="#" onClick={(e) => { e.preventDefault(); setModalPatientList(true); }}>View All</a>
                                 </div>
                                 <div className="avatar-sm flex-shrink-0">
-                                    <span className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon"><i className="mdi mdi-account-plus"></i></span>
+                                    <button
+                                        type="button"
+                                        className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon doctor-action-icon--clickable border-0"
+                                        title="Create New Patient"
+                                        aria-label="Create new patient"
+                                        onClick={(e) => {
+                                            tog_newPatient();
+                                            e.currentTarget.blur();
+                                        }}
+                                    >
+                                        <i className="mdi mdi-account-plus" aria-hidden="true" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -2901,7 +3020,7 @@ const Widgets = () => {
                                             setModalBillingList(true);
                                         }}
                                     >
-                                        View Unpaid ({unpaidConsultationCount})
+                                        View All
                                     </a>
                                 </div>
                                 <div className="avatar-sm flex-shrink-0">
@@ -3108,7 +3227,7 @@ const Widgets = () => {
                                     </div>
                                 )}
                                 <Form>
-                                <div className="row g-3 new-patient-modal__fields">
+                                <div className="row g-2 new-patient-modal__fields">
                                     <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-user-line" aria-hidden="true" />
@@ -3216,7 +3335,7 @@ const Widgets = () => {
                                         {renderNewPatientFieldError(Boolean(errors.address && touched.address), errors.address)}
                                     </div>
 
-                                    <div className="col-md-6 new-patient-modal__field">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-global-line" aria-hidden="true" />
                                             Country <span className="text-danger">*</span>
@@ -3242,7 +3361,7 @@ const Widgets = () => {
                                         </div>
                                         {renderNewPatientFieldError(Boolean(errors.countryId && touched.countryId), errors.countryId)}
                                     </div>
-                                    <div className="col-md-6 new-patient-modal__field">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-map-2-line" aria-hidden="true" />
                                             State <span className="text-danger">*</span>
@@ -3288,6 +3407,7 @@ const Widgets = () => {
                                         />
                                         {renderNewPatientFieldError(Boolean(errors.mobileNo && touched.mobileNo), errors.mobileNo)}
                                     </div>
+
                                     <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-phone-line" aria-hidden="true" />
@@ -3317,8 +3437,7 @@ const Widgets = () => {
                                         />
                                         {renderNewPatientFieldError(Boolean(errors.email && touched.email), errors.email)}
                                     </div>
-
-                                    <div className="col-md-6">
+                                    <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-user-shared-line" aria-hidden="true" />
                                             Refer By
@@ -3681,7 +3800,7 @@ const Widgets = () => {
                 <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_econsult(); }}>
                     <PatientListModalTitle
                         icon="ri-vidicon-line"
-                        title="E-Consult Patients"
+                        title="Telemedicine Patients"
                         variant="simple"
                         iconColor="#25a0e2"
                     />
@@ -3702,7 +3821,7 @@ const Widgets = () => {
                                                 <div className="spinner-border spinner-border-sm me-2" role="status">
                                                     <span className="visually-hidden">Loading...</span>
                                                 </div>
-                                                Loading e-consult patients...
+                                                Loading telemedicine patients...
                                             </div>
                                         </td>
                                     </tr>
@@ -3734,7 +3853,7 @@ const Widgets = () => {
                                 {econsultPageItems.length === 0 && !appointmentListLoading && (
                                     <tr>
                                         <PatientListEmptyCell
-                                            message={econsultSearch ? 'No e-consult patients found matching your search' : 'No e-consult patients available'}
+                                            message={econsultSearch ? 'No telemedicine patients found matching your search' : 'No telemedicine patients available'}
                                         />
                                     </tr>
                                 )}
@@ -3746,7 +3865,7 @@ const Widgets = () => {
                             {appointmentListLoading ? (
                                 'Loading...'
                             ) : (
-                                `Showing ${econsultPageItems.length} of ${econsultFiltered.length} E-Consult Patients ${econsultSearch ? `(filtered from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total e-consult)` : `(from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total e-consult)`}`
+                                `Showing ${econsultPageItems.length} of ${econsultFiltered.length} Telemedicine Patients ${econsultSearch ? `(filtered from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total telemedicine)` : `(from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total telemedicine)`}`
                             )}
                         </div>
                         {!appointmentListLoading && econsultTotalPages > 1 && (

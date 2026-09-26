@@ -97,6 +97,40 @@ export const getPharmacyHorizontalMenuItems = () => [
   },
 ];
 
+/** Flat Reception portal nav (Dashboard / Appointments / Patients / Payments / Schedule). No More menu. */
+export const getReceptionHorizontalMenuItems = () => [
+  {
+    id: 'receptiondashboard',
+    label: 'Dashboard',
+    icon: 'ri-dashboard-2-line',
+    link: '/receptiondashboard',
+  },
+  {
+    id: 'receptionappointments',
+    label: 'Appointments',
+    icon: 'ri-calendar-check-line',
+    link: '/reception/appointments',
+  },
+  {
+    id: 'receptionpatients',
+    label: 'Patients',
+    icon: 'ri-team-line',
+    link: '/reception/patients',
+  },
+  {
+    id: 'receptionpayments',
+    label: 'Payments',
+    icon: 'ri-money-rupee-circle-line',
+    link: '/reception/payments',
+  },
+  {
+    id: 'receptionschedule',
+    label: 'Schedule',
+    icon: 'ri-calendar-2-line',
+    link: '/reception/schedule',
+  },
+];
+
 export const getHorizontalMenuSplit = (navChildren) => {
   const menuItems = [];
   const moreMenuItems = [];

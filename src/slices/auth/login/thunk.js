@@ -79,6 +79,24 @@ export const loginUser = (user, history) => async (dispatch) => {
       return;
     }
 
+    // Dummy Reception portal login (UI scaffold until Reception API is ready)
+    if (dummyUserName === "Reception" && dummyPassword === "Reception") {
+      const authUser = {
+        token: "dummy-reception-token",
+        userName: "Pooja",
+        displayName: "Pooja",
+        role: UserRole.RECEPTION,
+        daysRemaining: null,
+      };
+      sessionStorage.setItem("authUser", JSON.stringify(authUser));
+      dispatch(loginSuccess(authUser));
+      dispatch(loginLoading(false));
+      dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+      dispatch(changeLayout(layoutTypes.HORIZONTAL));
+      history("/receptiondashboard");
+      return;
+    }
+
     const response = await loginApi(user);
     const body = response?.data ?? response;
     const data = body?.data ?? body?.resultObject ?? body;
@@ -104,10 +122,9 @@ export const loginUser = (user, history) => async (dispatch) => {
         history('/doctordashboard')
       } else if (authUser.role === UserRole.RECEPTION) {
         dispatch(loginLoading(false));
-        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
-        dispatch(changeLayout(layoutTypes.SEMIBOX));
-        dispatch(fetchPatientBoardBackupSummary());
-        history('/doctordashboard')
+        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.HORIZONTAL));
+        history('/receptiondashboard')
       } else if (authUser.role === UserRole.ACCOUNT) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));

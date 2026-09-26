@@ -4,7 +4,7 @@ export const PATIENT_STATS_STATUS_LABELS = [
     'WAITING',
     'WALK-IN',
     'NOT ARRIVED',
-    'E-CONSULT',
+    'TELEMEDICINE',
     'REMAINING',
     'COMPLETED',
 ];

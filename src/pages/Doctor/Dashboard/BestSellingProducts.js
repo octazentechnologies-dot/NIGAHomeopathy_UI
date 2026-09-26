@@ -147,6 +147,25 @@ const toApiDateValue = (dateValue, fallbackDisplayDate) => {
 const getPatientAppIdFromRow = (patient) =>
     patient?.patientAppId ?? patient?.patientAppID ?? patient?.PatientAppId ?? patient?.id ?? null;
 
+const RESCHEDULE_REASON_OPTIONS = [
+    { value: '', label: 'Select reason' },
+    { value: 'Patient request', label: 'Patient request' },
+    { value: 'Doctor unavailable', label: 'Doctor unavailable' },
+    { value: 'Schedule conflict', label: 'Schedule conflict' },
+    { value: 'Emergency', label: 'Emergency' },
+    { value: 'Other', label: 'Other' },
+];
+
+const CANCELLATION_REASON_OPTIONS = [
+    { value: '', label: 'Select reason' },
+    { value: 'Patient request', label: 'Patient request' },
+    { value: 'Doctor unavailable', label: 'Doctor unavailable' },
+    { value: 'Schedule conflict', label: 'Schedule conflict' },
+    { value: 'Feeling better', label: 'Feeling better' },
+    { value: 'Emergency', label: 'Emergency' },
+    { value: 'Other', label: 'Other' },
+];
+
 const AppointmentTimeCell = ({
     patient,
     appStatus,
@@ -156,6 +175,8 @@ const AppointmentTimeCell = ({
     onTimeUpdated,
     appointmentDateFallback,
 }) => {
+    const dispatch = useDispatch();
+    const { userProfile } = useProfile();
     const patientAppId = getPatientAppIdFromRow(patient);
     const doctorId = patient?.doctorId || patient?.doctorID;
     const rawTime = patient?.appointmentTime;
@@ -167,10 +188,28 @@ const AppointmentTimeCell = ({
     const [slotInterval, setSlotInterval] = useState(null);
     const [saving, setSaving] = useState(false);
     const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+    const [rescheduleReason, setRescheduleReason] = useState('');
+    const [additionalNote, setAdditionalNote] = useState('');
+    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [cancelModalOpen, setCancelModalOpen] = useState(false);
+    const [cancellationReason, setCancellationReason] = useState('');
+    const [cancellationNote, setCancellationNote] = useState('');
+    const [cancelling, setCancelling] = useState(false);
 
     useEffect(() => {
         setDisplayTime(formatAppointmentTime(rawTime));
     }, [rawTime]);
+
+    useEffect(() => {
+        if (!isEditing) {
+            setRescheduleReason('');
+            setAdditionalNote('');
+            setSelectedSlot(null);
+            setCancelModalOpen(false);
+            setCancellationReason('');
+            setCancellationNote('');
+        }
+    }, [isEditing]);
 
     const loadSlots = async () => {
         if (!doctorId || !appointmentDate) {
@@ -206,8 +245,31 @@ const AppointmentTimeCell = ({
         loadSlots();
     }, [isEditing, doctorId, appointmentDate, patientAppId]);
 
-    const handleSlotClick = async (slot) => {
-        if (!patientAppId || slot.status !== 'available') {
+    useEffect(() => {
+        if (!isEditing || !slots.length) return;
+        const currentSlot = slots.find((slot) => slot.status === 'current')
+            || slots.find((slot) => formatAppointmentTime(slot.time) === displayTime);
+        if (currentSlot) {
+            setSelectedSlot((prev) => prev || currentSlot);
+        }
+    }, [isEditing, slots, displayTime]);
+
+    const handleSlotClick = (slot) => {
+        if (!slot || (slot.status !== 'available' && slot.status !== 'current')) {
+            return;
+        }
+        setSelectedSlot(slot);
+    };
+
+    const handleUpdateAppointment = async () => {
+        if (!patientAppId || !selectedSlot) {
+            Swal.fire({
+                title: 'Select a slot',
+                text: 'Please select an available time slot before updating.',
+                icon: 'info',
+                timer: 1800,
+                showConfirmButton: false,
+            });
             return;
         }
 
@@ -215,10 +277,12 @@ const AppointmentTimeCell = ({
         try {
             await updateAppointmentTime({
                 patientAppId,
-                appointmentTime: slot.time,
+                appointmentTime: selectedSlot.time,
                 appointmentDate,
+                reasonForReschedule: rescheduleReason || undefined,
+                additionalNote: additionalNote.trim() || undefined,
             });
-            setDisplayTime(formatAppointmentTime(slot.time));
+            setDisplayTime(formatAppointmentTime(selectedSlot.time));
             onCancelEdit();
             onTimeUpdated?.();
             Swal.fire({
@@ -242,8 +306,93 @@ const AppointmentTimeCell = ({
         }
     };
 
+    const closeCancelModal = () => {
+        if (cancelling) return;
+        setCancelModalOpen(false);
+        setCancellationReason('');
+        setCancellationNote('');
+    };
+
+    const handleConfirmCancelAppointment = async () => {
+        if (!patientAppId) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Appointment ID not found',
+                icon: 'error',
+                timer: 2000,
+                showConfirmButton: false,
+            });
+            return;
+        }
+        if (!cancellationReason) {
+            Swal.fire({
+                title: 'Select a reason',
+                text: 'Please select a cancellation reason.',
+                icon: 'info',
+                timer: 1800,
+                showConfirmButton: false,
+            });
+            return;
+        }
+
+        setCancelling(true);
+        try {
+            await dispatch(updateAppointmentStatus({
+                patientAppId,
+                status: 'CANCELLED',
+                cancellationReason,
+                additionalNote: cancellationNote.trim() || undefined,
+            }));
+            setCancelModalOpen(false);
+            onCancelEdit();
+            onTimeUpdated?.();
+            Swal.fire({
+                title: 'Cancelled!',
+                text: 'Appointment has been cancelled.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        } catch (error) {
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to cancel appointment';
+            Swal.fire({
+                title: 'Error!',
+                text: errorMessage,
+                icon: 'error',
+                timer: 2000,
+                showConfirmButton: false,
+            });
+        } finally {
+            setCancelling(false);
+        }
+    };
+
     const editButtonId = `appointment-time-edit-${patientAppId}`;
     const patientName = patient?.name || patient?.patientName || 'Patient';
+    const loggedInDoctorName = userProfile?.userName
+        || userProfile?.user?.userName
+        || userProfile?.name
+        || [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(' ')
+        || '';
+    const rawDoctorName = patient?.doctorName
+        || patient?.DoctorName
+        || (typeof patient?.doctor === 'string' ? patient.doctor : '')
+        || loggedInDoctorName
+        || 'Nikhil Jamdar';
+    const doctorName = /^dr\.?\s/i.test(String(rawDoctorName).trim())
+        ? String(rawDoctorName).trim()
+        : `Dr. ${String(rawDoctorName).trim()}`;
+    const appointmentTypeLabel = patient?.appointmentType
+        || patient?.consultType
+        || (String(appStatus || '').toUpperCase() === 'E-CONSULT' ? 'Telemedicine' : 'In-Clinic');
+    const appointmentSummaryWhen = (() => {
+        const datePart = moment(appointmentDate, ['YYYY-MM-DD', DOB_DISPLAY_FORMAT], true);
+        const timePart = selectedSlot?.label || displayTime || formatAppointmentTime(rawTime);
+        if (datePart.isValid()) {
+            return `${datePart.format('ddd, D MMM YYYY')}${timePart ? `, ${timePart}` : ''}`;
+        }
+        return [appointmentDate, timePart].filter(Boolean).join(', ') || '—';
+    })();
 
     return (
         <>
@@ -306,6 +455,37 @@ const AppointmentTimeCell = ({
                                 }
                             />
                         </div>
+                        <div className="col-md-6">
+                            <Label className="form-label appointment-time-edit-modal__label">
+                                <i className="ri-refresh-line" />
+                                Reason for Reschedule
+                            </Label>
+                            <Input
+                                type="select"
+                                value={rescheduleReason}
+                                onChange={(e) => setRescheduleReason(e.target.value)}
+                                disabled={saving || cancelling}
+                            >
+                                {RESCHEDULE_REASON_OPTIONS.map((option) => (
+                                    <option key={option.label} value={option.value} disabled={option.value === ''}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </Input>
+                        </div>
+                        <div className="col-md-6">
+                            <Label className="form-label appointment-time-edit-modal__label">
+                                <i className="ri-sticky-note-line" />
+                                Additional Note
+                            </Label>
+                            <Input
+                                type="text"
+                                value={additionalNote}
+                                onChange={(e) => setAdditionalNote(e.target.value)}
+                                disabled={saving || cancelling}
+                                placeholder=""
+                            />
+                        </div>
                     </div>
                     {!doctorId ? (
                         <div className="text-muted">Doctor information is missing for this appointment.</div>
@@ -326,6 +506,7 @@ const AppointmentTimeCell = ({
                             <AppointmentSlotGrid
                                 slots={slots}
                                 loading={slotsLoading || saving}
+                                selectedTime={selectedSlot?.time}
                                 onSlotClick={handleSlotClick}
                                 emptyMessage="No slots configured for this date."
                                 showSummaryBar
@@ -333,11 +514,115 @@ const AppointmentTimeCell = ({
                         </div>
                     )}
                     <div className="text-muted mt-2" style={{ fontSize: '0.875rem' }}>
-                        Click an available slot to update the appointment time instantly.
+                        Select an available slot, then click Reschedule Appointment to save the new time.
                     </div>
                 </ModalBody>
-                <ModalFooter>
-                    <ModalActionButton action="close" onClick={onCancelEdit} disabled={saving} />
+                <ModalFooter className="appointment-time-edit-modal__footer">
+                    <button
+                        type="button"
+                        className="btn btn-soft-danger modal-action-btn"
+                        onClick={() => setCancelModalOpen(true)}
+                        disabled={saving || cancelling}
+                    >
+                        <i className="ri-calendar-close-line align-middle" aria-hidden />
+                        <span>Cancel Appointment</span>
+                    </button>
+                    <ModalActionButton
+                        action="update"
+                        onClick={handleUpdateAppointment}
+                        disabled={saving || cancelling || !selectedSlot || !hasSchedule}
+                        loading={saving}
+                        loadingLabel="Reschedule Appointment"
+                    >
+                        Reschedule Appointment
+                    </ModalActionButton>
+                </ModalFooter>
+            </Modal>
+
+            <Modal
+                isOpen={cancelModalOpen}
+                toggle={closeCancelModal}
+                centered
+                className="patient-list-modal cancel-appointment-modal"
+                backdrop="static"
+            >
+                <ModalHeader className="patient-list-modal__header" toggle={closeCancelModal}>
+                    <span className="patient-list-modal__title patient-list-modal__title--simple">
+                        <span className="patient-list-modal__title-text">Cancel Appointment</span>
+                    </span>
+                </ModalHeader>
+                <ModalBody>
+                    <div className="cancel-appointment-modal__warning">
+                        <i className="ri-error-warning-fill" aria-hidden="true" />
+                        <div>
+                            <p className="cancel-appointment-modal__warning-title mb-2">
+                                Are you sure you want to cancel this appointment?
+                            </p>
+                            <div className="cancel-appointment-modal__summary">
+                                <span className="cancel-appointment-modal__avatar" aria-hidden="true">
+                                    <i className="ri-user-3-line" />
+                                </span>
+                                <div className="cancel-appointment-modal__summary-text">
+                                    <div className="cancel-appointment-modal__patient">{patientName}</div>
+                                    <div className="cancel-appointment-modal__meta">{doctorName}</div>
+                                    <div className="cancel-appointment-modal__meta">
+                                        {appointmentSummaryWhen}
+                                        {' • '}
+                                        {appointmentTypeLabel}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-3">
+                        <Label className="form-label appointment-time-edit-modal__label">
+                            Cancellation Reason
+                        </Label>
+                        <Input
+                            type="select"
+                            value={cancellationReason}
+                            onChange={(e) => setCancellationReason(e.target.value)}
+                            disabled={cancelling}
+                        >
+                            {CANCELLATION_REASON_OPTIONS.map((option) => (
+                                <option key={option.label} value={option.value} disabled={option.value === ''}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </Input>
+                    </div>
+                    <div className="mt-3">
+                        <Label className="form-label appointment-time-edit-modal__label">
+                            Additional Note
+                        </Label>
+                        <Input
+                            type="textarea"
+                            rows={3}
+                            value={cancellationNote}
+                            onChange={(e) => setCancellationNote(e.target.value)}
+                            disabled={cancelling}
+                        />
+                    </div>
+                </ModalBody>
+                <ModalFooter className="cancel-appointment-modal__footer">
+                    <button
+                        type="button"
+                        className="btn btn-outline-primary cancel-appointment-modal__keep-btn"
+                        onClick={closeCancelModal}
+                        disabled={cancelling}
+                    >
+                        <i className="ri-calendar-check-line align-middle" aria-hidden />
+                        <span>Keep Appointment</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-danger cancel-appointment-modal__confirm-btn"
+                        onClick={handleConfirmCancelAppointment}
+                        disabled={cancelling}
+                    >
+                        <i className="ri-calendar-close-line align-middle" aria-hidden />
+                        <span>{cancelling ? 'Cancelling...' : 'Cancel Appointment'}</span>
+                    </button>
                 </ModalFooter>
             </Modal>
 
@@ -1628,8 +1913,19 @@ const BestSellingProducts = () => {
         });
     };
 
-    const handleAppointmentTimeUpdated = () => {
-        loadAppointmentListForDate(selectedAppointmentDate);
+    const handleAppointmentTimeUpdated = async () => {
+        const { userId } = getPatientAuthContext();
+        const appointmentDateIso = toDashboardAppointmentDateIso(selectedAppointmentDate);
+        await loadAppointmentListForDate(selectedAppointmentDate);
+        try {
+            await dispatch(fetchDoctorDashboardCounts({
+                appointmentDate: appointmentDateIso,
+                status: '',
+                userId,
+            }));
+        } catch (error) {
+            console.error('Failed to refresh dashboard counts:', error);
+        }
     };
 
     // Helper function to render table rows (Today tab shows Appointment Time + Connect + New Appointment)
@@ -1712,7 +2008,7 @@ const BestSellingProducts = () => {
                                     onClick={() => handleStatusChange(patient, 'E-CONSULT')}
                                     active={patient.appStatus === 'E-CONSULT'}
                                 >
-                                    E-CONSULT
+                                    TELEMEDICINE
                                 </DropdownItem>
                                 <DropdownItem
                                     onClick={() => handleStatusChange(patient, 'REMAINING')}
@@ -2944,7 +3240,7 @@ const BestSellingProducts = () => {
                     </span>
                 </ModalHeader>
                 <ModalBody>
-                    <div className="row g-3 new-patient-modal__fields">
+                    <div className="row g-2 new-patient-modal__fields">
                         <div className="col-md-6">
                             <Label className="form-label new-patient-modal__label">
                                 <i className="ri-user-line" aria-hidden="true" />

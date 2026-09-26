@@ -10,8 +10,7 @@ const UserRole = {
 };
 
 /** Doctor dashboard UI without admin left sidebar */
-const usesDoctorDashboardLayout = (role) =>
-    role === UserRole.DOCTOR || role === UserRole.RECEPTION;
+const usesDoctorDashboardLayout = (role) => role === UserRole.DOCTOR;
 
 /** Account portal: horizontal top nav (same shell as admin) */
 const usesAccountDashboardLayout = (role) => role === UserRole.ACCOUNT;
@@ -19,13 +18,17 @@ const usesAccountDashboardLayout = (role) => role === UserRole.ACCOUNT;
 /** Pharmacy portal: horizontal top nav (same shell as admin) */
 const usesPharmacyDashboardLayout = (role) => role === UserRole.PHARMACY;
 
-/** Admin / Account / Pharmacy: full-width fixed topbar + horizontal nav */
+/** Reception portal: horizontal top nav (same shell as admin/account) */
+const usesReceptionDashboardLayout = (role) => role === UserRole.RECEPTION;
+
+/** Admin / Account / Pharmacy / Reception: full-width fixed topbar + horizontal nav */
 const usesAdminDashboardLayout = (role) =>
     role === UserRole.ADMIN ||
     usesAccountDashboardLayout(role) ||
-    usesPharmacyDashboardLayout(role);
+    usesPharmacyDashboardLayout(role) ||
+    usesReceptionDashboardLayout(role);
 
-/** Topbar briefcase "More" overflow menu (admin + doctor/reception) */
+/** Topbar briefcase "More" overflow menu (admin + doctor) */
 const usesTopbarMoreMenu = (role) =>
     role === UserRole.ADMIN || usesDoctorDashboardLayout(role);
 
@@ -44,6 +47,7 @@ export {
     usesDoctorDashboardLayout,
     usesAccountDashboardLayout,
     usesPharmacyDashboardLayout,
+    usesReceptionDashboardLayout,
     usesAdminDashboardLayout,
     usesTopbarMoreMenu,
     resolveUserRole,

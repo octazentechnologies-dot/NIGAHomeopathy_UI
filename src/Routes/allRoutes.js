@@ -150,10 +150,13 @@ import ListRubricBenchmarkDashboard from "../pages/Admin/RubricIntelligence/List
 import DoctorDashboard from "../pages/Doctor/Dashboard";
 import PatientBoardRoute from "./PatientBoardRoute";
 import AnatomyPage from "../pages/AnatomyPage";
+import TelemedicineDashboard from "../pages/Doctor/Telemedicine";
 import AccountDashboard from "../pages/Account/Dashboard";
 import AccountComingSoon from "../pages/Account/components/AccountComingSoon";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
+import ReceptionDashboard from "../pages/Reception/Dashboard";
+import ReceptionComingSoon from "../pages/Reception/components/ReceptionComingSoon";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -548,6 +551,7 @@ const authProtectedRoutes = [
 
   { path: "doctordashboard", component: <DoctorDashboard /> },
   { path: "doctor/patientboard", component: <PatientBoardRoute /> },
+  { path: "doctor/telemedicine", component: <TelemedicineDashboard /> },
   { path: "doctor/anatomy", component: <AnatomyPage /> },
 
 
@@ -570,6 +574,14 @@ const authProtectedRoutes = [
   { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" /> },
   { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" /> },
   // Pharmacy Side End //
+
+  // Reception Side //
+  { path: "receptiondashboard", component: <ReceptionDashboard /> },
+  { path: "reception/appointments", component: <ReceptionComingSoon title="Appointments" /> },
+  { path: "reception/patients", component: <ReceptionComingSoon title="Patients" /> },
+  { path: "reception/payments", component: <ReceptionComingSoon title="Payments" /> },
+  { path: "reception/schedule", component: <ReceptionComingSoon title="Schedule" /> },
+  // Reception Side End //
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },
