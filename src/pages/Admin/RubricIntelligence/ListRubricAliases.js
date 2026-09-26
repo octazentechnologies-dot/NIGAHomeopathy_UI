@@ -4,16 +4,19 @@ import {
   Modal, ModalBody, ModalFooter, ModalHeader, Row, Spinner,
 } from 'reactstrap';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
+import SubSectionSearchSelect from '../../../Components/Common/SubSectionSearchSelect';
 import Swal from 'sweetalert2';
 import {
   getRubricAliases,
   createRubricAlias,
   updateRubricAlias,
   deleteRubricAlias,
+  deleteAllRubricAliases,
 } from '../../../helpers/realbackend_helper';
 
 const emptyForm = {
   subSectionId: '',
+  subSectionLabel: '',
   aliasText: '',
   language: 'en',
   aliasType: 'patient_phrase',
@@ -29,6 +32,7 @@ const ListRubricAliases = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [formErrors, setFormErrors] = useState({});
   const pageSize = 10;
 
   const load = useCallback(async (page = 1) => {
@@ -39,9 +43,10 @@ const ListRubricAliases = () => {
         pageNumber: page,
         pageSize,
       });
-      const payload = response?.data?.resultObject ?? response?.data ?? {};
-      setItems(payload.items ?? []);
-      setTotalCount(payload.totalCount ?? 0);
+      const payload = response?.resultObject ?? response?.ResultObject ?? response?.data ?? response ?? {};
+      const list = payload.items ?? payload.Items ?? (Array.isArray(payload) ? payload : []);
+      setItems(Array.isArray(list) ? list : []);
+      setTotalCount(payload.totalCount ?? payload.TotalCount ?? list.length ?? 0);
       setCurrentPage(page);
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Load failed', text: error?.message || 'Could not load aliases.' });
@@ -51,39 +56,43 @@ const ListRubricAliases = () => {
   }, [search]);
 
   useEffect(() => {
-    load(1);
-  }, []);
+    const timer = window.setTimeout(() => {
+      load(1);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [search, load]);
 
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
 
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      load(1);
-    }
-  };
-
   const openCreate = () => {
     setEditId(null);
     setForm(emptyForm);
+    setFormErrors({});
     setModalOpen(true);
   };
 
   const openEdit = (row) => {
-    setEditId(row.rubricAliasId);
+    setEditId(row.rubricAliasId ?? row.RubricAliasId);
     setForm({
-      subSectionId: row.subSectionId,
-      aliasText: row.aliasText,
-      language: row.language || 'en',
-      aliasType: row.aliasType || 'patient_phrase',
-      weight: row.weight ?? 1,
+      subSectionId: row.subSectionId ?? row.SubSectionId ?? '',
+      subSectionLabel: row.subSectionName ?? row.SubSectionName ?? '',
+      aliasText: row.aliasText ?? row.AliasText ?? '',
+      language: row.language ?? row.Language ?? 'en',
+      aliasType: row.aliasType ?? row.AliasType ?? 'patient_phrase',
+      weight: row.weight ?? row.Weight ?? 1,
     });
+    setFormErrors({});
     setModalOpen(true);
   };
 
   const handleSave = async () => {
+    if (!form.subSectionId) {
+      setFormErrors({ subSectionId: 'SubSection is required.' });
+      return;
+    }
+    setFormErrors({});
     const body = {
       subSectionId: Number(form.subSectionId),
       aliasText: form.aliasText,
@@ -104,6 +113,25 @@ const ListRubricAliases = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const confirm = await Swal.fire({
+      icon: 'warning',
+      title: 'Delete all aliases?',
+      text: 'This will permanently remove all rubric aliases. This action cannot be undone!',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete all',
+    });
+    if (!confirm.isConfirmed) return;
+    try {
+      await deleteAllRubricAliases();
+      await load(1);
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Delete failed', text: error?.message || 'Could not delete all aliases.' });
+    }
+  };
+
   const handleDelete = async (row) => {
     const confirm = await Swal.fire({
       icon: 'warning',
@@ -115,7 +143,7 @@ const ListRubricAliases = () => {
       confirmButtonText: 'Yes, delete it!',
     });
     if (!confirm.isConfirmed) return;
-    await deleteRubricAlias(row.rubricAliasId);
+    await deleteRubricAlias(row.rubricAliasId ?? row.RubricAliasId);
     await load(currentPage);
   };
 
@@ -148,17 +176,16 @@ const ListRubricAliases = () => {
                       placeholder="Search alias or rubric name..."
                       value={search}
                       onChange={handleSearchChange}
-                      onKeyDown={handleSearchKeyDown}
                     />
                   </div>
                   <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
                     <button
                       type="button"
-                      className="btn btn-sm admin-list-btn admin-list-btn--export"
-                      onClick={() => load(1)}
+                      className="btn btn-sm btn-soft-danger"
+                      onClick={handleDeleteAll}
                     >
-                      <i className="ri-search-line align-middle me-1" aria-hidden="true" />
-                      Search
+                      <i className="ri-delete-bin-5-line align-middle me-1" aria-hidden="true" />
+                      Delete all
                     </button>
                     <button
                       type="button"
@@ -290,8 +317,28 @@ const ListRubricAliases = () => {
         <ModalHeader toggle={() => setModalOpen(false)}>{editId ? 'Edit alias' : 'Add alias'}</ModalHeader>
         <ModalBody>
           <div className="mb-3">
-            <Label>SubSectionId</Label>
-            <Input value={form.subSectionId} onChange={(e) => setForm({ ...form, subSectionId: e.target.value })} />
+            <Label>SubSection</Label>
+            <SubSectionSearchSelect
+              value={
+                form.subSectionId
+                  ? {
+                      value: Number(form.subSectionId),
+                      label: form.subSectionLabel || `SubSection #${form.subSectionId}`,
+                    }
+                  : null
+              }
+              onChange={(option) => {
+                setForm({
+                  ...form,
+                  subSectionId: option?.value ?? '',
+                  subSectionLabel: option?.label ?? '',
+                });
+                if (formErrors.subSectionId) setFormErrors({});
+              }}
+            />
+            {formErrors.subSectionId ? (
+              <small className="text-danger d-block mt-1">{formErrors.subSectionId}</small>
+            ) : null}
           </div>
           <div className="mb-3">
             <Label>Alias text</Label>

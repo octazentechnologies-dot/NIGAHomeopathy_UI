@@ -90,7 +90,10 @@ const PricingPage = () => {
                                                 </li>
                                             </ul>
                                             <div className="mt-4">
-                                                <Link to="/login" className="btn btn-soft-success w-100">
+                                                <Link
+                                                    to={`/register?package=${encodeURIComponent(pkg.packageName || "")}`}
+                                                    className="btn btn-soft-success w-100"
+                                                >
                                                     Buy Now
                                                 </Link>
                                             </div>

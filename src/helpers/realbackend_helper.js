@@ -743,6 +743,8 @@ export const updateRubricMetaphor = (id, data) =>
   nigahomeoAPI.put(`${url.RUBRIC_INTELLIGENCE_METAPHORS}/${id}`, data);
 export const deleteRubricMetaphor = (id) =>
   nigahomeoAPI.delete(`${url.RUBRIC_INTELLIGENCE_METAPHORS}/${id}`, null);
+export const deleteAllRubricMetaphors = () =>
+  nigahomeoAPI.delete(url.RUBRIC_INTELLIGENCE_METAPHORS, null);
 export const approveRubricMetaphor = (id) =>
   nigahomeoAPI.post(`${url.RUBRIC_INTELLIGENCE_METAPHORS}/${id}/approve`, {});
 export const rejectRubricMetaphor = (id) =>
@@ -756,6 +758,8 @@ export const updateRubricAlias = (id, data) =>
   nigahomeoAPI.put(`${url.RUBRIC_INTELLIGENCE_ALIASES}/${id}`, data);
 export const deleteRubricAlias = (id) =>
   nigahomeoAPI.delete(`${url.RUBRIC_INTELLIGENCE_ALIASES}/${id}`, null);
+export const deleteAllRubricAliases = () =>
+  nigahomeoAPI.delete(url.RUBRIC_INTELLIGENCE_ALIASES, null);
 
 /** M02 W0/W1 — Admin ACL status from New-API (requires JWT with RoleId/RoleName claims after re-login). */
 export const getAdminAclMe = () => nigahomeoAPI.get(url.ADMIN_ACL_ME, null);

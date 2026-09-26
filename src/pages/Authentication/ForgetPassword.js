@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import React from "react";
+import React, { useEffect } from "react";
 import { Row, Col, Alert, Card, CardBody, Container, FormFeedback, Input, Label, Form } from "reactstrap";
 
 //redux
@@ -14,6 +14,7 @@ import { useFormik } from "formik";
 
 // action
 import { userForgetPassword } from "../../slices/thunks";
+import { userForgetPasswordReset } from "../../slices/auth/forgetpwd/reducer";
 
 import ParticlesAuth from "../AuthenticationInner/ParticlesAuth";
 import { createSelector } from "reselect";
@@ -22,6 +23,13 @@ import logoDark from '../../assets/images/logo-dark.png';
 
 const ForgetPasswordPage = props => {
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(userForgetPasswordReset());
+    return () => {
+      dispatch(userForgetPasswordReset());
+    };
+  }, [dispatch]);
 
   const validation = useFormik({
     // enableReinitialize : use this flag when initial values needs to be changed
@@ -44,12 +52,11 @@ const ForgetPasswordPage = props => {
     (state) => ({
       forgetError: state.forgetError,
       forgetSuccessMsg: state.forgetSuccessMsg,
-      resetLink: state.resetLink,
-      mailSent: state.mailSent,
+      forgetLoading: state.forgetLoading,
     })
   );
   const {
-    forgetError, forgetSuccessMsg, resetLink, mailSent
+    forgetError, forgetSuccessMsg, forgetLoading
   } = useSelector(selectLayoutProperties);
 
   document.title = pageTitle('Forgot Password');
@@ -90,19 +97,6 @@ const ForgetPasswordPage = props => {
                     {forgetSuccessMsg ? (
                       <Alert color="success" style={{ marginTop: "13px" }}>
                         {forgetSuccessMsg}
-                        {mailSent === false ? (
-                          <div className="mt-2 small">
-                            The email could not be sent from this machine. Use the
-                            local reset link below.
-                          </div>
-                        ) : null}
-                        {resetLink ? (
-                          <div className="mt-2">
-                            <Link to={resetLink.replace(/^https?:\/\/[^/]+/i, "") || resetLink} className="fw-semibold text-primary">
-                              Open reset page
-                            </Link>
-                          </div>
-                        ) : null}
                       </Alert>
                     ) : null}
                     <Form
@@ -132,12 +126,27 @@ const ForgetPasswordPage = props => {
                       </div>
 
                       <div className="text-center mt-4">
-                        <button className="btn w-100 auth-signin-btn" type="submit">Send Reset Link</button>
+                        <button
+                          className="btn w-100 auth-signin-btn"
+                          type="submit"
+                          disabled={forgetLoading}
+                        >
+                          {forgetLoading ? "Sending..." : "Send Reset Link"}
+                        </button>
                       </div>
                     </Form>
 
                     <div className="mt-4 text-center">
-                      <p className="mb-0">Wait, I remember my password... <Link to="/login" className="fw-semibold text-primary text-decoration-underline"> Click here </Link> </p>
+                      <p className="mb-0">
+                        Wait, I remember my password...{" "}
+                        <Link
+                          to="/login"
+                          className="fw-semibold text-primary text-decoration-underline"
+                          onClick={() => dispatch(userForgetPasswordReset())}
+                        >
+                          {" "}Click here{" "}
+                        </Link>
+                      </p>
                     </div>
                   </div>
                 </CardBody>

@@ -33,12 +33,25 @@ const emptyForm = {
   contactNumber: "",
 };
 
-const unwrapList = (payload) =>
-  payload?.resultObject ??
-  payload?.ResultObject ??
-  payload?.data ??
-  payload?.Data ??
-  (Array.isArray(payload) ? payload : []);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const unwrapList = (payload) => {
+  const root =
+    payload?.resultObject ??
+    payload?.ResultObject ??
+    payload?.data ??
+    payload?.Data ??
+    payload;
+  if (Array.isArray(root)) return root;
+  const nested =
+    root?.items ??
+    root?.Items ??
+    root?.resultObject ??
+    root?.ResultObject ??
+    root?.data ??
+    root?.Data;
+  return Array.isArray(nested) ? nested : [];
+};
 
 const ReceptionStaffPage = () => {
   const userRole = resolveUserRole();
@@ -50,6 +63,8 @@ const ReceptionStaffPage = () => {
   const [formMode, setFormMode] = useState("add");
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,6 +103,7 @@ const ReceptionStaffPage = () => {
     setFormMode("add");
     setEditingId(null);
     setForm(emptyForm);
+    setFieldErrors({});
     setFormOpen(true);
   };
 
@@ -101,10 +117,30 @@ const ReceptionStaffPage = () => {
       emailId: row.emailId ?? row.EmailId ?? "",
       contactNumber: row.contactNumber ?? row.ContactNumber ?? "",
     });
+    setFieldErrors({});
     setFormOpen(true);
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (formMode === "add") {
+      if (!form.userID.trim()) errors.userID = "Login user id is required.";
+      if (!form.password) errors.password = "Password is required.";
+      else if (form.password.length < 6) errors.password = "Password must be at least 6 characters.";
+    }
+    if (!form.fullName.trim()) errors.fullName = "Full name is required.";
+    if (!form.contactNumber.trim()) errors.contactNumber = "Mobile number is required.";
+    const email = form.emailId.trim();
+    if (email && !EMAIL_PATTERN.test(email)) {
+      errors.emailId = "Enter a valid email address.";
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const saveForm = async () => {
+    if (!validateForm()) return;
+    setSaving(true);
     try {
       if (formMode === "add") {
         await addReceptionStaff({
@@ -131,6 +167,8 @@ const ReceptionStaffPage = () => {
         title: "Save failed",
         text: typeof err === "string" ? err : err?.message || "Could not save staff.",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -227,43 +265,74 @@ const ReceptionStaffPage = () => {
             <>
               <Label>Login user id</Label>
               <Input
-                className="mb-2"
+                className={fieldErrors.userID ? "mb-1" : "mb-2"}
                 value={form.userID}
-                onChange={(e) => setForm((p) => ({ ...p, userID: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, userID: e.target.value }));
+                  if (fieldErrors.userID) setFieldErrors((p) => ({ ...p, userID: undefined }));
+                }}
               />
+              {fieldErrors.userID ? (
+                <small className="text-danger d-block mb-2">{fieldErrors.userID}</small>
+              ) : null}
               <Label>Password</Label>
               <Input
                 type="password"
-                className="mb-2"
+                className={fieldErrors.password ? "mb-1" : "mb-2"}
                 value={form.password}
-                onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, password: e.target.value }));
+                  if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined }));
+                }}
               />
+              {fieldErrors.password ? (
+                <small className="text-danger d-block mb-2">{fieldErrors.password}</small>
+              ) : null}
             </>
           ) : null}
           <Label>Full name</Label>
           <Input
-            className="mb-2"
+            className={fieldErrors.fullName ? "mb-1" : "mb-2"}
             value={form.fullName}
-            onChange={(e) => setForm((p) => ({ ...p, fullName: e.target.value }))}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, fullName: e.target.value }));
+              if (fieldErrors.fullName) setFieldErrors((p) => ({ ...p, fullName: undefined }));
+            }}
           />
+          {fieldErrors.fullName ? (
+            <small className="text-danger d-block mb-2">{fieldErrors.fullName}</small>
+          ) : null}
           <Label>Email</Label>
           <Input
             type="email"
-            className="mb-2"
+            className={fieldErrors.emailId ? "mb-1" : "mb-2"}
             value={form.emailId}
-            onChange={(e) => setForm((p) => ({ ...p, emailId: e.target.value }))}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, emailId: e.target.value }));
+              if (fieldErrors.emailId) setFieldErrors((p) => ({ ...p, emailId: undefined }));
+            }}
           />
+          {fieldErrors.emailId ? (
+            <small className="text-danger d-block mb-2">{fieldErrors.emailId}</small>
+          ) : null}
           <Label>Mobile</Label>
           <Input
+            className={fieldErrors.contactNumber ? "mb-1" : "mb-2"}
             value={form.contactNumber}
-            onChange={(e) => setForm((p) => ({ ...p, contactNumber: e.target.value }))}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, contactNumber: e.target.value }));
+              if (fieldErrors.contactNumber) setFieldErrors((p) => ({ ...p, contactNumber: undefined }));
+            }}
           />
+          {fieldErrors.contactNumber ? (
+            <small className="text-danger d-block mb-2">{fieldErrors.contactNumber}</small>
+          ) : null}
         </ModalBody>
         <ModalFooter>
           <ModalActionButton color="light" onClick={() => setFormOpen(false)}>
             Cancel
           </ModalActionButton>
-          <ModalActionButton color="primary" onClick={saveForm}>
+          <ModalActionButton color="primary" onClick={saveForm} disabled={saving} loading={saving}>
             Save
           </ModalActionButton>
         </ModalFooter>
