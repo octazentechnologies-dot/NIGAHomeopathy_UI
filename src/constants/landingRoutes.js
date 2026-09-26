@@ -50,6 +50,7 @@ export const LANDING_PUBLIC_PATHS = [
     "/tele/waiting/:sessionId",
     "/instant-consult",
     "/instant-consult/queue",
+    "/recording-consent",
 ];
 
 export const landingPath = (...segments) => {

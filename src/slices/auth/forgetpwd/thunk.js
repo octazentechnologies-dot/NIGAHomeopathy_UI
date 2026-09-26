@@ -1,4 +1,8 @@
-import { userForgetPasswordSuccess, userForgetPasswordError } from "./reducer";
+import {
+  userForgetPasswordLoading,
+  userForgetPasswordSuccess,
+  userForgetPasswordError,
+} from "./reducer";
 import { forgotPasswordSecure } from "../../../helpers/realbackend_helper";
 
 /** SEC-02.03 — real New-API ForgotPassword (no fake/Firebase). */
@@ -9,6 +13,7 @@ export const userForgetPassword = (user) => async (dispatch) => {
       dispatch(userForgetPasswordError("Please Enter Your Email"));
       return;
     }
+    dispatch(userForgetPasswordLoading(true));
     const response = await forgotPasswordSecure(email);
     const body = response?.data ?? response;
     const message =

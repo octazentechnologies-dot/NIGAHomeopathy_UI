@@ -79,8 +79,10 @@ export const patientNewAppointment = (payload) => async (dispatch) => {
         dispatch(setAppointmentLoading(true));
         const response = await patientNewAppointmentApi(payload);
         dispatch(setAppointmentSuccess(response));
+        return response;
     } catch (error) {
         dispatch(setAppointmentError(error));
+        throw error;
     } finally {
         dispatch(setAppointmentLoading(false));
     }

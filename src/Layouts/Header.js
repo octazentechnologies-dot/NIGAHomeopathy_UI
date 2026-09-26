@@ -24,6 +24,7 @@ import ActivePatientSessionsStack from '../Components/Common/ActivePatientSessio
 import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeaderButton';
 import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
 import DoctorScheduleCalendarHeaderButton from '../Components/Common/DoctorScheduleCalendarHeaderButton';
+import DoctorMobileHeaderButtons from '../Components/Common/DoctorMobileHeaderButtons';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
 const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
@@ -113,6 +114,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                     <LastWorkBackupHeaderButton userRole={userRole} />
                                     <ReceptionStaffHeaderButton userRole={userRole} />
                                     <DoctorScheduleCalendarHeaderButton userRole={userRole} />
+                                    <DoctorMobileHeaderButtons userRole={userRole} />
                                     <ActivePatientSessionsStack />
                                 </div>
                             ) : null}

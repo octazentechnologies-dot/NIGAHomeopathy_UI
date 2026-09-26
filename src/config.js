@@ -37,7 +37,6 @@ module.exports = {
 
 // module.exports = {
 //     api: {
-//         // FND-01.03 — New-API (nigahomeoAPI) + Old-API login/Rx/Razorpay. Must include // after http:
 //         New_API_Base_URL: "http://localhost:5002/api",
 //         Old_API_Base_URL: "http://localhost:5001/api",
 //     }
