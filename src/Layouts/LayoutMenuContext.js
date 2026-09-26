@@ -4,6 +4,7 @@ import Navdata from './LayoutMenuData';
 import {
   getAccountHorizontalMenuItems,
   getPharmacyHorizontalMenuItems,
+  getReceptionHorizontalMenuItems,
   getHorizontalMenuSplit,
 } from '../helpers/horizontalMenuSplit';
 import { resolveUserRole, UserRole } from '../Components/constants/roles';
@@ -29,6 +30,12 @@ export const LayoutMenuProvider = ({ children }) => {
     if (role === UserRole.PHARMACY) {
       return {
         menuItems: getPharmacyHorizontalMenuItems(),
+        moreMenuItems: [],
+      };
+    }
+    if (role === UserRole.RECEPTION) {
+      return {
+        menuItems: getReceptionHorizontalMenuItems(),
         moreMenuItems: [],
       };
     }

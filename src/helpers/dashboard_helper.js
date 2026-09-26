@@ -44,8 +44,11 @@ export const getPlanDaysRemainingToneClass = (days) => {
 
 export const getHomeDashboardPath = (role) => {
   const userRole = role ?? getUserRoleFromAuthStorage();
-  if (userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION) {
+  if (userRole === UserRole.DOCTOR) {
     return "/doctordashboard";
+  }
+  if (userRole === UserRole.RECEPTION) {
+    return "/receptiondashboard";
   }
   if (userRole === UserRole.ACCOUNT) {
     return "/accountdashboard";
@@ -61,6 +64,7 @@ export const getHomeDashboardPath = (role) => {
 
 export const DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT = "doctor-dashboard:open-new-appointment";
 export const DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT = "doctor-dashboard:open-billing-list";
+export const DOCTOR_DASHBOARD_OPEN_SCHEDULE_CALENDAR_EVENT = "doctor-dashboard:open-schedule-calendar";
 
 export const buildPatientSelectOption = (patient) => {
   if (!patient) {
@@ -88,4 +92,11 @@ export const dispatchOpenBillingListModal = () => {
     return;
   }
   window.dispatchEvent(new CustomEvent(DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT));
+};
+
+export const dispatchOpenDoctorScheduleCalendar = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(DOCTOR_DASHBOARD_OPEN_SCHEDULE_CALENDAR_EVENT));
 };

@@ -87,6 +87,9 @@ const ProfileDropdown = () => {
     const [isProfileDropdown, setIsProfileDropdown] = useState(false);
     const [isOnline, setIsOnline] = useState(readDoctorOnlineStatus);
     const isDoctor = userRole === UserRole.DOCTOR;
+    const isReception = userRole === UserRole.RECEPTION;
+    const avatarLetter = String(displayName || userName || "U").trim().charAt(0).toUpperCase() || "U";
+    const roleLabel = isReception ? "Receptionist" : userRole;
     const toggleProfileDropdown = () => {
         setIsProfileDropdown(!isProfileDropdown);
     };
@@ -115,15 +118,27 @@ const ProfileDropdown = () => {
                 <DropdownToggle tag="button" type="button" className="btn">
                     <span className="d-flex align-items-center">
                         <span className={`header-profile-user-wrap${isDoctor && isOnline ? " is-online" : ""}`}>
-                            <img className="rounded-circle header-profile-user" src={avatar1}
-                                alt="Header Avatar" />
+                            {isReception ? (
+                                <span
+                                    className="rounded-circle header-profile-user header-profile-user--letter"
+                                    aria-hidden="true"
+                                >
+                                    {avatarLetter}
+                                </span>
+                            ) : (
+                                <img
+                                    className="rounded-circle header-profile-user"
+                                    src={avatar1}
+                                    alt="Header Avatar"
+                                />
+                            )}
                             {isDoctor && isOnline ? (
                                 <span className="header-profile-user-status" aria-hidden="true" />
                             ) : null}
                         </span>
                         <span className="text-start ms-xl-2">
                             <span className="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{displayName}</span>
-                            <span className="d-none d-xl-block ms-1 fs-12 text-muted user-name-sub-text">{userRole}</span>
+                            <span className="d-none d-xl-block ms-1 fs-12 text-muted user-name-sub-text">{roleLabel}</span>
                         </span>
                     </span>
                 </DropdownToggle>

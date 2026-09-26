@@ -23,6 +23,7 @@ import { WhatsAppModal } from '../Components/WhatsAppModal';
 import ActivePatientSessionsStack from '../Components/Common/ActivePatientSessionsStack';
 import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeaderButton';
 import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
+import DoctorScheduleCalendarHeaderButton from '../Components/Common/DoctorScheduleCalendarHeaderButton';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
 const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
@@ -107,10 +108,11 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 </Link>
                             </div>
 
-                            {userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION ? (
+                            {userRole === UserRole.DOCTOR ? (
                                 <div className="d-flex align-items-center header-doctor-session-tools">
                                     <LastWorkBackupHeaderButton userRole={userRole} />
                                     <ReceptionStaffHeaderButton userRole={userRole} />
+                                    <DoctorScheduleCalendarHeaderButton userRole={userRole} />
                                     <ActivePatientSessionsStack />
                                 </div>
                             ) : null}
@@ -141,7 +143,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 <NotificationDropdown />
                             </div>
 
-                            {userRole === UserRole.DOCTOR || userRole === UserRole.RECEPTION ? (
+                            {userRole === UserRole.DOCTOR ? (
                                 <div className="ms-1 header-item header-whatsapp-item">
                                     <button
                                         type="button"
