@@ -74,6 +74,8 @@ const Register = () => {
   const [statesLoading, setStatesLoading] = useState(false);
   const [lookupError, setLookupError] = useState("");
   const [step3Attempted, setStep3Attempted] = useState(false);
+  const [qualificationDoc, setQualificationDoc] = useState(null);
+  const [registrationDoc, setRegistrationDoc] = useState(null);
 
   const registerdatatype = createSelector(
     (state) => state.Account,
@@ -148,24 +150,25 @@ const Register = () => {
       passingCertNo: Yup.string().trim(),
     }),
     onSubmit: (values) => {
-      const payload = {
-        firstName: values.firstName.trim(),
-        middleName: values.middleName?.trim() || "",
-        lastName: values.lastName.trim(),
-        userName: values.userName.trim(),
-        emailId: values.emailId.trim(),
-        mobileNo: values.mobileNo.trim(),
-        userPassword: values.userPassword,
-        companyName: values.companyName.trim(),
-        countryId: Number(values.countryId),
-        stateId: values.stateId ? Number(values.stateId) : null,
-        city: values.city?.trim() || "",
-        permanantAddress: values.permanantAddress?.trim() || "",
-        qualificationId: Number(values.qualificationId),
-        passingUniversity: values.passingUniversity?.trim() || "",
-        passingCertNo: values.passingCertNo?.trim() || "",
-      };
-      dispatch(registerUser(payload));
+      const formData = new FormData();
+      formData.append("firstName", values.firstName.trim());
+      formData.append("middleName", values.middleName?.trim() || "");
+      formData.append("lastName", values.lastName.trim());
+      formData.append("userName", values.userName.trim());
+      formData.append("emailId", values.emailId.trim());
+      formData.append("mobileNo", values.mobileNo.trim());
+      formData.append("userPassword", values.userPassword);
+      formData.append("companyName", values.companyName.trim());
+      formData.append("countryId", String(Number(values.countryId)));
+      if (values.stateId) formData.append("stateId", String(Number(values.stateId)));
+      formData.append("city", values.city?.trim() || "");
+      formData.append("permanantAddress", values.permanantAddress?.trim() || "");
+      formData.append("qualificationId", String(Number(values.qualificationId)));
+      formData.append("passingUniversity", values.passingUniversity?.trim() || "");
+      formData.append("passingCertNo", values.passingCertNo?.trim() || "");
+      if (qualificationDoc) formData.append("qualificationDoc", qualificationDoc);
+      if (registrationDoc) formData.append("registrationDoc", registrationDoc);
+      dispatch(registerUser(formData));
     },
   });
 
@@ -261,11 +264,13 @@ const Register = () => {
     if (!success) return undefined;
     const timer = setTimeout(() => {
       dispatch(resetRegisterFlag());
-      navigate("/login", {
+      navigate("/register/pending", {
         state: {
           registered: true,
           userName: user?.userName,
-          notice: "Account created. Sign in, then choose your subscription plan.",
+          notice:
+            message ||
+            "Account created. Check email to activate. Practice stays Pending until verification — it is not unlocked by a subscription package.",
         },
       });
     }, 2200);
@@ -362,7 +367,7 @@ const Register = () => {
                           {message || "Account created successfully. Redirecting you to sign in…"}
                         </p>
                         <Alert color="info" className="text-start mb-0">
-                          Next: sign in, then select your subscription package to unlock the doctor dashboard.
+                          Next: check your email to activate. The practice stays Pending until verification — it is not unlocked by a subscription package.
                         </Alert>
                       </div>
                     ) : (
@@ -687,6 +692,24 @@ const Register = () => {
                                   value={validation.values.passingCertNo}
                                   onChange={validation.handleChange}
                                   onBlur={validation.handleBlur}
+                                />
+                              </Col>
+                              <Col md={6}>
+                                <Label htmlFor="qualificationDoc" className="form-label">Qualification document</Label>
+                                <Input
+                                  id="qualificationDoc"
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => setQualificationDoc(e.target.files?.[0] || null)}
+                                />
+                              </Col>
+                              <Col md={6}>
+                                <Label htmlFor="registrationDoc" className="form-label">Registration document</Label>
+                                <Input
+                                  id="registrationDoc"
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => setRegistrationDoc(e.target.files?.[0] || null)}
                                 />
                               </Col>
                               <Col xs={12}>

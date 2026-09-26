@@ -23,6 +23,7 @@ const Sidebar = ({ layoutType }) => {
     usesAdminDashboardLayout(role) &&
     role !== UserRole.ACCOUNT &&
     role !== UserRole.PHARMACY &&
+    role !== UserRole.PHARMACY_PARTNER &&
     role !== UserRole.RECEPTION;
 
   useEffect(() => {

@@ -44,10 +44,12 @@ const ForgetPasswordPage = props => {
     (state) => ({
       forgetError: state.forgetError,
       forgetSuccessMsg: state.forgetSuccessMsg,
+      resetLink: state.resetLink,
+      mailSent: state.mailSent,
     })
   );
   const {
-    forgetError, forgetSuccessMsg
+    forgetError, forgetSuccessMsg, resetLink, mailSent
   } = useSelector(selectLayoutProperties);
 
   document.title = pageTitle('Forgot Password');
@@ -88,6 +90,19 @@ const ForgetPasswordPage = props => {
                     {forgetSuccessMsg ? (
                       <Alert color="success" style={{ marginTop: "13px" }}>
                         {forgetSuccessMsg}
+                        {mailSent === false ? (
+                          <div className="mt-2 small">
+                            The email could not be sent from this machine. Use the
+                            local reset link below.
+                          </div>
+                        ) : null}
+                        {resetLink ? (
+                          <div className="mt-2">
+                            <Link to={resetLink.replace(/^https?:\/\/[^/]+/i, "") || resetLink} className="fw-semibold text-primary">
+                              Open reset page
+                            </Link>
+                          </div>
+                        ) : null}
                       </Alert>
                     ) : null}
                     <Form

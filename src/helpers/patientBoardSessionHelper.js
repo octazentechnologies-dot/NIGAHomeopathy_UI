@@ -46,12 +46,21 @@ export const buildPatientBoardKey = ({
   return parts.join('|');
 };
 
+const isTruthyFlag = (value) => {
+  if (value === true || value === 1) return true;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+};
+
 export const buildPatientBoardResumePath = ({
   patientId,
   caseId,
   patientAppId,
   appointmentDate,
   patientName,
+  visitType,
+  consultMode,
+  isTele,
 } = {}) => {
   const params = new URLSearchParams();
   if (patientId != null && patientId !== '') params.set('patientId', String(patientId));
@@ -61,6 +70,10 @@ export const buildPatientBoardResumePath = ({
   if (patientName != null && String(patientName).trim() !== '') {
     params.set('patientName', String(patientName).trim());
   }
+  // CLN-01.01 — header placeholders until Phase 4/6 live booking flags.
+  if (visitType != null && String(visitType).trim() !== '') params.set('visitType', String(visitType).trim());
+  if (consultMode != null && String(consultMode).trim() !== '') params.set('consultMode', String(consultMode).trim());
+  if (isTruthyFlag(isTele)) params.set('isTele', 'true');
   const query = params.toString();
   return query ? `/doctor/patientboard?${query}` : '/doctor/patientboard';
 };
@@ -72,7 +85,19 @@ export const buildPatientBoardPath = (patient = {}) => {
     patient.patientAppId ?? patient.patientAppID ?? patient.PatientAppId ?? patient.appointmentId ?? patient.id ?? '';
   const appointmentDate = patient.appointmentDate ?? patient.AppointmentDate ?? '';
   const patientName = patient.patientName ?? patient.name ?? patient.PatientName ?? '';
-  return buildPatientBoardResumePath({ patientId, caseId, patientAppId, appointmentDate, patientName });
+  const visitType = patient.visitType ?? patient.VisitType ?? '';
+  const consultMode = patient.consultMode ?? patient.ConsultMode ?? '';
+  const isTele = patient.isTele ?? patient.IsTele ?? '';
+  return buildPatientBoardResumePath({
+    patientId,
+    caseId,
+    patientAppId,
+    appointmentDate,
+    patientName,
+    visitType,
+    consultMode,
+    isTele,
+  });
 };
 
 export const buildPatientBoardAudioPath = (patient = {}) => {

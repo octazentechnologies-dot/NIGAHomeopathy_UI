@@ -1,34 +1,42 @@
 import React, { useEffect } from "react";
-import { Navigate, Route } from "react-router-dom";
-import { setAuthorization } from "../helpers/api_helper";
-import { useDispatch } from "react-redux";
-
-import { useProfile } from "../Components/Hooks/UserHooks";
-
-import { logoutUser } from "../slices/auth/login/thunk";
+import { Route, useLocation } from "react-router-dom";
+import { setAuthorization, getLoggedinUser } from "../helpers/api_helper";
+import { bootToLoginIfSignedOut, isSignedOut } from "../helpers/signedOutHistory";
 
 const AuthProtected = (props) => {
-  const dispatch = useDispatch();
-  const { userProfile, loading, token } = useProfile();
+  const location = useLocation();
+  const sessionUser = getLoggedinUser();
+  const token = sessionUser?.token;
+  const signedOut = isSignedOut();
 
   useEffect(() => {
-    if (userProfile && !loading && token) {
-      setAuthorization(token);
-    } else if (!userProfile && loading && !token) {
-      dispatch(logoutUser());
-    }
-  }, [token, userProfile, loading, dispatch]);
+    const ensureSignedIn = () => {
+      if (isSignedOut() || !getLoggedinUser()?.token) {
+        bootToLoginIfSignedOut();
+        window.location.replace("/login");
+        return;
+      }
+      setAuthorization(getLoggedinUser().token);
+    };
 
-  /*
-    Navigate is un-auth access protected routes via url
-    */
+    ensureSignedIn();
+    window.addEventListener("popstate", ensureSignedIn);
+    window.addEventListener("focus", ensureSignedIn);
+    window.addEventListener("pageshow", ensureSignedIn);
+    return () => {
+      window.removeEventListener("popstate", ensureSignedIn);
+      window.removeEventListener("focus", ensureSignedIn);
+      window.removeEventListener("pageshow", ensureSignedIn);
+    };
+  }, [location.pathname]);
 
-  if (!userProfile && loading && !token) {
-    return (
-      <Navigate to={{ pathname: "/login", state: { from: props.location } }} />
-    );
+  if (!token || signedOut) {
+    bootToLoginIfSignedOut();
+    window.location.replace("/login");
+    return null;
   }
 
+  setAuthorization(token);
   return <>{props.children}</>;
 };
 

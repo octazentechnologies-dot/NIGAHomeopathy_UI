@@ -1,7 +1,8 @@
 import axios from "axios";
 import config from "../../../../config";
+import { listPublicArticles, getPublicArticle } from "../../../../helpers/publicBookingApi";
 
-const API_BASE = config.api.API_URL;
+const API_BASE = config.api.Old_API_Base_URL;
 
 export const unwrapList = (response) => {
     const payload = response?.data;
@@ -32,6 +33,22 @@ export const getPackages = () => axios.get(`${API_BASE}/package`).then((res) => 
 
 export const getAllBlogs = async () => {
     try {
+        const publicList = await listPublicArticles({ pageNumber: 1, pageSize: 100 });
+        if (Array.isArray(publicList) && publicList.length) {
+            return publicList.map((item) => ({
+                blogId: item.blogId ?? item.BlogId,
+                blogHead: item.blogHead ?? item.BlogHead,
+                blogSubHead: item.blogSubHead ?? item.BlogSubHead,
+                blogDate: item.blogDate ?? item.BlogDate,
+                blogImage1: item.blogImage1 ?? item.BlogImage1,
+                blogDescription: item.blogSubHead ?? item.BlogSubHead,
+            }));
+        }
+    } catch {
+        // fall through to classic BlogDetail
+    }
+
+    try {
         const list = unwrapList(await axios.get(`${API_BASE}/BlogDetail/GetAllBlogDetail`));
         if (list.length) {
             return list;
@@ -51,8 +68,25 @@ export const getAllBlogs = async () => {
     }
 };
 
-export const getBlogById = (blogId) =>
-    axios.get(`${API_BASE}/BlogDetail/GetBlogDetailById/${blogId}`).then(unwrapItem);
+export const getBlogById = async (blogId) => {
+    try {
+        const item = await getPublicArticle(blogId);
+        if (item) {
+            return {
+                blogId: item.blogId ?? item.BlogId,
+                blogHead: item.blogHead ?? item.BlogHead,
+                blogSubHead: item.blogSubHead ?? item.BlogSubHead,
+                blogDate: item.blogDate ?? item.BlogDate,
+                blogImage1: item.blogImage1 ?? item.BlogImage1,
+                blogImage2: item.blogImage2 ?? item.BlogImage2,
+                blogDetails1: item.body ?? item.Body ?? item.blogDetails ?? item.BlogDetails,
+            };
+        }
+    } catch {
+        // classic fallback
+    }
+    return axios.get(`${API_BASE}/BlogDetail/GetBlogDetailById/${blogId}`).then(unwrapItem);
+};
 
 export const getNewsCategories = () =>
     axios.get(`${API_BASE}/NewsCategory/GetAllNewsCategory`).then(unwrapList);
@@ -64,4 +98,9 @@ export const getNewsById = (newsId) =>
     axios.get(`${API_BASE}/NewsDetail/GetNewsDetailsbyId/${newsId}`).then(unwrapItem);
 
 export const submitEnquiry = (payload) =>
-    axios.post(`${API_BASE}/EnquiryDetail`, payload);
+    axios.post(`${config.api.New_API_Base_URL}/Enquiry`, {
+        enquiryName: payload.enquiryName,
+        emailId: payload.emailId,
+        mobileNo: payload.mobileNo,
+        enquiryDetails: payload.enquiryDetails || payload.enquiryDetails1,
+    });

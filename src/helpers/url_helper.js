@@ -241,6 +241,10 @@ export const LOGIN = "/Account/Login";
 export const SUBSCRIPTION_STATUS = "/Account/SubscriptionStatus";
 export const CHECK_ACTIVATION = "/users/ActivateUser";
 export const REGISTER_DOCTOR = "/users/RegisterDoctor";
+export const REGISTER_DOCTOR_WITH_DOCS = "/users/RegisterDoctorWithDocuments";
+export const REGISTER_STATUS = "/users/RegistrationStatus";
+export const ACTIVATE_BY_TOKEN = "/users/ActivateByToken";
+export const RESEND_ACTIVATION = "/users/ResendActivation";
 export const REGISTRATION_COUNTRIES = "/registration/countries";
 export const REGISTRATION_STATES = "/registration/states";
 export const REGISTRATION_QUALIFICATIONS = "/registration/qualifications";
@@ -468,6 +472,62 @@ export const UPDATE_APPOINTMENT_TIME = "/PatientAppointment/UpdateAppointmentTim
 export const GET_DAILY_SCHEDULE = "/PatientAppointment/GetDailySchedule";
 export const SAVE_DAILY_SCHEDULE = "/PatientAppointment/SaveDailySchedule";
 export const GET_APPOINTMENT_SLOTS = "/PatientAppointment/GetAppointmentSlots";
+export const RESCHEDULE_APPOINTMENT = "/PatientAppointment/RescheduleAppointment";
+export const CANCEL_APPOINTMENT = "/PatientAppointment/CancelAppointment";
+/** PAT-20.02 — appointment change history (patient who owns visit, or treating doctor). */
+export const APPOINTMENT_CHANGE_LOG = (patientAppId) =>
+  `/PatientAppointment/ChangeLog/${patientAppId}`;
+export const APPOINTMENT_QUEUE = "/PatientAppointment/Queue";
+export const CALL_NEXT_APPOINTMENT = "/PatientAppointment/CallNext";
+export const RECEPTION_PROFILE = "/Reception/Profile";
+export const RECEPTION_CASE_PAPER = "/Reception/CasePaper";
+export const RECEPTION_PATIENT_OPEN = "/Reception/PatientOpen";
+/** TEL-02.04 — poll tele waiting queue (not SignalR in S3). */
+export const TELE_QUEUE = "/Tele/Queue";
+/** TEL-04.01 — client-agnostic session join token (web + mobile same URL/JSON). */
+export const TELE_SESSION_TOKEN = (sessionId) => `/Tele/Sessions/${sessionId}/Token`;
+export const TELE_SESSION_REJOIN = (sessionId) => `/Tele/Sessions/${sessionId}/Rejoin`;
+/** TEL-04.01 — waiting-room status poll (patient or doctor JWT). */
+export const TELE_SESSION_STATUS = (sessionId) => `/Tele/Sessions/${sessionId}`;
+/** TEL-03.02 — doctor create / start / end tele room. */
+export const TELE_SESSIONS = "/Tele/Sessions";
+export const TELE_SESSION_START = (sessionId) => `/Tele/Sessions/${sessionId}/Start`;
+export const TELE_SESSION_END = (sessionId) => `/Tele/Sessions/${sessionId}/End`;
+/** TEL-10.02 — case-linked chat post/list (doctor + patient only). */
+export const TELE_CHAT = "/Tele/Chat";
+export const TELE_CHAT_LIST = (sessionId) => `/Tele/Chat/${sessionId}`;
+/** PAT-20.02 / TEL-11 — consultation summaries for an appointment (patient or treating doctor). */
+export const TELE_SUMMARY = (patientAppId) => `/Tele/Summary/${patientAppId}`;
+export const TELE_SUMMARY_SAVE = "/Tele/Summary";
+/** PAT-24.02 / TEL-12 — patient instant consult request; doctor offers + accept. */
+export const TELE_INSTANT = "/Tele/Instant";
+export const TELE_INSTANT_OFFERS = "/Tele/Instant/Offers";
+export const TELE_INSTANT_ACCEPT = (requestId) => `/Tele/Instant/${requestId}/Accept`;
+export const TELE_AVAILABILITY = "/Tele/Availability";
+export const TELE_AVAILABILITY_PUBLIC = (doctorId) => `/Tele/Availability/${doctorId}`;
+/** PAT-26.02 — tele device check stub (anonymous; camera/mic checked on device). */
+export const TELE_DEVICE_CHECK = "/Tele/DeviceCheck";
+/** PAT-29.02 — recording consent (doctor + patient; recordAllowed only when both accept). */
+export const TELE_CONSENT = "/Tele/Consent";
+/** DMO-07.02 — doctor mobile patient context card (name, age, CC, last visit, payment, tele). */
+export const DOCTOR_MOBILE_CONTEXT = (patientAppId) =>
+  `/DoctorMobile/Context/${patientAppId}`;
+/** DMO-09.02 — doctor refill inbox + approve/reject (snapshot not editable). */
+export const REFILL_LIST = "/Refill";
+export const REFILL_APPROVE = (refillId) => `/Refill/${refillId}/Approve`;
+export const REFILL_REJECT = (refillId) => `/Refill/${refillId}/Reject`;
+/** SUP-01.02 — patient create / list-mine support tickets. */
+export const SUPPORT_TICKETS = "/Support/Tickets";
+export const SUPPORT_TICKETS_MINE = "/Support/Tickets/Mine";
+/** SUP-04.01 — ticket message thread + attachment metadata. */
+export const SUPPORT_TICKET_MESSAGES = (ticketId) => `/Support/Tickets/${ticketId}/Messages`;
+export const SUPPORT_TICKET_MESSAGE = (ticketId, messageId) =>
+  `/Support/Tickets/${ticketId}/Messages/${messageId}`;
+/** SUP-07.02 — patient assistance request; staff AssistedBook. */
+export const SUPPORT_ASSISTANCE_REQUEST = "/Support/AssistanceRequest";
+export const SUPPORT_ASSISTANCE_REQUESTS = "/Support/AssistanceRequests";
+export const DAILY_SCHEDULE = "/PatientAppointment/GetDailySchedule";
+export const ASSISTED_BOOK = "/Support/AssistedBook";
 export const GET_PATIENT_LIST = "/patientApp/GetCasesByUser";
 export const GET_DOCTOR_LIST = "/mastersAPI/GetDoctorDetails";
 export const GET_APPOINTMENT_LIST = "/doctorDashBoard";
@@ -579,3 +639,38 @@ export const RUBRIC_INTELLIGENCE_REPERTORY_STATUS = "/AudioCaseIntelligence/repe
 /* Rubric intelligence admin */
 export const RUBRIC_INTELLIGENCE_METAPHORS = "/AudioCaseIntelligence/admin/metaphors";
 export const RUBRIC_INTELLIGENCE_ALIASES = "/AudioCaseIntelligence/admin/aliases";
+
+/* M02 W0 — Admin ACL probe (New-API only) */
+export const ADMIN_ACL_ME = "/AdminAcl/me";
+export const ADMIN_ACL_PING = "/AdminAcl/ping";
+export const ADMIN_ACL_REPERTORY = "/AdminAcl/repertory";
+export const ADMIN_ACL_COVERAGE = "/AdminAcl/coverage";
+
+/* M02 W7 — menus by role (New-API mastersAPI) */
+export const GET_MENU_BY_ROLE = "/mastersAPI/GetMenuByRole";
+
+/* CON-01 / CON-02 — family + caregiver (New-API) */
+export const FAMILY_LIST = "/Family";
+export const FAMILY_ME = "/Family/Me";
+export const FAMILY_RELATIONS = "/Family/Relations";
+export const FAMILY_LINK_PRIMARY = "/Family/LinkPrimary";
+export const FAMILY_CAN_BOOK = "/Family/CanBookAs";
+export const FAMILY_BOOK_AS = "/Family/BookAs";
+export const CAREGIVER_GRANT = "/Caregiver/Grant";
+export const CAREGIVER_REVOKE = "/Caregiver/Revoke";
+export const CAREGIVER_ME = "/Caregiver/Me";
+export const CAREGIVER_LOOKUP = "/Caregiver/Lookup";
+export const CAREGIVER_LIST_MINE = "/Caregiver/ListMine";
+export const CAREGIVER_LIST_ACTING_FOR = "/Caregiver/ListActingFor";
+export const OTP_REQUEST = "/Otp/RequestOtp";
+export const OTP_VERIFY = "/Otp/VerifyOtp";
+export const ACCOUNT_LOGIN_OTP = "/Account/LoginWithOtp";
+export const ACCOUNT_CONFIRM_MOBILE = "/Account/ConfirmMobile";
+export const PATIENT_PROFILE_ME = "/PatientProfile/Me";
+export const WELCOME_PATIENT = "/Welcome/Patient";
+export const CONSENT_PRIVACY_STATUS = "/Consent/PrivacyStatus";
+export const CONSENT_GRANT_PRIVACY = "/Consent/GrantPrivacy";
+export const DEVICE_REGISTER = "/Device/Register";
+export const DEVICE_UNREGISTER = "/Device/Unregister";
+export const DEVICE_MINE = "/Device/Mine";
+export const SECURE_FILE_SIGN = "/SecureFile/Sign";

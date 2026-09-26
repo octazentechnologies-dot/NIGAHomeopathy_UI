@@ -4,15 +4,12 @@ import { Col, Container, Row } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
-import { DOCTORS, NEARBY_MAP_DOCTORS } from "../constants/doctorsData";
-
-const FILTERS = [
-    { id: "location", label: "Location" },
-    { id: "specialization", label: "Specialization" },
-    { id: "consultation", label: "Consultation Type" },
-    { id: "fee", label: "Fee Range" },
-    { id: "availability", label: "Availability" },
-];
+import { NEARBY_MAP_DOCTORS } from "../constants/doctorsData";
+import {
+    listCareCategories,
+    listPublicDoctors,
+    mapPublicDoctorCard,
+} from "../../../../helpers/publicBookingApi";
 
 const PAGE_SIZE = 5;
 
@@ -20,14 +17,25 @@ const FindDoctorPage = () => {
     const [searchParams] = useSearchParams();
     const [query, setQuery] = useState(searchParams.get("q") || "");
     const [specialization, setSpecialization] = useState(searchParams.get("concern") || "");
+    const [city, setCity] = useState("");
+    const [onlineOnly, setOnlineOnly] = useState(false);
+    const [teleOnly, setTeleOnly] = useState(false);
     const [sortBy, setSortBy] = useState("relevance");
     const [page, setPage] = useState(1);
     const [mapMode, setMapMode] = useState("map");
     const [favorites, setFavorites] = useState({});
     const [activePin, setActivePin] = useState(null);
+    const [doctors, setDoctors] = useState([]);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
+    const [categories, setCategories] = useState([]);
 
     useEffect(() => {
         document.title = `${SITE.name} | Find a Doctor`;
+        listCareCategories()
+            .then((list) => setCategories(Array.isArray(list) ? list : []))
+            .catch(() => setCategories([]));
     }, []);
 
     useEffect(() => {
@@ -36,27 +44,50 @@ const FindDoctorPage = () => {
         setPage(1);
     }, [searchParams]);
 
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        setLoadError("");
+        const q = [query, specialization].filter((part) => String(part).trim()).join(" ").trim();
+        listPublicDoctors({
+            q: q || undefined,
+            city: city.trim() || undefined,
+            isOnline: onlineOnly ? true : undefined,
+            teleOnly: teleOnly ? true : undefined,
+            pageNumber: 1,
+            pageSize: 50,
+        })
+            .then((result) => {
+                if (cancelled) return;
+                const mapped = (result.data || []).map((row) => mapPublicDoctorCard(row));
+                setDoctors(mapped);
+                setTotalRecords(result.totalRecords || mapped.length);
+            })
+            .catch((err) => {
+                if (cancelled) return;
+                setDoctors([]);
+                setTotalRecords(0);
+                setLoadError(typeof err === "string" ? err : "Could not load verified doctors.");
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [query, specialization, city, onlineOnly, teleOnly]);
+
     const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        const concern = specialization.trim().toLowerCase();
-
-        let list = DOCTORS.filter((doc) => {
-            const haystack = `${doc.name} ${doc.specialties} ${doc.location} ${doc.credentials}`.toLowerCase();
-            const matchesQuery = !q || haystack.includes(q);
-            const matchesConcern = !concern || haystack.includes(concern.toLowerCase());
-            return matchesQuery && matchesConcern;
-        });
-
+        let list = [...doctors];
         if (sortBy === "rating") {
             list = [...list].sort((a, b) => b.rating - a.rating);
         } else if (sortBy === "fee-low") {
-            list = [...list].sort((a, b) => a.tele - b.tele);
+            list = [...list].sort((a, b) => (a.tele || a.inClinic) - (b.tele || b.inClinic));
         } else if (sortBy === "fee-high") {
             list = [...list].sort((a, b) => b.inClinic - a.inClinic);
         }
-
         return list;
-    }, [query, specialization, sortBy]);
+    }, [doctors, sortBy]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
@@ -70,6 +101,9 @@ const FindDoctorPage = () => {
     const resetFilters = () => {
         setQuery("");
         setSpecialization("");
+        setCity("");
+        setOnlineOnly(false);
+        setTeleOnly(false);
         setSortBy("relevance");
         setPage(1);
     };
@@ -123,12 +157,38 @@ const FindDoctorPage = () => {
                 </form>
 
                 <div className="homeojob-find-doctor__filters">
-                    {FILTERS.map((filter) => (
-                        <button key={filter.id} type="button" className="homeojob-find-doctor__filter">
-                            {filter.label}
-                            <i className="ri-arrow-down-s-line" aria-hidden="true" />
-                        </button>
-                    ))}
+                    <input
+                        type="search"
+                        className="homeojob-find-doctor__filter"
+                        style={{ minWidth: 140 }}
+                        placeholder="City"
+                        aria-label="City"
+                        value={city}
+                        onChange={(e) => {
+                            setCity(e.target.value);
+                            setPage(1);
+                        }}
+                    />
+                    <button
+                        type="button"
+                        className={`homeojob-find-doctor__filter${onlineOnly ? " is-active" : ""}`}
+                        onClick={() => {
+                            setOnlineOnly((v) => !v);
+                            setPage(1);
+                        }}
+                    >
+                        Online now
+                    </button>
+                    <button
+                        type="button"
+                        className={`homeojob-find-doctor__filter${teleOnly ? " is-active" : ""}`}
+                        onClick={() => {
+                            setTeleOnly((v) => !v);
+                            setPage(1);
+                        }}
+                    >
+                        Tele only
+                    </button>
                     <button
                         type="button"
                         className="homeojob-find-doctor__reset"
@@ -138,10 +198,29 @@ const FindDoctorPage = () => {
                         Reset Filters
                     </button>
                 </div>
+                {categories.length > 0 && (
+                    <div className="homeojob-find-doctor__filters mt-2">
+                        {categories.slice(0, 12).map((cat) => (
+                            <button
+                                key={cat.id ?? cat.name}
+                                type="button"
+                                className={`homeojob-find-doctor__filter${
+                                    specialization === (cat.name || "") ? " is-active" : ""
+                                }`}
+                                onClick={() => {
+                                    setSpecialization(cat.name || "");
+                                    setPage(1);
+                                }}
+                            >
+                                {cat.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 <div className="homeojob-find-doctor__results-head">
                     <p className="homeojob-find-doctor__count">
-                        <strong>{filtered.length}</strong> Doctors Found
+                        <strong>{loading ? "…" : totalRecords || filtered.length}</strong> Doctors Found
                     </p>
                     <label className="homeojob-find-doctor__sort">
                         Sort by:
@@ -157,7 +236,14 @@ const FindDoctorPage = () => {
                 <Row className="g-4 homeojob-find-doctor__layout align-items-stretch">
                     <Col lg={7} xl={8} className="d-flex flex-column">
                         <div className="homeojob-find-doctor__list">
-                            {pageItems.map((doc) => (
+                            {loading ? (
+                                <p className="text-muted p-3 mb-0">Loading verified doctors…</p>
+                            ) : loadError ? (
+                                <p className="text-danger p-3 mb-0">{loadError}</p>
+                            ) : pageItems.length === 0 ? (
+                                <p className="text-muted p-3 mb-0">No verified doctors match these filters.</p>
+                            ) : (
+                            pageItems.map((doc) => (
                                 <article key={doc.id} className="homeojob-doctor-card">
                                     <button
                                         type="button"
@@ -185,12 +271,14 @@ const FindDoctorPage = () => {
                                     <div className="homeojob-doctor-card__info">
                                         <h3 className="homeojob-doctor-card__name">
                                             {doc.name}
+                                            {doc.verified ? (
                                             <span
                                                 className="homeojob-doctor-card__verified"
                                                 title="Verified"
                                             >
                                                 <i className="ri-checkbox-circle-fill" />
                                             </span>
+                                            ) : null}
                                         </h3>
                                         <p className="homeojob-doctor-card__creds">
                                             {doc.credentials}
@@ -224,7 +312,7 @@ const FindDoctorPage = () => {
 
                                     <div className="homeojob-doctor-card__actions">
                                         <Link
-                                            to={landingPath(`find-doctor/${doc.id}`)}
+                                            to={landingPath(`book/${doc.id}`)}
                                             className="homeojob-doctor-card__book"
                                         >
                                             <i className="ri-calendar-check-line" aria-hidden="true" />
@@ -240,7 +328,8 @@ const FindDoctorPage = () => {
                                         </span>
                                     </div>
                                 </article>
-                            ))}
+                            ))
+                            )}
                         </div>
                     </Col>
 

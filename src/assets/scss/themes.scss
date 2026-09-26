@@ -2925,7 +2925,7 @@ body.doctor-layout {
       width: 100%;
 
       > :not(caption) > * > * {
-        padding: 0.45rem 0.4rem !important;
+        padding: 0.5rem 0.7rem !important;
         line-height: 1.15 !important;
         vertical-align: middle;
         box-shadow: none;
@@ -2941,7 +2941,7 @@ body.doctor-layout {
       }
 
       thead th {
-        padding: 0.45rem 0.4rem !important;
+        padding: 0.5rem 0.7rem !important;
         font-weight: 600;
         font-size: 0.6875rem !important;
         border-bottom: 1px solid var(--#{$prefix}border-color);
