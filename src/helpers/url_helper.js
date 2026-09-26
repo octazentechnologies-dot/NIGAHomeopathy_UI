@@ -523,6 +523,8 @@ export const SUPPORT_TICKETS_MINE = "/Support/Tickets/Mine";
 export const SUPPORT_TICKET_MESSAGES = (ticketId) => `/Support/Tickets/${ticketId}/Messages`;
 export const SUPPORT_TICKET_MESSAGE = (ticketId, messageId) =>
   `/Support/Tickets/${ticketId}/Messages/${messageId}`;
+export const SUPPORT_TICKET = (ticketId) => `/Support/Tickets/${ticketId}`;
+export const HELP_ARTICLES = "/Help";
 /** SUP-07.02 — patient assistance request; staff AssistedBook. */
 export const SUPPORT_ASSISTANCE_REQUEST = "/Support/AssistanceRequest";
 export const SUPPORT_ASSISTANCE_REQUESTS = "/Support/AssistanceRequests";

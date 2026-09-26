@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Col, Container, Row } from "reactstrap";
 import Widget from "./Widgets";
+import InstantOfferBanner from "../Tele/InstantOfferBanner";
 import BestSellingProducts from "./BestSellingProducts";
 import RecentActivity from "./RecentActivity";
 import RecentOrders from "./RecentOrders";
@@ -23,6 +24,7 @@ const DashboardEcommerce = () => {
           <Row>
             <Col>
               <div className="h-100 doctor-dashboard-shell">
+                <InstantOfferBanner />
                 <Widget />
                 <Row className="doctor-dashboard-patient-row align-items-stretch">
                   <BestSellingProducts />

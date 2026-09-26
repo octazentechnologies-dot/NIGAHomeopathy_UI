@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row } from "reactstrap";
+import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner } from "reactstrap";
 import { callNextAppointment, getAppointmentQueue } from "../../helpers/realbackend_helper";
+import { collectAtReception, s4Message, unwrapS4 } from "../../helpers/s4Week4Api";
 import RescheduleModal from "../../Components/Common/RescheduleModal";
 import CancelAppointmentModal from "../../Components/Common/CancelAppointmentModal";
 import AssistedBookWizard from "../../Components/Common/AssistedBookWizard";
@@ -25,11 +26,21 @@ const paymentBadge = (row) => {
   };
 };
 
+/** Map UI labels to CollectAtReception method codes (PAY-04.02). */
+const METHOD_OPTIONS = [
+  { label: "Cash", value: "CASH" },
+  { label: "UPI (offline)", value: "UPI_OFFLINE" },
+  { label: "Card (POS)", value: "CARD_POS" },
+  { label: "Payment link", value: "PAY_LINK" },
+];
+
 const ReceptionHome = () => {
   const doctorId = readReceptionDoctorId();
   const [queue, setQueue] = useState([]);
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState(null);
+  const [collecting, setCollecting] = useState(false);
+  const [issuedReceipt, setIssuedReceipt] = useState(null);
   const [note, setNote] = useState("");
   const [rescheduleRow, setRescheduleRow] = useState(null);
   const [cancelRow, setCancelRow] = useState(null);
@@ -70,6 +81,42 @@ const ReceptionHome = () => {
     }
   };
 
+  const submitCollect = async () => {
+    if (!receipt?.appointmentId) {
+      setError("Select an appointment before collecting.");
+      return;
+    }
+    setCollecting(true);
+    setError("");
+    setNote("");
+    setIssuedReceipt(null);
+    try {
+      const payload = {
+        patientAppId: Number(receipt.appointmentId),
+        method: receipt.method || "CASH",
+      };
+      if (receipt.amount !== "" && receipt.amount != null) {
+        payload.amount = Number(receipt.amount);
+      }
+      const response = await collectAtReception(payload);
+      const body = unwrapS4(response);
+      const printed = body?.receipt || response?.receipt || body;
+      setIssuedReceipt(printed);
+      setNote(
+        body?.message ||
+          response?.message ||
+          (payload.method === "PAY_LINK"
+            ? "Pay link reserved. Visit stays unpaid until collection or webhook."
+            : "Collected at reception.")
+      );
+      await load();
+    } catch (err) {
+      setError(s4Message(err) || apiMessage(err, "Collection failed"));
+    } finally {
+      setCollecting(false);
+    }
+  };
+
   return (
     <div className="page-content">
       <Container fluid>
@@ -89,14 +136,19 @@ const ReceptionHome = () => {
                   color="soft-warning"
                   data-testid="reception-collect-payment"
                   onClick={() => {
-                    const firstApp = queue[0]
-                      ? String(queue[0].patientAppId || queue[0].PatientAppId || "")
+                    const firstUnpaid = queue.find((row) => {
+                      const status = String(row.paymentStatus || row.PaymentStatus || "UNPAID").toUpperCase();
+                      return status !== "PAID";
+                    }) || queue[0];
+                    const firstApp = firstUnpaid
+                      ? String(firstUnpaid.patientAppId || firstUnpaid.PatientAppId || "")
                       : "";
+                    setIssuedReceipt(null);
                     setReceipt({
                       amount: "",
-                      method: "Cash",
+                      method: "CASH",
                       appointmentId: firstApp,
-                      gst: "GST — Phase 6 placeholder",
+                      gst: "GST applied by New API on collection",
                     });
                   }}
                 >
@@ -122,83 +174,43 @@ const ReceptionHome = () => {
                   Call next
                 </Button>
               </div>
-              {queueLoading && queue.length === 0 ? (
-                <p className="text-muted mb-0">Loading queue…</p>
+              {queueLoading ? (
+                <div className="text-center py-3"><Spinner size="sm" /> Loading queue…</div>
               ) : queue.length === 0 ? (
-                <p className="text-muted mb-0">No waiting visits.</p>
+                <p className="text-muted mb-0">No patients in queue.</p>
               ) : (
-                <ul className="list-unstyled mb-0" data-testid="reception-queue-list">
-                  {queue.map((row, index) => {
-                    const rowId = row.patientAppId || row.PatientAppId;
-                    const patientId = row.patientId || row.PatientId;
-                    const order = row.queueOrder || row.QueueOrder || row.queuePosition || row.QueuePosition || index + 1;
-                    const waitLabel = formatWaitLabel(row.waitMinutes ?? row.WaitMinutes);
+                <ul className="list-unstyled mb-0" data-testid="reception-queue">
+                  {queue.map((row) => {
+                    const id = row.patientAppId || row.PatientAppId;
+                    const name = row.patientName || row.PatientName || "Patient";
+                    const wait = formatWaitLabel(row.waitMinutes ?? row.WaitMinutes);
                     const pay = paymentBadge(row);
-                    const status = row.status || row.Status || "";
                     return (
-                      <li
-                        key={rowId}
-                        className="d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 border-bottom"
-                        data-testid={`reception-queue-row-${rowId}`}
-                      >
-                        <div className="d-flex align-items-start gap-2 flex-grow-1 me-2" style={{ minWidth: 0 }}>
-                          <span
-                            className="badge bg-secondary flex-shrink-0"
-                            title="Queue order"
-                            style={{ minWidth: "2rem" }}
-                          >
-                            #{order}
-                          </span>
-                          <div style={{ minWidth: 0 }}>
-                            <div className="fw-medium text-truncate">
-                              {row.patientName || row.PatientName || "Patient"}
-                            </div>
-                            <div className="text-muted small">
-                              {row.appointmentTime || row.AppointmentTime}
-                              {" · "}
-                              <span title="Wait time">{waitLabel}</span>
-                              {" · "}
-                              <span className={`badge ${pay.color === "success" ? "bg-success" : "bg-warning text-dark"}`}>
-                                {pay.label}
-                              </span>
-                              {status ? (
-                                <>
-                                  {" · "}
-                                  <span className="text-uppercase">{status}</span>
-                                </>
-                              ) : null}
-                            {patientId ? (
-                              <>
-                                {" · "}
-                                <button
-                                  type="button"
-                                  className="btn btn-link btn-sm p-0 align-baseline"
-                                  title="Use this patient in Assisted booking"
-                                  data-testid={`reception-queue-pick-patient-${patientId}`}
-                                  onClick={() => {
-                                    setAssistedPatientId(String(patientId));
-                                    setAssistedPatientName(
-                                      row.patientName || row.PatientName || ""
-                                    );
-                                    setAssistedPickKey((n) => n + 1);
-                                  }}
-                                >
-                                  Book for {row.patientName || row.PatientName || "this patient"}
-                                </button>
-                                {" · "}
-                                <Link
-                                  className="small"
-                                  to={`/reception/case-paper?patientId=${patientId}${rowId ? `&patientAppId=${rowId}` : ""}`}
-                                  title="Open case paper for this patient"
-                                >
-                                  Case paper
-                                </Link>
-                              </>
-                            ) : null}
-                            </div>
+                      <li key={id} className="d-flex justify-content-between align-items-start border-bottom py-2 gap-2">
+                        <div>
+                          <div className="fw-medium">#{id} · {name}</div>
+                          <div className="text-muted small">
+                            {row.appointmentTime || row.AppointmentTime || "—"} · {wait}
+                            {" · "}
+                            <span className={`badge bg-${pay.color}-subtle text-${pay.color}`}>{pay.label}</span>
                           </div>
                         </div>
                         <div className="d-flex flex-shrink-0 gap-1">
+                          <Button
+                            size="sm"
+                            color="soft-warning"
+                            onClick={() => {
+                              setIssuedReceipt(null);
+                              setReceipt({
+                                amount: "",
+                                method: "CASH",
+                                appointmentId: String(id),
+                                gst: "GST applied by New API on collection",
+                              });
+                            }}
+                          >
+                            Collect
+                          </Button>
                           <Button
                             size="sm"
                             color="soft-info"
@@ -223,26 +235,26 @@ const ReceptionHome = () => {
           </Col>
           {receipt ? (
             <Col md={6}>
-              {/* REC-13.01 — receipt field shell for Phase 6 (no PaymentStatus write) */}
+              {/* PAY-04 / REC-13 — CollectAtReception on New API :5002 */}
               <Card data-testid="reception-receipt-shell">
                 <CardBody>
                   <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="mb-0">Receipt preview</h5>
-                    <Button size="sm" color="link" className="p-0" onClick={() => setReceipt(null)}>
+                    <h5 className="mb-0">Collect at reception</h5>
+                    <Button size="sm" color="link" className="p-0" onClick={() => { setReceipt(null); setIssuedReceipt(null); }}>
                       Close
                     </Button>
                   </div>
                   <p className="text-muted small">
-                    UI shell only. Phase 6 wires cash / UPI / card / payment link and issues the real receipt.
+                    Cash, offline UPI, card POS, or reserve a pay link. Paid status is set by this API or the Razorpay webhook — not by the client alone.
                   </p>
-                  <Label htmlFor="reception-receipt-amount">Amount</Label>
+                  <Label htmlFor="reception-receipt-amount">Amount (optional — must match fee when sent)</Label>
                   <Input
                     id="reception-receipt-amount"
                     type="number"
                     min={0}
                     step="0.01"
                     inputMode="decimal"
-                    placeholder="0.00"
+                    placeholder="Leave blank to use configured fee"
                     value={receipt.amount}
                     onChange={(event) => setReceipt({ ...receipt, amount: event.target.value })}
                     data-testid="reception-receipt-amount"
@@ -255,10 +267,9 @@ const ReceptionHome = () => {
                     onChange={(event) => setReceipt({ ...receipt, method: event.target.value })}
                     data-testid="reception-receipt-method"
                   >
-                    <option value="Cash">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Card">Card</option>
-                    <option value="Payment link">Payment link</option>
+                    {METHOD_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
                   </Input>
                   <Label className="mt-2" htmlFor="reception-receipt-appointment">Appointment</Label>
                   <Input
@@ -287,9 +298,36 @@ const ReceptionHome = () => {
                     disabled
                     data-testid="reception-receipt-gst"
                   />
-                  <p className="text-muted small mt-2 mb-0" data-testid="reception-receipt-no-paid">
-                    REC-13.02 — This screen does not set PaymentStatus to PAID. Account / webhook is the source of truth in Phase 6.
-                  </p>
+                  <Button
+                    color="primary"
+                    className="mt-3"
+                    disabled={collecting || !receipt.appointmentId}
+                    onClick={submitCollect}
+                    data-testid="reception-receipt-submit"
+                  >
+                    {collecting ? "Collecting…" : receipt.method === "PAY_LINK" ? "Reserve pay link" : "Collect & print receipt"}
+                  </Button>
+                  {issuedReceipt ? (
+                    <div className="mt-3 border rounded p-3 bg-light" data-testid="reception-receipt-print">
+                      <div className="fw-medium mb-1">Receipt</div>
+                      <div className="small">Order #{issuedReceipt.paymentOrderId || issuedReceipt.PaymentOrderId || "—"}</div>
+                      <div className="small">Visit #{issuedReceipt.patientAppId || issuedReceipt.PatientAppId || receipt.appointmentId}</div>
+                      <div className="small">
+                        Amount ₹{issuedReceipt.amount ?? issuedReceipt.Amount ?? "—"}
+                        {" · "}
+                        {issuedReceipt.method || issuedReceipt.Method || receipt.method}
+                      </div>
+                      <div className="small text-muted">
+                        GST ₹{issuedReceipt.gstAmount ?? issuedReceipt.GstAmount ?? "—"}
+                        {issuedReceipt.gstNote || issuedReceipt.GstNote
+                          ? ` — ${issuedReceipt.gstNote || issuedReceipt.GstNote}`
+                          : ""}
+                      </div>
+                      {issuedReceipt.linkToken || issuedReceipt.LinkToken ? (
+                        <div className="small mt-1">Link token: {issuedReceipt.linkToken || issuedReceipt.LinkToken}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </CardBody>
               </Card>
             </Col>

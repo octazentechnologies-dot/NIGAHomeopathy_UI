@@ -75,6 +75,7 @@ const EnquiryInboxPage = () => {
                       <th>Details</th>
                       <th>Ticket</th>
                       <th>Assigned</th>
+                      <th>SLA due</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -90,6 +91,10 @@ const EnquiryInboxPage = () => {
                           <Badge color="info">{row.ticketStatus ?? row.TicketStatus ?? "New"}</Badge>
                         </td>
                         <td>{row.assignedTo ?? row.AssignedTo ?? "—"}</td>
+                        <td>
+                          {String(row.slaDueAt ?? row.SlaDueAt ?? "—").slice(0, 16)}
+                          {row.slaBreached || row.SlaBreached ? " (breached)" : ""}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

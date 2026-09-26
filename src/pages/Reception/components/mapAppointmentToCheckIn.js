@@ -73,6 +73,7 @@ export const mapAppointmentRowToCheckIn = (row) => {
 
   const selectedPatient = {
     id: patientDetails.patientId || row.id,
+    patientAppId: row.patientAppId || row.PatientAppId || row.id,
     fullName: patientDetails.fullName || row.patient,
     age: (patientDetails.ageSex || "").split("/")[0]?.trim() || "—",
     sex: (patientDetails.ageSex || "").split("/")[1]?.trim() || "—",
@@ -83,6 +84,7 @@ export const mapAppointmentRowToCheckIn = (row) => {
 
   const allottedSchedule = {
     doctor,
+    patientAppId: row.patientAppId || row.PatientAppId || row.id,
     date: moment().format("YYYY-MM-DD"),
     dateDisplay,
     slot: {

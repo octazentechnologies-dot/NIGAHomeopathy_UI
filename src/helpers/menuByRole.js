@@ -150,6 +150,7 @@ export const splitAdminApiNavItems = (items) => {
 
 export const RECEPTION_FALLBACK_MENU = [
   { id: "reception-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/reception" },
+  { id: "reception-schedule", label: "Schedule", icon: "ri-calendar-line", link: "/reception/schedule" },
   { id: "reception-case-paper", label: "Case paper", icon: "ri-file-list-3-line", link: "/reception/case-paper" },
   { id: "reception-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
@@ -188,6 +189,12 @@ export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },
   { id: "doctor-anatomy", label: "Anatomy", icon: "ri-body-scan-line", link: "/doctor/anatomy" },
   { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
+  { id: "doctor-fees", label: "Consult fees", icon: "ri-money-dollar-circle-line", link: "/doctor/consult-fees" },
+  { id: "doctor-earnings", label: "Earnings", icon: "ri-wallet-3-line", link: "/doctor/earnings" },
+  { id: "doctor-erx", label: "eRx", icon: "ri-file-text-line", link: "/doctor/erx" },
+  { id: "doctor-waitlist", label: "Waitlist", icon: "ri-time-line", link: "/doctor/waitlist" },
+  { id: "doctor-schedule", label: "Schedule", icon: "ri-calendar-2-line", link: "/doctor/schedule" },
+  { id: "doctor-support", label: "Support", icon: "ri-customer-service-2-line", link: "/doctor/support" },
   { id: "doctor-videoroom", label: "Video room", icon: "ri-vidicon-line", link: "/doctor/mobile/videoroom" },
   { id: "doctor-refill", label: "Refill inbox", icon: "ri-medicine-bottle-line", link: "/doctor/mobile/refill" },
   { id: "doctor-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
@@ -201,6 +208,10 @@ export const PATIENT_FALLBACK_MENU = [
     icon: "ri-user-heart-line",
     link: "/caregiver",
   },
+  { id: "patient-continuity", label: "My records", icon: "ri-time-line", link: "/patient/continuity" },
+  { id: "patient-meds", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
+  { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },
+  { id: "patient-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
 
 /** ADM-B04.03 — keep API menus that map to SPA paths (drop legacy MVC URLs). */
@@ -214,6 +225,7 @@ export const isSpaMenuLink = (link) => {
     path.startsWith("/pharmacy") ||
     path.startsWith("/family") ||
     path.startsWith("/caregiver") ||
+    path.startsWith("/patient") ||
     path.startsWith("/doctor") ||
     path.startsWith("/reception") ||
     path.startsWith("/enquiries") ||

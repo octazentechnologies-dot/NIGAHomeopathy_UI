@@ -551,6 +551,10 @@ export const updateSupportTicketMessage = (ticketId, messageId, data) =>
   nigahomeoAPI.put(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId), data);
 export const deleteSupportTicketMessage = (ticketId, messageId) =>
   nigahomeoAPI.delete(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId));
+export const listAdminSupportTickets = (params) => nigahomeoAPI.get(url.SUPPORT_TICKETS, params || {});
+export const updateSupportTicket = (ticketId, data) => nigahomeoAPI.put(url.SUPPORT_TICKET(ticketId), data);
+export const saveHelpArticle = (data) => nigahomeoAPI.post(url.HELP_ARTICLES, data);
+export const getDoctorWaitlist = (doctorId) => nigahomeoAPI.get("/Waitlist", { doctorId });
 /** SUP-07.02 — patient requests help booking; staff lists requests / AssistedBook. */
 export const requestBookingAssistance = (data) =>
   nigahomeoAPI.post(url.SUPPORT_ASSISTANCE_REQUEST, data);

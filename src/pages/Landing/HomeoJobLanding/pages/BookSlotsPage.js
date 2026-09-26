@@ -10,6 +10,7 @@ import {
     mapPublicDoctorCard,
     toIsoDate,
 } from "../../../../helpers/publicBookingApi";
+import WaitlistJoinPanel from "../components/WaitlistJoinPanel";
 
 const formatBookingDate = (date) => {
     const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -184,6 +185,13 @@ const BookSlotsPage = () => {
                                     )}
                                 </div>
                             </div>
+                            {slots.length === 0 ? (
+                                <WaitlistJoinPanel
+                                    doctorId={doctor.id}
+                                    requestedDate={bookingDate}
+                                    consultMode={consultMode}
+                                />
+                            ) : null}
                             <button
                                 type="button"
                                 className="homeojob-doctor-detail__book"

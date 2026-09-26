@@ -6,6 +6,9 @@ import {
   getTeleSessionStatus,
   issueTeleSessionRejoinToken,
   issueTeleSessionToken,
+  listTeleChat,
+  postTeleChat,
+  saveTeleConsultationSummary,
   startTeleSession,
 } from "../../helpers/realbackend_helper";
 
@@ -51,6 +54,9 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
   const [busy, setBusy] = useState("");
   const [queue, setQueue] = useState([]);
   const [queueNote, setQueueNote] = useState("");
+  const [chatRows, setChatRows] = useState([]);
+  const [chatText, setChatText] = useState("");
+  const [summaryText, setSummaryText] = useState("");
 
   useEffect(() => {
     if (sessionId) setActiveSessionId(String(sessionId));
@@ -113,6 +119,26 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
   }, [activeSessionId, loadQueue]);
 
   useEffect(() => loadStatus(), [loadStatus]);
+
+  useEffect(() => {
+    const id = Number(activeSessionId);
+    if (!id) {
+      setChatRows([]);
+      return undefined;
+    }
+    let cancelled = false;
+    listTeleChat(id)
+      .then((payload) => {
+        if (cancelled) return;
+        setChatRows(unwrapList(payload));
+      })
+      .catch(() => {
+        if (!cancelled) setChatRows([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSessionId]);
 
   const runAction = async (key, fn) => {
     setBusy(key);
@@ -389,10 +415,10 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
                   <code>{JSON.stringify(tokenPayload.clientConfig)}</code>
                 </p>
               ) : null}
-              <p className="mb-0 small text-muted">
+            <p className="mb-0 small text-muted">
                 Recording allowed: {tokenPayload.recordAllowed ? "yes" : "no"} · Status{" "}
                 {tokenPayload.status || session.status}. Waiting room / rejoin / chat use poll APIs — no
-                SignalR. Live A/V starts when TeleVideo vendor keys are set.
+                SignalR. Live A/V starts when Agora (or vendor) keys are set; this build uses a stub token.
               </p>
             </div>
           ) : (
@@ -404,6 +430,75 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
                   : "Start the session so the patient waiting room becomes Active, then get a token."}
             </p>
           )}
+
+          <div className="border rounded p-3 bg-light mt-3" data-testid="tele-chat-panel">
+            <h6 className="mb-2">In-room chat</h6>
+            <div className="small mb-2" style={{ maxHeight: 140, overflow: "auto" }}>
+              {chatRows.length === 0 ? (
+                <p className="text-muted mb-0">No messages yet.</p>
+              ) : (
+                chatRows.map((row, idx) => (
+                  <p key={row.teleChatId || row.TeleChatId || idx} className="mb-1">
+                    <strong>{row.authorRole || row.AuthorRole || "User"}:</strong> {row.body || row.Body}
+                  </p>
+                ))
+              )}
+            </div>
+            <div className="d-flex gap-2">
+              <input
+                className="form-control form-control-sm"
+                value={chatText}
+                onChange={(e) => setChatText(e.target.value)}
+                placeholder="Message"
+              />
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                disabled={!chatText.trim() || !!busy}
+                onClick={async () => {
+                  const id = Number(activeSessionId);
+                  if (!id) return;
+                  await runAction("chat", async () => {
+                    await postTeleChat({ sessionId: id, body: chatText.trim() });
+                    setChatText("");
+                    const payload = await listTeleChat(id);
+                    setChatRows(unwrapList(payload));
+                  });
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+
+          <div className="border rounded p-3 bg-light mt-3" data-testid="tele-summary-form">
+            <h6 className="mb-2">Post-call summary</h6>
+            <textarea
+              className="form-control mb-2"
+              rows={3}
+              value={summaryText}
+              onChange={(e) => setSummaryText(e.target.value)}
+              placeholder="Consultation summary for the patient"
+            />
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary"
+              disabled={!summaryText.trim() || !!busy}
+              onClick={async () => {
+                const appId = Number(session?.patientAppId || patientAppId);
+                if (!appId) {
+                  setError("Patient appointment id is required to save a summary.");
+                  return;
+                }
+                await runAction("summary", async () => {
+                  await saveTeleConsultationSummary({ patientAppId: appId, text: summaryText.trim() });
+                  setSummaryText("");
+                });
+              }}
+            >
+              Save summary
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

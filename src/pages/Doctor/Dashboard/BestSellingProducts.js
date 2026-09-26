@@ -1053,10 +1053,12 @@ const BestSellingProducts = () => {
         return [];
     };
 
-    const fetchCaseNotesForPatient = async () => {
+    const fetchCaseNotesForPatient = async (patient) => {
+        const appointmentId = getPatientAppointmentId(patient);
         await dispatch(getAppointmentHistoryNotes({
             pageNumber: 1,
             pageSize: 100,
+            ...(appointmentId ? { appointmentId } : {}),
         }));
     };
 
@@ -1071,7 +1073,7 @@ const BestSellingProducts = () => {
         setCaseNotesModalOpen(true);
 
         try {
-            await fetchCaseNotesForPatient();
+            await fetchCaseNotesForPatient(patient);
         } catch (error) {
             console.error('Error fetching appointment history notes:', error);
         }
@@ -1131,7 +1133,7 @@ const BestSellingProducts = () => {
                 )
             );
 
-            await fetchCaseNotesForPatient();
+            await fetchCaseNotesForPatient(selectedPatientForCaseNotes);
 
             Swal.fire({
                 icon: 'success',

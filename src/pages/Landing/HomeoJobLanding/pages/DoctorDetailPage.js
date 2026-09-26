@@ -10,9 +10,11 @@ import {
     getPublicDoctorRanking,
     getPublicDoctorSlots,
     listPublicArticles,
+    listPublicDoctorReviews,
     mapPublicDoctorCard,
     toIsoDate,
 } from "../../../../helpers/publicBookingApi";
+import WaitlistJoinPanel from "../components/WaitlistJoinPanel";
 
 const TABS = [
     { id: "overview", label: "Overview", icon: "ri-file-text-line" },
@@ -57,6 +59,8 @@ const DoctorDetailPage = () => {
     });
     const [loadError, setLoadError] = useState("");
     const [articles, setArticles] = useState([]);
+    const [reviews, setReviews] = useState([]);
+    const [rankingReasons, setRankingReasons] = useState([]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -69,11 +73,19 @@ const DoctorDetailPage = () => {
                 try {
                     const ranking = await getPublicDoctorRanking(doctorId);
                     mapped.rankingSummary = ranking.summary || ranking.rankingSummary || mapped.rankingSummary;
-                    mapped.rankingReasons = ranking.reasons || ranking.rankingReasons || [];
+                    const reasons = ranking.reasons || ranking.rankingReasons || [];
+                    mapped.rankingReasons = reasons;
+                    if (!cancelled) setRankingReasons(Array.isArray(reasons) ? reasons : []);
                 } catch {
                     // profile already has rankingSummary
                 }
                 setDoctor(mapped);
+                try {
+                    const reviewRows = await listPublicDoctorReviews(doctorId);
+                    if (!cancelled) setReviews(Array.isArray(reviewRows) ? reviewRows : []);
+                } catch {
+                    if (!cancelled) setReviews([]);
+                }
             })
             .catch(() => {
                 if (cancelled) return;
@@ -317,11 +329,41 @@ const DoctorDetailPage = () => {
                                     <h2 className="homeojob-doctor-detail__section-title">
                                         Patient Reviews
                                     </h2>
-                                    <p className="homeojob-doctor-detail__about mb-0">
-                                        Rated <strong>{doctor.rating.toFixed(1)}</strong> from{" "}
-                                        {doctor.reviews} verified reviews for clear guidance and
-                                        compassionate care.
-                                    </p>
+                                    {rankingReasons.length > 0 ? (
+                                        <div className="mb-3">
+                                            <p className="homeojob-doctor-detail__about mb-1">
+                                                <strong>Why this order?</strong>
+                                            </p>
+                                            <ul className="mb-0">
+                                                {rankingReasons.map((reason, idx) => (
+                                                    <li key={idx}>{typeof reason === "string" ? reason : reason?.label || reason?.text || JSON.stringify(reason)}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ) : null}
+                                    {reviews.length === 0 ? (
+                                        <p className="homeojob-doctor-detail__about mb-0">
+                                            No approved patient reviews yet.
+                                        </p>
+                                    ) : (
+                                        <ul className="list-unstyled mb-0">
+                                            {reviews.map((row, idx) => {
+                                                const id = row.reviewId || row.ReviewId || idx;
+                                                const rating = row.rating ?? row.Rating;
+                                                const text = row.text || row.Text || row.comment || "";
+                                                const at = String(row.at || row.At || row.createdAt || "").slice(0, 10);
+                                                return (
+                                                    <li key={id} className="border-bottom py-2">
+                                                        <div className="fw-medium">
+                                                            {rating != null ? `${rating}/5` : "Review"}
+                                                            {at ? ` · ${at}` : ""}
+                                                        </div>
+                                                        <p className="homeojob-doctor-detail__about mb-0">{text || "—"}</p>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
                                 </div>
                             )}
 
@@ -426,10 +468,18 @@ const DoctorDetailPage = () => {
                                     </div>
                                 </div>
 
+                                {slots.length === 0 ? (
+                                    <WaitlistJoinPanel
+                                        doctorId={doctor.id}
+                                        requestedDate={bookingDate}
+                                        consultMode={consultMode}
+                                    />
+                                ) : (
                                 <div className="homeojob-doctor-detail__available">
                                     <i className="ri-checkbox-circle-fill" aria-hidden="true" />
                                     Doctor available today
                                 </div>
+                                )}
 
                                 <button
                                     type="button"

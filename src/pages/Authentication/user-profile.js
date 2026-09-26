@@ -33,6 +33,7 @@ import { editProfile, resetProfileFlag } from "../../slices/thunks";
 import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
 import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
+import PatientProfileFields from "./PatientProfileFields";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import {
   getDoctorProfileMe,
@@ -347,6 +348,7 @@ const UserProfile = () => {
   const [userName, setUserName] = useState("Admin");
   const [activeTab, setActiveTab] = useState("clinic");
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
+  const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(avatar1);
@@ -441,7 +443,7 @@ const UserProfile = () => {
     } catch {
       role = "";
     }
-    if (role === UserRole.RECEPTION || isReceptionProfile) return undefined;
+    if (role === UserRole.RECEPTION || isReceptionProfile || role === UserRole.PATIENT || isPatientProfile) return undefined;
     getDoctorProfileMe()
       .then((payload) => {
         if (cancelled) return;
@@ -1147,7 +1149,31 @@ const UserProfile = () => {
 
   document.title = isReceptionProfile
     ? "Reception profile | Niga Homeocentrum"
+    : isPatientProfile
+      ? "Patient profile | Niga Homeocentrum"
     : "Profile | Niga Homeocentrum";
+
+  if (isPatientProfile) {
+    return (
+      <div className="page-content user-profile-page doctor-dashboard-page">
+        <Container fluid>
+          <Row>
+            <Col lg={8}>
+              <Card className="user-profile-card doctor-stats-card">
+                <CardBody>
+                  <h5 className="mb-1">Patient profile</h5>
+                  <p className="text-muted">
+                    Update your name and contact, and grant privacy consent. Clinic hours and fees are not on this page.
+                  </p>
+                  <PatientProfileFields />
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    );
+  }
 
   if (isReceptionProfile) {
     return (

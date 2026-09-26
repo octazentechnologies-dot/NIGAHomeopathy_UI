@@ -110,6 +110,39 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
           data: body && typeof body === "object" ? body : null,
         });
       }
+      // DMO-11.02 — 401 clears session and returns to login (skip auth endpoints).
+      if (statusCode === 401 && typeof window !== "undefined") {
+        const req = String(error.config?.url || "").toLowerCase();
+        const isAuthCall =
+          req.includes("/account/login") ||
+          req.includes("/account/authenticate") ||
+          req.includes("/users/login") ||
+          req.includes("/otp/");
+        if (!isAuthCall && sessionStorage.getItem("authUser")) {
+          try {
+            const parsed = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+            const token = parsed.token || parsed.accessToken || parsed.data?.token || "";
+            const headers = token
+              ? { Authorization: "Bearer " + token, "Content-Type": "application/json" }
+              : { "Content-Type": "application/json" };
+            fetch(`${api.Old_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
+            fetch(`${api.New_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
+          } catch (_) {
+            /* ignore */
+          }
+          try {
+            sessionStorage.removeItem("authUser");
+            sessionStorage.removeItem("authUserRole");
+          } catch (_) {
+            /* ignore */
+          }
+          const path = window.location.pathname || "";
+          if (!path.toLowerCase().includes("login") && !path.toLowerCase().includes("register")) {
+            const next = encodeURIComponent(path + (window.location.search || ""));
+            window.location.assign(`/login?session=expired&next=${next}`);
+          }
+        }
+      }
       return Promise.reject(message);
     }
   );
