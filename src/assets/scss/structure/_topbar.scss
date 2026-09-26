@@ -159,6 +159,18 @@
     width: 32px;
 }
 
+.header-profile-user--letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    color: #5b21b6;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1;
+    user-select: none;
+}
+
 .topbar-badge-sm {
     right: 0;
     top: 7px !important;

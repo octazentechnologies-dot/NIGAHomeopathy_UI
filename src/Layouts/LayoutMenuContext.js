@@ -4,6 +4,7 @@ import Navdata from './LayoutMenuData';
 import {
   getAccountHorizontalMenuItems,
   getPharmacyHorizontalMenuItems,
+  getReceptionHorizontalMenuItems,
   getHorizontalMenuSplit,
 } from '../helpers/horizontalMenuSplit';
 import {
@@ -100,14 +101,25 @@ export const LayoutMenuProvider = ({ children }) => {
         };
       }
       if (role === UserRole.RECEPTION) {
+        const devItems = getReceptionHorizontalMenuItems();
+        const known = new Set(devItems.map((item) => item.link));
+        const extras = RECEPTION_FALLBACK_MENU.filter((item) => !known.has(item.link));
         return {
-          menuItems: RECEPTION_FALLBACK_MENU,
+          menuItems: [...devItems, ...extras],
           moreMenuItems: [],
         };
       }
       if (role === UserRole.DOCTOR) {
+        const hasTelemedicine = DOCTOR_FALLBACK_MENU.some((item) => item.link === "/doctor/telemedicine");
+        const doctorItems = hasTelemedicine
+          ? DOCTOR_FALLBACK_MENU
+          : [
+              ...DOCTOR_FALLBACK_MENU.slice(0, 3),
+              { id: "doctor-telemedicine", label: "Telemedicine", icon: "ri-vidicon-line", link: "/doctor/telemedicine" },
+              ...DOCTOR_FALLBACK_MENU.slice(3),
+            ];
         return {
-          menuItems: DOCTOR_FALLBACK_MENU,
+          menuItems: doctorItems,
           moreMenuItems: [],
         };
       }
@@ -143,6 +155,7 @@ export const LayoutMenuProvider = ({ children }) => {
           '/doctordashboard',
           '/doctor/patientboard',
           '/doctor/anatomy',
+          '/doctor/telemedicine',
           '/doctor/reception-staff',
           '/profile',
         ]);

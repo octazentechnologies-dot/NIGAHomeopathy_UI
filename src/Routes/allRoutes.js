@@ -159,12 +159,15 @@ import ListRubricBenchmarkDashboard from "../pages/Admin/RubricIntelligence/List
 import DoctorDashboard from "../pages/Doctor/Dashboard";
 import PatientBoardRoute from "./PatientBoardRoute";
 import AnatomyPage from "../pages/AnatomyPage";
+import TelemedicineDashboard from "../pages/Doctor/Telemedicine";
 import AccountDashboard from "../pages/Account/Dashboard";
 import AccountComingSoon from "../pages/Account/components/AccountComingSoon";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
 import FamilyMembers from "../pages/Family/FamilyMembers";
 import CaregiverAccess from "../pages/Family/CaregiverAccess";
+import ReceptionDashboard from "../pages/Reception/Dashboard";
+import ReceptionComingSoon from "../pages/Reception/components/ReceptionComingSoon";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -584,6 +587,7 @@ const authProtectedRoutes = [
   { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
   { path: "patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
+  { path: "doctor/telemedicine", component: <TelemedicineDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },
@@ -614,6 +618,12 @@ const authProtectedRoutes = [
 
   { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "caregiver", component: <CaregiverAccess />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  // Reception Side //
+  { path: "receptiondashboard", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/appointments", component: <ReceptionComingSoon title="Appointments" />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/patients", component: <ReceptionComingSoon title="Patients" />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/payments", component: <ReceptionComingSoon title="Payments" />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  // Reception Side End //
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },

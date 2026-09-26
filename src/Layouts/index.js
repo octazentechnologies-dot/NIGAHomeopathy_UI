@@ -269,6 +269,9 @@ const Layout = (props) => {
         const isPatientBoard =
             path === '/doctor/patientboard' ||
             path.startsWith('/doctor/patientboard');
+        const isTelemedicine =
+            path === '/doctor/telemedicine' ||
+            path.startsWith('/doctor/telemedicine');
 
         if (isAdminPath) {
             document.body.classList.add('admin-forms-ui');
@@ -284,7 +287,7 @@ const Layout = (props) => {
             document.body.classList.remove('admin-dashboard-route');
         }
 
-        if (isDoctorDashboard) {
+        if (isDoctorDashboard || isTelemedicine) {
             document.body.classList.add('doctor-dashboard-route');
         } else {
             document.body.classList.remove('doctor-dashboard-route');

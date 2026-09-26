@@ -140,8 +140,18 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   background: rgba($slot-color-current, 0.18);
   border-color: rgba($slot-color-current, 0.65);
   color: darken($slot-color-current, 22%);
-  cursor: default;
+  cursor: pointer;
   box-shadow: 0 0 0 1px rgba($slot-color-current, 0.2);
+}
+
+.appointment-slot-chip.is-selected,
+.appointment-slot-chip.available.is-selected,
+.appointment-slot-chip.current.is-selected {
+  background: rgba($slot-color-current, 0.22);
+  border-color: rgba($slot-color-current, 0.75);
+  color: darken($slot-color-current, 26%);
+  box-shadow: 0 0 0 2px rgba($slot-color-current, 0.28);
+  font-weight: 700;
 }
 
 .appointment-slot-grid-loading,

@@ -2539,6 +2539,21 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
     background-color: var(--#{$prefix}secondary-bg, #fff);
   }
 
+  .header-profile-user--letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    color: #5b21b6;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    user-select: none;
+    height: 36px;
+    width: 36px;
+  }
+
   .header-profile-user-status {
     position: absolute;
     right: 0;
@@ -3227,6 +3242,20 @@ body.doctor-layout {
         border: 1px solid #7dd3fc;
         color: #0369a1 !important;
         box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
+      }
+
+      .doctor-action-icon--clickable {
+        cursor: pointer;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+
+        &:hover,
+        &:focus-visible {
+          background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+          color: #0c4a6e !important;
+        }
       }
 
       .doctor-dashboard-action-link {

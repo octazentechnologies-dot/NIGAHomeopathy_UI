@@ -72,9 +72,9 @@ export const loginUser = (user, history) => async (dispatch) => {
         history('/doctordashboard')
       } else if (role === UserRole.RECEPTION) {
         dispatch(loginLoading(false));
-        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.HIDDEN));
-        dispatch(changeLayout(layoutTypes.SEMIBOX));
-        history('/reception')
+        dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
+        dispatch(changeLayout(layoutTypes.HORIZONTAL));
+        history('/receptiondashboard')
       } else if (role === UserRole.ACCOUNT) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));

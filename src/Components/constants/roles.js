@@ -18,8 +18,7 @@ const UserRole = {
 const ADMIN_PORTAL_ROLES = [UserRole.ADMIN, UserRole.MANAGEMENT];
 
 /** Doctor dashboard UI without admin left sidebar */
-const usesDoctorDashboardLayout = (role) =>
-    role === UserRole.DOCTOR || role === UserRole.RECEPTION;
+const usesDoctorDashboardLayout = (role) => role === UserRole.DOCTOR;
 
 /** Account portal: horizontal top nav (same shell as admin) */
 const usesAccountDashboardLayout = (role) => role === UserRole.ACCOUNT;
@@ -31,14 +30,18 @@ const usesPharmacyDashboardLayout = (role) =>
 /** Patient portal: family / caregiver screens (S1 CON-01.03) */
 const usesPatientDashboardLayout = (role) => role === UserRole.PATIENT;
 
-/** Admin / Account / Pharmacy / Patient: full-width fixed topbar + horizontal nav */
+/** Reception portal: horizontal top nav (same shell as admin/account) */
+const usesReceptionDashboardLayout = (role) => role === UserRole.RECEPTION;
+
+/** Admin / Account / Pharmacy / Patient / Reception: full-width fixed topbar + horizontal nav */
 const usesAdminDashboardLayout = (role) =>
     role === UserRole.ADMIN ||
     usesAccountDashboardLayout(role) ||
     usesPharmacyDashboardLayout(role) ||
-    usesPatientDashboardLayout(role);
+    usesPatientDashboardLayout(role) ||
+    usesReceptionDashboardLayout(role);
 
-/** Topbar briefcase "More" overflow menu (admin + doctor/reception) */
+/** Topbar briefcase "More" overflow menu (admin + doctor) */
 const usesTopbarMoreMenu = (role) =>
     role === UserRole.ADMIN || usesDoctorDashboardLayout(role);
 
@@ -185,6 +188,7 @@ export {
     usesAccountDashboardLayout,
     usesPharmacyDashboardLayout,
     usesPatientDashboardLayout,
+    usesReceptionDashboardLayout,
     usesAdminDashboardLayout,
     usesTopbarMoreMenu,
     resolveUserRole,

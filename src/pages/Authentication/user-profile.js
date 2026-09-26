@@ -48,12 +48,24 @@ import {
 const PROFILE_TABS = [
   { id: "profile", label: "Profile" },
   { id: "clinic", label: "Clinic" },
-  { id: "fees", label: "Fees" },
+  { id: "fees", label: "Fees", doctorOnly: true },
   { id: "photo", label: "Photo" },
-  { id: "qualifications", label: "Qualifications" },
+  { id: "qualifications", label: "Qualifications", doctorOnly: true },
   { id: "hours", label: "Hours" },
   { id: "bank", label: "Bank" },
 ];
+
+const getProfileTabsForRole = (role) => {
+  if (role === UserRole.RECEPTION) {
+    return PROFILE_TABS.filter((tab) => !tab.doctorOnly);
+  }
+  return PROFILE_TABS;
+};
+
+const getRoleDisplayLabel = (role) => {
+  if (role === UserRole.RECEPTION) return "Receptionist";
+  return role || "N/A";
+};
 
 const INDIAN_STATES = [
   "Andhra Pradesh",
@@ -335,7 +347,6 @@ const UserProfile = () => {
   const [userName, setUserName] = useState("Admin");
   const [activeTab, setActiveTab] = useState("clinic");
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
-  const visibleTabs = isReceptionProfile ? PROFILE_TABS.filter((tab) => tab.id === "profile") : PROFILE_TABS;
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(avatar1);
@@ -363,6 +374,15 @@ const UserProfile = () => {
 
   const { user, success, error } = useSelector(userprofileData);
 
+  const isReceptionUser = userData?.role === UserRole.RECEPTION;
+  const roleLabel = getRoleDisplayLabel(userData?.role);
+  const profileSubjectName =
+    userData?.role === UserRole.DOCTOR
+      ? `Dr. ${String(userName || "Nikhil Jamdar")
+          .replace(/^dr\.?\s*/i, "")
+          .trim()}`
+      : userData?.displayName || userName || "Admin";
+
   useEffect(() => {
     const authUserStr = sessionStorage.getItem("authUser");
     if (authUserStr) {
@@ -375,6 +395,14 @@ const UserProfile = () => {
           setUserName(userInfo.userName || "Admin");
           setemail(userInfo.email || "N/A");
           setidx(userInfo.userId || userInfo._id || "1");
+
+          if (userInfo.role === UserRole.RECEPTION) {
+            const receptionName = userInfo.displayName || userInfo.userName || "Pooja";
+            setBankForm((prev) => ({
+              ...prev,
+              accountHolderName: receptionName,
+            }));
+          }
 
           if (!isEmpty(user)) {
             const updatedObj = { ...obj };
@@ -397,8 +425,11 @@ const UserProfile = () => {
   }, [dispatch, user]);
 
   useEffect(() => {
-    if (isReceptionProfile) setActiveTab("profile");
-  }, [isReceptionProfile]);
+    const tabs = getProfileTabsForRole(userData?.role);
+    if (!tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(tabs[0]?.id || "profile");
+    }
+  }, [userData?.role, activeTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1002,7 +1033,11 @@ const UserProfile = () => {
 
   const handleSaveHours = async (event) => {
     event.preventDefault();
-    if (!consultationMode.inClinic && !consultationMode.teleconsultation) {
+    if (
+      !isReceptionUser &&
+      !consultationMode.inClinic &&
+      !consultationMode.teleconsultation
+    ) {
       Swal.fire({
         title: "Select consultation mode",
         text: "Please enable In-Clinic, Teleconsultation, or Both.",
@@ -1013,6 +1048,10 @@ const UserProfile = () => {
       return;
     }
 
+    if (isReceptionUser) {
+      showSaveResult(true, `Working hours have been updated for ${profileSubjectName}.`);
+      return;
+    }
     const sourceDay = WEEK_DAYS.map((day) => hoursSchedule[day.id]).find((row) => row?.available && row.startTime && row.endTime) || hoursSchedule.monday;
     const days = WEEK_DAYS.filter((day) => hoursSchedule[day.id]?.available && hoursSchedule[day.id].startTime && hoursSchedule[day.id].endTime).map((day) => ({
       scheduleDate: nextDateForWeekday(day.id),
@@ -1103,12 +1142,8 @@ const UserProfile = () => {
     </Input>
   );
 
-  const displayName =
-    userData?.role === UserRole.DOCTOR
-      ? `Dr. ${String(userName || "Nikhil Jamdar")
-          .replace(/^dr\.?\s*/i, "")
-          .trim()}`
-      : userName || "Admin";
+  const displayName = profileSubjectName;
+  const visibleTabs = getProfileTabsForRole(userData?.role);
 
   document.title = isReceptionProfile
     ? "Reception profile | Niga Homeocentrum"
@@ -1158,6 +1193,10 @@ const UserProfile = () => {
                     <h5 className="user-profile-page__summary-name text-truncate">
                       {displayName}
                     </h5>
+                    <p className="user-profile-page__summary-meta">
+                      <i className="ri-shield-user-line" aria-hidden="true" />
+                      <span>{roleLabel}</span>
+                    </p>
                     <p className="user-profile-page__summary-meta">
                       <i className="ri-mail-line" aria-hidden="true" />
                       <span>Email: {email}</span>
@@ -1209,7 +1248,7 @@ const UserProfile = () => {
                             {userData.lastName || "N/A"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-shield-user-line" label="Role">
-                            <ProfileBadge tone="info">{userData.role || "N/A"}</ProfileBadge>
+                            <ProfileBadge tone="info">{roleLabel}</ProfileBadge>
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-key-line" label="Role ID">
                             {userData.roleId || "N/A"}
@@ -1300,7 +1339,7 @@ const UserProfile = () => {
                         Clinic Information
                       </h5>
                       <p className="text-muted small mb-3">
-                        Managing clinic details for <strong>{displayName}</strong>
+                        Managing clinic details for <strong>{profileSubjectName}</strong>
                       </p>
 
                       <Row className="g-3 new-patient-modal__fields">
@@ -1603,14 +1642,14 @@ const UserProfile = () => {
                       <div className="user-profile-page__photo-card">
                         <h5 className="user-profile-page__section-title mb-4">
                           <i className="ri-camera-line" aria-hidden="true" />
-                          Doctor Profile Photo
+                          {isReceptionUser ? "Receptionist Profile Photo" : "Doctor Profile Photo"}
                         </h5>
 
                         <div className="user-profile-page__photo-body text-center">
                           <div className="user-profile-page__photo-preview-wrap">
                             <img
                               src={profilePhoto || avatar1}
-                              alt="Doctor profile"
+                              alt={isReceptionUser ? "Receptionist profile" : "Doctor profile"}
                               className="user-profile-page__photo-preview"
                             />
                           </div>
@@ -1862,7 +1901,7 @@ const UserProfile = () => {
                       <div className="user-profile-page__hours-card">
                         <h5 className="user-profile-page__section-title">
                           <i className="ri-time-line" aria-hidden="true" />
-                          Clinic Availability
+                          {isReceptionUser ? "Working Hours" : "Clinic Availability"}
                         </h5>
 
                         <div className="table-responsive user-profile-page__hours-table-wrap">
@@ -1967,38 +2006,40 @@ const UserProfile = () => {
                         </div>
                       </div>
 
-                      <div className="user-profile-page__hours-card">
-                        <h5 className="user-profile-page__section-title">
-                          <i className="ri-stethoscope-line" aria-hidden="true" />
-                          Consultation Mode
-                        </h5>
-                        <div className="user-profile-page__hours-mode">
-                          <Label check className="user-profile-page__hours-mode-item">
-                            <Input
-                              type="checkbox"
-                              checked={consultationMode.inClinic}
-                              onChange={() => updateConsultationMode("inClinic")}
-                            />
-                            <span>In-Clinic</span>
-                          </Label>
-                          <Label check className="user-profile-page__hours-mode-item">
-                            <Input
-                              type="checkbox"
-                              checked={consultationMode.teleconsultation}
-                              onChange={() => updateConsultationMode("teleconsultation")}
-                            />
-                            <span>Teleconsultation</span>
-                          </Label>
-                          <Label check className="user-profile-page__hours-mode-item">
-                            <Input
-                              type="checkbox"
-                              checked={consultationMode.both}
-                              onChange={() => updateConsultationMode("both")}
-                            />
-                            <span>Both</span>
-                          </Label>
+                      {!isReceptionUser ? (
+                        <div className="user-profile-page__hours-card">
+                          <h5 className="user-profile-page__section-title">
+                            <i className="ri-stethoscope-line" aria-hidden="true" />
+                            Consultation Mode
+                          </h5>
+                          <div className="user-profile-page__hours-mode">
+                            <Label check className="user-profile-page__hours-mode-item">
+                              <Input
+                                type="checkbox"
+                                checked={consultationMode.inClinic}
+                                onChange={() => updateConsultationMode("inClinic")}
+                              />
+                              <span>In-Clinic</span>
+                            </Label>
+                            <Label check className="user-profile-page__hours-mode-item">
+                              <Input
+                                type="checkbox"
+                                checked={consultationMode.teleconsultation}
+                                onChange={() => updateConsultationMode("teleconsultation")}
+                              />
+                              <span>Teleconsultation</span>
+                            </Label>
+                            <Label check className="user-profile-page__hours-mode-item">
+                              <Input
+                                type="checkbox"
+                                checked={consultationMode.both}
+                                onChange={() => updateConsultationMode("both")}
+                              />
+                              <span>Both</span>
+                            </Label>
+                          </div>
                         </div>
-                      </div>
+                      ) : null}
 
                       <div className="user-profile-page__form-footer">
                         <ModalActionButton action="cancel" type="button" onClick={handleBackToDashboard}>
@@ -2123,7 +2164,11 @@ const UserProfile = () => {
 
                       <div className="user-profile-page__bank-secure-note" role="note">
                         <i className="ri-lock-2-line" aria-hidden="true" />
-                        <span>Your bank details are securely stored and used for payout purposes only.</span>
+                        <span>
+                          {isReceptionUser
+                            ? "Your bank details are securely stored for salary and reimbursement purposes only."
+                            : "Your bank details are securely stored and used for payout purposes only."}
+                        </span>
                       </div>
 
                       <div className="user-profile-page__form-footer">
