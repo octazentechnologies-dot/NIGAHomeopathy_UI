@@ -43,6 +43,7 @@ const ReceptionHome = () => {
   const [receipt, setReceipt] = useState(null);
   const [collecting, setCollecting] = useState(false);
   const [issuedReceipt, setIssuedReceipt] = useState(null);
+  const [collectError, setCollectError] = useState("");
   const [note, setNote] = useState("");
   const [rescheduleRow, setRescheduleRow] = useState(null);
   const [cancelRow, setCancelRow] = useState(null);
@@ -121,13 +122,43 @@ const ReceptionHome = () => {
     setCasePrefill({ patientId: String(patientId), label: label || "" });
   };
 
-  const submitCollect = async () => {
+  const printReceiptWindow = (printed, method) => {
+    const orderId = printed?.paymentOrderId ?? printed?.PaymentOrderId ?? "—";
+    const visitId = printed?.patientAppId ?? printed?.PatientAppId ?? receipt?.appointmentId ?? "—";
+    const amount = printed?.amount ?? printed?.Amount ?? receipt?.amount ?? "—";
+    const gst = printed?.gstAmount ?? printed?.GstAmount ?? "—";
+    const gstNote = printed?.gstNote ?? printed?.GstNote ?? "";
+    const payMethod = printed?.method ?? printed?.Method ?? method ?? "CASH";
+    const html = `<!DOCTYPE html><html><head><title>Receipt ${orderId}</title>
+      <style>body{font-family:Segoe UI,Arial,sans-serif;padding:24px;color:#111}
+      h1{font-size:18px;margin:0 0 12px} .row{margin:6px 0} .muted{color:#666;font-size:12px}</style></head>
+      <body><h1>Homeocentrum receipt</h1>
+      <div class="row">Order #${orderId}</div>
+      <div class="row">Visit #${visitId}</div>
+      <div class="row">Amount ₹ ${amount}</div>
+      <div class="row">Method ${payMethod}</div>
+      <div class="row">GST ₹ ${gst}</div>
+      <div class="muted">${gstNote}</div>
+      <div class="muted">Paid status is set by the clinic collection API or a payment webhook.</div>
+      </body></html>`;
+    const popup = window.open("", "receipt-print", "width=480,height=640");
+    if (!popup) return;
+    popup.document.write(html);
+    popup.document.close();
+    popup.focus();
+    popup.print();
+  };
+
+  const submitCollect = async (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     if (!receipt?.appointmentId) {
-      setError("Select an appointment before collecting.");
+      setCollectError("Select an appointment before collecting.");
       return;
     }
     setCollecting(true);
     setError("");
+    setCollectError("");
     setNote("");
     setIssuedReceipt(null);
     try {
@@ -139,8 +170,8 @@ const ReceptionHome = () => {
         payload.amount = Number(receipt.amount);
       }
       const response = await collectAtReception(payload);
-      const body = unwrapS4(response);
-      const printed = body?.receipt || response?.receipt || body;
+      const body = unwrapS4(response) || response || {};
+      const printed = body?.receipt || response?.receipt || body?.data?.receipt || body;
       setIssuedReceipt(printed);
       setNote(
         body?.message ||
@@ -149,9 +180,12 @@ const ReceptionHome = () => {
             ? "Pay link reserved. Visit stays unpaid until collection or webhook."
             : "Collected at reception.")
       );
+      window.setTimeout(() => printReceiptWindow(printed, payload.method), 50);
       await load();
     } catch (err) {
-      setError(s4Message(err) || apiMessage(err, "Collection failed"));
+      const message = s4Message(err) || apiMessage(err, "Collection failed");
+      setCollectError(message);
+      setError(message);
     } finally {
       setCollecting(false);
     }
@@ -294,17 +328,18 @@ const ReceptionHome = () => {
           {receipt ? (
             <Col md={6}>
               {/* PAY-04 / REC-13 — CollectAtReception on New API :5002 */}
-              <Card className="admin-dash-card" data-testid="reception-receipt-shell">
+              <Card className="admin-dash-card" data-testid="reception-receipt-shell" style={{ position: "relative", zIndex: 6 }}>
                 <CardBody>
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <h5 className="mb-0">Collect at reception</h5>
-                    <Button size="sm" color="link" className="p-0" onClick={() => { setReceipt(null); setIssuedReceipt(null); }}>
+                    <Button size="sm" color="link" className="p-0" type="button" onClick={() => { setReceipt(null); setIssuedReceipt(null); setCollectError(""); }}>
                       Close
                     </Button>
                   </div>
                   <p className="text-muted small">
                     Cash, offline UPI, card POS, or reserve a pay link. Paid status is set by this API or the Razorpay webhook — not by the client alone.
                   </p>
+                  {collectError ? <Alert color="danger">{collectError}</Alert> : null}
                   <Label htmlFor="reception-receipt-amount">Amount (optional — must match fee when sent)</Label>
                   <Input
                     id="reception-receipt-amount"
@@ -357,6 +392,7 @@ const ReceptionHome = () => {
                     data-testid="reception-receipt-gst"
                   />
                   <Button
+                    type="button"
                     className="reception-primary-btn mt-3"
                     disabled={collecting || !receipt.appointmentId}
                     onClick={submitCollect}
@@ -383,6 +419,14 @@ const ReceptionHome = () => {
                       {issuedReceipt.linkToken || issuedReceipt.LinkToken ? (
                         <div className="small mt-1">Link token: {issuedReceipt.linkToken || issuedReceipt.LinkToken}</div>
                       ) : null}
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="reception-primary-btn mt-2"
+                        onClick={() => printReceiptWindow(issuedReceipt, receipt.method)}
+                      >
+                        Print again
+                      </Button>
                     </div>
                   ) : null}
                 </CardBody>

@@ -29,7 +29,6 @@ import {
   patientMedicineOrders,
   patientPayments,
   postDiaryEntry,
-  postFollowUp,
   s4Message,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
@@ -49,9 +48,6 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [diaryText, setDiaryText] = useState("");
-  const [followTitle, setFollowTitle] = useState("");
-  const [followDue, setFollowDue] = useState(new Date().toISOString().slice(0, 10));
-  const [followPatientAppId, setFollowPatientAppId] = useState("");
   const [diarySeverity, setDiarySeverity] = useState("5");
   const [snapshots, setSnapshots] = useState([]);
   const [sellers, setSellers] = useState([]);
@@ -62,12 +58,50 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
 
   const asList = (payload) => {
     if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
     if (Array.isArray(payload?.items)) return payload.items;
     if (Array.isArray(payload?.orders)) return payload.orders;
     if (Array.isArray(payload?.entries)) return payload.entries;
     if (Array.isArray(payload?.tasks)) return payload.tasks;
     if (Array.isArray(payload?.events)) return payload.events;
     return [];
+  };
+
+  const asTimeline = (payload) => {
+    const inner =
+      payload?.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+        ? payload.data
+        : payload;
+    const direct = asList(inner);
+    if (direct.length) return direct;
+    const visits = inner?.appointments || inner?.Appointments || [];
+    const scripts = inner?.prescriptions || inner?.Prescriptions || [];
+    const events = [];
+    if (Array.isArray(visits)) {
+      visits.forEach((row, idx) => {
+        const status = String(row.title || row.status || row.Status || "").trim();
+        if (status.toUpperCase() === "CANCELLED") return;
+        events.push({
+          eventId: `apt-${row.refId || row.patientAppId || row.PatientAppId || idx}`,
+          title: `Visit ${status}`.trim(),
+          eventType: "appointment",
+          occurredAt: row.at || row.At || row.appointmentDate || row.AppointmentDate,
+          summary: row.refId || row.patientAppId ? `Appointment #${row.refId || row.patientAppId || row.PatientAppId}` : "",
+        });
+      });
+    }
+    if (Array.isArray(scripts)) {
+      scripts.forEach((row, idx) => {
+        events.push({
+          eventId: `erx-${row.erxSnapshotId || row.ErxSnapshotId || idx}`,
+          title: "Signed prescription",
+          eventType: "erx",
+          occurredAt: row.signedAt || row.SignedAt,
+          summary: `eRx #${row.erxSnapshotId || row.ErxSnapshotId || "—"} · visit #${row.patientAppId || row.PatientAppId || "—"}`,
+        });
+      });
+    }
+    return events.sort((a, b) => String(b.occurredAt || "").localeCompare(String(a.occurredAt || "")));
   };
 
   const load = async () => {
@@ -93,7 +127,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
           getPatientProgress(),
           patientMedicineOrders(),
         ]);
-        setTimeline(asList(unwrapS4(t)));
+        setTimeline(asTimeline(unwrapS4(t)));
         setFollowUps(asList(unwrapS4(f)));
         setDiary(asList(unwrapS4(d)));
         setProgress(unwrapS4(p));
@@ -407,57 +441,13 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
               <Card className="admin-dash-card">
                 <CardBody>
                   <h5>Follow-ups</h5>
-                  <FormGroup>
-                    <Label>New follow-up</Label>
-                    <Input
-                      className="mb-2"
-                      type="number"
-                      min={1}
-                      placeholder="Patient appointment id"
-                      value={followPatientAppId}
-                      onChange={(e) => setFollowPatientAppId(e.target.value)}
-                    />
-                    <Input
-                      className="mb-2"
-                      value={followTitle}
-                      onChange={(e) => setFollowTitle(e.target.value)}
-                      placeholder="Title"
-                    />
-                    <Input
-                      type="date"
-                      value={followDue}
-                      onChange={(e) => setFollowDue(e.target.value)}
-                    />
-                  </FormGroup>
-                  <Button
-                    size="sm"
-                    className="clinic-primary-btn"
-                    className="mb-3"
-                    disabled={!followTitle.trim() || !followPatientAppId || !followDue}
-                    onClick={async () => {
-                      try {
-                        await postFollowUp({
-                          patientAppId: Number(followPatientAppId),
-                          title: followTitle.trim(),
-                          dueDate: followDue,
-                          note: "",
-                        });
-                        setFollowTitle("");
-                        setNote("Follow-up added.");
-                        await load();
-                      } catch (err) {
-                        setError(s4Message(err));
-                      }
-                    }}
-                  >
-                    Add
-                  </Button>
+                  <p className="text-muted small">Your doctor adds these after a visit. Mark a task done when you have completed it.</p>
                   {followUps.length === 0 ? (
                     <p className="text-muted mb-0">No follow-up tasks.</p>
                   ) : (
                     <ul className="list-unstyled mb-0">
                       {followUps.map((row) => {
-                        const id = row.taskId || row.TaskId || row.id;
+                        const id = row.followUpTaskId || row.FollowUpTaskId || row.taskId || row.TaskId || row.id;
                         return (
                           <li key={id} className="d-flex justify-content-between border-bottom py-2 gap-2">
                             <span>{row.title || row.Title || `#${id}`}</span>

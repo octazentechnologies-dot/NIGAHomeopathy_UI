@@ -18,6 +18,7 @@ import {
   ADMIN_WEEK4_MENU,
   mergeMissingMenuItems,
   receptionChromeFromApi,
+  isDoctorSpaLink,
 } from '../helpers/menuByRole';
 import { getMenuByRole } from '../helpers/realbackend_helper';
 import { resolveUserRole, UserRole } from '../Components/constants/roles';
@@ -195,7 +196,8 @@ export const LayoutMenuProvider = ({ children }) => {
         const extra = [];
         const seenExtra = new Set();
         const seenCore = new Set();
-        spaItems.forEach((item) => {
+        const doctorOnly = (spaItems || []).filter((item) => isDoctorSpaLink(item.link));
+        doctorOnly.forEach((item) => {
           const link = String(item.link || '').toLowerCase();
           if (coreLinks.has(link)) {
             core.push(item);

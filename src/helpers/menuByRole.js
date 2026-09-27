@@ -204,6 +204,18 @@ export const receptionChromeFromApi = (items) => {
 };
 
 /** Matches Dev RoleDetails for Doctor (no Enquiries, no Family). Used only when GetMenuByRole fails. */
+/** Doctor chrome may only list clinic routes — never Account / Pharmacy / Patient / Admin. */
+export const isDoctorSpaLink = (link) => {
+  if (!link || typeof link !== "string") return false;
+  const path = (link.split("?")[0] || "").toLowerCase();
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return (
+    normalized === "/doctordashboard" ||
+    normalized.startsWith("/doctor/") ||
+    normalized === "/profile"
+  );
+};
+
 export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
   { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },

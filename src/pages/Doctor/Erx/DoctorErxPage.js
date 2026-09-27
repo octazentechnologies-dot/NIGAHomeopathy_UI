@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Alert, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner } from "reactstrap";
+import { Alert, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner, Table } from "reactstrap";
 import {
   erxByAppointment,
   erxPdf,
@@ -8,6 +8,20 @@ import {
   signErx,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
+
+const pick = (row, ...keys) => {
+  for (const key of keys) {
+    if (row?.[key] != null && row[key] !== "") return row[key];
+  }
+  return null;
+};
+
+const asSnapshot = (payload) => {
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.items || payload.Items || payload.erxSnapshotId || payload.ErxSnapshotId) return payload;
+  if (payload.data && typeof payload.data === "object") return payload.data;
+  return payload;
+};
 
 /**
  * ERX — load appointment prescription snapshot and sign (locks). PDF via New API.
@@ -34,7 +48,7 @@ const DoctorErxPage = () => {
     setNote("");
     try {
       const response = await erxByAppointment(id);
-      setSnapshot(unwrapS4(response));
+      setSnapshot(asSnapshot(unwrapS4(response)));
     } catch (err) {
       setSnapshot(null);
       setError(s4Message(err));
@@ -69,7 +83,7 @@ const DoctorErxPage = () => {
   };
 
   const onPdf = async () => {
-    const erxId = snapshot?.erxId || snapshot?.ErxId || snapshot?.id;
+    const erxId = pick(snapshot, "erxId", "ErxId", "erxSnapshotId", "ErxSnapshotId", "id");
     if (!erxId) {
       setError("No eRx id to open as PDF.");
       return;
@@ -81,6 +95,12 @@ const DoctorErxPage = () => {
       setError(s4Message(err));
     }
   };
+
+  const items = Array.isArray(snapshot?.items)
+    ? snapshot.items
+    : Array.isArray(snapshot?.Items)
+      ? snapshot.Items
+      : [];
 
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
@@ -119,13 +139,68 @@ const DoctorErxPage = () => {
           <Col lg={8}>
             <Card className="admin-dash-card">
               <CardBody>
-                <h5>Snapshot</h5>
+                <h5>Prescription</h5>
                 {!snapshot ? (
-                  <p className="text-muted mb-0">Load an appointment to preview the eRx payload.</p>
+                  <p className="text-muted mb-0">Load an appointment to preview the signed prescription.</p>
                 ) : (
-                  <pre className="small mb-0" style={{ whiteSpace: "pre-wrap", maxHeight: 480, overflow: "auto" }}>
-                    {JSON.stringify(snapshot, null, 2)}
-                  </pre>
+                  <>
+                    <Row className="g-3 mb-3">
+                      <Col md={4}>
+                        <div className="text-muted small">eRx</div>
+                        <div>#{pick(snapshot, "erxSnapshotId", "ErxSnapshotId", "erxId", "ErxId") || "—"}</div>
+                      </Col>
+                      <Col md={4}>
+                        <div className="text-muted small">Visit</div>
+                        <div>#{pick(snapshot, "patientAppId", "PatientAppId") || "—"}</div>
+                      </Col>
+                      <Col md={4}>
+                        <div className="text-muted small">Status</div>
+                        <div>{pick(snapshot, "status", "Status") || "—"}</div>
+                      </Col>
+                      <Col md={6}>
+                        <div className="text-muted small">Signed at</div>
+                        <div>
+                          {pick(snapshot, "signedAt", "SignedAt")
+                            ? new Date(pick(snapshot, "signedAt", "SignedAt")).toLocaleString("en-IN")
+                            : "—"}
+                        </div>
+                      </Col>
+                      <Col md={6}>
+                        <div className="text-muted small">History notes</div>
+                        <div>{pick(snapshot, "notesIncluded", "NotesIncluded") ? "Included" : "Not included"}</div>
+                      </Col>
+                    </Row>
+                    {items.length === 0 ? (
+                      <p className="text-muted mb-0">No remedy lines on this snapshot.</p>
+                    ) : (
+                      <div className="table-responsive">
+                        <Table className="table-nowrap align-middle mb-0" size="sm">
+                          <thead>
+                            <tr>
+                              <th>Remedy</th>
+                              <th>Potency</th>
+                              <th>Dose</th>
+                              <th>Frequency</th>
+                              <th>Duration</th>
+                              <th>Instructions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((row, index) => (
+                              <tr key={pick(row, "erxSnapshotItemId", "ErxSnapshotItemId") || index}>
+                                <td>{pick(row, "remedyName", "RemedyName", "remedyCode", "RemedyCode") || "—"}</td>
+                                <td>{pick(row, "potencyCode", "PotencyCode") || "—"}</td>
+                                <td>{pick(row, "dose", "Dose") || "—"}</td>
+                                <td>{pick(row, "frequency", "Frequency") || "—"}</td>
+                                <td>{pick(row, "duration", "Duration") || "—"}</td>
+                                <td>{pick(row, "instructions", "Instructions") || "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardBody>
             </Card>

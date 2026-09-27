@@ -29,6 +29,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     expiryDate: "",
     area: "",
   });
+  const [submitted, setSubmitted] = useState(null);
 
   document.title = `${mode === "onboarding" ? "Pharmacy onboarding" : "Pharmacy orders"} | Niga Homeocentrum`;
 
@@ -86,15 +87,29 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       return;
     }
     try {
-      const response = await onboardPharmacy({
+      const payload = {
         name: onboard.name.trim(),
         mobile: onboard.mobile.trim(),
         licenceNumber: onboard.licenceNumber.trim(),
         expiryDate: onboard.expiryDate,
         area: onboard.area.trim(),
+      };
+      const response = await onboardPharmacy(payload);
+      const inner = unwrapS4(response);
+      const message =
+        response?.message ||
+        inner?.message ||
+        "Pharmacy stored as pending until admin activation.";
+      setSubmitted({
+        ...payload,
+        pharmacyPartnerId: inner?.pharmacyPartnerId || inner?.PharmacyPartnerId,
+        status: inner?.status || inner?.Status || "PENDING",
+        message,
       });
-      setNote(unwrapS4(response)?.message || response?.message || "Pharmacy partner submitted for activation.");
+      setNote(message);
+      setOnboard({ name: "", mobile: "", licenceNumber: "", expiryDate: "", area: "" });
     } catch (err) {
+      setSubmitted(null);
       setError(s4Message(err));
     } finally {
       setBusyId(null);
@@ -108,51 +123,114 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           <h2 className="pharmacy-page-title">Pharmacy onboarding</h2>
           <p className="pharmacy-page-subtitle">Licensed premises details for HomeoMeds activation.</p>
           {error ? <Alert color="danger">{error}</Alert> : null}
-          {note ? <Alert color="success">{note}</Alert> : null}
-          <Card className="admin-dash-card">
-            <CardBody>
-              <Row className="g-3">
-                <Col md={4}>
-                  <FormGroup>
-                    <Label>Pharmacy name</Label>
-                    <Input value={onboard.name} onChange={(e) => setOnboard({ ...onboard, name: e.target.value })} />
-                  </FormGroup>
-                </Col>
-                <Col md={4}>
-                  <FormGroup>
-                    <Label>Mobile</Label>
-                    <Input value={onboard.mobile} onChange={(e) => setOnboard({ ...onboard, mobile: e.target.value })} />
-                  </FormGroup>
-                </Col>
-                <Col md={4}>
-                  <FormGroup>
-                    <Label>Licence number</Label>
-                    <Input value={onboard.licenceNumber} onChange={(e) => setOnboard({ ...onboard, licenceNumber: e.target.value })} />
-                  </FormGroup>
-                </Col>
-                <Col md={4}>
-                  <FormGroup>
-                    <Label>Licence expiry</Label>
-                    <Input
-                      type="date"
-                      min={new Date().toISOString().slice(0, 10)}
-                      value={onboard.expiryDate}
-                      onChange={(e) => setOnboard({ ...onboard, expiryDate: e.target.value })}
-                    />
-                  </FormGroup>
-                </Col>
-                <Col md={4}>
-                  <FormGroup>
-                    <Label>Service area</Label>
-                    <Input value={onboard.area} onChange={(e) => setOnboard({ ...onboard, area: e.target.value })} />
-                  </FormGroup>
-                </Col>
-              </Row>
-              <Button className="pharmacy-primary-btn mt-2" disabled={busyId === "onboard"} onClick={saveOnboard}>
-                Submit for activation
-              </Button>
-            </CardBody>
-          </Card>
+          {submitted ? (
+            <>
+              <Alert color="success" className="mb-3">
+                {submitted.message || "Pharmacy stored as pending until admin activation."}
+              </Alert>
+              <Card className="admin-dash-card">
+                <CardBody>
+                  <h5 className="mb-3">Submitted for activation</h5>
+                  <Row className="g-3">
+                    <Col md={4}>
+                      <FormGroup>
+                        <Label>Pharmacy name</Label>
+                        <Input value={submitted.name} disabled />
+                      </FormGroup>
+                    </Col>
+                    <Col md={4}>
+                      <FormGroup>
+                        <Label>Mobile</Label>
+                        <Input value={submitted.mobile} disabled />
+                      </FormGroup>
+                    </Col>
+                    <Col md={4}>
+                      <FormGroup>
+                        <Label>Licence number</Label>
+                        <Input value={submitted.licenceNumber} disabled />
+                      </FormGroup>
+                    </Col>
+                    <Col md={4}>
+                      <FormGroup>
+                        <Label>Licence expiry</Label>
+                        <Input value={submitted.expiryDate} disabled />
+                      </FormGroup>
+                    </Col>
+                    <Col md={4}>
+                      <FormGroup>
+                        <Label>Service area</Label>
+                        <Input value={submitted.area} disabled />
+                      </FormGroup>
+                    </Col>
+                    <Col md={4}>
+                      <FormGroup>
+                        <Label>Status</Label>
+                        <Input value={submitted.status || "PENDING"} disabled />
+                      </FormGroup>
+                    </Col>
+                  </Row>
+                  <p className="text-muted small mb-3">
+                    Partner #{submitted.pharmacyPartnerId || "—"} stays pending until an admin activates it on Pharmacy partners.
+                  </p>
+                  <Button
+                    color="soft-secondary"
+                    onClick={() => {
+                      setSubmitted(null);
+                      setNote("");
+                      setError("");
+                    }}
+                  >
+                    Submit another pharmacy
+                  </Button>
+                </CardBody>
+              </Card>
+            </>
+          ) : (
+            <Card className="admin-dash-card">
+              <CardBody>
+                <Row className="g-3">
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label>Pharmacy name</Label>
+                      <Input value={onboard.name} onChange={(e) => setOnboard({ ...onboard, name: e.target.value })} />
+                    </FormGroup>
+                  </Col>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label>Mobile</Label>
+                      <Input value={onboard.mobile} onChange={(e) => setOnboard({ ...onboard, mobile: e.target.value })} />
+                    </FormGroup>
+                  </Col>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label>Licence number</Label>
+                      <Input value={onboard.licenceNumber} onChange={(e) => setOnboard({ ...onboard, licenceNumber: e.target.value })} />
+                    </FormGroup>
+                  </Col>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label>Licence expiry</Label>
+                      <Input
+                        type="date"
+                        min={new Date().toISOString().slice(0, 10)}
+                        value={onboard.expiryDate}
+                        onChange={(e) => setOnboard({ ...onboard, expiryDate: e.target.value })}
+                      />
+                    </FormGroup>
+                  </Col>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label>Service area</Label>
+                      <Input value={onboard.area} onChange={(e) => setOnboard({ ...onboard, area: e.target.value })} />
+                    </FormGroup>
+                  </Col>
+                </Row>
+                <Button className="pharmacy-primary-btn mt-2" disabled={busyId === "onboard"} onClick={saveOnboard}>
+                  {busyId === "onboard" ? "Submitting…" : "Submit for activation"}
+                </Button>
+              </CardBody>
+            </Card>
+          )}
         </Container>
       </div>
     );

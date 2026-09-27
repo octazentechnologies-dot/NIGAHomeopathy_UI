@@ -336,7 +336,7 @@ const DoctorDetailPage = () => {
                                             </p>
                                             <ul className="mb-0">
                                                 {rankingReasons.map((reason, idx) => (
-                                                    <li key={idx}>{typeof reason === "string" ? reason : reason?.label || reason?.text || JSON.stringify(reason)}</li>
+                                                    <li key={idx}>{typeof reason === "string" ? reason : reason?.label || reason?.text || reason?.title || "—"}</li>
                                                 ))}
                                             </ul>
                                         </div>

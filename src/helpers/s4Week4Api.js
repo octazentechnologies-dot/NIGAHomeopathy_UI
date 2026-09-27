@@ -44,6 +44,7 @@ export const createRefund = (payload) => nigahomeoAPI.post("/Refunds", payload);
 
 /* Account finance */
 export const getLedger = (params) => nigahomeoAPI.get("/Account/Ledger", params || {});
+export const exportLedger = (params) => nigahomeoAPI.get("/Account/Ledger/Export", params || {});
 export const getReconciliation = (params) => nigahomeoAPI.get("/Account/Reconciliation", params || {});
 export const getMedicineLedger = (params) => nigahomeoAPI.get("/Account/MedicineLedger", params || {});
 export const listSettlements = () => nigahomeoAPI.get("/Account/Settlements", null);
@@ -60,6 +61,8 @@ export const resolveException = (id, payload) =>
   nigahomeoAPI.post(`/Account/Exceptions/${id}/Resolve`, payload);
 export const getTaxReport = (params) => nigahomeoAPI.get("/Account/Tax", params || {});
 export const listPayees = () => nigahomeoAPI.get("/Account/Payees", null);
+export const updatePayee = (id, payload) => nigahomeoAPI.put(`/Account/Payees/${id}`, payload);
+export const requestPayeeBankOtp = (id) => nigahomeoAPI.post(`/Account/Payees/${id}/BankOtp`, null);
 export const getClinicCollections = (params) =>
   nigahomeoAPI.get("/Account/ClinicCollections", params || {});
 /** DMO-10.02 — doctor mobile earnings summary */
@@ -96,7 +99,8 @@ export const rerouteMedicine = (orderId, pharmacyId) =>
 
 /* Trust / reviews (TRU) */
 export const trustMyStatus = () => nigahomeoAPI.get("/Trust/MyStatus", null);
-export const listTrustQueue = () => nigahomeoAPI.get("/Trust/Queue", null);
+export const listTrustQueue = (status) =>
+  nigahomeoAPI.get("/Trust/Queue", status ? { status } : { status: "All" });
 export const getTrust = (doctorId) => nigahomeoAPI.get(`/Trust/${doctorId}`, null);
 export const decideTrust = (doctorId, payload) => nigahomeoAPI.post(`/Trust/${doctorId}/Decide`, payload);
 export const postReview = (payload) => nigahomeoAPI.post("/Reviews", payload);
