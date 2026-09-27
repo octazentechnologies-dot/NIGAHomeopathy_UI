@@ -175,6 +175,53 @@ const DateOfBirthPicker = ({
         setView('day');
     };
 
+    const handleInputChange = (event) => {
+        onChange?.(event.target.value);
+    };
+
+    const handleInputBlur = (event) => {
+        const raw = String(event.target.value || '').trim();
+
+        if (!raw) {
+            onChange?.('');
+            onBlur?.({ target: { name } });
+            return;
+        }
+
+        const parsed = parseDateValue(raw);
+        if (parsed && !isDayDisabled(parsed)) {
+            onChange?.(formatDateValue(parsed));
+            setViewDate(parsed.clone());
+        } else if (selectedDate) {
+            onChange?.(formatDateValue(selectedDate));
+        } else {
+            onChange?.('');
+        }
+
+        onBlur?.({ target: { name } });
+    };
+
+    const handleInputKeyDown = (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            handleInputBlur(event);
+            setIsOpen(false);
+            setView('day');
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            setIsOpen(false);
+            setView('day');
+            return;
+        }
+
+        if (event.key === 'ArrowDown' && !isOpen) {
+            event.preventDefault();
+            openPicker();
+        }
+    };
+
     const yearPageEnd = yearPageStart + YEARS_PER_PAGE - 1;
     const years = Array.from({ length: YEARS_PER_PAGE }, (_, index) => yearPageStart + index);
 

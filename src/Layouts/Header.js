@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { UncontrolledTooltip } from 'reactstrap';
 
 //import images
 import logoSm from "../assets/images/logo-sm.png";
@@ -20,6 +21,7 @@ import { useProfile } from '../Components/Hooks/UserHooks';
 import { UserRole, resolveUserRole, usesDoctorDashboardLayout, usesTopbarMoreMenu } from '../Components/constants/roles';
 import { getHomeDashboardPath } from '../helpers/dashboard_helper';
 import { WhatsAppModal } from '../Components/WhatsAppModal';
+import { EnquiriesModal, SupportTicketsModal } from '../Components/SupportTicketsModal';
 import ActivePatientSessionsStack from '../Components/Common/ActivePatientSessionsStack';
 import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeaderButton';
 import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
@@ -30,6 +32,8 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
     const dispatch = useDispatch();
     const { userProfile } = useProfile();
     const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
+    const [supportTicketsModalOpen, setSupportTicketsModalOpen] = useState(false);
+    const [supportActiveCount, setSupportActiveCount] = useState(0);
 
     const selectDashboardData = createSelector(
         (state) => state.Layout,
@@ -135,6 +139,30 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 {showTopbarMoreMenu ? <AdminMoreMenuDropdown /> : null}
                                 <ThemeCustomizerHeaderButton />
                                 <div className="vr header-topbar-divider align-self-center mx-1" aria-hidden="true" />
+                                <div className="ms-1 header-item">
+                                    <button
+                                        type="button"
+                                        id="header-help-support-btn"
+                                        className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle position-relative"
+                                        aria-label="Help & Support"
+                                        onClick={() => setSupportTicketsModalOpen(true)}
+                                    >
+                                        <i className="ri-question-line fs-22" />
+                                        {userRole === UserRole.ADMIN && supportActiveCount > 0 ? (
+                                            <span className="position-absolute topbar-badge fs-10 translate-middle badge rounded-pill bg-danger">
+                                                {supportActiveCount}
+                                                <span className="visually-hidden">open support tickets</span>
+                                            </span>
+                                        ) : null}
+                                    </button>
+                                    <UncontrolledTooltip
+                                        placement="bottom"
+                                        target="header-help-support-btn"
+                                        popperClassName="header-help-tooltip"
+                                    >
+                                        Help &amp; Support
+                                    </UncontrolledTooltip>
+                                </div>
                                 <WebAppsDropdown />
                                 <FullScreenDropdown />
                             </div>
@@ -168,6 +196,19 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                 isOpen={whatsAppModalOpen}
                 toggle={() => setWhatsAppModalOpen((v) => !v)}
             />
+            {userRole === UserRole.ADMIN ? (
+                <EnquiriesModal
+                    isOpen={supportTicketsModalOpen}
+                    toggle={() => setSupportTicketsModalOpen((v) => !v)}
+                    onActiveCountChange={setSupportActiveCount}
+                />
+            ) : (
+                <SupportTicketsModal
+                    isOpen={supportTicketsModalOpen}
+                    toggle={() => setSupportTicketsModalOpen((v) => !v)}
+                    onActiveCountChange={setSupportActiveCount}
+                />
+            )}
         </React.Fragment>
     );
 };

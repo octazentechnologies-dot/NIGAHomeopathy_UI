@@ -13,6 +13,7 @@ import BlogDetailPage from "./pages/BlogDetailPage";
 import NewsPage from "./pages/NewsPage";
 import NewsDetailPage from "./pages/NewsDetailPage";
 import ContactPage from "../Minimaltheme/pages/ContactPage";
+import HelpCentrePage from "./pages/HelpCentrePage";
 import PrivacyPage from "../Minimaltheme/pages/PrivacyPage";
 import TermsPage from "../Minimaltheme/pages/TermsPage";
 import AccountPage from "../Minimaltheme/pages/AccountPage";
@@ -52,6 +53,7 @@ const HomeoJobLanding = () => {
                     <Route path="blog/:blogId" element={<BlogDetailPage />} />
                     <Route path="news" element={<NewsPage />} />
                     <Route path="news/:newsId" element={<NewsDetailPage />} />
+                    <Route path="help" element={<HelpCentrePage />} />
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="privacy" element={<PrivacyPage />} />
                     <Route path="terms" element={<TermsPage />} />
