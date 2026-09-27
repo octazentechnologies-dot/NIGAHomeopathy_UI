@@ -12675,9 +12675,38 @@ const PatientBoard = () => {
     }
   };
 
+  const firePatientRequiredNotice = (text) => {
+    const unlockOk = () => {
+      const btn = Swal.getConfirmButton();
+      if (!btn) return;
+      btn.disabled = false;
+      btn.removeAttribute('disabled');
+      btn.setAttribute('aria-disabled', 'false');
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = '1';
+      btn.style.color = '#fff';
+    };
+    Swal.fire({
+      icon: 'info',
+      title: 'Open a patient',
+      text,
+      confirmButtonText: 'OK',
+      confirmButtonColor: '#405189',
+      allowOutsideClick: true,
+      allowEscapeKey: true,
+      allowEnterKey: true,
+      focusConfirm: true,
+      didOpen: () => {
+        unlockOk();
+        window.setTimeout(unlockOk, 50);
+        window.setTimeout(unlockOk, 400);
+      },
+    });
+  };
+
   const handleOpenVisitHistory = async () => {
     if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient to see past visits.', confirmButtonColor: '#000000' });
+      firePatientRequiredNotice('Choose a patient to see past visits.');
       return;
     }
     setHistoryModalOpen(true);
@@ -12742,7 +12771,7 @@ const PatientBoard = () => {
 
   const openComplaints = async () => {
     if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient before recording complaints.', confirmButtonColor: '#000000' });
+      firePatientRequiredNotice('Choose a patient before recording complaints.');
       return;
     }
     setComplaintsModalOpen(true);
@@ -13050,13 +13079,13 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
-              <Button type="button" className="btn btn-sm me-1" onClick={openComplaints} title="Chief complaints for this patient">
+              <Button type="button" className="btn btn-sm me-1" onClick={openComplaints} disabled={!patientId} title={patientId ? 'Chief complaints for this patient' : 'Choose a patient first'}>
                 Complaints
               </Button>
               <Button type="button" className="btn btn-sm me-1" onClick={openCaseDetails} title="Symptoms and grades for this case">
                 Case details
               </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} title="Past visits and prescriptions">
+              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} disabled={!patientId} title={patientId ? 'Past visits and prescriptions' : 'Choose a patient first'}>
                 History
               </Button>
               <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasePdf} title="Export case PDF">

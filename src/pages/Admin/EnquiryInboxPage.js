@@ -36,12 +36,12 @@ const EnquiryInboxPage = () => {
   }, [status]);
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <Row className="mb-3 align-items-center">
           <Col>
-            <h4 className="mb-1">Enquiry inbox</h4>
-            <p className="text-muted mb-0">Messages sent from the website.</p>
+            <h2 className="clinic-page-title mb-1">Enquiry inbox</h2>
+            <p className="clinic-page-subtitle mb-0">Messages sent from the website.</p>
           </Col>
           <Col md={3}>
             <Input type="select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter status">
@@ -52,7 +52,7 @@ const EnquiryInboxPage = () => {
             </Input>
           </Col>
         </Row>
-        <Card>
+        <Card className="admin-dash-card">
           <CardBody>
             {loading ? (
               <div className="text-center py-5">

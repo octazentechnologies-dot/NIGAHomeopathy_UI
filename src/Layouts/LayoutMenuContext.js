@@ -15,6 +15,8 @@ import {
   PATIENT_FALLBACK_MENU,
   RECEPTION_FALLBACK_MENU,
   DOCTOR_FALLBACK_MENU,
+  ADMIN_WEEK4_MENU,
+  mergeMissingMenuItems,
   receptionChromeFromApi,
 } from '../helpers/menuByRole';
 import { getMenuByRole } from '../helpers/realbackend_helper';
@@ -101,11 +103,8 @@ export const LayoutMenuProvider = ({ children }) => {
         };
       }
       if (role === UserRole.RECEPTION) {
-        const devItems = getReceptionHorizontalMenuItems();
-        const known = new Set(devItems.map((item) => item.link));
-        const extras = RECEPTION_FALLBACK_MENU.filter((item) => !known.has(item.link));
         return {
-          menuItems: [...devItems, ...extras],
+          menuItems: getReceptionHorizontalMenuItems(),
           moreMenuItems: [],
         };
       }
@@ -147,11 +146,33 @@ export const LayoutMenuProvider = ({ children }) => {
       const isAdminRole = role === UserRole.ADMIN || role === UserRole.MANAGEMENT;
       if (isAdminRole) {
         const split = splitAdminApiNavItems(spaItems);
-        const main = split.menuItems.length ? split.menuItems : spaItems;
-        const more = split.menuItems.length ? split.moreMenuItems : [];
+        if (!split.menuItems.length) {
+          return {
+            menuItems: withDropdownState(mergeMissingMenuItems(spaItems, ADMIN_WEEK4_MENU)),
+            moreMenuItems: [],
+          };
+        }
         return {
-          menuItems: withDropdownState(main),
-          moreMenuItems: withDropdownState(more),
+          menuItems: withDropdownState(split.menuItems),
+          moreMenuItems: withDropdownState(mergeMissingMenuItems(split.moreMenuItems, ADMIN_WEEK4_MENU)),
+        };
+      }
+      if (role === UserRole.ACCOUNT) {
+        return {
+          menuItems: withDropdownState(mergeMissingMenuItems(spaItems, getAccountHorizontalMenuItems())),
+          moreMenuItems: [],
+        };
+      }
+      if (role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER) {
+        return {
+          menuItems: withDropdownState(mergeMissingMenuItems(spaItems, getPharmacyHorizontalMenuItems())),
+          moreMenuItems: [],
+        };
+      }
+      if (role === UserRole.PATIENT) {
+        return {
+          menuItems: withDropdownState(mergeMissingMenuItems(spaItems, PATIENT_FALLBACK_MENU)),
+          moreMenuItems: [],
         };
       }
       // Doctor chrome hides the sidebar. Extra UserDetails menus (Tufan_Doctor
@@ -163,6 +184,9 @@ export const LayoutMenuProvider = ({ children }) => {
           '/doctor/anatomy',
           '/doctor/telemedicine',
           '/doctor/reception-staff',
+          '/doctor/consult-fees',
+          '/doctor/earnings',
+          '/doctor/erx',
           '/doctor/mobile/videoroom',
           '/doctor/mobile/refill',
           '/profile',
@@ -184,9 +208,15 @@ export const LayoutMenuProvider = ({ children }) => {
         });
         DOCTOR_FALLBACK_MENU.forEach((item) => {
           const link = String(item.link || '').toLowerCase();
-          if (!coreLinks.has(link) || seenCore.has(link)) return;
-          core.push(item);
-          seenCore.add(link);
+          if (coreLinks.has(link)) {
+            if (seenCore.has(link)) return;
+            core.push(item);
+            seenCore.add(link);
+            return;
+          }
+          if (seenExtra.has(link) || seenCore.has(link)) return;
+          seenExtra.add(link);
+          extra.push(item);
         });
         return {
           menuItems: withDropdownState(core.length ? core : DOCTOR_FALLBACK_MENU),

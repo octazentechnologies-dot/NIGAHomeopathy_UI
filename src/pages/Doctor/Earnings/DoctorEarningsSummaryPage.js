@@ -32,21 +32,21 @@ const DoctorEarningsSummaryPage = () => {
     `₹ ${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="page-content">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Earnings summary</h4>
-        <p className="text-muted">Consult captures and clinic collections for this doctor (New API).</p>
+        <h2 className="clinic-page-title">Earnings summary</h2>
+        <p className="clinic-page-subtitle">Consult captures and clinic collections for this doctor (New API).</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {loading ? (
           <div className="py-4"><Spinner size="sm" /> Loading…</div>
         ) : data ? (
           <Row className="g-3">
-            <Col md={3}><Card><CardBody><div className="text-muted small">Visits</div><div className="fs-4">{data.visitCount ?? 0}</div></CardBody></Card></Col>
-            <Col md={3}><Card><CardBody><div className="text-muted small">Total</div><div className="fs-4">{money(data.totalCaptured)}</div></CardBody></Card></Col>
-            <Col md={3}><Card><CardBody><div className="text-muted small">Online</div><div className="fs-4">{money(data.onlineCaptured)}</div></CardBody></Card></Col>
-            <Col md={3}><Card><CardBody><div className="text-muted small">At clinic</div><div className="fs-4">{money(data.clinicCollected)}</div></CardBody></Card></Col>
+            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Visits</div><div className="fs-4">{data.visitCount ?? 0}</div></CardBody></Card></Col>
+            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Total</div><div className="fs-4">{money(data.totalCaptured)}</div></CardBody></Card></Col>
+            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Online</div><div className="fs-4">{money(data.onlineCaptured)}</div></CardBody></Card></Col>
+            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">At clinic</div><div className="fs-4">{money(data.clinicCollected)}</div></CardBody></Card></Col>
             <Col md={12}>
-              <Card>
+              <Card className="admin-dash-card">
                 <CardBody>
                   <div className="text-muted small mb-1">Pending payout</div>
                   <div className="fs-5">{money(data.pendingPayoutAmount)}</div>

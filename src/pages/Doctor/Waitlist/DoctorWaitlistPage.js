@@ -31,17 +31,17 @@ const DoctorWaitlistPage = () => {
   }, [doctorId]);
 
   return (
-    <div className="page-content">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Waitlist</h4>
-        <p className="text-muted">Patients waiting for an offered slot. Joining does not reserve time.</p>
+        <h2 className="clinic-page-title">Waitlist</h2>
+        <p className="clinic-page-subtitle">Patients waiting for an offered slot. Joining does not reserve time.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
-        <Card>
+        <Card className="admin-dash-card">
           <CardBody>
             {loading ? (
               <Spinner size="sm" />
             ) : (
-              <Table responsive>
+              <Table responsive className="table-nowrap align-middle mb-0">
                 <thead>
                   <tr>
                     <th>Id</th>

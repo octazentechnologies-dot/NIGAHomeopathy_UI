@@ -16,6 +16,11 @@ const WaitlistJoinPanel = ({ doctorId, requestedDate, consultMode }) => {
       setError("Name and mobile are required to join the waitlist.");
       return;
     }
+    const mobile = contactMobile.replace(/\D/g, "");
+    if (mobile.length < 8) {
+      setError("Enter a valid mobile number.");
+      return;
+    }
     setBusy(true);
     try {
       await joinWaitlist({

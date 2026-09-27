@@ -30,13 +30,13 @@ const HelpAdminPage = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Publish help article</h4>
-        <p className="text-muted">Public help centre reads published articles from /help.</p>
+        <h2 className="clinic-page-title">Publish help article</h2>
+        <p className="clinic-page-subtitle">Public help centre reads published articles from /help.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
-        <Card>
+        <Card className="admin-dash-card">
           <CardBody>
             <Label>Title</Label>
             <Input className="mb-2" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
@@ -52,7 +52,7 @@ const HelpAdminPage = () => {
               />
               Published
             </Label>
-            <Button className="mt-2" color="primary" onClick={save}>
+            <Button className="mt-2 clinic-primary-btn" onClick={save}>
               Save
             </Button>
           </CardBody>

@@ -12,6 +12,7 @@ import {
   s4Message,
   unwrapS4,
 } from "../../helpers/s4Week4Api";
+import "./components/pharmacyDashboard.css";
 
 const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const [rows, setRows] = useState([]);
@@ -56,6 +57,34 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const saveOnboard = async () => {
     setBusyId("onboard");
     setError("");
+    setNote("");
+    if (!onboard.name.trim() || onboard.name.trim().length < 2) {
+      setError("Pharmacy name is required.");
+      setBusyId(null);
+      return;
+    }
+    const mobile = String(onboard.mobile || "").replace(/\D/g, "");
+    if (mobile.length < 8) {
+      setError("A valid mobile is required.");
+      setBusyId(null);
+      return;
+    }
+    if (!onboard.licenceNumber.trim() || onboard.licenceNumber.trim().length < 3) {
+      setError("Licence number is required.");
+      setBusyId(null);
+      return;
+    }
+    if (!onboard.expiryDate) {
+      setError("Licence expiry is required.");
+      setBusyId(null);
+      return;
+    }
+    const todayIso = new Date().toISOString().slice(0, 10);
+    if (onboard.expiryDate < todayIso) {
+      setError("Licence expiry must be today or later.");
+      setBusyId(null);
+      return;
+    }
     try {
       const response = await onboardPharmacy({
         name: onboard.name.trim(),
@@ -74,13 +103,13 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
 
   if (mode === "onboarding") {
     return (
-      <div className="page-content">
+      <div className="page-content admin-dashboard-page pharmacy-dashboard-page clinic-workspace-page">
         <Container fluid>
-          <h4>Pharmacy onboarding</h4>
-          <p className="text-muted">Licensed premises details for HomeoMeds activation.</p>
+          <h2 className="pharmacy-page-title">Pharmacy onboarding</h2>
+          <p className="pharmacy-page-subtitle">Licensed premises details for HomeoMeds activation.</p>
           {error ? <Alert color="danger">{error}</Alert> : null}
           {note ? <Alert color="success">{note}</Alert> : null}
-          <Card>
+          <Card className="admin-dash-card">
             <CardBody>
               <Row className="g-3">
                 <Col md={4}>
@@ -104,7 +133,12 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                 <Col md={4}>
                   <FormGroup>
                     <Label>Licence expiry</Label>
-                    <Input type="date" value={onboard.expiryDate} onChange={(e) => setOnboard({ ...onboard, expiryDate: e.target.value })} />
+                    <Input
+                      type="date"
+                      min={new Date().toISOString().slice(0, 10)}
+                      value={onboard.expiryDate}
+                      onChange={(e) => setOnboard({ ...onboard, expiryDate: e.target.value })}
+                    />
                   </FormGroup>
                 </Col>
                 <Col md={4}>
@@ -114,7 +148,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                   </FormGroup>
                 </Col>
               </Row>
-              <Button color="primary" className="mt-2" disabled={busyId === "onboard"} onClick={saveOnboard}>
+              <Button className="pharmacy-primary-btn mt-2" disabled={busyId === "onboard"} onClick={saveOnboard}>
                 Submit for activation
               </Button>
             </CardBody>
@@ -125,18 +159,18 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   }
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page pharmacy-dashboard-page clinic-workspace-page">
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h4 className="mb-1">{mode === "quotes" ? "Quotes" : "Medicine orders"}</h4>
-            <p className="text-muted mb-0">Accept with OTP, confirm stock, and enter the quote before payment.</p>
+            <h2 className="pharmacy-page-title mb-1">{mode === "quotes" ? "Quotes" : "Medicine orders"}</h2>
+            <p className="pharmacy-page-subtitle mb-0">Accept with OTP, confirm stock, and enter the quote before payment.</p>
           </div>
           <Button size="sm" color="soft-secondary" onClick={loadOrders} disabled={loading}>Refresh</Button>
         </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
-        <Card>
+        <Card className="admin-dash-card">
           <CardBody>
             {loading ? (
               <div className="text-center py-4"><Spinner size="sm" /> Loading…</div>

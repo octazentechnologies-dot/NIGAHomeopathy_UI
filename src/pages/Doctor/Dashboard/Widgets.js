@@ -1941,10 +1941,6 @@ const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseabl
     );
 };
 
-const DEFAULT_UNPAID_CONSULTATION_AMOUNT = 2400;
-const DEFAULT_UNPAID_CONSULTATION_COUNT = 3;
-const DEFAULT_PAID_CONSULTATION_COUNT = 10;
-
 const formatIndianRupeeAmount = (amount) => {
     const value = Math.round(Number(amount) || 0);
     return value.toLocaleString('en-IN', {
@@ -1961,9 +1957,6 @@ const Widgets = () => {
         () => getPlanDaysRemaining(loginUser),
         [loginUser]
     );
-    const unpaidConsultationAmount = loginUser?.unpaidConsultationAmount ?? DEFAULT_UNPAID_CONSULTATION_AMOUNT;
-    const unpaidConsultationCount = loginUser?.unpaidConsultationCount ?? DEFAULT_UNPAID_CONSULTATION_COUNT;
-    const paidConsultationCount = loginUser?.paidConsultationCount ?? DEFAULT_PAID_CONSULTATION_COUNT;
     const counts = useSelector((state) => state?.DoctorDashboard?.counts);
     const patientList = useSelector((state) => state?.DoctorDashboard?.patientList);
     const patientListLoading = useSelector((state) => state?.DoctorDashboard?.patientListLoading);
@@ -1977,6 +1970,25 @@ const Widgets = () => {
     const states = useSelector((state) => state?.DoctorDashboard?.states);
     const packages = useSelector((state) => state?.DoctorDashboard?.packages);
     const appointmentList = useSelector((state) => state?.DoctorDashboard?.appointmentList) || [];
+    const liveUnpaid = useMemo(() => {
+        const rows = Array.isArray(appointmentList) ? appointmentList : [];
+        const unpaid = rows.filter((row) => {
+            const raw = String(row.paymentStatus || row.PaymentStatus || "UNPAID").trim().toUpperCase();
+            return raw !== "PAID" && raw !== "REFUNDED";
+        });
+        const amount = unpaid.reduce(
+            (sum, row) => sum + (Number(row.consultFee ?? row.ConsultFee ?? 0) || 0),
+            0
+        );
+        const paid = rows.filter((row) => {
+            const raw = String(row.paymentStatus || row.PaymentStatus || "").trim().toUpperCase();
+            return raw === "PAID";
+        }).length;
+        return { unpaidCount: unpaid.length, unpaidAmount: amount, paidCount: paid };
+    }, [appointmentList]);
+    const unpaidConsultationAmount = liveUnpaid.unpaidAmount;
+    const unpaidConsultationCount = liveUnpaid.unpaidCount;
+    const paidConsultationCount = liveUnpaid.paidCount;
     const appointmentListLoading = useSelector((state) => state?.DoctorDashboard?.appointmentListLoading);
     const orderSuccess = useSelector((state) => state?.DoctorDashboard?.orderSuccess);
     const subscriptionSuccess = useSelector((state) => state?.DoctorDashboard?.subscriptionSuccess);
@@ -3193,7 +3205,9 @@ const Widgets = () => {
                                 </div>
                                 <div className="flex-shrink-0 doctor-action-card__top-end">
                                     <h5 className="fs-14 mb-0 text-info doctor-dashboard-card-metric doctor-action-metric-pill">
-                                        ₹{formatIndianRupeeAmount(unpaidConsultationAmount)}
+                                        {unpaidConsultationAmount > 0
+                                            ? `₹${formatIndianRupeeAmount(unpaidConsultationAmount)}`
+                                            : unpaidConsultationCount}
                                     </h5>
                                 </div>
                             </div>

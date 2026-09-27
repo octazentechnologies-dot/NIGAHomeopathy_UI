@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
@@ -29,6 +29,7 @@ const BookSlotsPage = () => {
     const [loadError, setLoadError] = useState("");
     const [consultMode, setConsultMode] = useState(searchParams.get("mode") === "tele" ? "tele" : "clinic");
     const [slots, setSlots] = useState([]);
+    const [slotsLoading, setSlotsLoading] = useState(true);
     const [selectedSlot, setSelectedSlot] = useState("");
     const [bookingDate, setBookingDate] = useState(() => {
         const fromQuery = searchParams.get("date");
@@ -36,6 +37,7 @@ const BookSlotsPage = () => {
         d.setHours(0, 0, 0, 0);
         return d;
     });
+    const skipSlotLoadingFlash = useRef(false);
 
     useEffect(() => {
         document.title = `${SITE.name} | Book slots`;
@@ -53,30 +55,54 @@ const BookSlotsPage = () => {
     }, [doctorId]);
 
     useEffect(() => {
-        if (!doctor?.id) return undefined;
+        const id = Number(doctorId);
+        if (!Number.isFinite(id) || id <= 0) return undefined;
         let cancelled = false;
-        getPublicDoctorSlots(doctor.id, bookingDate)
-            .then((payload) => {
-                if (cancelled) return;
-                const list = (payload.slots || payload.Slots || []).filter(
-                    (slot) => (slot.status || slot.Status || "available") !== "booked"
-                );
-                setSlots(list);
-                setSelectedSlot((prev) => {
-                    if (prev && list.some((slot) => (slot.time || slot.label) === prev)) return prev;
-                    return list[0]?.time || list[0]?.label || "";
-                });
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setSlots([]);
-                    setSelectedSlot("");
+        if (!skipSlotLoadingFlash.current) setSlotsLoading(true);
+        skipSlotLoadingFlash.current = false;
+        const load = async () => {
+            const start = new Date(bookingDate);
+            start.setHours(0, 0, 0, 0);
+            let found = false;
+            for (let offset = 0; offset < 14; offset += 1) {
+                const day = new Date(start);
+                day.setDate(start.getDate() + offset);
+                try {
+                    const payload = await getPublicDoctorSlots(id, day);
+                    if (cancelled) return;
+                    const nested = payload?.data ?? payload?.Data ?? payload;
+                    const list = (nested.slots || nested.Slots || payload.slots || payload.Slots || []).filter((slot) => {
+                        const status = String(slot.status || slot.Status || "available").toLowerCase();
+                        return status === "available";
+                    });
+                    if (list.length) {
+                        found = true;
+                        if (offset > 0) {
+                            skipSlotLoadingFlash.current = true;
+                            setBookingDate(day);
+                        }
+                        setSlots(list);
+                        setSelectedSlot((prev) => {
+                            if (prev && list.some((slot) => (slot.time || slot.label) === prev)) return prev;
+                            return list[0]?.time || list[0]?.label || "";
+                        });
+                        break;
+                    }
+                } catch {
+                    if (cancelled) return;
                 }
-            });
+            }
+            if (!cancelled && !found) {
+                setSlots([]);
+                setSelectedSlot("");
+            }
+            if (!cancelled) setSlotsLoading(false);
+        };
+        load();
         return () => {
             cancelled = true;
         };
-    }, [doctor?.id, bookingDate]);
+    }, [doctorId, bookingDate]);
 
     const continueToConfirm = () => {
         if (!selectedSlot || !doctor?.id) return;
@@ -153,20 +179,28 @@ const BookSlotsPage = () => {
                                 <i className="ri-calendar-line" aria-hidden="true" />
                                 <input
                                     type="date"
+                                    min={toIsoDate(new Date())}
                                     value={dateValue}
                                     onChange={(e) => {
                                         const next = e.target.value ? new Date(`${e.target.value}T00:00:00`) : new Date();
                                         next.setHours(0, 0, 0, 0);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        if (next < today) return;
                                         setBookingDate(next);
                                     }}
                                     aria-label="Appointment date"
                                 />
                             </label>
-                            <p className="text-muted small mb-2">{formatBookingDate(bookingDate)}</p>
+                            <p className="text-muted small mb-2">
+                                {formatBookingDate(bookingDate)} — only this doctor&apos;s open schedule times.
+                            </p>
                             <div className="homeojob-doctor-detail__slots">
                                 <h3>Available Slots</h3>
                                 <div className="homeojob-doctor-detail__slot-grid">
-                                    {slots.length === 0 ? (
+                                    {slotsLoading ? (
+                                        <p className="text-muted small mb-0">Loading slots…</p>
+                                    ) : slots.length === 0 ? (
                                         <p className="text-muted small mb-0">No open slots for this date.</p>
                                     ) : (
                                         slots.map((slot) => {
@@ -185,7 +219,7 @@ const BookSlotsPage = () => {
                                     )}
                                 </div>
                             </div>
-                            {slots.length === 0 ? (
+                            {!slotsLoading && slots.length === 0 ? (
                                 <WaitlistJoinPanel
                                     doctorId={doctor.id}
                                     requestedDate={bookingDate}
@@ -196,7 +230,7 @@ const BookSlotsPage = () => {
                                 type="button"
                                 className="homeojob-doctor-detail__book"
                                 onClick={continueToConfirm}
-                                disabled={!selectedSlot}
+                                disabled={slotsLoading || !selectedSlot}
                             >
                                 Continue to confirm
                                 <i className="ri-arrow-right-line" aria-hidden="true" />

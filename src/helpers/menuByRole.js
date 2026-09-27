@@ -134,6 +134,25 @@ export const keepSpaNavItem = (item) => {
   return isSpaMenuLink(item.link) ? item : null;
 };
 
+export const mergeMissingMenuItems = (existing, extras) => {
+  const list = Array.isArray(existing) ? [...existing] : [];
+  const seen = new Set(list.map((item) => String(item.link || "").toLowerCase()));
+  (extras || []).forEach((item) => {
+    const link = String(item.link || "").toLowerCase();
+    if (!link || seen.has(link)) return;
+    seen.add(link);
+    list.push(item);
+  });
+  return list;
+};
+
+export const ADMIN_WEEK4_MENU = [
+  { id: "trust-queue", label: "Trust queue", icon: "ri-shield-check-line", link: "/admin/trust-queue" },
+  { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
+  { id: "pharmacy-partners", label: "Pharmacy partners", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
+  { id: "consult-payments", label: "Consult payments", icon: "ri-money-rupee-circle-line", link: "/admin/consult-payments" },
+];
+
 export const splitAdminApiNavItems = (items) => {
   const menuItems = [];
   const moreMenuItems = [];
@@ -163,6 +182,7 @@ export const isClinicalNavLink = (link) => {
   const path = link.split("?")[0].toLowerCase();
   const normalized = path.startsWith("/") ? path : `/${path}`;
   if (normalized === "/reception" || normalized.startsWith("/reception/")) return false;
+  if (normalized === "/index") return true;
   return CLINICAL_NAV_MARKERS.some((marker) => normalized.includes(marker));
 };
 

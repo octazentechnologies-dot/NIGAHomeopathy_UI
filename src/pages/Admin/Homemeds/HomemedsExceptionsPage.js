@@ -35,18 +35,18 @@ const HomemedsExceptionsPage = () => {
   }, []);
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h4 className="mb-1">HomeoMeds exceptions</h4>
-            <p className="text-muted mb-0">Failed or stuck medicine orders — re-route to another pharmacy partner.</p>
+            <h2 className="clinic-page-title mb-1">HomeoMeds exceptions</h2>
+            <p className="clinic-page-subtitle mb-0">Failed or stuck medicine orders — re-route to another pharmacy partner.</p>
           </div>
           <Button size="sm" color="soft-secondary" onClick={load} disabled={loading}>Refresh</Button>
         </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
-        <Card>
+        <Card className="admin-dash-card">
           <CardBody>
             {loading ? (
               <div className="text-center py-4"><Spinner size="sm" /> Loading…</div>

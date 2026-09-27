@@ -257,11 +257,11 @@ const FamilyMembers = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <Row>
           <Col xs={12}>
-            <h4 className="mb-3">Family{ownerName ? ` · ${ownerName}` : ""}</h4>
+            <h2 className="clinic-page-title mb-3">Family{ownerName ? ` · ${ownerName}` : ""}</h2>
           </Col>
         </Row>
         <Row>

@@ -5287,6 +5287,7 @@ html:not([data-bs-theme="dark"]) {
 }
 
 @import "./components/appointment-slot-grid";
+@import "./pages/clinic-workspace";
 @import "./theme/velzon-minimal";
 
 // App-wide card border radius (5px) — overrides page-specific card styles

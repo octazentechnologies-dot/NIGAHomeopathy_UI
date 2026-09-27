@@ -37,6 +37,7 @@ const InstantOfferBanner = () => {
       {error ? <div className="text-danger small mb-2">{error}</div> : null}
       {offers.map((row) => {
         const id = row.requestId || row.RequestId || row.id;
+        if (!id) return null;
         return (
           <div key={id} className="d-flex justify-content-between align-items-center gap-2 mb-1">
             <span>
@@ -45,8 +46,9 @@ const InstantOfferBanner = () => {
             <Button
               size="sm"
               color="success"
-              disabled={busy === id}
+              disabled={busy === id || !id}
               onClick={async () => {
+                if (!id) return;
                 setBusy(id);
                 try {
                   await acceptInstantConsult(id);

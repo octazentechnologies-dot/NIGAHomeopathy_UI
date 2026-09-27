@@ -980,6 +980,10 @@
   color: #fff !important;
 }
 
+.assisted-date-picker {
+  max-width: 280px;
+}
+
 .reception-notice-card {
   border: 1px solid var(--reception-card-border) !important;
   border-radius: 0.25rem !important;

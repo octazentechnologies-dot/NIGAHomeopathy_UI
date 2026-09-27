@@ -37,12 +37,12 @@ const DoctorSchedulePage = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h4 className="mb-1">Clinic schedule</h4>
-            <p className="text-muted mb-0">Set slot interval and work hours per day. Same SaveDailySchedule API as the dashboard modal.</p>
+            <h2 className="clinic-page-title mb-1">Clinic schedule</h2>
+            <p className="clinic-page-subtitle mb-0">Set slot interval and work hours per day. Same SaveDailySchedule API as the dashboard modal.</p>
           </div>
           <div className="d-flex gap-2">
             <Button size="sm" color="soft-secondary" onClick={() => shiftWeek(-1)}>Previous week</Button>
@@ -54,10 +54,10 @@ const DoctorSchedulePage = () => {
             const key = d.toISOString().slice(0, 10);
             return (
               <Col key={key} md={6} xl={3}>
-                <Card>
+                <Card className="admin-dash-card">
                   <CardBody>
                     <div className="fw-medium">{d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</div>
-                    <Button size="sm" color="primary" className="mt-2" onClick={() => setOpenDate(d)}>
+                    <Button size="sm" className="clinic-primary-btn mt-2" onClick={() => setOpenDate(d)}>
                       Edit hours
                     </Button>
                   </CardBody>

@@ -69,7 +69,10 @@ export const mapAppointmentRowToCheckIn = (row) => {
   const durationParts = parseDuration(row.duration);
   const severity = severityToValue(row.severity);
   const amount = parseMoney(paymentSource.amount || paymentSource.total || row.payment);
-  const paymentStatus = row.status === "Paid" ? "Paid" : "Unpaid";
+  const paymentStatus =
+    row.status === "Paid" || String(row.paymentStatusRaw || "").toUpperCase() === "PAID"
+      ? "Paid"
+      : "Unpaid";
 
   const selectedPatient = {
     id: patientDetails.patientId || row.id,

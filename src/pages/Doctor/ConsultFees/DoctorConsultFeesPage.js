@@ -77,11 +77,18 @@ const DoctorConsultFeesPage = () => {
     setSaving(true);
     setError("");
     setNote("");
+    const inClinic = Number(form.inClinicFee);
+    const tele = Number(form.teleFee);
+    if (!Number.isFinite(inClinic) || inClinic <= 0 || !Number.isFinite(tele) || tele <= 0) {
+      setSaving(false);
+      setError("Enter in-clinic and tele fees greater than 0.");
+      return;
+    }
     try {
       await saveFee({
         doctorId,
-        inClinicFee: Number(form.inClinicFee || 0),
-        teleFee: Number(form.teleFee || 0),
+        inClinicFee: inClinic,
+        teleFee: tele,
         instantSurcharge: Number(form.instantSurcharge || 0),
         currency: form.currency || "INR",
         payAtClinicEnabled: Boolean(form.payAtClinicEnabled),
@@ -97,10 +104,10 @@ const DoctorConsultFeesPage = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Consult fees</h4>
-        <p className="text-muted">
+        <h2 className="clinic-page-title">Consult fees</h2>
+        <p className="clinic-page-subtitle">
           Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the New API.
         </p>
         {error ? <Alert color="danger">{error}</Alert> : null}
@@ -110,7 +117,7 @@ const DoctorConsultFeesPage = () => {
         ) : (
           <Row className="g-3">
             <Col lg={6}>
-              <Card>
+              <Card className="admin-dash-card">
                 <CardBody>
                   <FormGroup>
                     <Label>In-clinic fee</Label>
@@ -158,14 +165,14 @@ const DoctorConsultFeesPage = () => {
                       Allow pay at clinic
                     </Label>
                   </FormGroup>
-                  <Button color="primary" disabled={saving || !doctorId} onClick={onSave}>
+                  <Button className="clinic-primary-btn" disabled={saving || !doctorId} onClick={onSave}>
                     {saving ? "Saving…" : "Save fees"}
                   </Button>
                 </CardBody>
               </Card>
             </Col>
             <Col lg={6}>
-              <Card>
+              <Card className="admin-dash-card">
                 <CardBody>
                   <h5>Change history</h5>
                   {history.length === 0 ? (

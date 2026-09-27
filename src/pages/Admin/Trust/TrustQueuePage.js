@@ -46,10 +46,16 @@ const TrustQueuePage = () => {
   const decide = async (doctorId, decision) => {
     setBusyId(`trust-${doctorId}`);
     setError("");
+    const noteText = String(reasonById[`trust-${doctorId}`] || "").trim();
+    if ((decision === "Reject" || decision === "NeedsInfo") && !noteText) {
+      setBusyId(null);
+      setError("Enter a decision note before Reject or Needs info.");
+      return;
+    }
     try {
       await decideTrust(doctorId, {
         decision,
-        note: reasonById[`trust-${doctorId}`] || "",
+        note: noteText,
       });
       setNote(`Trust ${decision} for doctor #${doctorId}.`);
       await load();
@@ -61,18 +67,18 @@ const TrustQueuePage = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h4 className="mb-1">Trust queue</h4>
-            <p className="text-muted mb-0">Approve, reject, or request more info for doctor trust badges.</p>
+            <h2 className="clinic-page-title mb-1">Trust queue</h2>
+            <p className="clinic-page-subtitle mb-0">Approve, reject, or request more info for doctor trust badges.</p>
           </div>
           <Button size="sm" color="soft-secondary" onClick={load} disabled={loading}>Refresh</Button>
         </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
-        <Card className="mb-3">
+        <Card className="admin-dash-card mb-3">
           <CardBody>
             {loading ? (
               <div className="text-center py-4"><Spinner size="sm" /> Loading…</div>
@@ -120,7 +126,7 @@ const TrustQueuePage = () => {
             )}
           </CardBody>
         </Card>
-        <Card>
+        <Card className="admin-dash-card">
           <CardBody>
             <h5>Review appeals</h5>
             {appeals.length === 0 ? (

@@ -117,10 +117,10 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
   const ticketIdOf = (row) => row.supportTicketId || row.SupportTicketId || row.id;
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>{isAdmin ? "Support tickets" : "My support tickets"}</h4>
-        <p className="text-muted">
+        <h2 className="clinic-page-title">{isAdmin ? "Support tickets" : "My support tickets"}</h2>
+        <p className="clinic-page-subtitle">
           {isAdmin
             ? "Assign status and reply on clinic issues."
             : "Open a ticket and follow the thread with clinic staff."}
@@ -130,7 +130,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
         <Row className="g-3">
           <Col lg={5}>
             {!isAdmin ? (
-              <Card className="mb-3">
+              <Card className="admin-dash-card mb-3">
                 <CardBody>
                   <Label>Category</Label>
                   <Input
@@ -151,13 +151,13 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                     value={form.body}
                     onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
                   />
-                  <Button color="primary" onClick={createTicket}>
+                  <Button className="clinic-primary-btn" onClick={createTicket}>
                     Create ticket
                   </Button>
                 </CardBody>
               </Card>
             ) : null}
-            <Card>
+            <Card className="admin-dash-card">
               <CardBody>
                 {loading ? (
                   <Spinner size="sm" />
@@ -197,7 +197,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
             </Card>
           </Col>
           <Col lg={7}>
-            <Card>
+            <Card className="admin-dash-card">
               <CardBody>
                 {!activeId ? (
                   <p className="text-muted mb-0">Select a ticket to read the thread.</p>
@@ -230,7 +230,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
                     />
-                    <Button color="primary" onClick={sendReply}>
+                    <Button className="clinic-primary-btn" onClick={sendReply}>
                       Reply
                     </Button>
                   </>

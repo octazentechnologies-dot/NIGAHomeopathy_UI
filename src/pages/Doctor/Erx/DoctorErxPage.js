@@ -83,17 +83,17 @@ const DoctorErxPage = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Sign eRx</h4>
-        <p className="text-muted">
+        <h2 className="clinic-page-title">Sign eRx</h2>
+        <p className="clinic-page-subtitle">
           Load the appointment prescription (no history notes), then lock the snapshot. Refills use the signed copy.
         </p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
         <Row className="g-3">
           <Col lg={4}>
-            <Card>
+            <Card className="admin-dash-card">
               <CardBody>
                 <FormGroup>
                   <Label>Patient appointment id</Label>
@@ -107,7 +107,7 @@ const DoctorErxPage = () => {
                 <Button color="soft-secondary" className="me-2" disabled={loading} onClick={load}>
                   {loading ? <Spinner size="sm" /> : "Load"}
                 </Button>
-                <Button color="primary" className="me-2" disabled={signing || !patientAppId} onClick={onSign}>
+                <Button className="clinic-primary-btn me-2" disabled={signing || !patientAppId} onClick={onSign}>
                   {signing ? "Signing…" : "Sign & lock"}
                 </Button>
                 <Button color="soft-info" disabled={!snapshot} onClick={onPdf}>
@@ -117,7 +117,7 @@ const DoctorErxPage = () => {
             </Card>
           </Col>
           <Col lg={8}>
-            <Card>
+            <Card className="admin-dash-card">
               <CardBody>
                 <h5>Snapshot</h5>
                 {!snapshot ? (

@@ -112,13 +112,13 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
 
   if (medicineOnly) {
     return (
-      <div className="page-content">
+      <div className="page-content admin-dashboard-page clinic-workspace-page">
         <Container fluid>
-          <h4>Medicine orders</h4>
-          <p className="text-muted">Start HomeoMeds from a signed prescription, grant consent, then pay after you accept the quote.</p>
+          <h2 className="clinic-page-title">Medicine orders</h2>
+          <p className="clinic-page-subtitle">Start HomeoMeds from a signed prescription, grant consent, then pay after you accept the quote.</p>
           {error ? <Alert color="danger">{error}</Alert> : null}
           {note ? <Alert color="success">{note}</Alert> : null}
-          <Card className="mb-3">
+          <Card className="admin-dash-card mb-3">
             <CardBody>
               <h5>Signed prescriptions</h5>
               <FormGroup>
@@ -162,7 +162,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                           <td>
                             <Button
                               size="sm"
-                              color="primary"
+                              className="clinic-primary-btn"
                               disabled={busyId === id}
                               onClick={async () => {
                                 setBusyId(id);
@@ -193,7 +193,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
               )}
             </CardBody>
           </Card>
-          <Card>
+          <Card className="admin-dash-card">
             <CardBody>
               <h5>Orders</h5>
               {loading ? (
@@ -312,7 +312,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
               )}
             </CardBody>
           </Card>
-          <Card className="mt-3">
+          <Card className="admin-dash-card mt-3">
             <CardBody>
               <h5>Payments</h5>
               {payments.length === 0 ? (
@@ -347,10 +347,10 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
   }
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Care continuity</h4>
-        <p className="text-muted">Timeline, follow-ups, diary, and progress from your clinic visits.</p>
+        <h2 className="clinic-page-title">Care continuity</h2>
+        <p className="clinic-page-subtitle">Timeline, follow-ups, diary, and progress from your clinic visits.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
         {loading ? (
@@ -358,7 +358,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
         ) : (
           <Row className="g-3">
             <Col lg={6}>
-              <Card>
+              <Card className="admin-dash-card">
                 <CardBody>
                   <h5>Timeline</h5>
                   {timeline.length === 0 ? (
@@ -378,13 +378,25 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   )}
                 </CardBody>
               </Card>
-              <Card className="mt-3">
+              <Card className="admin-dash-card mt-3">
                 <CardBody>
                   <h5>Progress</h5>
                   {progress ? (
-                    <pre className="small mb-0" style={{ whiteSpace: "pre-wrap" }}>
-                      {JSON.stringify(progress, null, 2)}
-                    </pre>
+                    <>
+                      <div className="fs-4 mb-2">{progress.visitCount ?? 0} visits</div>
+                      {(progress.series || progress.Series || []).length ? (
+                        <ul className="list-unstyled mb-0 small">
+                          {(progress.series || progress.Series).map((row, idx) => (
+                            <li key={idx} className="d-flex justify-content-between border-bottom py-1">
+                              <span>{String(row.date || row.Date || "").slice(0, 10)}</span>
+                              <span>Severity {row.severity ?? row.Severity ?? "—"}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted mb-0">No diary trend yet. Save a symptom diary entry to plot severity.</p>
+                      )}
+                    </>
                   ) : (
                     <p className="text-muted mb-0">No progress snapshot yet.</p>
                   )}
@@ -392,7 +404,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
               </Card>
             </Col>
             <Col lg={6}>
-              <Card>
+              <Card className="admin-dash-card">
                 <CardBody>
                   <h5>Follow-ups</h5>
                   <FormGroup>
@@ -419,7 +431,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   </FormGroup>
                   <Button
                     size="sm"
-                    color="primary"
+                    className="clinic-primary-btn"
                     className="mb-3"
                     disabled={!followTitle.trim() || !followPatientAppId || !followDue}
                     onClick={async () => {
@@ -471,7 +483,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   )}
                 </CardBody>
               </Card>
-              <Card className="mt-3">
+              <Card className="admin-dash-card mt-3">
                 <CardBody>
                   <h5>Symptom diary</h5>
                   <FormGroup>
@@ -494,7 +506,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   </FormGroup>
                   <Button
                     size="sm"
-                    color="primary"
+                    className="clinic-primary-btn"
                     className="mb-3"
                     disabled={!diaryText.trim()}
                     onClick={async () => {

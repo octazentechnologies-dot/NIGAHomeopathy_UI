@@ -55,12 +55,12 @@ const AdminPharmacyPartnersPage = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h4 className="mb-1">Pharmacy partners</h4>
-            <p className="text-muted mb-0">Activate HomeoMeds partners. Expired licences are excluded from seller routing after a sweep.</p>
+            <h2 className="clinic-page-title mb-1">Pharmacy partners</h2>
+            <p className="clinic-page-subtitle mb-0">Activate HomeoMeds partners. Expired licences are excluded from seller routing after a sweep.</p>
           </div>
           <div className="d-flex gap-2">
             <Button size="sm" color="soft-warning" onClick={sweep} disabled={busyId === "sweep"}>
@@ -73,7 +73,7 @@ const AdminPharmacyPartnersPage = () => {
         </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
-        <Card>
+        <Card className="admin-dash-card">
           <CardBody>
             {loading ? (
               <div className="text-center py-4"><Spinner size="sm" /> Loading…</div>
@@ -131,7 +131,7 @@ const AdminPharmacyPartnersPage = () => {
             )}
           </CardBody>
         </Card>
-        <Card className="mt-3">
+        <Card className="admin-dash-card mt-3">
           <CardBody>
             <h5>Seller routing hours</h5>
             <Row className="g-2">
@@ -175,8 +175,7 @@ const AdminPharmacyPartnersPage = () => {
               </Col>
               <Col md={2} className="d-flex align-items-end">
                 <Button
-                  color="primary"
-                  className="mb-3"
+                  className="clinic-primary-btn mb-3"
                   disabled={busyId === "routing" || !routing.pharmacyPartnerId}
                   onClick={async () => {
                     setBusyId("routing");

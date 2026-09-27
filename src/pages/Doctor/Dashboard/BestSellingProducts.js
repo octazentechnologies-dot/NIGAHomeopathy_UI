@@ -20,6 +20,7 @@ import {
 } from '../../../helpers/patientBoardSessionHelper';
 import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
 import { openReceptionPatientRow } from '../../Reception/receptionSession';
+import { paymentStatusMeta } from '../../../helpers/paymentStatusBadge';
 import CaseTakingModeModal from '../../../Components/CaseTaking/CaseTakingModeModal';
 import {
     getAppointmentList,
@@ -1440,6 +1441,7 @@ const BestSellingProducts = () => {
             ageSex: getAgeSexDisplay(appointment.dateOfBirth, appointment.gender),
             place: appointment.address || '-',
             appStatus: appointment.status || '-',
+            paymentStatus: appointment.paymentStatus ?? appointment.PaymentStatus ?? null,
         };
     });
 
@@ -2126,6 +2128,14 @@ const BestSellingProducts = () => {
                     ) : (
                         '-'
                     )}
+                    {(() => {
+                        const pay = paymentStatusMeta(patient.paymentStatus);
+                        return (
+                            <span className={`badge bg-${pay.tone}-subtle text-${pay.tone} ms-1`}>
+                                {pay.label}
+                            </span>
+                        );
+                    })()}
                 </td>
                 ) : null}
                 {isTodayTab ? (

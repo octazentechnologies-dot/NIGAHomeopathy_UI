@@ -72,6 +72,12 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   const [note, setNote] = useState("");
   const [otpById, setOtpById] = useState({});
   const [refundForm, setRefundForm] = useState({ paymentOrderId: "", amount: "", reason: "" });
+  const [taxFrom, setTaxFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [taxTo, setTaxTo] = useState(() => new Date().toISOString().slice(0, 10));
 
   document.title = `${meta.title} | Niga Homeocentrum`;
 
@@ -110,7 +116,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           response = await listExceptions("OPEN");
           break;
         case "tax":
-          response = await getTaxReport({});
+          response = await getTaxReport({ from: taxFrom, to: taxTo });
           break;
         case "payees":
           response = await listPayees();
@@ -122,7 +128,21 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           response = await getLedger({ page: 1 });
       }
       const data = unwrapS4(response);
-      if (section === "doctor-earnings") {
+      if (section === "tax") {
+        const envelope = !response || Array.isArray(response)
+          ? {}
+          : (response.gstRate != null || response.GstRate != null || response.csv || response.Csv
+            ? response
+            : (response.data && typeof response.data === "object" && !Array.isArray(response.data) ? response.data : response));
+        setDetail({
+          gstRate: envelope.gstRate ?? envelope.GstRate ?? 0,
+          treatmentExempt: envelope.treatmentExempt ?? envelope.TreatmentExempt ?? true,
+          gstTotal: envelope.gstTotal ?? envelope.GstTotal ?? 0,
+          csv: envelope.csv ?? envelope.Csv ?? "",
+          fileName: envelope.fileName ?? envelope.FileName ?? "tax.csv",
+        });
+        setRows(asRows(envelope.data ?? data));
+      } else if (section === "doctor-earnings") {
         const summary = data?.data && typeof data.data === "object" && !Array.isArray(data.data) ? data.data : data;
         setDetail(summary && !Array.isArray(summary) ? summary : null);
         setRows(asRows(summary?.recent ?? summary?.Recent));
@@ -136,7 +156,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     } finally {
       setLoading(false);
     }
-  }, [section]);
+  }, [section, taxFrom, taxTo]);
 
   useEffect(() => {
     load();
@@ -205,10 +225,27 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   const runRefund = async () => {
     setBusyId("refund");
     setError("");
+    const orderId = Number(refundForm.paymentOrderId);
+    const amount = refundForm.amount === "" ? undefined : Number(refundForm.amount);
+    if (!Number.isFinite(orderId) || orderId <= 0) {
+      setBusyId(null);
+      setError("Enter a valid payment order id.");
+      return;
+    }
+    if (amount != null && (!Number.isFinite(amount) || amount <= 0)) {
+      setBusyId(null);
+      setError("Refund amount must be greater than 0.");
+      return;
+    }
+    if (!refundForm.reason.trim()) {
+      setBusyId(null);
+      setError("Refund reason is required.");
+      return;
+    }
     try {
       await createRefund({
-        paymentOrderId: Number(refundForm.paymentOrderId),
-        amount: refundForm.amount ? Number(refundForm.amount) : undefined,
+        paymentOrderId: orderId,
+        amount,
         reason: refundForm.reason.trim(),
       });
       setNote("Refund recorded.");
@@ -234,12 +271,12 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   };
 
   return (
-    <div className="page-content admin-dashboard-page account-dashboard-page">
+    <div className="page-content admin-dashboard-page account-dashboard-page clinic-workspace-page">
       <Container fluid>
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
           <div>
-            <h2 className="account-page-title">{meta.title}</h2>
-            <p className="account-page-subtitle mb-0">{meta.subtitle}</p>
+            <h2 className="clinic-page-title account-page-title">{meta.title}</h2>
+            <p className="clinic-page-subtitle account-page-subtitle mb-0">{meta.subtitle}</p>
           </div>
           <div className="d-flex flex-wrap gap-2">
             <Link to="/accountdashboard" className="btn btn-sm btn-soft-secondary">
@@ -253,6 +290,50 @@ const AccountFinancePage = ({ section = "ledger" }) => {
 
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
+
+        {section === "tax" ? (
+          <Card className="admin-dash-card mb-3">
+            <CardBody>
+              <Row className="g-2 align-items-end">
+                <Col md={3}>
+                  <Label>From</Label>
+                  <Input type="date" value={taxFrom} onChange={(e) => setTaxFrom(e.target.value)} />
+                </Col>
+                <Col md={3}>
+                  <Label>To</Label>
+                  <Input type="date" value={taxTo} onChange={(e) => setTaxTo(e.target.value)} />
+                </Col>
+                <Col md={3}>
+                  <Button className="account-primary-btn" onClick={load} disabled={loading}>Load report</Button>
+                </Col>
+                <Col md={3}>
+                  <Button
+                    color="soft-secondary"
+                    disabled={!detail?.csv}
+                    onClick={() => {
+                      const blob = new Blob([detail.csv], { type: "text/csv;charset=utf-8" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = detail.fileName || "tax.csv";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Export CSV
+                  </Button>
+                </Col>
+              </Row>
+              {detail && !loading ? (
+                <Row className="g-3 mt-2">
+                  <Col md={4}><div className="text-muted small">GST rate</div><div className="fs-5">{detail.gstRate ?? 0}%</div></Col>
+                  <Col md={4}><div className="text-muted small">Treatment exempt</div><div className="fs-5">{detail.treatmentExempt ? "Yes" : "No"}</div></Col>
+                  <Col md={4}><div className="text-muted small">GST total</div><div className="fs-5">{money(detail.gstTotal)}</div></Col>
+                </Row>
+              ) : null}
+            </CardBody>
+          </Card>
+        ) : null}
 
         {section === "doctor-earnings" && detail && !loading ? (
           <Row className="g-3 mb-3">
@@ -331,7 +412,9 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : rows.length === 0 ? (
               <p className="text-muted mb-0">
-                {section === "doctor-earnings" ? "Summary loaded above. Line items appear when visits have captures." : "No rows yet for this screen."}
+                {section === "doctor-earnings" ? "Summary loaded above. Line items appear when visits have captures."
+                  : section === "tax" ? "No ledger GST lines in this date range. Rate and totals above are live from TaxConfig."
+                  : "No rows yet for this screen. Empty is valid until money moves."}
               </p>
             ) : (
               <div className="table-responsive">

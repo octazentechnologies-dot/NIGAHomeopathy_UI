@@ -14,10 +14,18 @@ export const unwrapS4 = (response) => {
   return response?.data ?? response ?? null;
 };
 
-export const s4Message = (error) =>
-  error?.response?.data?.message ||
-  error?.message ||
-  "Something went wrong. Please try again.";
+export const s4Message = (error) => {
+  if (typeof error === "string" && error.trim()) return error;
+  const data = error?.response?.data ?? error?.data;
+  const msg =
+    data?.message ||
+    data?.Message ||
+    data?.title ||
+    data?.Title ||
+    error?.message;
+  if (typeof msg === "string" && msg.trim()) return msg;
+  return "Something went wrong. Please try again.";
+};
 
 /* Fees / payments */
 export const getPublicFee = (doctorId) => nigahomeoAPI.get(`/Fees/Public/${doctorId}`, null);
