@@ -141,7 +141,7 @@ const RefillDetailPage = () => {
 
         {result ? (
           <div className="border rounded p-3 mb-3" data-testid="refill-detail-result">
-            <strong>{result.success === false ? "Not applied" : "API response"}</strong>
+            <strong>{result.success === false ? "Not applied" : "Saved"}</strong>
             <div className="small">{result.message}</div>
           </div>
         ) : null}

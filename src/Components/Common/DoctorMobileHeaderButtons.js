@@ -9,6 +9,36 @@ const DoctorMobileHeaderButtons = ({ userRole }) => {
     <>
       <div className="ms-1 header-item">
         <Link
+          to="/doctor/consult-fees"
+          className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
+          title="Consult fees"
+          aria-label="Consult fees"
+        >
+          <i className="ri-money-dollar-circle-line fs-20" />
+        </Link>
+      </div>
+      <div className="ms-1 header-item">
+        <Link
+          to="/doctor/earnings"
+          className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
+          title="Earnings"
+          aria-label="Earnings"
+        >
+          <i className="ri-wallet-3-line fs-20" />
+        </Link>
+      </div>
+      <div className="ms-1 header-item">
+        <Link
+          to="/doctor/erx"
+          className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
+          title="Sign eRx"
+          aria-label="Sign eRx"
+        >
+          <i className="ri-file-text-line fs-20" />
+        </Link>
+      </div>
+      <div className="ms-1 header-item">
+        <Link
           to="/doctor/mobile/videoroom"
           className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
           title="Video room"

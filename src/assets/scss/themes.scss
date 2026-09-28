@@ -5227,10 +5227,39 @@ body.admin-layout {
 }
 
 // Topbar "More" dropdown (admin + doctor dashboards)
+.admin-more-menu-dropdown {
+  position: relative;
+  z-index: 1200;
+}
+
 .admin-more-menu-panel {
   min-width: 14rem;
   max-height: 70vh;
   overflow-y: auto;
+  z-index: 1200 !important;
+}
+
+#page-topbar {
+  z-index: 1100 !important;
+  overflow: visible !important;
+
+  .navbar-header,
+  .header-icon-rail,
+  .header-topbar-actions,
+  .header-topbar-actions-extra {
+    overflow: visible !important;
+  }
+
+  .dropdown-menu,
+  .dropdown-menu.show,
+  .admin-more-menu-panel {
+    z-index: 1200 !important;
+  }
+}
+
+.page-content {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-more-menu-body {
@@ -5287,6 +5316,7 @@ html:not([data-bs-theme="dark"]) {
 }
 
 @import "./components/appointment-slot-grid";
+@import "./pages/clinic-workspace";
 @import "./theme/velzon-minimal";
 
 // App-wide card border radius (5px) — overrides page-specific card styles

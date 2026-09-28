@@ -72,8 +72,8 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
     experience: rankingSummary || fallback.experience || "",
     specialties: qualification || "Homoeopathy",
     specialtiesList: fallback.specialtiesList || [qualification || "Homoeopathy"],
-    rating: Number(fallback.rating || 4.8),
-    reviews: Number(fallback.reviews || 0),
+    rating: Number(row?.averageRating ?? row?.AverageRating ?? 0),
+    reviews: Number(row?.reviewCount ?? row?.ReviewCount ?? 0),
     location: city,
     clinicName,
     clinicAddress: [clinicName, city].filter(Boolean).join(", "),
@@ -85,7 +85,7 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
     verified,
     verificationStatus: row?.verificationStatus ?? row?.VerificationStatus ?? (verified ? "Verified" : "Pending"),
     rankingSummary,
-    rankingReasons: row?.rankingReasons ?? row?.RankingReasons ?? [],
+    rankingReasons: row?.rankingReasons ?? row?.RankingReasons ?? fallback.rankingReasons ?? [],
     workingHoursNote,
     about: rankingSummary || fallback.about || `${name} is a verified homeopathy practitioner.`,
     education: qualification,
@@ -144,6 +144,34 @@ export const createPublicBooking = async (doctorId, body) => {
   const res = await publicClient.post(`/Public/Doctors/${doctorId}/Bookings`, body);
   const payload = unwrap(res);
   return payload.data ?? payload.Data ?? payload;
+};
+
+/** PAY-01 / PAY-05 — public consult fee (includes payAtClinicEnabled). */
+export const getPublicFee = async (doctorId) => {
+  const id = Number(doctorId);
+  if (!id) throw new Error("doctorId is required.");
+  const res = await publicClient.get(`/Fees/Public/${id}`);
+  const payload = unwrap(res);
+  return payload.data ?? payload.Data ?? payload;
+};
+
+/** PAT-18 / PAY — public checkout after booking hold (bookingToken, no JWT). */
+export const createPublicConsultOrder = async (body) => {
+  const res = await publicClient.post("/Payments/ConsultOrders", body);
+  return unwrap(res);
+};
+
+/** TRU-05 — approved public reviews for a doctor profile. */
+export const listPublicDoctorReviews = async (doctorId) => {
+  const id = Number(doctorId);
+  if (!id) throw new Error("doctorId is required.");
+  const res = await publicClient.get(`/Reviews/Doctor/${id}`);
+  const payload = unwrap(res);
+  const data = payload.data ?? payload.Data ?? payload;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.reviews)) return data.reviews;
+  return [];
 };
 
 export const getPublicBooking = async (bookingToken) => {
@@ -845,4 +873,31 @@ export const listCareCategories = async () => {
   const res = await publicClient.get("/PatientPortal/CareCategories");
   const payload = unwrap(res);
   return payload.data ?? payload.Data ?? [];
+};
+
+/** WEB-11.03 — join waitlist when the selected day has no open slots. Does not reserve a slot. */
+export const joinWaitlist = async ({ doctorId, requestedDate, consultMode, contactName, contactMobile, patientId }) => {
+  const res = await publicClient.post("/Waitlist/Join", {
+    doctorId: Number(doctorId),
+    patientId: patientId ? Number(patientId) : null,
+    requestedDate,
+    consultMode,
+    contactName,
+    contactMobile,
+  });
+  return unwrap(res);
+};
+
+/** SUP-06 — published help centre articles. */
+export const listPublicHelp = async () => {
+  const res = await publicClient.get("/Help");
+  const payload = unwrap(res);
+  const data = payload.data ?? payload.Data ?? payload;
+  return Array.isArray(data) ? data : [];
+};
+
+export const getPublicHelpArticle = async (slug) => {
+  const res = await publicClient.get(`/Help/${encodeURIComponent(slug)}`);
+  const payload = unwrap(res);
+  return payload.data ?? payload.Data ?? payload;
 };

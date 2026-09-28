@@ -44,6 +44,18 @@ export const getAccountHorizontalMenuItems = () => [
     link: '/account/ledger',
   },
   {
+    id: 'accountrecon',
+    label: 'Consultation recon',
+    icon: 'ri-exchange-line',
+    link: '/account/consult-recon',
+  },
+  {
+    id: 'accountmedicineledger',
+    label: 'Medicine ledger',
+    icon: 'ri-capsule-line',
+    link: '/account/medicine-ledger',
+  },
+  {
     id: 'accountearnings',
     label: 'Doctor Earnings',
     icon: 'ri-user-smile-line',
@@ -54,6 +66,42 @@ export const getAccountHorizontalMenuItems = () => [
     label: 'Payouts',
     icon: 'ri-exchange-dollar-line',
     link: '/account/payouts',
+  },
+  {
+    id: 'accountrefunds',
+    label: 'Refunds',
+    icon: 'ri-refund-2-line',
+    link: '/account/refunds',
+  },
+  {
+    id: 'accountsettlements',
+    label: 'Settlements',
+    icon: 'ri-shake-hands-line',
+    link: '/account/settlements',
+  },
+  {
+    id: 'accountexceptions',
+    label: 'Exceptions',
+    icon: 'ri-error-warning-line',
+    link: '/account/exceptions',
+  },
+  {
+    id: 'accounttax',
+    label: 'GST & tax',
+    icon: 'ri-percent-line',
+    link: '/account/tax',
+  },
+  {
+    id: 'accountpayees',
+    label: 'Payees',
+    icon: 'ri-bank-line',
+    link: '/account/payees',
+  },
+  {
+    id: 'accountcollections',
+    label: 'Clinic collections',
+    icon: 'ri-store-2-line',
+    link: '/account/clinic-collections',
   },
   {
     id: 'accountinvoices',
@@ -97,37 +145,31 @@ export const getPharmacyHorizontalMenuItems = () => [
   },
 ];
 
-/** Flat Reception portal nav (Dashboard / Appointments / Patients / Payments / Schedule). No More menu. */
+/** REC-03.01 — reception chrome: home, schedule, case paper, profile. */
 export const getReceptionHorizontalMenuItems = () => [
   {
-    id: 'receptiondashboard',
+    id: 'reception-home',
     label: 'Dashboard',
     icon: 'ri-dashboard-2-line',
-    link: '/receptiondashboard',
+    link: '/reception',
   },
   {
-    id: 'receptionappointments',
-    label: 'Appointments',
-    icon: 'ri-calendar-check-line',
-    link: '/reception/appointments',
-  },
-  {
-    id: 'receptionpatients',
-    label: 'Patients',
-    icon: 'ri-team-line',
-    link: '/reception/patients',
-  },
-  {
-    id: 'receptionpayments',
-    label: 'Payments',
-    icon: 'ri-money-rupee-circle-line',
-    link: '/reception/payments',
-  },
-  {
-    id: 'receptionschedule',
+    id: 'reception-schedule',
     label: 'Schedule',
-    icon: 'ri-calendar-2-line',
+    icon: 'ri-calendar-line',
     link: '/reception/schedule',
+  },
+  {
+    id: 'reception-case-paper',
+    label: 'Case paper',
+    icon: 'ri-file-list-3-line',
+    link: '/reception/case-paper',
+  },
+  {
+    id: 'reception-profile',
+    label: 'Profile',
+    icon: 'ri-user-settings-line',
+    link: '/profile',
   },
 ];
 

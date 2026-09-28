@@ -289,14 +289,28 @@ const FindDoctorPage = () => {
                                         <div className="homeojob-doctor-card__meta">
                                             <span className="homeojob-doctor-card__rating">
                                                 <i className="ri-star-fill" aria-hidden="true" />
-                                                {doc.rating.toFixed(1)}
-                                                <small>({doc.reviews})</small>
+                                                {doc.reviews > 0 ? Number(doc.rating).toFixed(1) : "—"}
+                                                <small>({doc.reviews || 0})</small>
                                             </span>
                                             <span className="homeojob-doctor-card__location">
                                                 <i className="ri-map-pin-line" aria-hidden="true" />
                                                 {doc.location}
                                             </span>
                                         </div>
+                                        {Array.isArray(doc.rankingReasons) && doc.rankingReasons.length > 0 ? (
+                                            <p className="homeojob-doctor-card__specs mb-0 mt-1">
+                                                <strong>Why this order?</strong>{" "}
+                                                {doc.rankingReasons
+                                                    .slice(0, 2)
+                                                    .map((reason) =>
+                                                        typeof reason === "string"
+                                                            ? reason
+                                                            : reason?.label || reason?.text || ""
+                                                    )
+                                                    .filter(Boolean)
+                                                    .join(" ")}
+                                            </p>
+                                        ) : null}
                                     </div>
 
                                     <div className="homeojob-doctor-card__fees">

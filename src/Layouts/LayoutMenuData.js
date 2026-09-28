@@ -234,6 +234,34 @@ const Navdata = () => {
         },
 
         {
+            id: "trust-queue",
+            label: "Trust queue",
+            icon: "ri-shield-check-line",
+            link: "/admin/trust-queue",
+        },
+
+        {
+            id: "homemeds-exceptions",
+            label: "HomeoMeds exceptions",
+            icon: "ri-capsule-line",
+            link: "/admin/homemeds-exceptions",
+        },
+
+        {
+            id: "pharmacy-partners",
+            label: "Pharmacy partners",
+            icon: "ri-store-3-line",
+            link: "/admin/pharmacy-partners",
+        },
+
+        {
+            id: "consult-payments",
+            label: "Consult payments",
+            icon: "ri-money-rupee-circle-line",
+            link: "/admin/consult-payments",
+        },
+
+        {
             id: "existancequestions",
             label: "Existance Questions",
             icon: "ri-question-line",
@@ -1565,6 +1593,8 @@ const Navdata = () => {
                     { label: "Patient", isHeader: true },
                     { id: "family", label: "Family", icon: "ri-group-line", link: "/family" },
                     { id: "caregiver", label: "Caregiver", icon: "ri-user-heart-line", link: "/caregiver" },
+                    { id: "continuity", label: "Care continuity", icon: "ri-heart-pulse-line", link: "/patient/continuity" },
+                    { id: "medicine-orders", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
                 ]}
             </React.Fragment>
         );
@@ -1577,9 +1607,16 @@ const Navdata = () => {
                     { label: "Account", isHeader: true },
                     { id: "account-home", label: "Home", icon: "ri-home-line", link: "/accountdashboard" },
                     { id: "account-ledger", label: "Ledger", icon: "ri-book-line", link: "/account/ledger" },
+                    { id: "account-recon", label: "Consultation recon", icon: "ri-exchange-line", link: "/account/consult-recon" },
+                    { id: "account-medicine-ledger", label: "Medicine ledger", icon: "ri-capsule-line", link: "/account/medicine-ledger" },
                     { id: "account-earnings", label: "Doctor Earnings", icon: "ri-money-dollar-circle-line", link: "/account/doctor-earnings" },
                     { id: "account-payouts", label: "Payouts", icon: "ri-bank-card-line", link: "/account/payouts" },
-                    { id: "account-invoices", label: "Invoices", icon: "ri-file-list-3-line", link: "/account/invoices" },
+                    { id: "account-refunds", label: "Refunds", icon: "ri-refund-2-line", link: "/account/refunds" },
+                    { id: "account-settlements", label: "Settlements", icon: "ri-shake-hands-line", link: "/account/settlements" },
+                    { id: "account-exceptions", label: "Exceptions", icon: "ri-error-warning-line", link: "/account/exceptions" },
+                    { id: "account-tax", label: "GST & tax", icon: "ri-percent-line", link: "/account/tax" },
+                    { id: "account-payees", label: "Payees", icon: "ri-bank-line", link: "/account/payees" },
+                    { id: "account-collections", label: "Clinic collections", icon: "ri-store-2-line", link: "/account/clinic-collections" },
                     { id: "account-reports", label: "Reports", icon: "ri-bar-chart-line", link: "/account/reports" },
                 ]}
             </React.Fragment>

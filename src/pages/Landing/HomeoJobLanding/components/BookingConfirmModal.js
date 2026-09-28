@@ -4,6 +4,7 @@ import { landingPath } from "../../../../constants/landingRoutes";
 import {
     createBookingWithConsent,
     getBookingConsentPolicy,
+    getPublicFee,
     requestPatientAuthOtp,
     slotToHHmm,
     toIsoDate,
@@ -21,6 +22,19 @@ const STEPS = [
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 
 const PAYMENT_METHODS = [
+    {
+        id: "pay_at_clinic",
+        label: "Pay at clinic",
+        shortLabel: "Pay at clinic",
+        hint: "Pay cash / UPI / card when you arrive",
+        icon: "ri-store-2-line",
+        brand: "clinic",
+        tips: [
+            { icon: "ri-store-2-line", text: "Your slot is held. Pay at reception before or after the visit." },
+            { icon: "ri-shield-check-line", text: "Available only when the doctor enables pay at clinic." },
+            { icon: "ri-flashlight-line", text: "Visit stays unpaid until reception collects or you pay online later." },
+        ],
+    },
     {
         id: "upi",
         label: "UPI (Google Pay, PhonePe, Paytm, etc.)",
@@ -129,6 +143,7 @@ const BookingConfirmModal = ({
     const [policyError, setPolicyError] = useState("");
     const [bookingError, setBookingError] = useState("");
     const [paymentStatus, setPaymentStatus] = useState("");
+    const [payAtClinicEnabled, setPayAtClinicEnabled] = useState(true);
 
     const fee = consultMode === "tele" ? doctor.tele : doctor.inClinic;
     const platformFee = 0;
@@ -139,11 +154,16 @@ const BookingConfirmModal = ({
     const summaryDate = useMemo(() => formatSummaryDate(bookingDate), [bookingDate]);
     const selectedPayMethod =
         PAYMENT_METHODS.find((m) => m.id === paymentMethod) || PAYMENT_METHODS[0];
+    const visiblePayMethods = PAYMENT_METHODS.filter(
+        (m) => m.id !== "pay_at_clinic" || payAtClinicEnabled
+    );
     const headerSubtitle =
         step === 1
             ? "Please provide your details to confirm the appointment"
             : step === 2
-              ? "Verify OTP and hold the slot (pay at clinic)"
+              ? paymentMethod === "pay_at_clinic"
+                  ? "Verify OTP and hold the slot (pay at clinic)"
+                  : "Verify OTP, then pay online after the hold"
               : "Your appointment receipt is ready";
     const shortSlotTime = selectedSlot;
     const appointmentWhen = `${summaryDate}, ${shortSlotTime}`;
@@ -173,6 +193,19 @@ const BookingConfirmModal = ({
         setPaymentStatus("");
         setPolicyError("");
         setPolicyLoading(true);
+        setPayAtClinicEnabled(true);
+        // PAY-05.02 — fee config drives whether Pay at clinic is offered.
+        if (doctor?.id) {
+            getPublicFee(doctor.id)
+                .then((feeRow) => {
+                    const enabled = feeRow?.payAtClinicEnabled ?? feeRow?.PayAtClinicEnabled;
+                    setPayAtClinicEnabled(enabled !== false);
+                    if (enabled === false) setPaymentMethod("upi");
+                })
+                .catch(() => {
+                    /* keep default on */
+                });
+        }
         // PAT-17.02 — load Booking policy from New-API (version + body for review/consent).
         getBookingConsentPolicy()
             .then((policy) => {
@@ -262,13 +295,18 @@ const BookingConfirmModal = ({
                 isTele: consultMode === "tele",
                 bookingSessionId: sessionId,
                 consentPolicyVersion: policyVersion,
+                payAtClinic: paymentMethod === "pay_at_clinic",
             });
             setReceiptId(created.bookingToken ?? created.BookingToken ?? "");
             setPaymentStatus(created.paymentStatus ?? created.PaymentStatus ?? "PENDING");
             setStep(3);
             const token = created.bookingToken ?? created.BookingToken;
             if (token) {
-                navigate(`${landingPath("book/success")}?token=${encodeURIComponent(token)}`);
+                if (paymentMethod === "pay_at_clinic") {
+                    navigate(`${landingPath("book/success")}?token=${encodeURIComponent(token)}`);
+                } else {
+                    navigate(landingPath(`book/pay/${encodeURIComponent(token)}`));
+                }
             }
         } catch (err) {
             const message =
@@ -549,7 +587,7 @@ const BookingConfirmModal = ({
                                     </div>
 
                                     <div className="homeojob-booking-modal__pay-list" role="radiogroup">
-                                        {PAYMENT_METHODS.map((method) => (
+                                        {visiblePayMethods.map((method) => (
                                             <button
                                                 key={method.id}
                                                 type="button"
@@ -646,6 +684,7 @@ const BookingConfirmModal = ({
                                             </div>
                                         </div>
 
+                                        {paymentMethod !== "pay_at_clinic" ? (
                                         <div className="homeojob-booking-modal__price-rows">
                                             <div>
                                                 <span>Consultation Fee</span>
@@ -666,6 +705,11 @@ const BookingConfirmModal = ({
                                                 </strong>
                                             </div>
                                         </div>
+                                        ) : (
+                                        <p className="text-muted small mt-2 mb-0">
+                                            Consultation fee is due at the clinic. This hold does not take online payment.
+                                        </p>
+                                        )}
                                         <label className="homeojob-booking-modal__field mt-3">
                                             <span>OTP</span>
                                             <input
@@ -725,14 +769,20 @@ const BookingConfirmModal = ({
                                             onClick={handlePay}
                                             disabled={paying || !agreed}
                                         >
-                                            {paying ? "Holding slot..." : "Confirm hold (pay at clinic)"}
+                                            {paying
+                                                ? "Holding slot..."
+                                                : paymentMethod === "pay_at_clinic"
+                                                  ? "Confirm hold (pay at clinic)"
+                                                  : "Confirm hold and pay online"}
                                             {!paying && (
                                                 <i className="ri-arrow-right-line" aria-hidden="true" />
                                             )}
                                         </button>
                                         <p className="homeojob-booking-modal__razorpay">
                                             <i className="ri-lock-line" aria-hidden="true" />
-                                            Pay at the clinic when you arrive.
+                                            {paymentMethod === "pay_at_clinic"
+                                                ? "Pay at the clinic when you arrive."
+                                                : "You will pay online on the next page. The visit is paid only after the clinic confirms."}
                                         </p>
                                     </div>
                                 </div>
@@ -747,7 +797,11 @@ const BookingConfirmModal = ({
                                     <i className="ri-checkbox-circle-fill" />
                                 </span>
                                 <h3>Booking hold created</h3>
-                                <p>Your time is held. Please pay at the clinic.</p>
+                                <p>
+                                    {paymentMethod === "pay_at_clinic"
+                                        ? "Your time is held. Please pay at the clinic."
+                                        : "Your time is held. Continue to online payment."}
+                                </p>
                             </div>
 
                             <div className="homeojob-booking-modal__receipt-card">
@@ -757,7 +811,11 @@ const BookingConfirmModal = ({
                                 </div>
                                 <div className="homeojob-booking-modal__receipt-row">
                                     <span>Payment</span>
-                                    <strong>{String(paymentStatus || "PENDING").toUpperCase() === "PENDING" ? "Pay at the clinic" : (paymentStatus || "Pay at the clinic")}</strong>
+                                    <strong>
+                                        {paymentMethod === "pay_at_clinic"
+                                            ? "Pay at the clinic"
+                                            : String(paymentStatus || "PENDING")}
+                                    </strong>
                                 </div>
                                 <div className="homeojob-booking-modal__receipt-row">
                                     <span>Patient</span>
@@ -778,7 +836,7 @@ const BookingConfirmModal = ({
                                     <strong>{consultLabel}</strong>
                                 </div>
                                 <div className="homeojob-booking-modal__receipt-row homeojob-booking-modal__receipt-row--total">
-                                    <span>Amount Paid</span>
+                                    <span>{paymentMethod === "pay_at_clinic" ? "Amount due at clinic" : "Amount"}</span>
                                     <strong>
                                         {INR} {fee}
                                     </strong>
@@ -844,7 +902,11 @@ const BookingConfirmModal = ({
                             <li>
                                 <i className="ri-bank-card-line" aria-hidden="true" />
                                 <div>
-                                    <span>Consultation Fee</span>
+                                    <span>
+                                        {paymentMethod === "pay_at_clinic"
+                                            ? "Due at clinic"
+                                            : "Consultation Fee"}
+                                    </span>
                                     <strong className="homeojob-booking-modal__fee">
                                         {INR} {fee}
                                     </strong>

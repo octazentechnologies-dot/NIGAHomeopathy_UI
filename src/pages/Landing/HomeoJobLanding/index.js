@@ -31,6 +31,7 @@ import InstantQueueOfferPage from "./pages/InstantQueueOfferPage";
 import DeviceCheckPage from "./pages/DeviceCheckPage";
 import RecordingConsentPage from "./pages/RecordingConsentPage";
 import WaitingRoomPage from "./pages/WaitingRoomPage";
+import HelpArticlePage from "./pages/HelpArticlePage";
 
 const HomeoJobLanding = () => {
     useEffect(() => {
@@ -65,10 +66,11 @@ const HomeoJobLanding = () => {
                     <Route path="blog/:blogId" element={<BlogDetailPage />} />
                     <Route path="news" element={<NewsPage />} />
                     <Route path="news/:newsId" element={<NewsDetailPage />} />
-                    <Route path="help" element={<HelpCentrePage />} />
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="privacy" element={<PrivacyPage />} />
                     <Route path="terms" element={<TermsPage />} />
+                    <Route path="help" element={<HelpCentrePage />} />
+                    <Route path="help/:slug" element={<HelpArticlePage />} />
                     <Route path="account" element={<AccountPage />} />
                     <Route path="find-doctor" element={<FindDoctorPage />} />
                     <Route path="find-doctor/:doctorId" element={<DoctorDetailPage />} />

@@ -249,7 +249,7 @@ const CaregiverAccess = () => {
   );
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <Row>
           <Col lg={5}>

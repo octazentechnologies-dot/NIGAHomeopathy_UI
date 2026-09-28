@@ -62,6 +62,24 @@
   }
 }
 
+// Black confirm (#000000) + SweetAlert2's initial disabled state made OK unusable
+// (BIB-UI-001). Keep the control readable and clickable.
+.swal2-actions:not(.swal2-loading) .swal2-confirm {
+  color: #fff !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+
+  &:disabled,
+  &[disabled],
+  &[aria-disabled="true"] {
+    color: #fff !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+  }
+}
+
 .swal2-loader{
   border-color: $primary transparent $primary transparent;
 }

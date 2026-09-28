@@ -34,7 +34,8 @@ function readApiMessage(error, status) {
   if (status === 403) return (data && data.message) || "You are not allowed to do this.";
   if (status === 404) return (data && data.message) || "Sorry! the data you are looking for could not be found";
   if (typeof data === "string" && data.trim() && data.trim().charAt(0) !== "<") return data;
-  if (data && data.message) return fieldText ? data.message + " " + fieldText : data.message;
+  const apiMsg = data && (data.message || data.Message || data.title || data.Title);
+  if (apiMsg) return fieldText ? apiMsg + " " + fieldText : apiMsg;
   if (fieldText) return fieldText;
   if (status >= 500) return "Something went wrong. Please try again.";
   if (!status) return "The server did not respond. Please try again.";
@@ -91,7 +92,7 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
       console.error("API Error:", error);
       const reqUrl = error.config?.url || error.config?.baseURL || "";
       const statusCode = status || 0;
-      if (statusCode !== 401 && statusCode !== 0 && statusCode !== 429) {
+      if (statusCode >= 500) {
         reportClientIssue({
           source: "axios",
           url: reqUrl,
@@ -109,6 +110,39 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
           status: statusCode,
           data: body && typeof body === "object" ? body : null,
         });
+      }
+      // DMO-11.02 — 401 clears session and returns to login (skip auth endpoints).
+      if (statusCode === 401 && typeof window !== "undefined") {
+        const req = String(error.config?.url || "").toLowerCase();
+        const isAuthCall =
+          req.includes("/account/login") ||
+          req.includes("/account/authenticate") ||
+          req.includes("/users/login") ||
+          req.includes("/otp/");
+        if (!isAuthCall && sessionStorage.getItem("authUser")) {
+          try {
+            const parsed = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+            const token = parsed.token || parsed.accessToken || parsed.data?.token || "";
+            const headers = token
+              ? { Authorization: "Bearer " + token, "Content-Type": "application/json" }
+              : { "Content-Type": "application/json" };
+            fetch(`${api.Old_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
+            fetch(`${api.New_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
+          } catch (_) {
+            /* ignore */
+          }
+          try {
+            sessionStorage.removeItem("authUser");
+            sessionStorage.removeItem("authUserRole");
+          } catch (_) {
+            /* ignore */
+          }
+          const path = window.location.pathname || "";
+          if (!path.toLowerCase().includes("login") && !path.toLowerCase().includes("register")) {
+            const next = encodeURIComponent(path + (window.location.search || ""));
+            window.location.assign(`/login?session=expired&next=${next}`);
+          }
+        }
       }
       return Promise.reject(message);
     }

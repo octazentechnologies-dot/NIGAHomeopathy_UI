@@ -132,8 +132,8 @@ const PATIENT_APP_ROUTE_ROLES = [
     UserRole.ADMIN,
     UserRole.MANAGEMENT,
 ];
-/** Doctor dashboard stays available to reception (old URL). Clinical tabs are hidden in that chrome. */
-const DOCTOR_DASHBOARD_ROUTE_ROLES = [UserRole.DOCTOR, UserRole.RECEPTION];
+/** REC-03.01 / checklist #1–#3 — clinical doctor board is doctor only. */
+const DOCTOR_DASHBOARD_ROUTE_ROLES = [UserRole.DOCTOR];
 /** REC-03.01 — front-desk route is reception only. */
 const RECEPTION_ROUTE_ROLES = [UserRole.RECEPTION];
 /** CLN-02.02 — full case taking is treating doctor only, not Reception. */

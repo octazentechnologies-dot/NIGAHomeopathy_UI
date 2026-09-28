@@ -8,30 +8,42 @@ const WIDGETS = [
     label: "Total Ledger",
     icon: "ri-book-2-line",
     linkPath: "/account/ledger",
+    cta: "Open ledger",
   },
   {
     id: "earnings",
     label: "Doctor Earnings",
     icon: "ri-user-smile-line",
     linkPath: "/account/doctor-earnings",
+    cta: "Open earnings",
   },
   {
     id: "payouts",
     label: "Payouts",
     icon: "ri-exchange-dollar-line",
     linkPath: "/account/payouts",
+    cta: "Open payouts",
   },
   {
-    id: "invoices",
-    label: "Invoices",
+    id: "refunds",
+    label: "Refunds",
     icon: "ri-file-list-3-line",
-    linkPath: "/account/invoices",
+    linkPath: "/account/refunds",
+    cta: "Open refunds",
+  },
+  {
+    id: "tax",
+    label: "GST & tax",
+    icon: "ri-percent-line",
+    linkPath: "/account/tax",
+    cta: "Open GST",
   },
   {
     id: "reports",
     label: "Reports",
     icon: "ri-bar-chart-box-line",
     linkPath: "/account/reports",
+    cta: "Open reports",
   },
 ];
 
@@ -57,7 +69,7 @@ const SummaryWidgets = () => (
                   <span className="counter-value">-</span>
                 </h4>
                 <Link to={item.linkPath} className="account-kpi-link">
-                  Coming Soon
+                  {item.cta}
                 </Link>
               </div>
               <div className="avatar-sm flex-shrink-0">

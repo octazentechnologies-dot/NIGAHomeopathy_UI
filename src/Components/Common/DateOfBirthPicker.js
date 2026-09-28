@@ -44,28 +44,34 @@ const DateOfBirthPicker = ({
     const maxBoundary = useMemo(() => resolveBoundary(maxDate, today), [maxDate, today]);
     const selectedDate = useMemo(() => parseDateValue(value), [value]);
 
-    const getAnchorDate = () => selectedDate || minBoundary || today.clone();
+    const clampToBounds = (date) => {
+        let next = date.clone().startOf('day');
+        if (minBoundary && next.isBefore(minBoundary, 'day')) next = minBoundary.clone();
+        if (maxBoundary && next.isAfter(maxBoundary, 'day')) next = maxBoundary.clone();
+        return next;
+    };
+
+    const getAnchorDate = () => clampToBounds(selectedDate || minBoundary || today.clone());
+    const yearPageFor = (anchorYear) => {
+        if (minBoundary && maxBoundary && maxBoundary.year() - minBoundary.year() <= 5) {
+            return minBoundary.year();
+        }
+        if (minBoundary) return minBoundary.year();
+        return Math.max(anchorYear - (YEARS_PER_PAGE - 1), 0);
+    };
 
     const [isOpen, setIsOpen] = useState(false);
     const [view, setView] = useState('day');
     const [viewDate, setViewDate] = useState(() => getAnchorDate());
     const [popoverStyle, setPopoverStyle] = useState(null);
-    const [yearPageStart, setYearPageStart] = useState(() => {
-        const anchorYear = getAnchorDate().year();
-        if (minBoundary && !maxBoundary) return anchorYear;
-        return Math.max(anchorYear - (YEARS_PER_PAGE - 1), 0);
-    });
+    const [yearPageStart, setYearPageStart] = useState(() => yearPageFor(getAnchorDate().year()));
 
     useEffect(() => {
-        if (selectedDate) {
-            setViewDate(selectedDate.clone());
-            if (minBoundary && !maxBoundary) {
-                setYearPageStart(selectedDate.year());
-            } else {
-                setYearPageStart(Math.max(selectedDate.year() - (YEARS_PER_PAGE - 1), 0));
-            }
-        }
-    }, [selectedDate, minBoundary, maxBoundary]);
+        if (isOpen) return;
+        const anchor = getAnchorDate();
+        setViewDate(anchor.clone());
+        setYearPageStart(yearPageFor(anchor.year()));
+    }, [selectedDate, minBoundary, maxBoundary, isOpen]);
 
     const updatePopoverPosition = useCallback(() => {
         if (!wrapperRef.current) return;
@@ -158,11 +164,7 @@ const DateOfBirthPicker = ({
     const openPicker = () => {
         const anchor = getAnchorDate();
         setViewDate(anchor.clone());
-        if (minBoundary && !maxBoundary) {
-            setYearPageStart(anchor.year());
-        } else {
-            setYearPageStart(Math.max(anchor.year() - (YEARS_PER_PAGE - 1), 0));
-        }
+        setYearPageStart(yearPageFor(anchor.year()));
         setView('day');
         setIsOpen(true);
     };
@@ -208,45 +210,6 @@ const DateOfBirthPicker = ({
             commitTypedDate(event.target.value);
             setIsOpen(false);
             setView('day');
-        }
-        if (event.key === 'ArrowDown' && !isOpen) {
-            event.preventDefault();
-            openPicker();
-        }
-    };
-
-    const handleInputChange = (event) => {
-        onChange?.(event.target.value);
-    };
-
-    const handleInputBlur = (event) => {
-        const raw = String(event.target.value || '').trim();
-
-        if (!raw) {
-            onChange?.('');
-            onBlur?.({ target: { name } });
-            return;
-        }
-
-        const parsed = parseDateValue(raw);
-        if (parsed && !isDayDisabled(parsed)) {
-            onChange?.(formatDateValue(parsed));
-            setViewDate(parsed.clone());
-        } else if (selectedDate) {
-            onChange?.(formatDateValue(selectedDate));
-        } else {
-            onChange?.('');
-        }
-
-        onBlur?.({ target: { name } });
-    };
-
-    const handleInputKeyDown = (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            handleInputBlur(event);
-            setIsOpen(false);
-            setView('day');
             return;
         }
 
@@ -262,8 +225,16 @@ const DateOfBirthPicker = ({
         }
     };
 
-    const yearPageEnd = yearPageStart + YEARS_PER_PAGE - 1;
-    const years = Array.from({ length: YEARS_PER_PAGE }, (_, index) => yearPageStart + index);
+    const compactYearSpan = minBoundary && maxBoundary && maxBoundary.year() - minBoundary.year() <= 5;
+    const yearPageEnd = compactYearSpan
+        ? maxBoundary.year()
+        : yearPageStart + YEARS_PER_PAGE - 1;
+    const years = compactYearSpan
+        ? Array.from(
+            { length: maxBoundary.year() - minBoundary.year() + 1 },
+            (_, index) => minBoundary.year() + index
+        )
+        : Array.from({ length: YEARS_PER_PAGE }, (_, index) => yearPageStart + index);
 
     const canGoPrevYearPage = minBoundary
         ? yearPageStart > minBoundary.year()
@@ -328,11 +299,7 @@ const DateOfBirthPicker = ({
                         type="button"
                         className="dob-picker__header-title"
                         onClick={() => {
-                            if (minBoundary && !maxBoundary) {
-                                setYearPageStart(viewDate.year());
-                            } else {
-                                setYearPageStart(Math.max(viewDate.year() - (YEARS_PER_PAGE - 1), 0));
-                            }
+                            setYearPageStart(yearPageFor(viewDate.year()));
                             setView('year');
                         }}
                     >
@@ -369,11 +336,7 @@ const DateOfBirthPicker = ({
                     type="button"
                     className="dob-picker__header-title"
                     onClick={() => {
-                        if (minBoundary && !maxBoundary) {
-                            setYearPageStart(viewDate.year());
-                        } else {
-                            setYearPageStart(Math.max(viewDate.year() - (YEARS_PER_PAGE - 1), 0));
-                        }
+                        setYearPageStart(yearPageFor(viewDate.year()));
                         setView('year');
                     }}
                 >

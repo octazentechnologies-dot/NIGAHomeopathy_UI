@@ -428,7 +428,14 @@ export const getAppointmentSlots = (params) => nigahomeoAPI.get(url.GET_APPOINTM
 export const rescheduleAppointment = (data) =>
   nigahomeoAPI.post(url.RESCHEDULE_APPOINTMENT, data, { returnErrorBody: true });
 export const cancelAppointment = (data) => nigahomeoAPI.post(url.CANCEL_APPOINTMENT, data);
-export const getAppointmentQueue = (doctorId) => nigahomeoAPI.get(url.APPOINTMENT_QUEUE + "?doctorId=" + doctorId, null);
+export const getAppointmentQueue = (doctorId, opts) => {
+  const params = new URLSearchParams();
+  if (doctorId != null && doctorId !== "") params.set("doctorId", String(doctorId));
+  if (opts?.date) params.set("date", opts.date);
+  if (opts?.scope) params.set("scope", opts.scope);
+  const qs = params.toString();
+  return nigahomeoAPI.get(url.APPOINTMENT_QUEUE + (qs ? `?${qs}` : ""), null);
+};
 export const callNextAppointment = (doctorId) => nigahomeoAPI.post(url.CALL_NEXT_APPOINTMENT, { doctorId });
 export const getReceptionProfile = () => nigahomeoAPI.get(url.RECEPTION_PROFILE, null);
 export const updateReceptionProfile = (data) => nigahomeoAPI.put(url.RECEPTION_PROFILE, data);
@@ -516,8 +523,13 @@ export const saveTeleConsultationSummary = (data) =>
 export const requestInstantConsult = (data) => nigahomeoAPI.post(url.TELE_INSTANT, data);
 /** PAT-24.02 — doctor lists / accepts instant offers. */
 export const listInstantConsultOffers = () => nigahomeoAPI.get(url.TELE_INSTANT_OFFERS, null);
-export const acceptInstantConsult = (requestId) =>
-  nigahomeoAPI.post(url.TELE_INSTANT_ACCEPT(requestId), null);
+export const acceptInstantConsult = (requestId) => {
+  const id = Number(requestId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return Promise.reject(new Error("Instant consult request id is missing."));
+  }
+  return nigahomeoAPI.post(url.TELE_INSTANT_ACCEPT(id), null);
+};
 export const setTeleAvailability = (data) => nigahomeoAPI.post(url.TELE_AVAILABILITY, data);
 export const getTeleAvailability = () => nigahomeoAPI.get(url.TELE_AVAILABILITY, null);
 /** PAT-26.02 — device check stub (TOKEN = no). Phone checks camera/mic itself. */
@@ -551,6 +563,10 @@ export const updateSupportTicketMessage = (ticketId, messageId, data) =>
   nigahomeoAPI.put(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId), data);
 export const deleteSupportTicketMessage = (ticketId, messageId) =>
   nigahomeoAPI.delete(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId));
+export const listAdminSupportTickets = (params) => nigahomeoAPI.get(url.SUPPORT_TICKETS, params || {});
+export const updateSupportTicket = (ticketId, data) => nigahomeoAPI.put(url.SUPPORT_TICKET(ticketId), data);
+export const saveHelpArticle = (data) => nigahomeoAPI.post(url.HELP_ARTICLES, data);
+export const getDoctorWaitlist = (doctorId) => nigahomeoAPI.get("/Waitlist", { doctorId });
 /** SUP-07.02 — patient requests help booking; staff lists requests / AssistedBook. */
 export const requestBookingAssistance = (data) =>
   nigahomeoAPI.post(url.SUPPORT_ASSISTANCE_REQUEST, data);
