@@ -28,8 +28,8 @@ const SUPPORT_LINKS = [
     { label: "Account", to: landingPath("account") },
     { label: "Pricing", to: landingPath("pricing") },
     { label: "Contact Us", to: landingPath("contact") },
-    { label: "Help Center", to: landingPath("contact") },
-    { label: "FAQs", to: landingPath("contact") },
+    { label: "Help Center", to: landingPath("help") },
+    { label: "FAQs", to: landingPath("help") },
 ];
 
 const TRUST_ITEMS = [

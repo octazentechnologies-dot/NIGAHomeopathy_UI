@@ -2,6 +2,7 @@ import React from "react";
 import Home from "./Home";
 import Solutions from "./Solutions";
 import HealthConcerns from "./HealthConcerns";
+import InstantConsultation from "./InstantConsultation";
 import JourneySteps from "./JourneySteps";
 import Process from "./Process";
 import Features from "./Features";
@@ -16,6 +17,7 @@ const HomeLandingPage = () => (
         <Home />
         <Solutions />
         <HealthConcerns />
+        <InstantConsultation />
         <JourneySteps />
         <Process />
         <Features />
