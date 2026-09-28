@@ -180,36 +180,45 @@ const DateOfBirthPicker = ({
         setTimeout(() => onBlur?.({ target: { name, value: formatted } }), 0);
     };
 
-    const commitTypedDate = (rawValue) => {
-        const typed = String(rawValue || '').trim();
-        if (!typed) {
-            if (value) onChange?.('');
-            return;
-        }
-
-        const parsed = parseDateValue(typed);
-        if (!parsed || isDayDisabled(parsed)) return;
-
-        const formatted = formatDateValue(parsed);
-        if (formatted !== value) onChange?.(formatted);
-        setViewDate(parsed.clone());
-    };
-
     const handleInputChange = (event) => {
         onChange?.(event.target.value);
     };
 
     const handleInputBlur = (event) => {
-        commitTypedDate(event.target.value);
-        onBlur?.(event);
+        const raw = String(event.target.value || '').trim();
+
+        if (!raw) {
+            if (value) onChange?.('');
+            onBlur?.({ target: { name } });
+            return;
+        }
+
+        const parsed = parseDateValue(raw);
+        if (parsed && !isDayDisabled(parsed)) {
+            const formatted = formatDateValue(parsed);
+            if (formatted !== value) onChange?.(formatted);
+            setViewDate(parsed.clone());
+        } else if (selectedDate) {
+            onChange?.(formatDateValue(selectedDate));
+        } else {
+            onChange?.('');
+        }
+
+        onBlur?.({ target: { name } });
     };
 
     const handleInputKeyDown = (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            commitTypedDate(event.target.value);
+            handleInputBlur(event);
             setIsOpen(false);
             setView('day');
+            return;
+        }
+        if (event.key === 'Escape') {
+            setIsOpen(false);
+            setView('day');
+            return;
         }
         if (event.key === 'ArrowDown' && !isOpen) {
             event.preventDefault();
