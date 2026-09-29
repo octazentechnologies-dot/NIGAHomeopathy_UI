@@ -183,6 +183,7 @@ export const LayoutMenuProvider = ({ children }) => {
           '/doctordashboard',
           '/doctor/patientboard',
           '/doctor/anatomy',
+          '/doctor/tele',
           '/doctor/telemedicine',
           '/doctor/reception-staff',
           '/doctor/consult-fees',

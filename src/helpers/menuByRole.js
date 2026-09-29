@@ -197,10 +197,31 @@ export const filterReceptionChromeItems = (items) =>
     })
     .filter(Boolean);
 
+const receptionLinkKey = (link) => {
+  const path = String(link || "").split("?")[0].toLowerCase();
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized === "/reception" || normalized === "/reception/") return "home";
+  if (normalized.startsWith("/reception/schedule")) return "schedule";
+  if (normalized.startsWith("/reception/case-paper")) return "case";
+  if (normalized === "/profile" || normalized.startsWith("/profile/")) return "profile";
+  return "";
+};
+
+/** Keep the four front-desk items, in desk order, and drop the doctor dashboard. */
 export const receptionChromeFromApi = (items) => {
   const filtered = filterReceptionChromeItems(items);
-  const hasHome = filtered.some((item) => String(item.link || "").toLowerCase().startsWith("/reception"));
-  return hasHome ? filtered : [...RECEPTION_FALLBACK_MENU, ...filtered];
+  const byKey = new Map();
+  filtered.forEach((item) => {
+    const key = receptionLinkKey(item.link);
+    if (key && !byKey.has(key)) byKey.set(key, item);
+  });
+  const ordered = RECEPTION_FALLBACK_MENU.map((fallback) => {
+    const key = receptionLinkKey(fallback.link);
+    const fromApi = byKey.get(key);
+    return fromApi ? { ...fromApi, label: fallback.label, link: fallback.link, icon: fromApi.icon || fallback.icon } : fallback;
+  });
+  const extras = filtered.filter((item) => !receptionLinkKey(item.link));
+  return [...ordered, ...extras];
 };
 
 /** Matches Dev RoleDetails for Doctor (no Enquiries, no Family). Used only when GetMenuByRole fails. */
@@ -219,6 +240,7 @@ export const isDoctorSpaLink = (link) => {
 export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
   { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },
+  { id: "doctor-tele", label: "Teleconsult", icon: "ri-vidicon-line", link: "/doctor/tele" },
   { id: "doctor-anatomy", label: "Anatomy", icon: "ri-body-scan-line", link: "/doctor/anatomy" },
   { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
   { id: "doctor-fees", label: "Consult fees", icon: "ri-money-dollar-circle-line", link: "/doctor/consult-fees" },

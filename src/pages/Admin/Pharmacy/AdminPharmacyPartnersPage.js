@@ -1,6 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner, Table } from "reactstrap";
 import { activatePharmacy, listPharmacyPartners, s4Message, savePharmacyRouting, sweepPharmacyLicences, unwrapS4 } from "../../../helpers/s4Week4Api";
+
+const partnerIdOf = (row) => {
+  const id = row?.pharmacyPartnerId ?? row?.PharmacyPartnerId ?? row?.id ?? row?.Id;
+  return id == null || id === "" ? "" : String(id);
+};
+
+const partnerNameOf = (row) => row?.name || row?.Name || "";
 
 /**
  * MED pharmacy partner admin — list pending/active partners and activate (New API :5002).
@@ -18,6 +25,8 @@ const AdminPharmacyPartnersPage = () => {
     closeTime: "21:00",
     capacity: "20",
   });
+  const [partnerQuery, setPartnerQuery] = useState("");
+  const [partnerOpen, setPartnerOpen] = useState(false);
 
   document.title = "Pharmacy partners | Niga Homeocentrum";
 
@@ -39,6 +48,29 @@ const AdminPharmacyPartnersPage = () => {
   useEffect(() => {
     load();
   }, []);
+
+  const partnerMatches = useMemo(() => {
+    const q = partnerQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => {
+      const id = partnerIdOf(row);
+      const name = partnerNameOf(row).toLowerCase();
+      const area = String(row.area || row.Area || "").toLowerCase();
+      return id.toLowerCase().includes(q) || name.includes(q) || area.includes(q);
+    });
+  }, [rows, partnerQuery]);
+
+  const choosePartner = (row) => {
+    const id = partnerIdOf(row);
+    const name = partnerNameOf(row);
+    setRouting((prev) => ({
+      ...prev,
+      pharmacyPartnerId: id,
+      area: prev.area || row.area || row.Area || "",
+    }));
+    setPartnerQuery(name ? `${id} — ${name}` : id);
+    setPartnerOpen(false);
+  };
 
   const sweep = async () => {
     setBusyId("sweep");
@@ -92,12 +124,13 @@ const AdminPharmacyPartnersPage = () => {
                 </thead>
                 <tbody>
                   {rows.map((row) => {
-                    const id = row.pharmacyPartnerId || row.PharmacyPartnerId || row.id;
+                    const id = partnerIdOf(row);
+                    const name = partnerNameOf(row);
                     const status = String(row.status || row.Status || "");
                     return (
-                      <tr key={id}>
-                        <td>#{id}</td>
-                        <td>{row.name || row.Name || "—"}</td>
+                      <tr key={id || name}>
+                        <td>{id || "—"}</td>
+                        <td>{name || "—"}</td>
                         <td>{row.area || row.Area || "—"}</td>
                         <td>{status || "—"}</td>
                         <td>
@@ -110,7 +143,7 @@ const AdminPharmacyPartnersPage = () => {
                                 setBusyId(id);
                                 try {
                                   await activatePharmacy(id);
-                                  setNote(`Pharmacy #${id} activated.`);
+                                  setNote(name ? `${name} activated.` : `Pharmacy ${id} activated.`);
                                   await load();
                                 } catch (err) {
                                   setError(s4Message(err));
@@ -135,14 +168,51 @@ const AdminPharmacyPartnersPage = () => {
           <CardBody>
             <h5>Seller routing hours</h5>
             <Row className="g-2">
-              <Col md={2}>
-                <FormGroup>
-                  <Label>Partner id</Label>
+              <Col md={3}>
+                <FormGroup className="position-relative">
+                  <Label>Partner</Label>
                   <Input
-                    type="number"
-                    value={routing.pharmacyPartnerId}
-                    onChange={(e) => setRouting({ ...routing, pharmacyPartnerId: e.target.value })}
+                    value={partnerQuery}
+                    placeholder="Search name or id"
+                    autoComplete="off"
+                    onFocus={() => setPartnerOpen(true)}
+                    onBlur={() => setPartnerOpen(false)}
+                    onChange={(e) => {
+                      setPartnerQuery(e.target.value);
+                      setPartnerOpen(true);
+                      setRouting({ ...routing, pharmacyPartnerId: "" });
+                    }}
                   />
+                  {partnerOpen ? (
+                    <div
+                      className="border rounded bg-white shadow-sm position-absolute w-100"
+                      style={{ zIndex: 5, maxHeight: 220, overflowY: "auto" }}
+                    >
+                      {partnerMatches.length === 0 ? (
+                        <div className="px-2 py-2 text-muted small">No matching partner.</div>
+                      ) : (
+                        partnerMatches.map((row) => {
+                          const id = partnerIdOf(row);
+                          const name = partnerNameOf(row) || "Pharmacy";
+                          const area = row.area || row.Area || "";
+                          return (
+                            <button
+                              key={id || name}
+                              type="button"
+                              className="btn btn-light w-100 text-start border-0 rounded-0"
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                choosePartner(row);
+                              }}
+                            >
+                              <span className="fw-medium">{name}</span>
+                              <span className="text-muted small"> · {id || "—"}{area ? ` · ${area}` : ""}</span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  ) : null}
                 </FormGroup>
               </Col>
               <Col md={2}>

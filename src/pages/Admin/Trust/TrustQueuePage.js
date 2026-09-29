@@ -34,6 +34,7 @@ const TrustQueuePage = () => {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [reasonById, setReasonById] = useState({});
+  const [noteErrorKey, setNoteErrorKey] = useState("");
 
   document.title = "Trust queue | Niga Homeocentrum";
 
@@ -73,9 +74,11 @@ const TrustQueuePage = () => {
     const noteText = String(reasonById[`trust-${doctorId}`] || "").trim();
     if ((decision === "Reject" || decision === "NeedsInfo") && !noteText) {
       setBusyId(null);
+      setNoteErrorKey(`trust-${doctorId}`);
       setError("Enter a decision note before Reject or Needs info.");
       return;
     }
+    setNoteErrorKey("");
     try {
       await decideTrust(doctorId, {
         decision,
@@ -153,10 +156,18 @@ const TrustQueuePage = () => {
                           <td>
                             <Input
                               bsSize="sm"
+                              invalid={noteErrorKey === `trust-${id}`}
                               placeholder="Required for Reject / Needs info"
                               value={reasonById[`trust-${id}`] || ""}
-                              onChange={(e) => setReasonById({ ...reasonById, [`trust-${id}`]: e.target.value })}
+                              style={noteErrorKey === `trust-${id}` ? { borderColor: "#dc3545", boxShadow: "0 0 0 0.15rem rgba(220,53,69,.25)" } : undefined}
+                              onChange={(e) => {
+                                setReasonById({ ...reasonById, [`trust-${id}`]: e.target.value });
+                                if (noteErrorKey === `trust-${id}` && e.target.value.trim()) setNoteErrorKey("");
+                              }}
                             />
+                            {noteErrorKey === `trust-${id}` ? (
+                              <div className="text-danger small mt-1">Decision note is required.</div>
+                            ) : null}
                           </td>
                           <td>
                             <div className="d-flex flex-wrap gap-1">

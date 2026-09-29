@@ -40,7 +40,12 @@ const ReceptionHome = () => {
   const [queue, setQueue] = useState([]);
   const [dayVisits, setDayVisits] = useState([]);
   const [error, setError] = useState("");
-  const [receipt, setReceipt] = useState(null);
+  const [receipt, setReceipt] = useState({
+    amount: "",
+    method: "CASH",
+    appointmentId: "",
+    gst: "GST applied by New API on collection",
+  });
   const [collecting, setCollecting] = useState(false);
   const [issuedReceipt, setIssuedReceipt] = useState(null);
   const [collectError, setCollectError] = useState("");

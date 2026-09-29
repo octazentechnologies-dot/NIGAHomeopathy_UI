@@ -8,6 +8,7 @@ import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import { createSelector } from 'reselect';
 import { UserRole } from '../constants/roles';
 import { dispatchOpenBillingListModal } from '../../helpers/dashboard_helper';
+import { getCaregiverMe } from '../../helpers/realbackend_helper';
 
 const DEFAULT_BALANCE = 5971.67;
 const DOCTOR_ONLINE_STATUS_KEY = 'doctorOnlineStatus';
@@ -42,6 +43,7 @@ const ProfileDropdown = () => {
     const [userRole, setUserRole] = useState("Admin");
     const [displayName, setDisplayName] = useState("J. Nikhil");
     const [userData, setUserData] = useState(null);
+    const [actingForName, setActingForName] = useState("");
 
     // Function to format name to initials (e.g., "NIKHIL JAMDAR" -> "J. Nikhil")
     const formatNameToInitials = (fullName) => {
@@ -83,13 +85,38 @@ const ProfileDropdown = () => {
         }
     }, []);
 
+    useEffect(() => {
+        if (userRole !== UserRole.PATIENT) {
+            setActingForName("");
+            return undefined;
+        }
+        let cancelled = false;
+        getCaregiverMe()
+            .then((raw) => {
+                const me = raw?.data ?? raw;
+                const acting = !!(me?.isActingAsCaregiver ?? me?.IsActingAsCaregiver);
+                const name = me?.ownerPatientName ?? me?.OwnerPatientName ?? "";
+                if (!cancelled) setActingForName(acting ? name : "");
+            })
+            .catch(() => {
+                if (!cancelled) setActingForName("");
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [userRole]);
+
     //Dropdown Toggle
     const [isProfileDropdown, setIsProfileDropdown] = useState(false);
     const [isOnline, setIsOnline] = useState(readDoctorOnlineStatus);
     const isDoctor = userRole === UserRole.DOCTOR;
     const isReception = userRole === UserRole.RECEPTION;
     const avatarLetter = String(displayName || userName || "U").trim().charAt(0).toUpperCase() || "U";
-    const roleLabel = isReception ? "Receptionist" : userRole;
+    const roleLabel = isReception
+        ? "Receptionist"
+        : actingForName
+            ? `Caregiver · ${actingForName}`
+            : userRole;
     const toggleProfileDropdown = () => {
         setIsProfileDropdown(!isProfileDropdown);
     };
