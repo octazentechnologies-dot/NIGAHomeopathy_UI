@@ -1,5 +1,5 @@
 import React from "react";
-import RoleBasedHomeRedirect from "../Components/Common/RoleBasedHomeRedirect";
+import PageNotAvailable from "../pages/Pages/PageNotAvailable";
 import {
   ACCOUNT_ROUTE_ROLES,
   PHARMACY_ROUTE_ROLES,
@@ -876,8 +876,10 @@ const authProtectedRoutes = [
   { path: "/admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
 
-  // Catch-all for authenticated app routes (landing is served from publicRoutes)
-  { path: "*", component: <RoleBasedHomeRedirect /> },
+  { path: "/page-not-available", component: <PageNotAvailable /> },
+  { path: "page-not-available", component: <PageNotAvailable /> },
+  // Unknown clinic address stays signed in and shows this page.
+  { path: "*", component: <PageNotAvailable /> },
 ];
 
 const publicRoutes = [
