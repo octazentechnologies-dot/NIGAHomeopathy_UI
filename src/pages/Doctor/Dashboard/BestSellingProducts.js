@@ -466,7 +466,7 @@ const AppointmentTimeCell = ({
                         <div className="col-md-6">
                             <Label className="form-label appointment-time-edit-modal__label">
                                 <i className="ri-refresh-line" />
-                                Reason for Reschedule
+                                Reason
                             </Label>
                             <Input
                                 type="select"
@@ -522,7 +522,7 @@ const AppointmentTimeCell = ({
                         </div>
                     )}
                     <div className="text-muted mt-2" style={{ fontSize: '0.875rem' }}>
-                        Select an available slot, then click Reschedule Appointment to save the new time.
+                        Select an available slot, then click Update time. This does not notify the patient.
                     </div>
                 </ModalBody>
                 <ModalFooter className="appointment-time-edit-modal__footer">
@@ -540,9 +540,9 @@ const AppointmentTimeCell = ({
                         onClick={handleUpdateAppointment}
                         disabled={saving || cancelling || !selectedSlot || !hasSchedule}
                         loading={saving}
-                        loadingLabel="Reschedule Appointment"
+                        loadingLabel="Update time"
                     >
-                        Reschedule Appointment
+                        Update time
                     </ModalActionButton>
                 </ModalFooter>
             </Modal>

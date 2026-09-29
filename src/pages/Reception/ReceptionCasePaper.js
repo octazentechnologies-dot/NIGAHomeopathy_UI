@@ -4,7 +4,6 @@ import { Alert, Button, Card, CardBody, Col, Container, Input, Label, ListGroup,
 import { getPatientList, getReceptionCasePapers, saveReceptionCasePaper } from "../../helpers/realbackend_helper";
 import { getAuthUserId } from "../../helpers/menuByRole";
 import { apiMessage, unwrap } from "./receptionSession";
-import ReceptionNewPatientForm from "./components/ReceptionNewPatientForm";
 
 const patientIdOf = (row) => row?.patientID ?? row?.patientId ?? row?.PatientID ?? row?.PatientId ?? null;
 const caseIdOf = (row) => row?.caseId ?? row?.CaseId ?? null;
@@ -177,23 +176,6 @@ const ReceptionCasePaper = () => {
         </p>
         <Row className="g-3">
           <Col lg={6}>
-            <Card className="admin-dash-card mb-3">
-              <CardBody>
-                <h5>Register new patient</h5>
-                <p className="text-muted small">Use this when the walk-in is not in the list below.</p>
-                <ReceptionNewPatientForm
-                  onCreated={(created) => {
-                    if (!created?.patientId) return;
-                    setPatientId(String(created.patientId));
-                    setSelectedLabel(
-                      `${created.patientName}${created.mobileNo ? ` · ${created.mobileNo}` : ""}`
-                    );
-                    setSearch("");
-                    loadPatients();
-                  }}
-                />
-              </CardBody>
-            </Card>
             <Card className="admin-dash-card">
               <CardBody>
                 {error ? <Alert color="danger">{error}</Alert> : null}
@@ -242,7 +224,7 @@ const ReceptionCasePaper = () => {
                   </ListGroup>
                 ) : null}
                 {!patientsLoading && search && filteredPatients.length === 0 ? (
-                  <p className="text-muted small">No match. Try another name/mobile, or register the patient first.</p>
+                  <p className="text-muted small">No match. Try another name or mobile. New patients are registered from Dashboard.</p>
                 ) : null}
 
                 {selectedLabel ? (
