@@ -93,7 +93,7 @@ const AdminMoreMenuDropdown = () => {
       >
         <i className="ri-briefcase-2-line fs-22" />
       </DropdownToggle>
-      <DropdownMenu className="dropdown-menu-lg dropdown-menu-end admin-more-menu-panel">
+      <DropdownMenu end container="body" strategy="fixed" className="dropdown-menu-lg dropdown-menu-end admin-more-menu-panel">
         <div className="dropdown-header d-flex align-items-center gap-2">
           <i className="ri-briefcase-2-line" />
           <span>More</span>

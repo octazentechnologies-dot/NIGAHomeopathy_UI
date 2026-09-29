@@ -134,6 +134,25 @@ export const keepSpaNavItem = (item) => {
   return isSpaMenuLink(item.link) ? item : null;
 };
 
+export const mergeMissingMenuItems = (existing, extras) => {
+  const list = Array.isArray(existing) ? [...existing] : [];
+  const seen = new Set(list.map((item) => String(item.link || "").toLowerCase()));
+  (extras || []).forEach((item) => {
+    const link = String(item.link || "").toLowerCase();
+    if (!link || seen.has(link)) return;
+    seen.add(link);
+    list.push(item);
+  });
+  return list;
+};
+
+export const ADMIN_WEEK4_MENU = [
+  { id: "trust-queue", label: "Trust queue", icon: "ri-shield-check-line", link: "/admin/trust-queue" },
+  { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
+  { id: "pharmacy-partners", label: "Pharmacy partners", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
+  { id: "consult-payments", label: "Consult payments", icon: "ri-money-rupee-circle-line", link: "/admin/consult-payments" },
+];
+
 export const splitAdminApiNavItems = (items) => {
   const menuItems = [];
   const moreMenuItems = [];
@@ -150,6 +169,7 @@ export const splitAdminApiNavItems = (items) => {
 
 export const RECEPTION_FALLBACK_MENU = [
   { id: "reception-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/reception" },
+  { id: "reception-schedule", label: "Schedule", icon: "ri-calendar-line", link: "/reception/schedule" },
   { id: "reception-case-paper", label: "Case paper", icon: "ri-file-list-3-line", link: "/reception/case-paper" },
   { id: "reception-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
@@ -162,6 +182,7 @@ export const isClinicalNavLink = (link) => {
   const path = link.split("?")[0].toLowerCase();
   const normalized = path.startsWith("/") ? path : `/${path}`;
   if (normalized === "/reception" || normalized.startsWith("/reception/")) return false;
+  if (normalized === "/index") return true;
   return CLINICAL_NAV_MARKERS.some((marker) => normalized.includes(marker));
 };
 
@@ -176,18 +197,58 @@ export const filterReceptionChromeItems = (items) =>
     })
     .filter(Boolean);
 
+const receptionLinkKey = (link) => {
+  const path = String(link || "").split("?")[0].toLowerCase();
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized === "/reception" || normalized === "/reception/") return "home";
+  if (normalized.startsWith("/reception/schedule")) return "schedule";
+  if (normalized.startsWith("/reception/case-paper")) return "case";
+  if (normalized === "/profile" || normalized.startsWith("/profile/")) return "profile";
+  return "";
+};
+
+/** Keep the four front-desk items, in desk order, and drop the doctor dashboard. */
 export const receptionChromeFromApi = (items) => {
   const filtered = filterReceptionChromeItems(items);
-  const hasHome = filtered.some((item) => String(item.link || "").toLowerCase().startsWith("/reception"));
-  return hasHome ? filtered : [...RECEPTION_FALLBACK_MENU, ...filtered];
+  const byKey = new Map();
+  filtered.forEach((item) => {
+    const key = receptionLinkKey(item.link);
+    if (key && !byKey.has(key)) byKey.set(key, item);
+  });
+  const ordered = RECEPTION_FALLBACK_MENU.map((fallback) => {
+    const key = receptionLinkKey(fallback.link);
+    const fromApi = byKey.get(key);
+    return fromApi ? { ...fromApi, label: fallback.label, link: fallback.link, icon: fromApi.icon || fallback.icon } : fallback;
+  });
+  const extras = filtered.filter((item) => !receptionLinkKey(item.link));
+  return [...ordered, ...extras];
 };
 
 /** Matches Dev RoleDetails for Doctor (no Enquiries, no Family). Used only when GetMenuByRole fails. */
+/** Doctor chrome may only list clinic routes — never Account / Pharmacy / Patient / Admin. */
+export const isDoctorSpaLink = (link) => {
+  if (!link || typeof link !== "string") return false;
+  const path = (link.split("?")[0] || "").toLowerCase();
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return (
+    normalized === "/doctordashboard" ||
+    normalized.startsWith("/doctor/") ||
+    normalized === "/profile"
+  );
+};
+
 export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
   { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },
+  { id: "doctor-tele", label: "Teleconsult", icon: "ri-vidicon-line", link: "/doctor/tele" },
   { id: "doctor-anatomy", label: "Anatomy", icon: "ri-body-scan-line", link: "/doctor/anatomy" },
   { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
+  { id: "doctor-fees", label: "Consult fees", icon: "ri-money-dollar-circle-line", link: "/doctor/consult-fees" },
+  { id: "doctor-earnings", label: "Earnings", icon: "ri-wallet-3-line", link: "/doctor/earnings" },
+  { id: "doctor-erx", label: "eRx", icon: "ri-file-text-line", link: "/doctor/erx" },
+  { id: "doctor-waitlist", label: "Waitlist", icon: "ri-time-line", link: "/doctor/waitlist" },
+  { id: "doctor-schedule", label: "Schedule", icon: "ri-calendar-2-line", link: "/doctor/schedule" },
+  { id: "doctor-support", label: "Support", icon: "ri-customer-service-2-line", link: "/doctor/support" },
   { id: "doctor-videoroom", label: "Video room", icon: "ri-vidicon-line", link: "/doctor/mobile/videoroom" },
   { id: "doctor-refill", label: "Refill inbox", icon: "ri-medicine-bottle-line", link: "/doctor/mobile/refill" },
   { id: "doctor-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
@@ -201,6 +262,10 @@ export const PATIENT_FALLBACK_MENU = [
     icon: "ri-user-heart-line",
     link: "/caregiver",
   },
+  { id: "patient-continuity", label: "My records", icon: "ri-time-line", link: "/patient/continuity" },
+  { id: "patient-meds", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
+  { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },
+  { id: "patient-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
 
 /** ADM-B04.03 — keep API menus that map to SPA paths (drop legacy MVC URLs). */
@@ -214,6 +279,7 @@ export const isSpaMenuLink = (link) => {
     path.startsWith("/pharmacy") ||
     path.startsWith("/family") ||
     path.startsWith("/caregiver") ||
+    path.startsWith("/patient") ||
     path.startsWith("/doctor") ||
     path.startsWith("/reception") ||
     path.startsWith("/enquiries") ||

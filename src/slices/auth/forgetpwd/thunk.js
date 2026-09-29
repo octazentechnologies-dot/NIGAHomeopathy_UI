@@ -14,8 +14,12 @@ export const userForgetPassword = (user) => async (dispatch) => {
       return;
     }
     dispatch(userForgetPasswordLoading(true));
-    const response = await forgotPasswordSecure(email);
+    const response = await forgotPasswordSecure(email, user?.userId);
     const body = response?.data ?? response;
+    if (body?.needsRole) {
+      dispatch(userForgetPasswordError(body.message || "Choose which role to reset."));
+      return;
+    }
     const message =
       body?.message ||
       "If an account exists for that email, a password reset link has been sent.";

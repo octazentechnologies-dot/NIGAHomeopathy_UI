@@ -23,7 +23,13 @@ const ViewMateriaMedicaRemedies = () => {
 
   const [selectedAuthor, setSelectedAuthor] = useState(null);
   const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors || []);
-  const materiaMedicaRemediesDetails = useSelector((state) => state?.MateriaMedicaRemedy?.materiaMedicaRemediesDetails || []);
+  const materiaMedicaRemediesDetailsRaw = useSelector((state) => state?.MateriaMedicaRemedy?.materiaMedicaRemediesDetails);
+  const materiaMedicaRemediesDetails = Array.isArray(materiaMedicaRemediesDetailsRaw)
+    ? materiaMedicaRemediesDetailsRaw
+    : materiaMedicaRemediesDetailsRaw
+      ? [materiaMedicaRemediesDetailsRaw]
+      : [];
+  const selectedRemedy = location.state?.selectedRemedy;
 
   const AuthorOptions = authors?.map((author) => ({
     label: author.authorName,
@@ -35,7 +41,8 @@ const ViewMateriaMedicaRemedies = () => {
 
   function handleSelectAuthor(selectedAuthor) {
     setSelectedAuthor(selectedAuthor);
-    dispatch(getMateriaMedicaRemediesDetails({ remedyId: location.state.selectedRemedy.remedyId, authorId: selectedAuthor.value }));
+    if (!selectedRemedy?.remedyId) return;
+    dispatch(getMateriaMedicaRemediesDetails({ remedyId: selectedRemedy.remedyId, authorId: selectedAuthor.value }));
   }
 
 
@@ -59,7 +66,7 @@ const ViewMateriaMedicaRemedies = () => {
                       <Col xxl={4} md={4}>
                         <div>
                           <Label htmlFor="placeholderInput" className="form-label">Materia Medica Remedy Name</Label>
-                          <Input type="input" value={location.state.selectedRemedy.remedyName} className="form-control" id="placeholderInput" disabled placeholder="Materia Medica Remedy Name" />
+                          <Input type="input" value={selectedRemedy?.remedyName || ""} className="form-control" id="placeholderInput" disabled placeholder="Materia Medica Remedy Name" />
                         </div>
                       </Col>
                       <Col xxl={4} md={4}>
@@ -83,7 +90,7 @@ const ViewMateriaMedicaRemedies = () => {
                                   materiaMedicaRemediesDetails?.map((remedy) => {
                                     return (
                                       <Row>
-                                        <Col>{ReactHtmlParser(remedy.materiaMedicaDetail1)}</Col>
+                                        <Col>{ReactHtmlParser(remedy?.materiaMedicaDetail1 || "")}</Col>
                                       </Row>
                                     );
                                   })
