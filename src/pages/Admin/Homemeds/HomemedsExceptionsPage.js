@@ -69,7 +69,7 @@ const HomemedsExceptionsPage = () => {
                       const id = row.medicineOrderId || row.MedicineOrderId || row.orderId || row.id;
                       return (
                         <tr key={id}>
-                          <td>#{id}</td>
+                          <td>{id}</td>
                           <td>{row.status || row.Status || "—"}</td>
                           <td className="small text-muted">{row.detail || row.Detail || row.reason || "—"}</td>
                           <td>
@@ -91,7 +91,7 @@ const HomemedsExceptionsPage = () => {
                                 setError("");
                                 try {
                                   await rerouteMedicine(id, Number(pharmacyById[id]));
-                                  setNote(`Order #${id} re-routed.`);
+                                  setNote(`Order ${id} re-routed.`);
                                   await load();
                                 } catch (err) {
                                   setError(s4Message(err));

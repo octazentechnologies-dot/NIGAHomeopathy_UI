@@ -51,7 +51,7 @@ const InstantOfferBanner = () => {
         return (
           <div key={id} className="d-flex justify-content-between align-items-center gap-2 mb-1">
             <span>
-              #{id} {name}
+              {id} {name}
               {queue ? ` · queue ${queue}` : ""}
             </span>
             <Button

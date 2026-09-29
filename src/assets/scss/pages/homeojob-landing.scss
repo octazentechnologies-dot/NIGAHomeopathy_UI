@@ -6575,6 +6575,17 @@
                 color: #94a3b8;
                 font-size: 1rem;
             }
+
+            &.is-active {
+                border-color: $primary;
+                background: #e8f4fc;
+                color: $primary;
+                box-shadow: inset 0 0 0 1px $primary;
+
+                i {
+                    color: $primary;
+                }
+            }
         }
 
         &__reset {

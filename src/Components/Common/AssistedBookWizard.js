@@ -352,10 +352,10 @@ const AssistedBookWizard = ({
     if (mobileHint && !resolved && !fromBody) {
       setPatientSearch(mobileHint);
       setNote(
-        `Working request #${row.supportTicketId || row.SupportTicketId}. No PatientId in ticket — search by mobile ${mobileHint} below.`
+        `Working request ${row.supportTicketId || row.SupportTicketId}. No PatientId in ticket — search by mobile ${mobileHint} below.`
       );
     } else {
-      setNote(`Working request #${row.supportTicketId || row.SupportTicketId}. Complete the booking below.`);
+      setNote(`Working request ${row.supportTicketId || row.SupportTicketId}. Complete the booking below.`);
     }
   };
 
@@ -434,7 +434,7 @@ const AssistedBookWizard = ({
                     onClick={() => applyRequest(row)}
                     data-testid={`assisted-request-${id}`}
                   >
-                    <strong>#{id}</strong> · {subject}
+                    <strong>{id}</strong> · {subject}
                     <div className="text-muted small text-truncate">
                       {row.body || row.Body || ""}
                     </div>

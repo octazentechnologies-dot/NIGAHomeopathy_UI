@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner, Table } from "reactstrap";
 import {
   decideTrust,
+  getTrust,
   listTrustQueue,
   listReviewAppeals,
   resolveReviewAppeal,
   s4Message,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
+import { downloadDoctorCredentialDocument } from "../../../helpers/realbackend_helper";
 
 const asList = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -35,6 +37,7 @@ const TrustQueuePage = () => {
   const [note, setNote] = useState("");
   const [reasonById, setReasonById] = useState({});
   const [noteErrorKey, setNoteErrorKey] = useState("");
+  const [docsByDoctor, setDocsByDoctor] = useState({});
 
   document.title = "Trust queue | Niga Homeocentrum";
 
@@ -84,7 +87,7 @@ const TrustQueuePage = () => {
         decision,
         note: noteText,
       });
-      setNote(`Trust ${decision} for doctor #${doctorId}.`);
+      setNote(`Trust ${decision} for doctor ${doctorId}.`);
       await load();
     } catch (err) {
       setError(s4Message(err));
@@ -148,9 +151,11 @@ const TrustQueuePage = () => {
                   <tbody>
                     {queue.map((row) => {
                       const id = row.doctorId || row.DoctorId;
+                      const docs = docsByDoctor[id];
                       return (
-                        <tr key={id}>
-                          <td>#{id} {doctorName(row)}</td>
+                        <Fragment key={id}>
+                        <tr>
+                          <td>{id} {doctorName(row)}</td>
                           <td className="small">{row.emailId || row.EmailId || "—"}</td>
                           <td>{row.verificationStatus || row.VerificationStatus || row.status || row.Status || "Pending"}</td>
                           <td>
@@ -171,12 +176,73 @@ const TrustQueuePage = () => {
                           </td>
                           <td>
                             <div className="d-flex flex-wrap gap-1">
+                              <Button
+                                size="sm"
+                                color="soft-primary"
+                                disabled={busyId === `docs-${id}`}
+                                onClick={async () => {
+                                  setBusyId(`docs-${id}`);
+                                  setError("");
+                                  try {
+                                    const detail = unwrapS4(await getTrust(id));
+                                    const docs = detail?.documents || detail?.Documents || [];
+                                    setDocsByDoctor((prev) => ({ ...prev, [id]: Array.isArray(docs) ? docs : [] }));
+                                  } catch (err) {
+                                    setError(s4Message(err));
+                                  } finally {
+                                    setBusyId(null);
+                                  }
+                                }}
+                              >
+                                Documents
+                              </Button>
                               <Button size="sm" color="soft-success" disabled={busyId === `trust-${id}`} onClick={() => decide(id, "Approve")}>Approve</Button>
                               <Button size="sm" color="soft-warning" disabled={busyId === `trust-${id}`} onClick={() => decide(id, "NeedsInfo")}>Needs info</Button>
                               <Button size="sm" color="soft-danger" disabled={busyId === `trust-${id}`} onClick={() => decide(id, "Reject")}>Reject</Button>
                             </div>
                           </td>
                         </tr>
+                        {Array.isArray(docs) ? (
+                          <tr>
+                            <td colSpan={5}>
+                              {docs.length === 0 ? (
+                                <span className="text-muted small">No credential files uploaded for this doctor.</span>
+                              ) : (
+                                <ul className="mb-0 ps-3 small">
+                                  {docs.map((doc) => {
+                                    const docId = doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId;
+                                    const name = doc.fileName || doc.FileName || "document";
+                                    return (
+                                      <li key={docId}>
+                                        {doc.documentType || doc.DocumentType} — {name}{" "}
+                                        <Button
+                                          size="sm"
+                                          color="link"
+                                          className="p-0 align-baseline"
+                                          onClick={async () => {
+                                            try {
+                                              const response = await downloadDoctorCredentialDocument(docId);
+                                              const blob = response?.data instanceof Blob ? response.data : response;
+                                              if (!(blob instanceof Blob)) throw new Error("Could not open the document.");
+                                              const url = URL.createObjectURL(blob);
+                                              window.open(url, "_blank", "noopener");
+                                              setTimeout(() => URL.revokeObjectURL(url), 60000);
+                                            } catch (err) {
+                                              setError(s4Message(err) || err?.message || "Could not open the document.");
+                                            }
+                                          }}
+                                        >
+                                          Open
+                                        </Button>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
+                            </td>
+                          </tr>
+                        ) : null}
+                        </Fragment>
                       );
                     })}
                   </tbody>
@@ -198,7 +264,7 @@ const TrustQueuePage = () => {
                   return (
                     <li key={id} className="border-bottom py-2 d-flex justify-content-between gap-2">
                       <div>
-                        <div className="fw-medium">Appeal #{id} · Doctor #{row.doctorId || row.DoctorId || "—"}</div>
+                        <div className="fw-medium">Appeal {id} · Doctor {row.doctorId || row.DoctorId || "—"}</div>
                         <div className="text-muted small">{row.reason || row.Reason || row.note || "—"}</div>
                       </div>
                       <Button
@@ -209,7 +275,7 @@ const TrustQueuePage = () => {
                           setBusyId(`appeal-${id}`);
                           try {
                             await resolveReviewAppeal(id, { decision: "Uphold", note: "Kept from Trust queue" });
-                            setNote(`Appeal #${id} resolved.`);
+                            setNote(`Appeal ${id} resolved.`);
                             await load();
                           } catch (err) {
                             setError(s4Message(err));

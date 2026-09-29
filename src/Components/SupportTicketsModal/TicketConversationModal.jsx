@@ -267,7 +267,7 @@ export default function TicketConversationModal({
             aria-hidden="true"
           />
           <span className="patient-list-modal__title-text">
-            {idLabel} #{ticket.id}
+            {idLabel} {ticket.id}
           </span>
           <span className={`badge patient-list-modal__status ${statusBadgeClass(ticket.status)}`}>
             <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
