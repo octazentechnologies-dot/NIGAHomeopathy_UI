@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Alert, Button } from "reactstrap";
 import { acceptInstantConsult, listInstantConsultOffers } from "../../../helpers/realbackend_helper";
 
-/** Set true to show Instant consult offers on the doctor dashboard again. */
-const SHOW_INSTANT_OFFERS = false;
+/** Doctor dashboard instant-consult offers. Public home "Start Instant Consultation" is separate. */
+const SHOW_INSTANT_OFFERS = true;
 
 const InstantOfferBanner = () => {
   const [offers, setOffers] = useState([]);
@@ -29,19 +29,30 @@ const InstantOfferBanner = () => {
     return () => clearInterval(timer);
   }, []);
 
-  if (!SHOW_INSTANT_OFFERS || !offers.length) return null;
+  if (!SHOW_INSTANT_OFFERS) return null;
 
   return (
     <Alert color="warning" className="mb-3">
       <div className="fw-medium mb-2">Instant consult offers</div>
+      {!offers.length ? (
+        <div className="text-muted small">No patient is waiting for an instant consult right now.</div>
+      ) : null}
       {error ? <div className="text-danger small mb-2">{error}</div> : null}
       {offers.map((row) => {
-        const id = row.requestId || row.RequestId || row.id;
+        const id =
+          row.instantConsultRequestId ||
+          row.InstantConsultRequestId ||
+          row.requestId ||
+          row.RequestId ||
+          row.id;
         if (!id) return null;
+        const name = row.contactName || row.ContactName || "Patient";
+        const queue = row.queuePosition || row.QueuePosition;
         return (
           <div key={id} className="d-flex justify-content-between align-items-center gap-2 mb-1">
             <span>
-              #{id} {row.contactName || row.ContactName || "Patient"} {row.contactMobile || row.ContactMobile || ""}
+              #{id} {name}
+              {queue ? ` · queue ${queue}` : ""}
             </span>
             <Button
               size="sm"

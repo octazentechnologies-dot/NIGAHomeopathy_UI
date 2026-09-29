@@ -521,12 +521,15 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   ) : (
                     <ul className="list-unstyled mb-0">
                       {diary.map((row) => {
-                        const id = row.diaryId || row.DiaryId || row.id;
+                        const id = row.symptomDiaryId || row.SymptomDiaryId || row.diaryId || row.DiaryId || row.id;
+                        const when = row.entryDate || row.EntryDate || row.createdAt || row.CreatedAt || "";
+                        const severity = row.severity ?? row.Severity;
                         return (
                           <li key={id} className="border-bottom py-2">
                             <div>{row.note || row.Note || row.body || "—"}</div>
                             <div className="text-muted small">
-                              {String(row.createdAt || row.CreatedAt || "").slice(0, 16)}
+                              {String(when).slice(0, 10)}
+                              {severity != null && severity !== "" ? ` · severity ${severity}` : ""}
                             </div>
                           </li>
                         );
