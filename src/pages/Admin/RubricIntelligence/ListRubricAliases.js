@@ -323,7 +323,7 @@ const ListRubricAliases = () => {
                 form.subSectionId
                   ? {
                       value: Number(form.subSectionId),
-                      label: form.subSectionLabel || `SubSection #${form.subSectionId}`,
+                      label: form.subSectionLabel || `SubSection ${form.subSectionId}`,
                     }
                   : null
               }

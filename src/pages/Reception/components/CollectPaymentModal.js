@@ -96,7 +96,7 @@ const CollectPaymentModal = ({
           if (win) {
             win.document.write(
               `<html><body><h3>Homeocentrum receipt</h3>
-              <p>Visit #${printed.patientAppId || printed.PatientAppId || patientAppId}</p>
+              <p>Visit ${printed.patientAppId || printed.PatientAppId || patientAppId}</p>
               <p>Amount ${printed.amount || printed.Amount || amount}</p>
               <p>Method ${printed.method || printed.Method || paymentMethod}</p>
               <p>GST ${printed.gstAmount ?? printed.GstAmount ?? gst} (${printed.gstNote || printed.GstNote || "placeholder"})</p>
@@ -262,7 +262,7 @@ const CollectPaymentModal = ({
                   </p>
                 ) : null}
                 <p className="mb-0 text-muted">
-                  Receipt #{receipt.paymentOrderId || receipt.PaymentOrderId} ·{" "}
+                  Receipt {receipt.paymentOrderId || receipt.PaymentOrderId} ·{" "}
                   {receipt.gstNote || receipt.GstNote || ""}
                 </p>
               </div>

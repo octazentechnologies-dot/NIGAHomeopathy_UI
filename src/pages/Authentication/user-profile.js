@@ -41,6 +41,7 @@ import {
   uploadDoctorProfilePhoto,
   getDoctorCredentialsMe,
   uploadDoctorCredentialDocument,
+  downloadDoctorCredentialDocument,
   getAvailabilityMe,
   updateAvailabilityMe,
   confirmMobileAgainstProfile,
@@ -148,11 +149,33 @@ const DoctorCredentialsPanel = () => {
         {docs.length === 0 ? (
           <li className="text-muted">No documents uploaded yet.</li>
         ) : (
-          docs.map((doc) => (
-            <li key={doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId}>
-              {doc.documentType || doc.DocumentType} — {doc.fileName || doc.FileName}
-            </li>
-          ))
+          docs.map((doc) => {
+            const id = doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId;
+            const name = doc.fileName || doc.FileName || "document";
+            return (
+              <li key={id} className="mb-1">
+                {doc.documentType || doc.DocumentType} — {name}{" "}
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm p-0 align-baseline"
+                  onClick={async () => {
+                    try {
+                      const response = await downloadDoctorCredentialDocument(id);
+                      const blob = response?.data instanceof Blob ? response.data : response;
+                      if (!(blob instanceof Blob)) throw new Error("Could not open the document.");
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, "_blank", "noopener");
+                      setTimeout(() => URL.revokeObjectURL(url), 60000);
+                    } catch (err) {
+                      Swal.fire({ title: "Could not open file", text: err?.message || String(err), icon: "error" });
+                    }
+                  }}
+                >
+                  Open
+                </button>
+              </li>
+            );
+          })
         )}
       </ul>
     </div>
@@ -1320,7 +1343,7 @@ const UserProfile = () => {
                     </p>
                     <p className="user-profile-page__summary-meta mb-0">
                       <i className="ri-hashtag" aria-hidden="true" />
-                      <span>User ID: #{idx}</span>
+                      <span>User ID: {idx}</span>
                     </p>
                   </div>
                 </div>
@@ -1371,7 +1394,7 @@ const UserProfile = () => {
                             {userData.roleId || "N/A"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
-                            #{userData.userId || "N/A"}
+                            {userData.userId || "N/A"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-vip-crown-line" label="Super User">
                             <ProfileBadge tone={userData.isSuperUser ? "success" : "neutral"}>

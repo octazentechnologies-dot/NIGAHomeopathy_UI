@@ -139,7 +139,7 @@ const LedgerLinesTable = ({ rows }) => (
             <td>{money(pick(row, "gst", "Gst"))}</td>
             <td>{pick(row, "entityType", "EntityType") || "—"}</td>
             <td>{pick(row, "entityId", "EntityId") || "—"}</td>
-            <td>#{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
+            <td>{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
           </tr>
         ))}
       </tbody>
@@ -166,7 +166,7 @@ const OrderLinesTable = ({ rows, rowKey = "ord" }) => (
         {rows.map((row, index) => (
           <tr key={`${rowKey}-${pick(row, "paymentOrderId", "PaymentOrderId") || index}`}>
             <td>{formatWhen(pick(row, "createdAt", "CreatedAt", "at", "At"))}</td>
-            <td>#{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
+            <td>{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
             <td>{pick(row, "patientAppId", "PatientAppId") || "—"}</td>
             <td>{pick(row, "patientId", "PatientId") || "—"}</td>
             <td>{pick(row, "doctorId", "DoctorId") || "—"}</td>
@@ -898,7 +898,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                       const id = pick(row, "settlementRunId", "SettlementRunId") || index;
                       return (
                         <tr key={id}>
-                          <td>#{id}</td>
+                          <td>{id}</td>
                           <td>{pick(row, "status", "Status")}</td>
                           <td>{pick(row, "createdBy", "CreatedBy")}</td>
                           <td>{formatWhen(pick(row, "createdAt", "CreatedAt"))}</td>
@@ -936,7 +936,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                       <tbody>
                         {onlineOrders.map((row, index) => (
                           <tr key={`on-${pick(row, "paymentOrderId", "PaymentOrderId") || index}`}>
-                            <td>#{pick(row, "paymentOrderId", "PaymentOrderId")}</td>
+                            <td>{pick(row, "paymentOrderId", "PaymentOrderId")}</td>
                             <td>{pick(row, "patientAppId", "PatientAppId") || "—"}</td>
                             <td>{pick(row, "patientId", "PatientId") || "—"}</td>
                             <td>{pick(row, "doctorId", "DoctorId") || "—"}</td>
@@ -970,7 +970,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                       <tbody>
                         {clinicOrders.map((row, index) => (
                           <tr key={`cl-${pick(row, "paymentOrderId", "PaymentOrderId") || index}`}>
-                            <td>#{pick(row, "paymentOrderId", "PaymentOrderId")}</td>
+                            <td>{pick(row, "paymentOrderId", "PaymentOrderId")}</td>
                             <td>{pick(row, "patientAppId", "PatientAppId") || "—"}</td>
                             <td>{pick(row, "patientId", "PatientId") || "—"}</td>
                             <td>{pick(row, "doctorId", "DoctorId") || "—"}</td>
@@ -1003,16 +1003,16 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                       const id = pick(row, "payoutId", "PayoutId") || index;
                       return (
                         <tr key={`${id}-${index}`}>
-                          <td>#{id}</td>
+                          <td>{id}</td>
                           <td>{pick(row, "payeeType", "PayeeType") || "—"}</td>
                           <td>{pick(row, "payeeId", "PayeeId") || "—"}</td>
                           <td>{money(pick(row, "amount", "Amount"))}</td>
                           <td>{pick(row, "status", "Status") || "—"}</td>
-                          <td>#{pick(row, "settlementRunId", "SettlementRunId") || "—"}</td>
+                          <td>{pick(row, "settlementRunId", "SettlementRunId") || "—"}</td>
                           <td style={{ minWidth: 220 }}>
                             <div className="d-flex flex-wrap gap-1 align-items-center">
                               <Button size="sm" color="soft-secondary" disabled={busyId === id} onClick={() => runPayoutOtp(id)}>
-                                OTP
+                                Send OTP
                               </Button>
                               <Input
                                 bsSize="sm"
@@ -1054,9 +1054,9 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                       const id = pick(row, "paymentExceptionId", "PaymentExceptionId") || index;
                       return (
                         <tr key={`${id}-${index}`}>
-                          <td>#{id}</td>
+                          <td>{id}</td>
                           <td>{formatWhen(pick(row, "createdAt", "CreatedAt"))}</td>
-                          <td>#{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
+                          <td>{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
                           <td>{pick(row, "kind", "Kind") || "—"}</td>
                           <td className="small">{pick(row, "detail", "Detail") || "—"}</td>
                           <td>{pick(row, "status", "Status") || "—"}</td>
@@ -1125,9 +1125,9 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <tbody>
                     {rows.map((row, index) => (
                       <tr key={`${pick(row, "refundId", "RefundId") || index}`}>
-                        <td>#{pick(row, "refundId", "RefundId") || "—"}</td>
+                        <td>{pick(row, "refundId", "RefundId") || "—"}</td>
                         <td>{formatWhen(pick(row, "at", "At", "createdAt", "CreatedAt"))}</td>
-                        <td>#{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
+                        <td>{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
                         <td>{money(pick(row, "amount", "Amount"))}</td>
                         <td>{pick(row, "reason", "Reason") || "—"}</td>
                         <td>{pick(row, "policy", "Policy") || "—"}</td>
@@ -1156,13 +1156,13 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <tbody>
                     {rows.map((row, index) => (
                       <tr key={`${pick(row, "payeeId", "PayeeId") || index}`}>
-                        <td>#{pick(row, "payeeId", "PayeeId") || "—"}</td>
+                        <td>{pick(row, "payeeId", "PayeeId") || "—"}</td>
                         <td>{pick(row, "payeeType", "PayeeType") || "—"}</td>
                         <td>
                           {pick(row, "doctorId", "DoctorId")
-                            ? `Doctor #${pick(row, "doctorId", "DoctorId")}`
+                            ? `Doctor ${pick(row, "doctorId", "DoctorId")}`
                             : pick(row, "pharmacyId", "PharmacyId")
-                              ? `Pharmacy #${pick(row, "pharmacyId", "PharmacyId")}`
+                              ? `Pharmacy ${pick(row, "pharmacyId", "PharmacyId")}`
                               : "—"}
                         </td>
                         <td>{pick(row, "accountName", "AccountName") || "—"}</td>
@@ -1184,7 +1184,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
             {detail && section === "settlements" ? (
               <div className="small border rounded p-3 mt-3 mb-0 bg-light">
                 <div className="fw-medium mb-2">
-                  Run #{pick(detail.run || detail, "settlementRunId", "SettlementRunId") || "—"}
+                  Run {pick(detail.run || detail, "settlementRunId", "SettlementRunId") || "—"}
                   {" · "}
                   {pick(detail.run || detail, "status", "Status") || "—"}
                 </div>
@@ -1204,7 +1204,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                           <td>{pick(line, "payeeType", "PayeeType")}</td>
                           <td>{pick(line, "payeeId", "PayeeId")}</td>
                           <td>{money(pick(line, "amount", "Amount"))}</td>
-                          <td>#{pick(line, "ledgerEntryId", "LedgerEntryId")}</td>
+                          <td>{pick(line, "ledgerEntryId", "LedgerEntryId")}</td>
                         </tr>
                       ))}
                     </tbody>

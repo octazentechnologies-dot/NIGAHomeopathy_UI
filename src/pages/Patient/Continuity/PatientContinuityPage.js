@@ -91,7 +91,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
           title: `Visit ${status}`.trim(),
           eventType: "appointment",
           occurredAt: row.at || row.At || row.appointmentDate || row.AppointmentDate,
-          summary: row.refId || row.patientAppId ? `Appointment #${row.refId || row.patientAppId || row.PatientAppId}` : "",
+          summary: row.refId || row.patientAppId ? `Appointment ${row.refId || row.patientAppId || row.PatientAppId}` : "",
         });
       });
     }
@@ -102,7 +102,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
           title: "Signed prescription",
           eventType: "erx",
           occurredAt: row.signedAt || row.SignedAt,
-          summary: `eRx #${row.erxSnapshotId || row.ErxSnapshotId || "—"} · visit #${row.patientAppId || row.PatientAppId || "—"}`,
+          summary: `eRx ${row.erxSnapshotId || row.ErxSnapshotId || "—"} · visit ${row.patientAppId || row.PatientAppId || "—"}`,
         });
       });
     }
@@ -204,7 +204,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                     const id = row.pharmacyPartnerId || row.PharmacyPartnerId;
                     return (
                       <option key={id} value={id}>
-                        {row.name || row.Name || `#${id}`} {row.area || row.Area ? `(${row.area || row.Area})` : ""}
+                        {row.name || row.Name || `${id}`} {row.area || row.Area ? `(${row.area || row.Area})` : ""}
                       </option>
                     );
                   })}
@@ -228,8 +228,8 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                       const id = row.erxSnapshotId || row.ErxSnapshotId;
                       return (
                         <tr key={id}>
-                          <td>#{id}</td>
-                          <td>#{row.patientAppId || row.PatientAppId || "—"}</td>
+                          <td>{id}</td>
+                          <td>{row.patientAppId || row.PatientAppId || "—"}</td>
                           <td>
                             <Button
                               size="sm"
@@ -271,7 +271,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                       const status = String(row.status || row.Status || "");
                       return (
                         <tr key={id}>
-                          <td>#{id}</td>
+                          <td>{id}</td>
                           <td>{status || "—"}</td>
                           <td>{row.quoteAmount ?? row.QuoteAmount ?? row.amount ?? "—"}</td>
                           <td>
@@ -285,7 +285,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                                     setBusyId(id);
                                     try {
                                       await acceptMedicineQuote(id);
-                                      setNote(`Quote accepted for #${id}.`);
+                                      setNote(`Quote accepted for ${id}.`);
                                       await load();
                                     } catch (err) {
                                       setError(s4Message(err));
@@ -307,7 +307,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                                       setBusyId(id);
                                       try {
                                         await createMedicinePayment({ medicineOrderId: id, payMode: "ONLINE" });
-                                        setNote(`Online payment started for #${id}.`);
+                                        setNote(`Online payment started for ${id}.`);
                                         await load();
                                       } catch (err) {
                                         setError(s4Message(err));
@@ -326,7 +326,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                                       setBusyId(id);
                                       try {
                                         await createMedicinePayment({ medicineOrderId: id, payMode: "COD" });
-                                        setNote(`COD recorded for #${id}.`);
+                                        setNote(`COD recorded for ${id}.`);
                                         await load();
                                       } catch (err) {
                                         setError(s4Message(err));
@@ -347,7 +347,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                                   setBusyId(id);
                                   try {
                                     await medicineTracking(id);
-                                    setNote(`Tracking refreshed for #${id}.`);
+                                    setNote(`Tracking refreshed for ${id}.`);
                                   } catch (err) {
                                     setError(s4Message(err));
                                   } finally {
@@ -396,7 +396,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   <tbody>
                     {payments.map((row, idx) => (
                       <tr key={row.paymentOrderId || row.PaymentOrderId || idx}>
-                        <td>#{row.paymentOrderId || row.PaymentOrderId || "—"}</td>
+                        <td>{row.paymentOrderId || row.PaymentOrderId || "—"}</td>
                         <td>{row.stream || row.Stream || "—"}</td>
                         <td>{row.status || row.Status || "—"}</td>
                         <td>{row.amount ?? row.Amount ?? "—"}</td>
@@ -502,14 +502,14 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                         const id = row.followUpTaskId || row.FollowUpTaskId || row.taskId || row.TaskId || row.id;
                         return (
                           <li key={id} className="d-flex justify-content-between border-bottom py-2 gap-2">
-                            <span>{row.title || row.Title || `#${id}`}</span>
+                            <span>{row.title || row.Title || `${id}`}</span>
                             <Button
                               size="sm"
                               color="soft-success"
                               onClick={async () => {
                                 try {
                                   await completeFollowUp(id);
-                                  setNote(`Follow-up #${id} completed.`);
+                                  setNote(`Follow-up ${id} completed.`);
                                   await load();
                                 } catch (err) {
                                   setError(s4Message(err));

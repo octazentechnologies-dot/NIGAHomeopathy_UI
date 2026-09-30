@@ -401,7 +401,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                                   setBusyId(id);
                                   try {
                                     await medicineAcceptOtp(id);
-                                    setNote(`OTP requested for order #${id}.`);
+                                    setNote(`OTP requested for order ${id}.`);
                                   } catch (err) {
                                     setError(s4Message(err));
                                   } finally {
@@ -429,7 +429,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                                       otp: otpById[id] || "",
                                       stockConfirmed: true,
                                     });
-                                    setNote(`Order #${id} accepted. Remedy names are revealed after OTP.`);
+                                    setNote(`Order ${id} accepted. Remedy names are revealed after OTP.`);
                                     await loadOrders();
                                   } catch (err) {
                                     setError(s4Message(err));
@@ -448,7 +448,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                                   setBusyId(id);
                                   try {
                                     await rejectMedicineOrder(id, { reason: "OUT_OF_STOCK" });
-                                    setNote(`Order #${id} rejected.`);
+                                    setNote(`Order ${id} rejected.`);
                                     await loadOrders();
                                   } catch (err) {
                                     setError(s4Message(err));
@@ -467,7 +467,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                                   setBusyId(id);
                                   try {
                                     await markMedicineReady(id);
-                                    setNote(`Order #${id} marked ready.`);
+                                    setNote(`Order ${id} marked ready.`);
                                     await loadOrders();
                                   } catch (err) {
                                     setError(s4Message(err));
@@ -486,7 +486,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                                   setBusyId(id);
                                   try {
                                     await dispatchMedicine(id);
-                                    setNote(`Order #${id} dispatched.`);
+                                    setNote(`Order ${id} dispatched.`);
                                     await loadOrders();
                                   } catch (err) {
                                     setError(s4Message(err));

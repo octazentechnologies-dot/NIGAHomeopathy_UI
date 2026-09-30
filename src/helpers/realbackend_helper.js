@@ -832,6 +832,8 @@ export const uploadDoctorProfilePhoto = (formData) =>
 export const getDoctorCredentialsMe = () => nigahomeoAPI.get("/Profile/Me/Credentials", null);
 export const uploadDoctorCredentialDocument = (formData) =>
   nigahomeoMultipart.post("/Profile/Me/CredentialDocuments", formData);
+export const downloadDoctorCredentialDocument = (id) =>
+  nigahomeoAPI.get(`/Profile/CredentialDocuments/${id}/File`, { responseType: "blob" });
 export const getAvailabilityMe = () => nigahomeoAPI.get("/Availability/Me", null);
 export const updateAvailabilityMe = (data) => nigahomeoAPI.put("/Availability/Me", data);
 export const getEnquiries = (params) => nigahomeoAPI.get("/Enquiry", params);

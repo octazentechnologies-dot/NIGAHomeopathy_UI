@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Container } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
@@ -9,6 +9,7 @@ import { getPublicDoctor, mapPublicDoctorCard } from "../../../../helpers/public
 
 const BookConfirmPage = () => {
     const { doctorId } = useParams();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [doctor, setDoctor] = useState(null);
     const [loadError, setLoadError] = useState("");
@@ -84,7 +85,13 @@ const BookConfirmPage = () => {
                 consultMode={mode}
                 bookingDate={bookingDate}
                 selectedSlot={slot}
-                onClose={() => window.history.back()}
+                onClose={() => {
+                    const params = new URLSearchParams();
+                    if (dateRaw) params.set("date", dateRaw);
+                    params.set("mode", mode);
+                    const qs = params.toString();
+                    navigate(landingPath(`book/${doctor.id}/slots${qs ? `?${qs}` : ""}`));
+                }}
             />
         </section>
     );

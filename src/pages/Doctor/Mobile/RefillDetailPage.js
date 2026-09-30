@@ -72,7 +72,7 @@ const RefillDetailPage = () => {
   return (
     <div className="page-content" data-testid="refill-detail">
       <Container fluid className="py-4" style={{ maxWidth: 640 }}>
-        <h4 className="mb-2">Refill #{id || "—"}</h4>
+        <h4 className="mb-2">Refill {id || "—"}</h4>
         <p className="text-muted small mb-3">
           Approve or reject from the API. Prescription snapshot is not editable on this screen.
         </p>
