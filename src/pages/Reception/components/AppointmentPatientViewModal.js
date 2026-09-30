@@ -22,8 +22,8 @@ const DetailField = ({ label, value }) => (
 
 const statusBadgeClass = (status) => {
   if (status === "Paid" || status === "Completed") return "bg-success-subtle text-success";
-  if (status === "Waiting") return "bg-warning-subtle text-warning";
-  if (status === "Unpaid") return "bg-danger-subtle text-danger";
+  if (status === "Waiting" || status === "Pay-at-clinic") return "bg-warning-subtle text-warning";
+  if (status === "Unpaid" || status === "Failed") return "bg-danger-subtle text-danger";
   return "bg-secondary-subtle text-secondary";
 };
 

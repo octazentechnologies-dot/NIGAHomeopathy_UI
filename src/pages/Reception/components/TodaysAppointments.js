@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import classnames from "classnames";
 import {
   Card,
@@ -15,252 +15,106 @@ import {
 } from "reactstrap";
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from "../../../Components/Common/DateOfBirthPicker";
 import moment from "moment";
+import { getAppointmentQueue } from "../../../helpers/realbackend_helper";
+import { getPublicFee, unwrapS4 } from "../../../helpers/s4Week4Api";
+import { apiMessage, readReceptionDoctorId, unwrap } from "../receptionSession";
+import { paymentStatusMeta } from "../../../helpers/paymentStatusBadge";
 import AppointmentPatientViewModal from "./AppointmentPatientViewModal";
 
-const buildAppointmentDetails = (base, details) => ({
-  ...base,
-  dateDisplay: moment().format("DD MMM YYYY"),
-  appointmentStatus: "Scheduled",
-  ...details,
-});
+const genderLabel = (gender) => {
+  if (gender === 0 || gender === "0" || gender === "M") return "Male";
+  if (gender === 1 || gender === "1" || gender === "F") return "Female";
+  return "";
+};
 
-const APPOINTMENT_ROWS = [
-  buildAppointmentDetails(
-    {
-      id: 1,
-      time: "09:30 AM",
-      patient: "Rohan Mehta",
-      doctor: "Dr. Priya Sharma",
-      type: "In-Clinic",
-      payment: "₹ 800",
-      status: "Paid",
-    },
-    {
-      severity: "Moderate",
-      duration: "5 days",
-      chiefComplaints: "Headache, mild fever, body ache",
-      patientDetails: {
-        fullName: "Rohan Mehta",
-        ageSex: "34y / Male",
-        mobile: "9876543210",
-        email: "rohan.mehta@email.com",
-        dateOfBirth: "15/03/1992",
-        bloodGroup: "B+",
-        address: "12, Shivaji Nagar",
-        place: "Kolhapur",
-        emergencyContact: "9822011111",
-        patientId: "PAT-1001",
-      },
-      vitals: {
-        bloodPressure: "120/80 mmHg",
-        pulse: "78 bpm",
-        temperature: "98.6 °F",
-        weight: "72 kg",
-        height: "172 cm",
-        spo2: "98 %",
-        respiratoryRate: "16",
-        bloodSugar: "98 mg/dL",
-        notes: "Stable vitals at check-in",
-      },
-      paymentDetails: {
-        amount: "₹ 800",
-        gst: "₹ 0",
-        total: "₹ 800",
-        method: "UPI",
-        notes: "Paid at reception",
-      },
-    }
-  ),
-  buildAppointmentDetails(
-    {
-      id: 2,
-      time: "10:00 AM",
-      patient: "Sneha Patil",
-      doctor: "Dr. Rahul Mehta",
-      type: "Teleconsult",
-      payment: "₹ 600",
-      status: "Unpaid",
-    },
-    {
-      severity: "Mild",
-      duration: "2 weeks",
-      chiefComplaints: "Seasonal allergy, sneezing, watery eyes",
-      patientDetails: {
-        fullName: "Sneha Patil",
-        ageSex: "29y / Female",
-        mobile: "9123456780",
-        email: "sneha.patil@email.com",
-        dateOfBirth: "22/08/1996",
-        bloodGroup: "O+",
-        address: "45, FC Road",
-        place: "Pune",
-        emergencyContact: "9123400000",
-        patientId: "PAT-1002",
-      },
-      vitals: {
-        bloodPressure: "118/76 mmHg",
-        pulse: "82 bpm",
-        temperature: "98.4 °F",
-        weight: "58 kg",
-        height: "162 cm",
-        spo2: "99 %",
-        respiratoryRate: "15",
-        bloodSugar: "—",
-        notes: "Teleconsult – vitals self-reported",
-      },
-      paymentDetails: {
-        amount: "₹ 0",
-        gst: "₹ 0",
-        total: "₹ 600",
-        method: "—",
-        notes: "Payment pending",
-      },
-    }
-  ),
-  buildAppointmentDetails(
-    {
-      id: 3,
-      time: "10:30 AM",
-      patient: "Amit Shah",
-      doctor: "Dr. Priya Sharma",
-      type: "In-Clinic",
-      payment: "₹ 800",
-      status: "Paid",
-    },
-    {
-      severity: "Severe",
-      duration: "3 days",
-      chiefComplaints: "High fever, cough, fatigue",
-      patientDetails: {
-        fullName: "Amit Shah",
-        ageSex: "47y / Male",
-        mobile: "9988776655",
-        email: "amit.shah@email.com",
-        dateOfBirth: "10/01/1979",
-        bloodGroup: "A+",
-        address: "88, Andheri West",
-        place: "Mumbai",
-        emergencyContact: "9988700000",
-        patientId: "PAT-1003",
-      },
-      vitals: {
-        bloodPressure: "132/88 mmHg",
-        pulse: "92 bpm",
-        temperature: "100.2 °F",
-        weight: "78 kg",
-        height: "175 cm",
-        spo2: "96 %",
-        respiratoryRate: "18",
-        bloodSugar: "110 mg/dL",
-        notes: "Mild fever present",
-      },
-      paymentDetails: {
-        amount: "₹ 800",
-        gst: "₹ 0",
-        total: "₹ 800",
-        method: "Card",
-        notes: "",
-      },
-    }
-  ),
-];
+const formatApptTime = (value) => {
+  if (!value) return "—";
+  const parsed = moment(value, ["HH:mm:ss", "HH:mm", "hh:mm A", moment.ISO_8601], true);
+  if (parsed.isValid()) return parsed.format("hh:mm A");
+  const fallback = moment(value);
+  return fallback.isValid() ? fallback.format("hh:mm A") : String(value);
+};
 
-const ALL_APPOINTMENT_ROWS = [
-  ...APPOINTMENT_ROWS,
-  buildAppointmentDetails(
-    {
-      id: 4,
-      time: "11:00 AM",
-      patient: "Priya Desai",
-      doctor: "Dr. Rahul Mehta",
-      type: "In-Clinic",
-      payment: "₹ 800",
-      status: "Unpaid",
+const consultType = (row) => {
+  const mode = String(row.consultMode || row.ConsultMode || "").toUpperCase();
+  const tele = row.isTele ?? row.IsTele;
+  if (tele === true || mode.includes("TELE") || mode.includes("E-CONSULT") || mode.includes("ECONSULT")) {
+    return "Teleconsult";
+  }
+  return "In-Clinic";
+};
+
+const formatRupees = (amount) => {
+  if (amount == null || amount === "") return "—";
+  const n = Number(amount);
+  if (Number.isNaN(n)) return "—";
+  return `₹ ${n % 1 === 0 ? n : n.toFixed(2)}`;
+};
+
+const ageSexDisplay = (row) => {
+  const age = row.age ?? row.Age;
+  const sex = genderLabel(row.gender ?? row.Gender);
+  if (age == null && !sex) return "";
+  if (age != null && sex) return `${age}y / ${sex}`;
+  return age != null ? `${age}y` : sex;
+};
+
+const mapQueueRow = (apiRow, doctorFallback, feeByType) => {
+  const pay = paymentStatusMeta(apiRow.paymentStatus ?? apiRow.PaymentStatus);
+  const type = consultType(apiRow);
+  const fee =
+    apiRow.consultFee ??
+    apiRow.ConsultFee ??
+    (type === "Teleconsult" ? feeByType.tele : feeByType.inClinic);
+  const time = formatApptTime(apiRow.appointmentTime ?? apiRow.AppointmentTime);
+  const dateVal = apiRow.appointmentDate ?? apiRow.AppointmentDate;
+  const patient = apiRow.patientName ?? apiRow.PatientName ?? "Patient";
+  const doctor = apiRow.doctorName || apiRow.DoctorName || doctorFallback || "Doctor";
+  const patientId = apiRow.patientId ?? apiRow.PatientId;
+  const patientAppId = apiRow.patientAppId ?? apiRow.PatientAppId;
+
+  return {
+    id: patientAppId,
+    patientAppId,
+    patientId,
+    time,
+    patient,
+    doctor,
+    type,
+    payment: formatRupees(fee),
+    status: pay.label,
+    statusTone: pay.tone,
+    paymentStatusRaw: apiRow.paymentStatus ?? apiRow.PaymentStatus,
+    appointmentStatus: apiRow.status || apiRow.Status || "—",
+    dateDisplay: dateVal ? moment(dateVal).format("DD MMM YYYY") : moment().format("DD MMM YYYY"),
+    waitMinutes: apiRow.waitMinutes ?? apiRow.WaitMinutes,
+    appointmentTime: apiRow.appointmentTime ?? apiRow.AppointmentTime,
+    appointmentDate: dateVal,
+    queueOrder: apiRow.queueOrder ?? apiRow.QueueOrder,
+    patientDetails: {
+      fullName: patient,
+      ageSex: ageSexDisplay(apiRow),
+      mobile: apiRow.mobileNo || apiRow.MobileNo || "—",
+      email: apiRow.email || apiRow.Email || "—",
+      dateOfBirth: apiRow.dateOfBirth || apiRow.DateOfBirth
+        ? moment(apiRow.dateOfBirth || apiRow.DateOfBirth).format("DD/MM/YYYY")
+        : "—",
+      bloodGroup: "—",
+      address: apiRow.address || apiRow.Address || "—",
+      place: "—",
+      emergencyContact: "—",
+      patientId: patientId ? String(patientId) : "—",
     },
-    {
-      severity: "Moderate",
-      duration: "1 week",
-      chiefComplaints: "Back pain, stiffness in morning",
-      appointmentStatus: "Waiting",
-      patientDetails: {
-        fullName: "Priya Desai",
-        ageSex: "37y / Female",
-        mobile: "9090909090",
-        email: "priya.desai@email.com",
-        dateOfBirth: "05/11/1988",
-        bloodGroup: "AB+",
-        address: "21, Station Road",
-        place: "Sangli",
-        emergencyContact: "9090911111",
-        patientId: "PAT-1004",
-      },
-      vitals: {
-        bloodPressure: "124/82 mmHg",
-        pulse: "76 bpm",
-        temperature: "98.2 °F",
-        weight: "64 kg",
-        height: "165 cm",
-        spo2: "98 %",
-        respiratoryRate: "16",
-        bloodSugar: "102 mg/dL",
-        notes: "Waiting for doctor",
-      },
-      paymentDetails: {
-        amount: "₹ 0",
-        gst: "₹ 0",
-        total: "₹ 800",
-        method: "—",
-        notes: "Collect after consultation",
-      },
-    }
-  ),
-  buildAppointmentDetails(
-    {
-      id: 5,
-      time: "11:30 AM",
-      patient: "Vikram Joshi",
-      doctor: "Dr. Priya Sharma",
-      type: "Teleconsult",
-      payment: "₹ 600",
-      status: "Paid",
+    vitals: {},
+    paymentDetails: {
+      amount: pay.label === "Paid" ? formatRupees(fee) : "₹ 0",
+      gst: "GST applied by New API on collection",
+      total: formatRupees(fee),
+      method: apiRow.paymentMethod || apiRow.PaymentMethod || "—",
+      notes: pay.label === "Unpaid" || pay.label === "Pay-at-clinic" ? "Collect at reception" : "",
     },
-    {
-      severity: "Mild",
-      duration: "4 days",
-      chiefComplaints: "Acid reflux, bloating after meals",
-      patientDetails: {
-        fullName: "Vikram Joshi",
-        ageSex: "52y / Male",
-        mobile: "9811122233",
-        email: "vikram.joshi@email.com",
-        dateOfBirth: "30/06/1973",
-        bloodGroup: "B-",
-        address: "9, College Road",
-        place: "Nashik",
-        emergencyContact: "9811100000",
-        patientId: "PAT-1005",
-      },
-      vitals: {
-        bloodPressure: "128/84 mmHg",
-        pulse: "74 bpm",
-        temperature: "98.5 °F",
-        weight: "81 kg",
-        height: "178 cm",
-        spo2: "97 %",
-        respiratoryRate: "15",
-        bloodSugar: "118 mg/dL",
-        notes: "",
-      },
-      paymentDetails: {
-        amount: "₹ 600",
-        gst: "₹ 0",
-        total: "₹ 600",
-        method: "Cash",
-        notes: "Paid online confirmation",
-      },
-    }
-  ),
-];
+  };
+};
 
 const matchesSearch = (row, needle) => {
   if (!needle) return true;
@@ -271,6 +125,7 @@ const matchesSearch = (row, needle) => {
     row.type,
     row.payment,
     row.status,
+    row.appointmentStatus,
   ]
     .filter(Boolean)
     .join(" ")
@@ -296,29 +151,18 @@ const AppointmentActionButtons = ({ row, onView, onEdit }) => (
       id={`reception-appt-edit-${row.id}`}
       type="button"
       className="btn btn-sm btn-soft-success edit-item-btn"
-      aria-label="Edit"
+      aria-label="Update appointment time"
       onClick={() => onEdit?.(row)}
     >
       <i className="ri-pencil-fill" />
     </button>
     <UncontrolledTooltip placement="top" target={`reception-appt-edit-${row.id}`}>
-      Edit
-    </UncontrolledTooltip>
-    <button
-      id={`reception-appt-del-${row.id}`}
-      type="button"
-      className="btn btn-sm btn-soft-danger remove-item-btn"
-      aria-label="Delete"
-    >
-      <i className="ri-delete-bin-5-line" />
-    </button>
-    <UncontrolledTooltip placement="top" target={`reception-appt-del-${row.id}`}>
-      Delete
+      Update time
     </UncontrolledTooltip>
   </div>
 );
 
-const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit }) => (
+const AppointmentTable = ({ rows, searchTerm, emptyMessage, loading, onView, onEdit }) => (
   <div className="table-responsive">
     <table className="table table-hover mb-0 dashboard-patient-table reception-appointment-data-table">
       <thead>
@@ -335,54 +179,115 @@ const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit }) =>
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr key={row.id}>
-            <td className="fw-medium text-nowrap">{row.time}</td>
-            <td>{row.patient}</td>
-            <td className="text-nowrap">{row.doctor}</td>
-            <td className="text-muted">{row.type}</td>
-            <td className="text-nowrap">{row.payment}</td>
-            <td>
-              <span
-                className={`badge bg-${
-                  row.status === "Paid" ? "success" : "danger"
-                }-subtle text-${row.status === "Paid" ? "success" : "danger"}`}
-              >
-                {row.status}
-              </span>
-            </td>
-            <td className="text-end">
-              <AppointmentActionButtons row={row} onView={onView} onEdit={onEdit} />
-            </td>
-          </tr>
-        ))}
-        {rows.length === 0 && (
+        {loading ? (
           <tr>
-            <td colSpan={7} className="text-center text-muted">
-              {searchTerm ? emptyMessage.search : emptyMessage.empty}
+            <td colSpan={7} className="text-center text-muted py-4">
+              Loading appointments…
             </td>
           </tr>
+        ) : (
+          <>
+            {rows.map((row) => (
+              <tr key={row.id}>
+                <td className="fw-medium text-nowrap">{row.time}</td>
+                <td>{row.patient}</td>
+                <td className="text-nowrap">{row.doctor}</td>
+                <td className="text-muted">{row.type}</td>
+                <td className="text-nowrap">{row.payment}</td>
+                <td>
+                  <span className={`badge bg-${row.statusTone}-subtle text-${row.statusTone}`}>
+                    {row.status}
+                  </span>
+                </td>
+                <td className="text-end">
+                  <AppointmentActionButtons row={row} onView={onView} onEdit={onEdit} />
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-center text-muted">
+                  {searchTerm ? emptyMessage.search : emptyMessage.empty}
+                </td>
+              </tr>
+            )}
+          </>
         )}
       </tbody>
     </table>
   </div>
 );
 
+const unwrapQueue = (response) => {
+  const body = unwrap(response);
+  const rows = body.queue || body.Queue || body.data || body.Data || body;
+  return Array.isArray(rows) ? rows : [];
+};
+
 const TodaysAppointments = ({ onEditAppointment }) => {
+  const doctorId = readReceptionDoctorId();
   const [activeTab, setActiveTab] = useState("1");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(moment().format(DOB_DISPLAY_FORMAT));
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [todaySource, setTodaySource] = useState([]);
+  const [allSource, setAllSource] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!doctorId) {
+        setTodaySource([]);
+        setAllSource([]);
+        setLoadError("Reception doctor context is missing.");
+        return;
+      }
+      setLoading(true);
+      setLoadError("");
+      const isoDate = moment(selectedDate, DOB_DISPLAY_FORMAT, true).isValid()
+        ? moment(selectedDate, DOB_DISPLAY_FORMAT).format("YYYY-MM-DD")
+        : moment().format("YYYY-MM-DD");
+      try {
+        const [queueRes, dayRes, feeRes] = await Promise.all([
+          getAppointmentQueue(doctorId, { date: isoDate, scope: "queue" }),
+          getAppointmentQueue(doctorId, { date: isoDate, scope: "day" }),
+          getPublicFee(doctorId).catch(() => null),
+        ]);
+        const feeBody = unwrapS4(feeRes) || {};
+        const fee = feeBody.data || feeBody.Data || feeBody;
+        const feeByType = {
+          inClinic: fee.inClinicFee ?? fee.InClinicFee,
+          tele: fee.teleFee ?? fee.TeleFee ?? fee.inClinicFee ?? fee.InClinicFee,
+        };
+        if (cancelled) return;
+        setTodaySource(unwrapQueue(queueRes).map((row) => mapQueueRow(row, "", feeByType)));
+        setAllSource(unwrapQueue(dayRes).map((row) => mapQueueRow(row, "", feeByType)));
+      } catch (err) {
+        if (cancelled) return;
+        setTodaySource([]);
+        setAllSource([]);
+        setLoadError(apiMessage(err, "Could not load appointments."));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [doctorId, selectedDate]);
 
   const needle = searchTerm.trim().toLowerCase();
   const todayRows = useMemo(
-    () => APPOINTMENT_ROWS.filter((row) => matchesSearch(row, needle)),
-    [needle]
+    () => todaySource.filter((row) => matchesSearch(row, needle)),
+    [todaySource, needle]
   );
   const allRows = useMemo(
-    () => ALL_APPOINTMENT_ROWS.filter((row) => matchesSearch(row, needle)),
-    [needle]
+    () => allSource.filter((row) => matchesSearch(row, needle)),
+    [allSource, needle]
   );
 
   const handleView = (row) => {
@@ -429,8 +334,8 @@ const TodaysAppointments = ({ onEditAppointment }) => {
                 <DateOfBirthPicker
                   name="receptionAppointmentDate"
                   value={selectedDate}
-                  minDate={null}
-                  maxDate={null}
+                  minDate="today"
+                  maxDate={moment().add(1, "year").format("YYYY-MM-DD")}
                   placeholder={DOB_DISPLAY_FORMAT}
                   onChange={setSelectedDate}
                 />
@@ -451,16 +356,20 @@ const TodaysAppointments = ({ onEditAppointment }) => {
           </CardHeader>
 
           <CardBody className="p-0 doctor-patient-table-body">
+            {loadError ? (
+              <div className="px-3 py-3 text-danger small mb-0">{loadError}</div>
+            ) : null}
             <TabContent activeTab={activeTab} className="text-muted">
               <TabPane tabId="1">
                 <AppointmentTable
                   rows={todayRows}
                   searchTerm={searchTerm}
+                  loading={loading}
                   onView={handleView}
                   onEdit={handleEdit}
                   emptyMessage={{
                     search: "No appointments found matching your search",
-                    empty: "No appointments available",
+                    empty: "No waiting patients in the queue for this date",
                   }}
                 />
               </TabPane>
@@ -468,11 +377,12 @@ const TodaysAppointments = ({ onEditAppointment }) => {
                 <AppointmentTable
                   rows={allRows}
                   searchTerm={searchTerm}
+                  loading={loading}
                   onView={handleView}
                   onEdit={handleEdit}
                   emptyMessage={{
                     search: "No appointments found matching your search",
-                    empty: "No appointments available",
+                    empty: "No appointments for this date",
                   }}
                 />
               </TabPane>

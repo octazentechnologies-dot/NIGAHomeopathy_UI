@@ -168,15 +168,15 @@ const ReceptionCasePaper = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page reception-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Case paper</h4>
-        <p className="text-muted">
+        <h2 className="clinic-page-title">Case paper</h2>
+        <p className="clinic-page-subtitle">
           Log the reason for visit before consultation. Search by patient name or mobile.
         </p>
         <Row className="g-3">
           <Col lg={6}>
-            <Card>
+            <Card className="admin-dash-card">
               <CardBody>
                 {error ? <Alert color="danger">{error}</Alert> : null}
                 {message ? <Alert color="success">{message}</Alert> : null}
@@ -224,7 +224,7 @@ const ReceptionCasePaper = () => {
                   </ListGroup>
                 ) : null}
                 {!patientsLoading && search && filteredPatients.length === 0 ? (
-                  <p className="text-muted small">No match. Try another name/mobile, or register the patient first.</p>
+                  <p className="text-muted small">No match. Try another name or mobile. New patients are registered from Dashboard.</p>
                 ) : null}
 
                 {selectedLabel ? (
@@ -244,7 +244,7 @@ const ReceptionCasePaper = () => {
                   onChange={(event) => setChiefComplaint(event.target.value)}
                   placeholder="Short reason for visit"
                 />
-                <Button className="mt-3" color="primary" disabled={saving || !patientId} onClick={save}>
+                <Button className="mt-3 reception-primary-btn" disabled={saving || !patientId} onClick={save}>
                   {saving ? "Saving…" : "Save"}
                 </Button>
                 <div className="mt-3">
@@ -254,7 +254,7 @@ const ReceptionCasePaper = () => {
             </Card>
           </Col>
           <Col lg={6}>
-            <Card>
+            <Card className="admin-dash-card">
               <CardBody>
                 <h5 className="mb-2">Prior notes</h5>
                 {loadingHistory ? <Spinner size="sm" /> : null}

@@ -9,6 +9,7 @@ import { useLayoutMenu } from "../LayoutMenuContext";
 //i18n
 import { withTranslation } from "react-i18next";
 import { findActiveMenuAnchor } from "../../helpers/menuActivePathHelper";
+import { menuDestination } from "../../helpers/menuDestination";
 
 const HorizontalLayout = (props) => {
     const [isMoreMenu, setIsMoreMenu] = useState(false);
@@ -120,7 +121,7 @@ const HorizontalLayout = (props) => {
                                     <Link
                                         onClick={item.click}
                                         className="nav-link menu-link"
-                                        to={item.link ? item.link : "/#"}
+                                        to={menuDestination(item.link)}
                                         data-bs-toggle="collapse"
                                     >
                                         <i className={item.icon}></i> <span data-key="t-apps">{props.t(item.label)}</span>
@@ -139,7 +140,7 @@ const HorizontalLayout = (props) => {
                                                                 <Col lg={4}>
                                                                     <ul className="nav nav-sm flex-column">
                                                                         <li className="nav-item">
-                                                                            <Link to={item.subItems[key].link} className="nav-link">{item.subItems[key].label}</Link>
+                                                                            <Link to={menuDestination(item.subItems[key].link)} className="nav-link">{item.subItems[key].label}</Link>
                                                                         </li>
                                                                     </ul>
                                                                 </Col>
@@ -147,7 +148,7 @@ const HorizontalLayout = (props) => {
                                                                 <Col lg={4}>
                                                                     <ul className="nav nav-sm flex-column">
                                                                         <li className="nav-item">
-                                                                            <Link to={item.subItems[key].link} className="nav-link">{item.subItems[key].label}</Link>
+                                                                            <Link to={menuDestination(item.subItems[key].link)} className="nav-link">{item.subItems[key].label}</Link>
                                                                         </li>
                                                                     </ul>
                                                                 </Col>
@@ -165,7 +166,7 @@ const HorizontalLayout = (props) => {
                                                         {!subItem.isChildItem ? (
                                                             <li className="nav-item">
                                                                 <Link
-                                                                    to={subItem.link ? subItem.link : "/#"}
+                                                                    to={menuDestination(subItem.link)}
                                                                     className="nav-link"
                                                                 >
                                                                     {props.t(subItem.label)}
@@ -174,9 +175,12 @@ const HorizontalLayout = (props) => {
                                                         ) : (
                                                             <li className="nav-item">
                                                                 <Link
-                                                                    onClick={subItem.click}
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        if (subItem.click) subItem.click(event);
+                                                                    }}
                                                                     className="nav-link"
-                                                                    to="/#"
+                                                                    to="/page-not-available"
                                                                     data-bs-toggle="collapse"
                                                                 > {props.t(subItem.label)}
                                                                 </Link>
@@ -189,7 +193,7 @@ const HorizontalLayout = (props) => {
                                                                                     {!subChildItem.isChildItem ? (
                                                                                         <li className="nav-item">
                                                                                             <Link
-                                                                                                to={subChildItem.link ? subChildItem.link : "/#"}
+                                                                                                to={menuDestination(subChildItem.link)}
                                                                                                 className="nav-link"
                                                                                             >
                                                                                                 {props.t(subChildItem.label)}
@@ -198,9 +202,12 @@ const HorizontalLayout = (props) => {
                                                                                     ) : (
                                                                                         <li className="nav-item">
                                                                                             <Link
-                                                                                                onClick={subChildItem.click}
+                                                                                                onClick={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    if (subChildItem.click) subChildItem.click(event);
+                                                                                                }}
                                                                                                 className="nav-link"
-                                                                                                to="/#"
+                                                                                                to="/page-not-available"
                                                                                                 data-bs-toggle="collapse"
                                                                                             > {props.t(subChildItem.label)}
                                                                                             </Link>
@@ -211,7 +218,7 @@ const HorizontalLayout = (props) => {
                                                                                                         (subChildItem.childItems || []).map((subSubChildItem, key) => (
                                                                                                             <li className="nav-item apex" key={key}>
                                                                                                                 <Link
-                                                                                                                    to={subSubChildItem.link ? subSubChildItem.link : "/#"}
+                                                                                                                    to={menuDestination(subSubChildItem.link)}
                                                                                                                     className="nav-link"
                                                                                                                 >
                                                                                                                     {props.t(subSubChildItem.label)}
@@ -241,7 +248,7 @@ const HorizontalLayout = (props) => {
                                 <li className="nav-item">
                                     <Link
                                         className="nav-link menu-link"
-                                        to={item.link ? item.link : "/#"}>
+                                        to={menuDestination(item.link)}>
                                         <i className={item.icon}></i> <span>{props.t(item.label)}</span>
                                     </Link>
                                 </li>

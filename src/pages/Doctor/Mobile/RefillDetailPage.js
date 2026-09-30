@@ -72,7 +72,7 @@ const RefillDetailPage = () => {
   return (
     <div className="page-content" data-testid="refill-detail">
       <Container fluid className="py-4" style={{ maxWidth: 640 }}>
-        <h4 className="mb-2">Refill #{id || "—"}</h4>
+        <h4 className="mb-2">Refill {id || "—"}</h4>
         <p className="text-muted small mb-3">
           Approve or reject from the API. Prescription snapshot is not editable on this screen.
         </p>
@@ -141,7 +141,7 @@ const RefillDetailPage = () => {
 
         {result ? (
           <div className="border rounded p-3 mb-3" data-testid="refill-detail-result">
-            <strong>{result.success === false ? "Not applied" : "API response"}</strong>
+            <strong>{result.success === false ? "Not applied" : "Saved"}</strong>
             <div className="small">{result.message}</div>
           </div>
         ) : null}

@@ -32,6 +32,8 @@ export const LANDING_PUBLIC_PATHS = [
     "/contact",
     "/privacy",
     "/terms",
+    "/help",
+    "/help/:slug",
     "/account",
     "/find-doctor",
     "/find-doctor/:doctorId",

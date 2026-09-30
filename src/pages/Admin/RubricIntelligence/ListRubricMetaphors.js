@@ -11,7 +11,6 @@ import {
   createRubricMetaphor,
   updateRubricMetaphor,
   deleteRubricMetaphor,
-  deleteAllRubricMetaphors,
   approveRubricMetaphor,
   rejectRubricMetaphor,
 } from '../../../helpers/realbackend_helper';
@@ -116,25 +115,6 @@ const ListRubricMetaphors = () => {
     }
   };
 
-  const handleDeleteAll = async () => {
-    const confirm = await Swal.fire({
-      icon: 'warning',
-      title: 'Delete all metaphors?',
-      text: 'This will permanently remove all rubric metaphors. This action cannot be undone!',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, delete all',
-    });
-    if (!confirm.isConfirmed) return;
-    try {
-      await deleteAllRubricMetaphors();
-      await load(1);
-    } catch (error) {
-      Swal.fire({ icon: 'error', title: 'Delete failed', text: error?.message || 'Could not delete all metaphors.' });
-    }
-  };
-
   const handleDelete = async (row) => {
     const confirm = await Swal.fire({
       icon: 'warning',
@@ -232,14 +212,6 @@ const ListRubricMetaphors = () => {
                     />
                   </div>
                   <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-soft-danger"
-                      onClick={handleDeleteAll}
-                    >
-                      <i className="ri-delete-bin-5-line align-middle me-1" aria-hidden="true" />
-                      Delete all
-                    </button>
                     <button
                       type="button"
                       className="btn btn-sm admin-list-btn admin-list-btn--new"
@@ -435,7 +407,7 @@ const ListRubricMetaphors = () => {
                   form.subSectionId
                     ? {
                         value: Number(form.subSectionId),
-                        label: form.subSectionLabel || `SubSection #${form.subSectionId}`,
+                        label: form.subSectionLabel || `SubSection ${form.subSectionId}`,
                       }
                     : null
                 }

@@ -10,6 +10,7 @@ import withRouter from "../../Components/Common/withRouter";
 import { useSelector } from "react-redux";
 import { createSelector } from 'reselect';
 import { findActiveMenuAnchor } from "../../helpers/menuActivePathHelper";
+import { menuDestination } from "../../helpers/menuDestination";
 
 const VerticalLayout = (props) => {
     const { navChildren: navData } = useLayoutMenu();
@@ -156,7 +157,7 @@ layout settings
                                         <Link
                                             onClick={item.click}
                                             className="nav-link menu-link"
-                                            to={item.link ? item.link : "/#"}
+                                            to={menuDestination(item.link)}
                                             data-bs-toggle="collapse"
                                         >
                                             <i className={item.icon}></i>
@@ -176,7 +177,7 @@ layout settings
                                                         {!subItem.isChildItem ? (
                                                             <li className="nav-item">
                                                                 <Link
-                                                                    to={subItem.link ? subItem.link : "/#"}
+                                                                    to={menuDestination(subItem.link)}
                                                                     className="nav-link"
                                                                 >
                                                                     {props.t(subItem.label)}
@@ -188,9 +189,12 @@ layout settings
                                                         ) : (
                                                             <li className="nav-item">
                                                                 <Link
-                                                                    onClick={subItem.click}
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        if (subItem.click) subItem.click(event);
+                                                                    }}
                                                                     className="nav-link"
-                                                                    to="/#"
+                                                                    to="/page-not-available"
                                                                     data-bs-toggle="collapse"
                                                                 >
                                                                     {props.t(subItem.label)}
@@ -207,20 +211,20 @@ layout settings
                                                                                     {!childItem.childItems ?
                                                                                         <li className="nav-item">
                                                                                             <Link
-                                                                                                to={childItem.link ? childItem.link : "/#"}
+                                                                                                to={menuDestination(childItem.link)}
                                                                                                 className="nav-link">
                                                                                                 {props.t(childItem.label)}
                                                                                             </Link>
                                                                                         </li>
                                                                                         : <li className="nav-item">
-                                                                                            <Link to="/#" className="nav-link" onClick={childItem.click} data-bs-toggle="collapse">
+                                                                                            <Link to="/page-not-available" className="nav-link" onClick={(event) => { event.preventDefault(); if (childItem.click) childItem.click(event); }} data-bs-toggle="collapse">
                                                                                                 {props.t(childItem.label)}
                                                                                             </Link>
                                                                                             <Collapse className="menu-dropdown" isOpen={childItem.stateVariables} id="sidebaremailTemplates">
                                                                                                 <ul className="nav nav-sm flex-column">
                                                                                                     {childItem.childItems.map((subChildItem, key) => (
                                                                                                         <li className="nav-item" key={key}>
-                                                                                                            <Link to={subChildItem.link} className="nav-link" data-key="t-basic-action">{props.t(subChildItem.label)} </Link>
+                                                                                                            <Link to={menuDestination(subChildItem.link)} className="nav-link" data-key="t-basic-action">{props.t(subChildItem.label)} </Link>
                                                                                                         </li>
                                                                                                     ))}
                                                                                                 </ul>
@@ -245,7 +249,7 @@ layout settings
                                     <li className="nav-item">
                                         <Link
                                             className="nav-link menu-link"
-                                            to={item.link ? item.link : "/#"}>
+                                            to={menuDestination(item.link)}>
                                             <i className={item.icon}></i> <span>{props.t(item.label)}</span>
                                             {item.badgeName ?
                                                 <span className={"badge badge-pill bg-" + item.badgeColor} data-key="t-new">{item.badgeName}</span>

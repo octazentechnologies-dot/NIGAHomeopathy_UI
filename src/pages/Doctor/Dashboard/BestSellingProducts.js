@@ -20,6 +20,7 @@ import {
 } from '../../../helpers/patientBoardSessionHelper';
 import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
 import { openReceptionPatientRow } from '../../Reception/receptionSession';
+import { paymentStatusMeta } from '../../../helpers/paymentStatusBadge';
 import CaseTakingModeModal from '../../../Components/CaseTaking/CaseTakingModeModal';
 import {
     getAppointmentList,
@@ -465,7 +466,7 @@ const AppointmentTimeCell = ({
                         <div className="col-md-6">
                             <Label className="form-label appointment-time-edit-modal__label">
                                 <i className="ri-refresh-line" />
-                                Reason for Reschedule
+                                Reason
                             </Label>
                             <Input
                                 type="select"
@@ -521,7 +522,7 @@ const AppointmentTimeCell = ({
                         </div>
                     )}
                     <div className="text-muted mt-2" style={{ fontSize: '0.875rem' }}>
-                        Select an available slot, then click Reschedule Appointment to save the new time.
+                        Select an available slot, then click Update time. This does not notify the patient.
                     </div>
                 </ModalBody>
                 <ModalFooter className="appointment-time-edit-modal__footer">
@@ -539,9 +540,9 @@ const AppointmentTimeCell = ({
                         onClick={handleUpdateAppointment}
                         disabled={saving || cancelling || !selectedSlot || !hasSchedule}
                         loading={saving}
-                        loadingLabel="Reschedule Appointment"
+                        loadingLabel="Update time"
                     >
-                        Reschedule Appointment
+                        Update time
                     </ModalActionButton>
                 </ModalFooter>
             </Modal>
@@ -1053,10 +1054,12 @@ const BestSellingProducts = () => {
         return [];
     };
 
-    const fetchCaseNotesForPatient = async () => {
+    const fetchCaseNotesForPatient = async (patient) => {
+        const appointmentId = getPatientAppointmentId(patient);
         await dispatch(getAppointmentHistoryNotes({
             pageNumber: 1,
             pageSize: 100,
+            ...(appointmentId ? { appointmentId } : {}),
         }));
     };
 
@@ -1071,7 +1074,7 @@ const BestSellingProducts = () => {
         setCaseNotesModalOpen(true);
 
         try {
-            await fetchCaseNotesForPatient();
+            await fetchCaseNotesForPatient(patient);
         } catch (error) {
             console.error('Error fetching appointment history notes:', error);
         }
@@ -1131,7 +1134,7 @@ const BestSellingProducts = () => {
                 )
             );
 
-            await fetchCaseNotesForPatient();
+            await fetchCaseNotesForPatient(selectedPatientForCaseNotes);
 
             Swal.fire({
                 icon: 'success',
@@ -1438,6 +1441,7 @@ const BestSellingProducts = () => {
             ageSex: getAgeSexDisplay(appointment.dateOfBirth, appointment.gender),
             place: appointment.address || '-',
             appStatus: appointment.status || '-',
+            paymentStatus: appointment.paymentStatus ?? appointment.PaymentStatus ?? null,
         };
     });
 
@@ -2124,6 +2128,14 @@ const BestSellingProducts = () => {
                     ) : (
                         '-'
                     )}
+                    {(() => {
+                        const pay = paymentStatusMeta(patient.paymentStatus);
+                        return (
+                            <span className={`badge bg-${pay.tone}-subtle text-${pay.tone} ms-1`}>
+                                {pay.label}
+                            </span>
+                        );
+                    })()}
                 </td>
                 ) : null}
                 {isTodayTab ? (

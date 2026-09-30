@@ -14,6 +14,7 @@ const NAV_ITEMS = [
     { path: landingPath("pricing"), label: "Pricing" },
     { path: landingPath("blog"), label: "Blog" },
     { path: landingPath("news"), label: "News" },
+    { path: landingPath("help"), label: "Help" },
     { path: landingPath("contact"), label: "Contact" },
 ];
 

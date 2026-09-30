@@ -33,6 +33,7 @@ import { editProfile, resetProfileFlag } from "../../slices/thunks";
 import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
 import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
+import PatientProfileFields from "./PatientProfileFields";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import {
   getDoctorProfileMe,
@@ -40,6 +41,7 @@ import {
   uploadDoctorProfilePhoto,
   getDoctorCredentialsMe,
   uploadDoctorCredentialDocument,
+  downloadDoctorCredentialDocument,
   getAvailabilityMe,
   updateAvailabilityMe,
   confirmMobileAgainstProfile,
@@ -51,6 +53,7 @@ const PROFILE_TABS = [
   { id: "fees", label: "Fees", doctorOnly: true },
   { id: "photo", label: "Photo" },
   { id: "qualifications", label: "Qualifications", doctorOnly: true },
+  { id: "credentials", label: "Credentials / documents", doctorOnly: true },
   { id: "hours", label: "Hours" },
   { id: "bank", label: "Bank" },
 ];
@@ -65,6 +68,118 @@ const getProfileTabsForRole = (role) => {
 const getRoleDisplayLabel = (role) => {
   if (role === UserRole.RECEPTION) return "Receptionist";
   return role || "N/A";
+};
+
+const DoctorCredentialsPanel = () => {
+  const [status, setStatus] = useState("");
+  const [docs, setDocs] = useState([]);
+  const [docType, setDocType] = useState("Registration");
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+
+  const reload = () => {
+    getDoctorCredentialsMe()
+      .then((payload) => {
+        const me = payload?.data ?? payload?.Data ?? payload;
+        setStatus(me?.status || me?.Status || "");
+        const list = me?.documents ?? me?.Documents ?? [];
+        setDocs(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        setDocs([]);
+      });
+  };
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  const upload = async (event) => {
+    event.preventDefault();
+    const file = fileRef.current?.files?.[0];
+    if (!file) {
+      Swal.fire({ title: "Choose a file", text: "PDF, JPG, or PNG.", icon: "warning", timer: 1600, showConfirmButton: false });
+      return;
+    }
+    setBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("documentType", docType);
+      await uploadDoctorCredentialDocument(formData);
+      if (fileRef.current) fileRef.current.value = "";
+      reload();
+      Swal.fire({ title: "Uploaded", text: "Status is Pending until Admin reviews Trust queue.", icon: "success", timer: 1800, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire({ title: "Upload failed", text: err?.message || String(err), icon: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <h5 className="user-profile-page__section-title">
+        <i className="ri-shield-check-line" aria-hidden="true" />
+        Credentials / documents
+      </h5>
+      <p className="text-muted">Verification status: <strong>{status || "Pending"}</strong></p>
+      <Form onSubmit={upload}>
+        <Row className="g-3 align-items-end">
+          <Col md={4}>
+            <Label>Document type</Label>
+            <Input type="select" value={docType} onChange={(e) => setDocType(e.target.value)}>
+              <option value="Registration">Registration</option>
+              <option value="Qualification">Qualification</option>
+              <option value="Other">Other</option>
+            </Input>
+          </Col>
+          <Col md={5}>
+            <Label>File (PDF / JPG / PNG)</Label>
+            <Input innerRef={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" />
+          </Col>
+          <Col md={3}>
+            <button className="btn clinic-primary-btn w-100" type="submit" disabled={busy}>
+              {busy ? "Uploading…" : "Upload"}
+            </button>
+          </Col>
+        </Row>
+      </Form>
+      <ul className="mt-3 mb-0 ps-3">
+        {docs.length === 0 ? (
+          <li className="text-muted">No documents uploaded yet.</li>
+        ) : (
+          docs.map((doc) => {
+            const id = doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId;
+            const name = doc.fileName || doc.FileName || "document";
+            return (
+              <li key={id} className="mb-1">
+                {doc.documentType || doc.DocumentType} — {name}{" "}
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm p-0 align-baseline"
+                  onClick={async () => {
+                    try {
+                      const response = await downloadDoctorCredentialDocument(id);
+                      const blob = response?.data instanceof Blob ? response.data : response;
+                      if (!(blob instanceof Blob)) throw new Error("Could not open the document.");
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, "_blank", "noopener");
+                      setTimeout(() => URL.revokeObjectURL(url), 60000);
+                    } catch (err) {
+                      Swal.fire({ title: "Could not open file", text: err?.message || String(err), icon: "error" });
+                    }
+                  }}
+                >
+                  Open
+                </button>
+              </li>
+            );
+          })
+        )}
+      </ul>
+    </div>
+  );
 };
 
 const INDIAN_STATES = [
@@ -347,6 +462,7 @@ const UserProfile = () => {
   const [userName, setUserName] = useState("Admin");
   const [activeTab, setActiveTab] = useState("clinic");
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
+  const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(avatar1);
@@ -441,7 +557,7 @@ const UserProfile = () => {
     } catch {
       role = "";
     }
-    if (role === UserRole.RECEPTION || isReceptionProfile) return undefined;
+    if (role === UserRole.RECEPTION || isReceptionProfile || role === UserRole.PATIENT || isPatientProfile) return undefined;
     getDoctorProfileMe()
       .then((payload) => {
         if (cancelled) return;
@@ -1147,7 +1263,31 @@ const UserProfile = () => {
 
   document.title = isReceptionProfile
     ? "Reception profile | Niga Homeocentrum"
+    : isPatientProfile
+      ? "Patient profile | Niga Homeocentrum"
     : "Profile | Niga Homeocentrum";
+
+  if (isPatientProfile) {
+    return (
+      <div className="page-content user-profile-page doctor-dashboard-page">
+        <Container fluid>
+          <Row>
+            <Col lg={8}>
+              <Card className="user-profile-card doctor-stats-card">
+                <CardBody>
+                  <h5 className="mb-1">Patient profile</h5>
+                  <p className="text-muted">
+                    Update your name and contact, and grant privacy consent. Clinic hours and fees are not on this page.
+                  </p>
+                  <PatientProfileFields />
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    );
+  }
 
   if (isReceptionProfile) {
     return (
@@ -1203,7 +1343,7 @@ const UserProfile = () => {
                     </p>
                     <p className="user-profile-page__summary-meta mb-0">
                       <i className="ri-hashtag" aria-hidden="true" />
-                      <span>User ID: #{idx}</span>
+                      <span>User ID: {idx}</span>
                     </p>
                   </div>
                 </div>
@@ -1254,7 +1394,7 @@ const UserProfile = () => {
                             {userData.roleId || "N/A"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
-                            #{userData.userId || "N/A"}
+                            {userData.userId || "N/A"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-vip-crown-line" label="Super User">
                             <ProfileBadge tone={userData.isSuperUser ? "success" : "neutral"}>
@@ -1895,6 +2035,9 @@ const UserProfile = () => {
                         </ModalActionButton>
                       </div>
                     </Form>
+                  </TabPane>
+                  <TabPane tabId="credentials">
+                    <DoctorCredentialsPanel />
                   </TabPane>
                   <TabPane tabId="hours">
                     <Form onSubmit={handleSaveHours}>

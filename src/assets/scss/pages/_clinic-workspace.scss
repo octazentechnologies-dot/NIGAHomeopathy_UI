@@ -1,0 +1,53 @@
+// Inner Week 1–4 workspace pages — same blue, titles, and cards as account/reception/pharmacy dashboards.
+.clinic-workspace-page {
+  --clinic-blue: #25a0e2;
+  --clinic-blue-hover: #2099d4;
+  --clinic-muted: #6c757d;
+  --clinic-card-border: #eff3f7;
+
+  .clinic-page-title {
+    margin: 0;
+    color: #000 !important;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .clinic-page-subtitle {
+    margin: 0;
+    color: var(--clinic-muted);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .clinic-primary-btn {
+    --bs-btn-color: #fff !important;
+    --bs-btn-bg: var(--clinic-blue) !important;
+    --bs-btn-border-color: var(--clinic-blue) !important;
+    --bs-btn-hover-color: #fff !important;
+    --bs-btn-hover-bg: var(--clinic-blue-hover) !important;
+    --bs-btn-hover-border-color: var(--clinic-blue-hover) !important;
+    --bs-btn-active-color: #fff !important;
+    --bs-btn-active-bg: var(--clinic-blue-hover) !important;
+    --bs-btn-active-border-color: var(--clinic-blue-hover) !important;
+    background-color: var(--clinic-blue) !important;
+    border-color: var(--clinic-blue) !important;
+    color: #fff !important;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    padding: 0.45rem 1rem;
+    box-shadow: none !important;
+  }
+
+  .clinic-primary-btn:hover,
+  .clinic-primary-btn:focus,
+  .clinic-primary-btn:active {
+    background-color: var(--clinic-blue-hover) !important;
+    border-color: var(--clinic-blue-hover) !important;
+    color: #fff !important;
+  }
+
+  .card:not(.admin-dash-card) {
+    border: 1px solid var(--clinic-card-border);
+  }
+}

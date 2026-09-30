@@ -257,11 +257,20 @@ const FamilyMembers = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <Row>
           <Col xs={12}>
-            <h4 className="mb-3">Family{ownerName ? ` · ${ownerName}` : ""}</h4>
+            <h2 className="clinic-page-title mb-3">
+              {actingAsCaregiver ? "Family you manage" : "Family"}
+              {ownerName ? ` · ${ownerName}` : ""}
+            </h2>
+            {actingAsCaregiver ? (
+              <Alert color="info" className="mb-3">
+                Signed in as caregiver for <strong>{ownerName || "this patient"}</strong>.
+                This is their family list, the same one they see after patient login.
+              </Alert>
+            ) : null}
           </Col>
         </Row>
         <Row>

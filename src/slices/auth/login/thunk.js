@@ -74,7 +74,7 @@ export const loginUser = (user, history) => async (dispatch) => {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
         dispatch(changeLayout(layoutTypes.HORIZONTAL));
-        history('/receptiondashboard')
+        history('/reception')
       } else if (role === UserRole.ACCOUNT) {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));

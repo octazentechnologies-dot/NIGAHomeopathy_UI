@@ -64,6 +64,7 @@ import {
   savePrescriptionDetail,
   getPatientDetails
 } from '../../../slices/thunks';
+import { erxPotencies, unwrapS4 } from '../../../helpers/s4Week4Api';
 import { pageTitle } from '../../../common/brand';
 import {
   diagnosisSearch,
@@ -2089,6 +2090,10 @@ const PatientBoard = () => {
   const [prescriptionRemedyDetailList, setPrescriptionRemedyDetailList] = useState([]);
   const [selectedPrescriptionRemedy, setSelectedPrescriptionRemedy] = useState(null);
   const [prescriptionRemedyDescription, setPrescriptionRemedyDescription] = useState('');
+  const [potencyOptions, setPotencyOptions] = useState([]);
+  const [selectedPotency, setSelectedPotency] = useState(null);
+  const [historyNoteType, setHistoryNoteType] = useState('General');
+  const [historyNoteErxExcluded, setHistoryNoteErxExcluded] = useState(true);
   const [historyNoteContent, setHistoryNoteContent] = useState(() => {
     const contentState = ContentState.createFromText('');
     return EditorState.createWithContent(contentState);
@@ -2149,6 +2154,29 @@ const PatientBoard = () => {
       }
     }
   }, [prescriptionModalOpen, repertorizationRubrics, dispatch]);
+
+  useEffect(() => {
+    if (!prescriptionModalOpen) return undefined;
+    let cancelled = false;
+    erxPotencies()
+      .then((response) => {
+        if (cancelled) return;
+        const rows = unwrapS4(response);
+        const list = Array.isArray(rows) ? rows : Array.isArray(rows?.data) ? rows.data : [];
+        setPotencyOptions(
+          list.map((row) => ({
+            value: Number(row.potencyId ?? row.PotencyId),
+            label: row.code ?? row.Code ?? String(row.potencyId ?? row.PotencyId),
+          })).filter((opt) => opt.value)
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setPotencyOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [prescriptionModalOpen]);
 
   const subSectionPageSize = 10;
   sectionPageNumberRef.current = sectionPageNumber;
@@ -12647,9 +12675,38 @@ const PatientBoard = () => {
     }
   };
 
+  const firePatientRequiredNotice = (text) => {
+    const unlockOk = () => {
+      const btn = Swal.getConfirmButton();
+      if (!btn) return;
+      btn.disabled = false;
+      btn.removeAttribute('disabled');
+      btn.setAttribute('aria-disabled', 'false');
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = '1';
+      btn.style.color = '#fff';
+    };
+    Swal.fire({
+      icon: 'info',
+      title: 'Open a patient',
+      text,
+      confirmButtonText: 'OK',
+      confirmButtonColor: '#405189',
+      allowOutsideClick: true,
+      allowEscapeKey: true,
+      allowEnterKey: true,
+      focusConfirm: true,
+      didOpen: () => {
+        unlockOk();
+        window.setTimeout(unlockOk, 50);
+        window.setTimeout(unlockOk, 400);
+      },
+    });
+  };
+
   const handleOpenVisitHistory = async () => {
     if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient to see past visits.', confirmButtonColor: '#000000' });
+      firePatientRequiredNotice('Choose a patient to see past visits.');
       return;
     }
     setHistoryModalOpen(true);
@@ -12714,7 +12771,7 @@ const PatientBoard = () => {
 
   const openComplaints = async () => {
     if (!patientId) {
-      Swal.fire({ icon: 'warning', title: 'Open a patient', text: 'Choose a patient before recording complaints.', confirmButtonColor: '#000000' });
+      firePatientRequiredNotice('Choose a patient before recording complaints.');
       return;
     }
     setComplaintsModalOpen(true);
@@ -12802,6 +12859,15 @@ const PatientBoard = () => {
             </div>
           </div>
           <Link to={getHomeDashboardPath()} className="btn btn-link text-decoration-none ms-2"><i className="ri-dashboard-2-line me-1" />Dashboard</Link>
+          {patientAppId ? (
+            <Link
+              to={`/doctor/erx?patientAppId=${encodeURIComponent(patientAppId)}`}
+              className="btn btn-link text-decoration-none ms-2"
+            >
+              <i className="ri-file-text-line me-1" />
+              Sign eRx
+            </Link>
+          ) : null}
         </div>
         <div className="pb-logo-wrapper">
           <div className="pb-logo-inner">
@@ -13013,13 +13079,13 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
-              <Button type="button" className="btn btn-sm me-1" onClick={openComplaints} title="Chief complaints for this patient">
+              <Button type="button" className="btn btn-sm me-1" onClick={openComplaints} disabled={!patientId} title={patientId ? 'Chief complaints for this patient' : 'Choose a patient first'}>
                 Complaints
               </Button>
               <Button type="button" className="btn btn-sm me-1" onClick={openCaseDetails} title="Symptoms and grades for this case">
                 Case details
               </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} title="Past visits and prescriptions">
+              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} disabled={!patientId} title={patientId ? 'Past visits and prescriptions' : 'Choose a patient first'}>
                 History
               </Button>
               <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasePdf} title="Export case PDF">
@@ -15788,6 +15854,24 @@ const PatientBoard = () => {
                     style={{ fontSize: '14px', resize: 'none' }}
                   />
                 </div>
+                <div style={{ flex: '0 0 160px' }}>
+                  <Select
+                    isSearchable
+                    isClearable={false}
+                    placeholder="Potency (required)"
+                    options={potencyOptions}
+                    value={selectedPotency}
+                    onChange={(selected) => setSelectedPotency(selected)}
+                    {...modalSelectPortalProps}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        fontSize: '14px',
+                      }),
+                      menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
+                    }}
+                  />
+                </div>
                 <Button
                   color="primary"
                   size="sm"
@@ -15812,16 +15896,29 @@ const PatientBoard = () => {
                       return;
                     }
 
+                    if (!selectedPotency?.value) {
+                      Swal.fire({
+                        icon: 'warning',
+                        title: 'Warning',
+                        text: 'Potency is required before this remedy can be added. Signing the eRx refuses a line without potency.',
+                        confirmButtonColor: '#000000'
+                      });
+                      return;
+                    }
+
                     const newRemedy = {
                       remedyId: selectedPrescriptionRemedy.value,
                       remedyName: selectedPrescriptionRemedy.label,
                       description: prescriptionRemedyDescription.trim(),
-                      dose: ''
+                      dose: selectedPotency.label || '',
+                      potencyId: selectedPotency.value,
+                      potencyCode: selectedPotency.label || ''
                     };
 
                     setPrescriptionRemedyDetailList([...prescriptionRemedyDetailList, newRemedy]);
                     setSelectedPrescriptionRemedy(null);
                     setPrescriptionRemedyDescription('');
+                    setSelectedPotency(null);
                   }}
                   className="pb-prescription-modal__add-btn"
                 >
@@ -15836,6 +15933,7 @@ const PatientBoard = () => {
                     <tr>
                       <th style={{ width: '50px', textAlign: 'center' }}>No.</th>
                       <th><i className="ri-medicine-bottle-line" aria-hidden="true" />Remedy Name</th>
+                      <th style={{ width: '90px' }}>Potency</th>
                       <th><i className="ri-file-text-line" aria-hidden="true" />Remedy Description</th>
                       <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
                     </tr>
@@ -15846,6 +15944,7 @@ const PatientBoard = () => {
                         <tr key={`${item.remedyId}-${index}`}>
                           <td style={{ textAlign: 'center', padding: '4px 8px' }}>{index + 1}</td>
                           <td style={{ padding: '4px 8px' }}>{item.remedyName}</td>
+                          <td style={{ padding: '4px 8px' }}>{item.potencyCode || item.dose || '—'}</td>
                           <td style={{ padding: '4px 8px' }}>{item.description}</td>
                           <td style={{ textAlign: 'center', padding: '4px 4px' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -15863,7 +15962,7 @@ const PatientBoard = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="pb-prescription-modal__empty">
+                        <td colSpan={5} className="pb-prescription-modal__empty">
                           <span className="pb-prescription-modal__empty-inner">
                             <span className="pb-prescription-modal__empty-icon" aria-hidden="true">
                               <i className="ri-capsule-line" />
@@ -16368,6 +16467,34 @@ const PatientBoard = () => {
           )}
           {prescriptionTab === 'History Notes' && (
             <div className="pb-prescription-modal__panel">
+              <div className="d-flex flex-wrap align-items-center gap-3 px-3 pt-3">
+                <div>
+                  <Label className="form-label mb-1" for="historyNoteType">Note type</Label>
+                  <Input
+                    id="historyNoteType"
+                    type="select"
+                    value={historyNoteType}
+                    onChange={(e) => setHistoryNoteType(e.target.value)}
+                    style={{ minWidth: 200 }}
+                  >
+                    <option value="ChiefComplaint">Chief complaint</option>
+                    <option value="FollowUp">Follow-up</option>
+                    <option value="General">General</option>
+                  </Input>
+                </div>
+                <div className="form-check mt-4">
+                  <Input
+                    id="historyNoteErxExcluded"
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={historyNoteErxExcluded}
+                    onChange={(e) => setHistoryNoteErxExcluded(e.target.checked)}
+                  />
+                  <Label className="form-check-label" for="historyNoteErxExcluded">
+                    Keep off signed eRx
+                  </Label>
+                </div>
+              </div>
               {/* Editor - Full Width */}
               <div className="pb-prescription-modal__history">
                 <Editor
@@ -16428,6 +16555,20 @@ const PatientBoard = () => {
                 return;
               }
 
+              const missingPotency = prescriptionRemedyDetailList.filter((item) => !item.potencyId);
+              if (missingPotency.length) {
+                const names = missingPotency.map((item) => item.remedyName).filter(Boolean).join(', ');
+                Swal.fire({
+                  icon: 'warning',
+                  title: 'Warning',
+                  text: names
+                    ? `Potency is required before this prescription can be saved. Missing on: ${names}.`
+                    : 'Potency is required on every remedy before this prescription can be saved.',
+                  confirmButtonColor: '#000000'
+                });
+                return;
+              }
+
               // Call both APIs in a single click
               const promises = [];
 
@@ -16441,7 +16582,8 @@ const PatientBoard = () => {
               const remedyDetailList = prescriptionRemedyDetailList.map(item => ({
                 remedyId: item.remedyId,
                 description: item.description,
-                dose: item.dose || ''
+                dose: item.dose || item.potencyCode || '',
+                potencyId: item.potencyId || null
               }));
 
               const prescriptionRequestData = {
@@ -16459,7 +16601,9 @@ const PatientBoard = () => {
                 const historyRequestData = {
                   historyId: 0,
                   appointmentId: String(patientAppId),
-                  historyNote: htmlContentWithNewline
+                  historyNote: htmlContentWithNewline,
+                  noteType: historyNoteType,
+                  isErxExcluded: historyNoteErxExcluded
                 };
                 promises.push(dispatch(saveUpdateAppointmentHistoryNote(historyRequestData)));
               }

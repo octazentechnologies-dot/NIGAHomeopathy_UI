@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 //Layouts
 import NonAuthLayout from "../Layouts/NonAuthLayout";
@@ -11,6 +11,45 @@ import { AuthProtected } from './AuthProtected';
 import { AdminProtected } from './AdminProtected';
 import { RoleProtected } from './RoleProtected';
 import { isAdminRoutePath, isVelzonTemplatePath } from '../Components/constants/roles';
+import { getLoggedinUser } from '../helpers/api_helper';
+import { isSignedOut } from '../helpers/signedOutHistory';
+import { isRegisteredAppPath } from '../helpers/menuDestination';
+import { LANDING_PUBLIC_PATHS, LANDING_SPLAT_PATH } from '../constants/landingRoutes';
+import PageNotAvailable from '../pages/Pages/PageNotAvailable';
+import HomeoJobLanding from '../pages/Landing/HomeoJobLanding';
+
+const pathPattern = (pattern) => {
+    let path = String(pattern || "").trim();
+    if (!path.startsWith("/")) path = `/${path}`;
+    const body = path
+        .split("/")
+        .map((segment) => {
+            if (!segment) return "";
+            if (segment.startsWith(":")) return "[^/]+";
+            return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        })
+        .join("/");
+    return new RegExp(`^${body}/?$`, "i");
+};
+
+const MARKETING_PATTERNS = LANDING_PUBLIC_PATHS.map(pathPattern);
+
+/** Unknown clinic addresses stay signed in. The public site is only for real marketing pages. */
+const LandingGate = () => {
+    const { pathname } = useLocation();
+    const signedIn = !isSignedOut() && !!getLoggedinUser()?.token;
+    const marketing = MARKETING_PATTERNS.some((pattern) => pattern.test(pathname));
+    if (signedIn && !marketing && !isRegisteredAppPath(pathname)) {
+        return (
+            <AuthProtected>
+                <VerticalLayout>
+                    <PageNotAvailable />
+                </VerticalLayout>
+            </AuthProtected>
+        );
+    }
+    return <HomeoJobLanding />;
+};
 
 const Index = () => {
     return (
@@ -22,7 +61,7 @@ const Index = () => {
                             path={route.path}
                             element={
                                 <NonAuthLayout>
-                                    {route.component}
+                                    {route.path === LANDING_SPLAT_PATH ? <LandingGate /> : route.component}
                                 </NonAuthLayout>
                             }
                             key={idx}

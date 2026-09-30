@@ -9,7 +9,7 @@ const mapOption = (row) => {
   if (id == null) return null;
   return {
     value: Number(id),
-    label: section ? `${name} (${section}) · #${id}` : `${name} · #${id}`,
+    label: section ? `${name} (${section}) · ${id}` : `${name} · ${id}`,
   };
 };
 
@@ -20,7 +20,7 @@ const SubSectionSearchSelect = ({ value, onChange, isClearable = true, placehold
   const selected = useMemo(() => {
     if (value == null || value === "") return null;
     if (typeof value === "object" && value.value != null) return value;
-    return { value: Number(value), label: `SubSection #${value}` };
+    return { value: Number(value), label: `SubSection ${value}` };
   }, [value]);
 
   const loadOptions = useCallback(async (inputValue) => {

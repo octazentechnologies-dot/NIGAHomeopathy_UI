@@ -48,7 +48,7 @@ export const getHomeDashboardPath = (role) => {
     return "/doctordashboard";
   }
   if (userRole === UserRole.RECEPTION) {
-    return "/receptiondashboard";
+    return "/reception";
   }
   if (userRole === UserRole.ACCOUNT) {
     return "/accountdashboard";

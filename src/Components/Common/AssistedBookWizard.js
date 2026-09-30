@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Input, Label, ListGroup, ListGroupItem, Spinner } from "reactstrap";
+import moment from "moment";
 import {
   assistedBook,
   getAppointmentSlots,
   getPatientList,
   listBookingAssistanceRequests,
 } from "../../helpers/realbackend_helper";
+import { formatApiDate, normalizeAppointmentSlotsResponse } from "../../helpers/appointmentSlotHelper";
 import { getAuthUserId } from "../../helpers/menuByRole";
 import { listPublicDoctors, mapPublicDoctorCard } from "../../helpers/publicBookingApi";
+import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from "./DateOfBirthPicker";
 
 const unwrap = (response) => response?.data ?? response?.Data ?? response ?? {};
 
@@ -50,6 +53,8 @@ const AssistedBookWizard = ({
   selectedPatientId = "",
   patientPickKey = 0,
   patientNameHint = "",
+  onPatientSelected,
+  onBooked,
 }) => {
   const [doctorId, setDoctorId] = useState(fixedDoctorId ? String(fixedDoctorId) : "");
   const [doctorSearch, setDoctorSearch] = useState("");
@@ -59,7 +64,7 @@ const AssistedBookWizard = ({
   const [selectedDoctorLabel, setSelectedDoctorLabel] = useState("");
   const [book, setBook] = useState({
     patientId: "",
-    appointmentDate: "",
+    appointmentDate: moment().format("YYYY-MM-DD"),
     appointmentTime: "",
     consultMode: "InClinic",
   });
@@ -69,6 +74,8 @@ const AssistedBookWizard = ({
   const [patientsError, setPatientsError] = useState("");
   const [selectedLabel, setSelectedLabel] = useState("");
   const [slots, setSlots] = useState([]);
+  const [slotChoices, setSlotChoices] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsNote, setSlotsNote] = useState("");
   const [requests, setRequests] = useState([]);
   const [error, setError] = useState("");
@@ -149,6 +156,10 @@ const AssistedBookWizard = ({
   }, []);
 
   useEffect(() => {
+    if (patientPickKey) loadPatients();
+  }, [patientPickKey]);
+
+  useEffect(() => {
     if (!allowDoctorPick) return undefined;
     const handle = setTimeout(() => loadDoctors(doctorSearch), 300);
     return () => clearTimeout(handle);
@@ -180,33 +191,86 @@ const AssistedBookWizard = ({
   }, [showRequestQueue]);
 
   useEffect(() => {
+    let cancelled = false;
     const loadSlots = async () => {
       const did = Number(doctorId);
-      if (!did || !book.appointmentDate) {
+      const isoDate = formatApiDate(book.appointmentDate);
+      if (!did || !isoDate) {
         setSlots([]);
+        setSlotChoices([]);
         setSlotsNote("");
+        setSlotsLoading(false);
         return;
       }
-      try {
-        const response = await getAppointmentSlots({
-          DoctorId: did,
-          AppointmentDate: book.appointmentDate,
-        });
-        const body = unwrap(response);
-        const data = body.data || body.Data || body;
-        const list = data.slots || data.Slots || [];
-        const available = (Array.isArray(list) ? list : []).filter(
-          (row) => String(row.status || row.Status || "").toLowerCase() === "available"
-        );
-        setSlots(available);
-        setSlotsNote(available.length ? "" : "No open slots on this date.");
-        setBook((prev) => ({ ...prev, appointmentTime: "" }));
-      } catch (err) {
+      if (moment(isoDate).isBefore(moment().startOf("day"))) {
         setSlots([]);
+        setSlotChoices([]);
+        setSlotsNote("Pick today or a later date.");
+        setSlotsLoading(false);
+        return;
+      }
+      setSlotsLoading(true);
+      try {
+        const fetchDay = async (day) => {
+          const response = await getAppointmentSlots({
+            doctorId: did,
+            appointmentDate: day,
+          });
+          return normalizeAppointmentSlotsResponse(response);
+        };
+
+        let data = await fetchDay(isoDate);
+        let listed = data.slots || [];
+        let available = listed.filter((row) => row.status === "available");
+        let chosenDate = isoDate;
+        const todayIso = moment().format("YYYY-MM-DD");
+
+        if (!available.length && isoDate === todayIso) {
+          for (let offset = 1; offset <= 7; offset += 1) {
+            const nextDay = moment(isoDate).add(offset, "day").format("YYYY-MM-DD");
+            data = await fetchDay(nextDay);
+            listed = data.slots || [];
+            available = listed.filter((row) => row.status === "available");
+            if (available.length) {
+              chosenDate = nextDay;
+              break;
+            }
+          }
+        }
+
+        if (cancelled) return;
+        setSlotChoices(listed);
+        setSlots(available);
+        if (chosenDate !== isoDate && available.length) {
+          setSlotsNote(`Today has no open times. Showing ${moment(chosenDate).format("M/D/YYYY")}.`);
+          setBook((prev) => (
+            prev.appointmentDate === chosenDate
+              ? { ...prev, appointmentTime: "" }
+              : { ...prev, appointmentDate: chosenDate, appointmentTime: "" }
+          ));
+        } else {
+          setSlotsNote(
+            available.length
+              ? ""
+              : listed.length
+                ? "No open times left on this date. Pick a later day."
+                : "No slots on this date. Pick another day."
+          );
+          setBook((prev) => ({ ...prev, appointmentTime: "" }));
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setSlots([]);
+        setSlotChoices([]);
         setSlotsNote(apiMessage(err, "Could not load slots."));
+      } finally {
+        if (!cancelled) setSlotsLoading(false);
       }
     };
     loadSlots();
+    return () => {
+      cancelled = true;
+    };
   }, [doctorId, book.appointmentDate]);
 
   useEffect(() => {
@@ -249,10 +313,12 @@ const AssistedBookWizard = ({
 
   const selectPatient = (row) => {
     const id = patientIdOf(row);
+    const label = `${nameOf(row)}${mobileOf(row) ? ` · ${mobileOf(row)}` : ""}`;
     setBook((prev) => ({ ...prev, patientId: id ? String(id) : "" }));
-    setSelectedLabel(`${nameOf(row)}${mobileOf(row) ? ` · ${mobileOf(row)}` : ""}`);
+    setSelectedLabel(label);
     setPatientSearch("");
     setError("");
+    if (id) onPatientSelected?.({ patientId: String(id), label });
   };
 
   const selectDoctor = (row) => {
@@ -286,10 +352,10 @@ const AssistedBookWizard = ({
     if (mobileHint && !resolved && !fromBody) {
       setPatientSearch(mobileHint);
       setNote(
-        `Working request #${row.supportTicketId || row.SupportTicketId}. No PatientId in ticket — search by mobile ${mobileHint} below.`
+        `Working request ${row.supportTicketId || row.SupportTicketId}. No PatientId in ticket — search by mobile ${mobileHint} below.`
       );
     } else {
-      setNote(`Working request #${row.supportTicketId || row.SupportTicketId}. Complete the booking below.`);
+      setNote(`Working request ${row.supportTicketId || row.SupportTicketId}. Complete the booking below.`);
     }
   };
 
@@ -321,10 +387,16 @@ const AssistedBookWizard = ({
         consultMode: book.consultMode,
       });
       setNote("Assisted booking saved. Payment stays with Homeocentrum (not charged here).");
-      setBook({ patientId: "", appointmentDate: "", appointmentTime: "", consultMode: "InClinic" });
+      setBook({
+        patientId: "",
+        appointmentDate: moment().format("YYYY-MM-DD"),
+        appointmentTime: "",
+        consultMode: "InClinic",
+      });
       setSelectedLabel("");
       setPatientSearch("");
       await loadRequests();
+      onBooked?.();
     } catch (err) {
       setError(apiMessage(err, "Assisted booking failed"));
     } finally {
@@ -362,7 +434,7 @@ const AssistedBookWizard = ({
                     onClick={() => applyRequest(row)}
                     data-testid={`assisted-request-${id}`}
                   >
-                    <strong>#{id}</strong> · {subject}
+                    <strong>{id}</strong> · {subject}
                     <div className="text-muted small text-truncate">
                       {row.body || row.Body || ""}
                     </div>
@@ -501,31 +573,57 @@ const AssistedBookWizard = ({
       <Label className="mt-2" htmlFor="assisted-date">
         Date
       </Label>
-      <Input
-        id="assisted-date"
-        type="date"
-        value={book.appointmentDate}
-        onChange={(e) => setBook({ ...book, appointmentDate: e.target.value })}
-        data-testid="assisted-date"
-      />
+      <div className="assisted-date-picker">
+        <DateOfBirthPicker
+          name="assisted-date"
+          value={
+            book.appointmentDate
+              ? moment(book.appointmentDate, "YYYY-MM-DD").format(DOB_DISPLAY_FORMAT)
+              : ""
+          }
+          minDate="today"
+          maxDate={moment().add(1, "year").format("YYYY-MM-DD")}
+          placeholder="Pick today or later"
+          onChange={(display) => {
+            const iso = formatApiDate(display);
+            if (!iso) return;
+            if (moment(iso).isBefore(moment().startOf("day"))) {
+              setError("Appointment date must be today or later.");
+              return;
+            }
+            setError("");
+            setBook((prev) => ({ ...prev, appointmentDate: iso, appointmentTime: "" }));
+          }}
+        />
+      </div>
+      <small className="text-muted d-block mb-1">Today and later dates only.</small>
 
       <Label className="mt-2">Time</Label>
       <Input
         type="select"
         value={book.appointmentTime}
         onChange={(e) => setBook({ ...book, appointmentTime: e.target.value })}
-        disabled={!book.appointmentDate || !doctorId}
+        disabled={!book.appointmentDate || !doctorId || slotsLoading || !slots.length}
         data-testid="assisted-time"
       >
         <option value="">
-          {book.appointmentDate ? "Select an open slot" : "Choose a date first"}
+          {slotsLoading
+            ? "Loading slots…"
+            : book.appointmentDate
+              ? slots.length
+                ? "Select an open slot"
+                : "No open slots — pick another date"
+              : "Choose a date first"}
         </option>
-        {slots.map((row) => {
+        {(slots.length ? slots : slotChoices).map((row) => {
           const time = row.time || row.Time;
           const label = row.label || row.Label || time;
+          const status = String(row.status || "").toLowerCase();
+          const open = status === "available" || !status;
+          const suffix = open || !status ? "" : ` (${status})`;
           return (
-            <option key={time} value={time}>
-              {label}
+            <option key={`${time}-${status || "open"}`} value={time} disabled={!open}>
+              {label}{suffix}
             </option>
           );
         })}
@@ -544,10 +642,10 @@ const AssistedBookWizard = ({
       </Input>
 
       <Button
-        className="mt-3"
+        className="mt-3 reception-primary-btn"
         color="primary"
         onClick={saveAssisted}
-        disabled={saving || !doctorId || !book.patientId}
+        disabled={saving || !doctorId || !book.patientId || !book.appointmentDate || !book.appointmentTime}
         data-testid="assisted-book-submit"
       >
         {saving ? "Booking…" : "Book for patient"}

@@ -59,10 +59,10 @@ const RefillInboxPage = () => {
   }, [load]);
 
   return (
-    <div className="page-content" data-testid="refill-inbox">
-      <Container fluid className="py-4" style={{ maxWidth: 720 }}>
-        <h4 className="mb-2">Refill inbox</h4>
-        <p className="text-muted small mb-3">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page" data-testid="refill-inbox">
+      <Container fluid>
+        <h2 className="clinic-page-title mb-2">Refill inbox</h2>
+        <p className="clinic-page-subtitle small mb-3">
           Approve or reject repeat prescription requests. Snapshot is read-only — no local edits.
         </p>
 
@@ -102,7 +102,7 @@ const RefillInboxPage = () => {
               return (
                 <li key={id} className="border rounded p-3 mb-2 d-flex justify-content-between gap-2">
                   <div>
-                    <strong>#{id}</strong>
+                    <strong>{id}</strong>
                     <div className="small text-muted">
                       Patient {patientId ?? "—"} · {status}
                     </div>
