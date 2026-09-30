@@ -131,7 +131,7 @@ const PatientContextCard = ({ patientAppId, className = "" }) => {
             <strong>Tele:</strong> {ctx.teleStatus || "—"}
           </p>
           <p className="mb-0 mt-2 text-muted small">
-            Visit #{ctx.patientAppId} · read-only context (no case-taking)
+            Visit {ctx.patientAppId} · read-only context (no case-taking)
           </p>
         </div>
       ) : null}

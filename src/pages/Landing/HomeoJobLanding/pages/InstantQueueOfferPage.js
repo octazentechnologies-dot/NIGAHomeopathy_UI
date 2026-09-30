@@ -226,7 +226,7 @@ const InstantQueueOfferPage = () => {
                                         className="homeojob-doctor-detail__card p-3 mb-2 d-flex justify-content-between align-items-center gap-2"
                                     >
                                         <div>
-                                            <strong>#{o.instantConsultRequestId}</strong>{" "}
+                                            <strong>{o.instantConsultRequestId}</strong>{" "}
                                             {o.contactName}
                                             <div className="small text-muted">
                                                 Queue {o.queuePosition} · {o.status}

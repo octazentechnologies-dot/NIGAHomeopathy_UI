@@ -114,9 +114,10 @@ const DoctorDetailPage = () => {
         getPublicDoctorSlots(doctor.id, bookingDate)
             .then((payload) => {
                 if (cancelled) return;
-                const list = (payload.slots || payload.Slots || []).filter(
-                    (slot) => (slot.status || slot.Status || "available") !== "booked"
-                );
+                const list = (payload.slots || payload.Slots || []).filter((slot) => {
+                    const status = String(slot.status || slot.Status || "available").toLowerCase();
+                    return status === "available";
+                });
                 setSlots(list);
                 setSelectedSlot((prev) => {
                     if (prev && list.some((slot) => (slot.time || slot.label) === prev)) return prev;
@@ -432,10 +433,14 @@ const DoctorDetailPage = () => {
                                     <i className="ri-calendar-line" aria-hidden="true" />
                                     <input
                                         type="date"
+                                        min={toIsoDate(new Date())}
                                         value={dateValue}
                                         onChange={(e) => {
                                             const next = e.target.value ? new Date(`${e.target.value}T00:00:00`) : new Date();
                                             next.setHours(0, 0, 0, 0);
+                                            const today = new Date();
+                                            today.setHours(0, 0, 0, 0);
+                                            if (next < today) return;
                                             setBookingDate(next);
                                         }}
                                         aria-label="Appointment date"

@@ -131,7 +131,7 @@ const DoctorErxPage = () => {
     }
     try {
       await erxPdf(erxId);
-      setNote(`PDF request sent for eRx #${erxId}.`);
+      setNote(`PDF request sent for eRx ${erxId}.`);
     } catch (err) {
       setError(s4Message(err));
     }
@@ -213,11 +213,11 @@ const DoctorErxPage = () => {
                     <Row className="g-3 mb-3">
                       <Col md={4}>
                         <div className="text-muted small">eRx</div>
-                        <div>#{pick(snapshot, "erxSnapshotId", "ErxSnapshotId", "erxId", "ErxId") || "—"}</div>
+                        <div>{pick(snapshot, "erxSnapshotId", "ErxSnapshotId", "erxId", "ErxId") || "—"}</div>
                       </Col>
                       <Col md={4}>
                         <div className="text-muted small">Visit</div>
-                        <div>#{pick(snapshot, "patientAppId", "PatientAppId") || "—"}</div>
+                        <div>{pick(snapshot, "patientAppId", "PatientAppId") || "—"}</div>
                       </Col>
                       <Col md={4}>
                         <div className="text-muted small">Status</div>

@@ -102,7 +102,7 @@ const RefillInboxPage = () => {
               return (
                 <li key={id} className="border rounded p-3 mb-2 d-flex justify-content-between gap-2">
                   <div>
-                    <strong>#{id}</strong>
+                    <strong>{id}</strong>
                     <div className="small text-muted">
                       Patient {patientId ?? "—"} · {status}
                     </div>

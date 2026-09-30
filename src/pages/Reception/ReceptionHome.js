@@ -134,8 +134,8 @@ const ReceptionHome = () => {
       <style>body{font-family:Segoe UI,Arial,sans-serif;padding:24px;color:#111}
       h1{font-size:18px;margin:0 0 12px} .row{margin:6px 0} .muted{color:#666;font-size:12px}</style></head>
       <body><h1>Homeocentrum receipt</h1>
-      <div class="row">Order #${orderId}</div>
-      <div class="row">Visit #${visitId}</div>
+      <div class="row">Order ${orderId}</div>
+      <div class="row">Visit ${visitId}</div>
       <div class="row">Amount ₹ ${amount}</div>
       <div class="row">Method ${payMethod}</div>
       <div class="row">GST ₹ ${gst}</div>
@@ -279,7 +279,7 @@ const ReceptionHome = () => {
                     return (
                       <li key={id} className="d-flex justify-content-between align-items-start border-bottom py-2 gap-2">
                         <div>
-                          <div className="fw-medium">#{id} · {name}</div>
+                          <div className="fw-medium">{id} · {name}</div>
                           <div className="text-muted small">
                             {row.appointmentTime || row.AppointmentTime || "—"} · {wait}
                             {" · "}
@@ -381,7 +381,7 @@ const ReceptionHome = () => {
                       const time = row.appointmentTime || row.AppointmentTime || "";
                       return (
                         <option key={id} value={String(id)}>
-                          #{id} · {name}{time ? ` · ${time}` : ""}
+                          {id} · {name}{time ? ` · ${time}` : ""}
                         </option>
                       );
                     })}
@@ -405,8 +405,8 @@ const ReceptionHome = () => {
                   {issuedReceipt ? (
                     <div className="mt-3 border rounded p-3 bg-light" data-testid="reception-receipt-print">
                       <div className="fw-medium mb-1">Receipt</div>
-                      <div className="small">Order #{issuedReceipt.paymentOrderId || issuedReceipt.PaymentOrderId || "—"}</div>
-                      <div className="small">Visit #{issuedReceipt.patientAppId || issuedReceipt.PatientAppId || receipt.appointmentId}</div>
+                      <div className="small">Order {issuedReceipt.paymentOrderId || issuedReceipt.PaymentOrderId || "—"}</div>
+                      <div className="small">Visit {issuedReceipt.patientAppId || issuedReceipt.PatientAppId || receipt.appointmentId}</div>
                       <div className="small">
                         Amount ₹{issuedReceipt.amount ?? issuedReceipt.Amount ?? "—"}
                         {" · "}

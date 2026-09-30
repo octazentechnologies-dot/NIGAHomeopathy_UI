@@ -117,12 +117,19 @@ const Login = (props) => {
                 <Card className="mt-3 mb-4 auth-signin-card auth-register-card auth-login-card">
                   <CardBody className="p-4 p-lg-5">
                     <div className="text-center mb-4">
-                      <img
-                        src={logoDark}
-                        alt="Homeocentrum"
-                        className="auth-signin-logo mb-3"
-                        height="38"
-                      />
+                      <Link to="/" className="d-inline-block" title="Homeocentrum">
+                        <img
+                          src={logoDark}
+                          alt="Homeocentrum"
+                          className="auth-signin-logo mb-3"
+                          height="38"
+                        />
+                      </Link>
+                      <div className="mb-2">
+                        <Link to="/" className="text-muted small">
+                          Visit Homeocentrum
+                        </Link>
+                      </div>
                       <h4 className="auth-register-title mb-0">Sign in to Homeocentrum</h4>
                     </div>
 
