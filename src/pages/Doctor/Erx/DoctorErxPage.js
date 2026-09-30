@@ -8,6 +8,7 @@ import {
   signErx,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
+import { getAppointmentList } from "../../../helpers/realbackend_helper";
 
 const pick = (row, ...keys) => {
   for (const key of keys) {
@@ -34,11 +35,13 @@ const DoctorErxPage = () => {
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [visits, setVisits] = useState([]);
 
   document.title = "eRx sign | Niga Homeocentrum";
 
   const load = async (idOverride) => {
-    const id = Number(idOverride ?? patientAppId);
+    const raw = idOverride != null && typeof idOverride !== "object" ? idOverride : patientAppId;
+    const id = Number(raw);
     if (!id) {
       setError("Enter a patient appointment id.");
       return;
@@ -66,6 +69,44 @@ const DoctorErxPage = () => {
     const fromQuery = Number(searchParams.get("patientAppId"));
     if (fromQuery > 0) load(fromQuery);
   }, []);
+
+  useEffect(() => {
+    let userId = "";
+    try {
+      const parsed = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+      userId = parsed.userId || parsed.UserId || parsed.data?.userId || parsed.id || "";
+    } catch (_) {
+      userId = "";
+    }
+    if (!userId) return undefined;
+    let cancelled = false;
+    getAppointmentList({ userId, appointmentDate: new Date().toISOString() })
+      .then((response) => {
+        const body = response?.data ?? response;
+        const list = Array.isArray(body)
+          ? body
+          : Array.isArray(body?.data)
+            ? body.data
+            : [];
+        if (!cancelled) setVisits(list);
+      })
+      .catch(() => {
+        if (!cancelled) setVisits([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visitIdOf = (row) =>
+    row?.patientAppId || row?.patientAppID || row?.PatientAppId || row?.appointmentId || row?.AppointmentId || "";
+
+  const visitLabel = (row) => {
+    const id = visitIdOf(row);
+    const name = row?.patientName || row?.PatientName || row?.name || row?.fullName || "Patient";
+    const time = row?.appointmentTime || row?.AppointmentTime || row?.time || "";
+    return `${name}${time ? ` · ${time}` : ""} · visit ${id}`;
+  };
 
   const onSign = async () => {
     const id = Number(patientAppId);
@@ -107,7 +148,7 @@ const DoctorErxPage = () => {
       <Container fluid>
         <h2 className="clinic-page-title">Sign eRx</h2>
         <p className="clinic-page-subtitle">
-          Load the appointment prescription (no history notes), then lock the snapshot. Refills use the signed copy.
+          Pick today&apos;s visit, or open Sign eRx from Patient Board on that visit. The visit id is filled in for you.
         </p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
@@ -116,15 +157,40 @@ const DoctorErxPage = () => {
             <Card className="admin-dash-card">
               <CardBody>
                 <FormGroup>
-                  <Label>Patient appointment id</Label>
+                  <Label>Today&apos;s visit</Label>
+                  <Input
+                    type="select"
+                    value={visits.some((row) => String(visitIdOf(row)) === String(patientAppId)) ? String(patientAppId) : ""}
+                    onChange={(e) => {
+                      setPatientAppId(e.target.value);
+                      if (e.target.value) load(e.target.value);
+                    }}
+                  >
+                    <option value="">{visits.length ? "Select a patient" : "No visits loaded for today"}</option>
+                    {visits.map((row) => {
+                      const id = visitIdOf(row);
+                      if (!id) return null;
+                      return (
+                        <option key={id} value={id}>
+                          {visitLabel(row)}
+                        </option>
+                      );
+                    })}
+                  </Input>
+                </FormGroup>
+                <FormGroup>
+                  <Label>Visit id</Label>
                   <Input
                     type="number"
                     min={1}
                     value={patientAppId}
                     onChange={(e) => setPatientAppId(e.target.value)}
                   />
+                  <div className="text-muted small mt-1">
+                    Use this only when the visit is not in today&apos;s list. Patient Board already sends the id.
+                  </div>
                 </FormGroup>
-                <Button color="soft-secondary" className="me-2" disabled={loading} onClick={load}>
+                <Button color="soft-secondary" className="me-2" disabled={loading || !patientAppId} onClick={() => load()}>
                   {loading ? <Spinner size="sm" /> : "Load"}
                 </Button>
                 <Button className="clinic-primary-btn me-2" disabled={signing || !patientAppId} onClick={onSign}>

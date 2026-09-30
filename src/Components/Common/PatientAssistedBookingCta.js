@@ -29,10 +29,12 @@ const PatientAssistedBookingCta = ({ patientId, contactMobile }) => {
       const id = body?.supportTicketId ?? body?.SupportTicketId;
       setOk(
         id
-          ? `Request #${id} sent. Reception or admin will book for you.`
+          ? `Request ${id} sent. Reception or admin will book for you.`
           : "Request sent. Reception or admin will book for you."
       );
       setNotes("");
+      setPreferredDate("");
+      setMobile(contactMobile || "");
     } catch (err) {
       const data = err?.response?.data;
       setError(data?.message || data?.Message || "Could not send assistance request.");

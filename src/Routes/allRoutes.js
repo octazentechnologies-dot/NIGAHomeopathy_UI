@@ -1,5 +1,5 @@
 import React from "react";
-import RoleBasedHomeRedirect from "../Components/Common/RoleBasedHomeRedirect";
+import PageNotAvailable from "../pages/Pages/PageNotAvailable";
 import {
   ACCOUNT_ROUTE_ROLES,
   PHARMACY_ROUTE_ROLES,
@@ -160,6 +160,7 @@ import DoctorDashboard from "../pages/Doctor/Dashboard";
 import PatientBoardRoute from "./PatientBoardRoute";
 import AnatomyPage from "../pages/AnatomyPage";
 import TelemedicineDashboard from "../pages/Doctor/Telemedicine";
+import DoctorTeleconsultPage from "../pages/Doctor/Teleconsult/DoctorTeleconsultPage";
 import AccountDashboard from "../pages/Account/Dashboard";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
@@ -604,6 +605,7 @@ const authProtectedRoutes = [
   { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
   { path: "patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
+  { path: "doctor/tele", component: <DoctorTeleconsultPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/telemedicine", component: <TelemedicineDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
@@ -874,8 +876,10 @@ const authProtectedRoutes = [
   { path: "/admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/assisted-booking", component: <AssistedBookingPage />, allowedRoles: ADMIN_PORTAL_ROLES },
 
-  // Catch-all for authenticated app routes (landing is served from publicRoutes)
-  { path: "*", component: <RoleBasedHomeRedirect /> },
+  { path: "/page-not-available", component: <PageNotAvailable /> },
+  { path: "page-not-available", component: <PageNotAvailable /> },
+  // Unknown clinic address stays signed in and shows this page.
+  { path: "*", component: <PageNotAvailable /> },
 ];
 
 const publicRoutes = [

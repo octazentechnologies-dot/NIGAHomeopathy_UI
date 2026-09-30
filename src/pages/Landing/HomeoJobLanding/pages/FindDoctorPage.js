@@ -38,9 +38,15 @@ const FindDoctorPage = () => {
             .catch(() => setCategories([]));
     }, []);
 
+    const instantMode = searchParams.get("mode") === "instant";
+
     useEffect(() => {
         setQuery(searchParams.get("q") || "");
         setSpecialization(searchParams.get("concern") || "");
+        if (searchParams.get("mode") === "instant") {
+            setTeleOnly(true);
+            setOnlineOnly(true);
+        }
         setPage(1);
     }, [searchParams]);
 
@@ -155,6 +161,12 @@ const FindDoctorPage = () => {
                         Search
                     </button>
                 </form>
+
+                {instantMode ? (
+                    <p className="text-muted small mb-3">
+                        Instant consultation: showing doctors who are online for a tele visit.
+                    </p>
+                ) : null}
 
                 <div className="homeojob-find-doctor__filters">
                     <input

@@ -9,6 +9,10 @@ import {
   FormGroup,
   Input,
   Label,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Row,
   Spinner,
   Table,
@@ -53,6 +57,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
   const [sellers, setSellers] = useState([]);
   const [pharmacyPartnerId, setPharmacyPartnerId] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [confirmOrder, setConfirmOrder] = useState(null);
 
   document.title = `${medicineOnly ? "Medicine orders" : "Care continuity"} | Niga Homeocentrum`;
 
@@ -144,12 +149,44 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
     load();
   }, [medicineOnly]);
 
+  const placeMedicineOrder = async (id) => {
+    setBusyId(id);
+    setError("");
+    try {
+      const payload = { erxSnapshotId: id };
+      if (pharmacyPartnerId) payload.pharmacyPartnerId = Number(pharmacyPartnerId);
+      const created = unwrapS4(await createMedicineOrder(payload));
+      const orderId = created?.medicineOrderId || created?.MedicineOrderId;
+      if (orderId) await grantMedicineConsent(orderId);
+      setNote(`Medicine order ${orderId || ""} started. You are not charged until you accept a quote and choose Pay online or COD.`);
+      setConfirmOrder(null);
+      await load();
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const askMedicineOrder = (id) => {
+    const previous = orders.find((row) => String(row.erxSnapshotId || row.ErxSnapshotId) === String(id));
+    if (previous) {
+      setConfirmOrder({
+        erxId: id,
+        previousId: previous.medicineOrderId || previous.MedicineOrderId || previous.id,
+        status: previous.status || previous.Status || "",
+      });
+      return;
+    }
+    placeMedicineOrder(id);
+  };
+
   if (medicineOnly) {
     return (
       <div className="page-content admin-dashboard-page clinic-workspace-page">
         <Container fluid>
           <h2 className="clinic-page-title">Medicine orders</h2>
-          <p className="clinic-page-subtitle">Start HomeoMeds from a signed prescription, grant consent, then pay after you accept the quote.</p>
+          <p className="clinic-page-subtitle">Order medicines does not take payment. Pay only after the pharmacy quotes and you accept.</p>
           {error ? <Alert color="danger">{error}</Alert> : null}
           {note ? <Alert color="success">{note}</Alert> : null}
           <Card className="admin-dash-card mb-3">
@@ -198,23 +235,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                               size="sm"
                               className="clinic-primary-btn"
                               disabled={busyId === id}
-                              onClick={async () => {
-                                setBusyId(id);
-                                setError("");
-                                try {
-                                  const payload = { erxSnapshotId: id };
-                                  if (pharmacyPartnerId) payload.pharmacyPartnerId = Number(pharmacyPartnerId);
-                                  const created = unwrapS4(await createMedicineOrder(payload));
-                                  const orderId = created?.medicineOrderId || created?.MedicineOrderId;
-                                  if (orderId) await grantMedicineConsent(orderId);
-                                  setNote(`Medicine order ${orderId ? `#${orderId}` : ""} started and consent granted.`);
-                                  await load();
-                                } catch (err) {
-                                  setError(s4Message(err));
-                                } finally {
-                                  setBusyId(null);
-                                }
-                              }}
+                              onClick={() => askMedicineOrder(id)}
                             >
                               Order medicines
                             </Button>
@@ -348,6 +369,17 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
           </Card>
           <Card className="admin-dash-card mt-3">
             <CardBody>
+              <h5>How payments work</h5>
+              <ol className="mb-3 ps-3">
+                <li>Patient — Order medicines creates the order and grants consent. No charge yet.</li>
+                <li>Pharmacy — accepts with OTP, confirms stock, and saves a quote.</li>
+                <li>Patient — Accept quote, then Pay online or COD.</li>
+                <li>Pharmacy — marks the order ready and dispatches it.</li>
+              </ol>
+              <p className="text-muted small mb-3">
+                Admin activates the pharmacy and handles exceptions. Account sees the medicine ledger.
+                Reception collects visit fees only, not medicine orders.
+              </p>
               <h5>Payments</h5>
               {payments.length === 0 ? (
                 <p className="text-muted mb-0">No consult or medicine payments yet.</p>
@@ -375,6 +407,24 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
               )}
             </CardBody>
           </Card>
+          <Modal isOpen={!!confirmOrder} toggle={() => setConfirmOrder(null)}>
+            <ModalHeader toggle={() => setConfirmOrder(null)}>Order these medicines again?</ModalHeader>
+            <ModalBody>
+              This prescription already has order {confirmOrder?.previousId || ""}
+              {confirmOrder?.status ? ` (${confirmOrder.status})` : ""}.
+              A new order uses the same signed prescription.
+            </ModalBody>
+            <ModalFooter>
+              <Button color="soft-secondary" onClick={() => setConfirmOrder(null)}>Cancel</Button>
+              <Button
+                className="clinic-primary-btn"
+                disabled={busyId === confirmOrder?.erxId}
+                onClick={() => placeMedicineOrder(confirmOrder.erxId)}
+              >
+                Order again
+              </Button>
+            </ModalFooter>
+          </Modal>
         </Container>
       </div>
     );
@@ -398,6 +448,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   {timeline.length === 0 ? (
                     <p className="text-muted mb-0">No timeline events yet.</p>
                   ) : (
+                    <div style={{ maxHeight: 320, overflowY: "auto" }}>
                     <ul className="list-unstyled mb-0">
                       {timeline.map((row, idx) => (
                         <li key={row.eventId || row.id || idx} className="border-bottom py-2">
@@ -409,6 +460,7 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                         </li>
                       ))}
                     </ul>
+                    </div>
                   )}
                 </CardBody>
               </Card>
@@ -521,12 +573,15 @@ const PatientContinuityPage = ({ section = "continuity" }) => {
                   ) : (
                     <ul className="list-unstyled mb-0">
                       {diary.map((row) => {
-                        const id = row.diaryId || row.DiaryId || row.id;
+                        const id = row.symptomDiaryId || row.SymptomDiaryId || row.diaryId || row.DiaryId || row.id;
+                        const when = row.entryDate || row.EntryDate || row.createdAt || row.CreatedAt || "";
+                        const severity = row.severity ?? row.Severity;
                         return (
                           <li key={id} className="border-bottom py-2">
                             <div>{row.note || row.Note || row.body || "—"}</div>
                             <div className="text-muted small">
-                              {String(row.createdAt || row.CreatedAt || "").slice(0, 16)}
+                              {String(when).slice(0, 10)}
+                              {severity != null && severity !== "" ? ` · severity ${severity}` : ""}
                             </div>
                           </li>
                         );

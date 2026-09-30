@@ -9,6 +9,16 @@ const DoctorMobileHeaderButtons = ({ userRole }) => {
     <>
       <div className="ms-1 header-item">
         <Link
+          to="/doctor/tele"
+          className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
+          title="Teleconsult"
+          aria-label="Teleconsult"
+        >
+          <i className="ri-vidicon-line fs-20" />
+        </Link>
+      </div>
+      <div className="ms-1 header-item">
+        <Link
           to="/doctor/consult-fees"
           className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
           title="Consult fees"

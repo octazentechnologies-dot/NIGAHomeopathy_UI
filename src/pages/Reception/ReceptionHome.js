@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner } from "reactstrap";
-import { callNextAppointment, getAppointmentQueue } from "../../helpers/realbackend_helper";
+import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Spinner } from "reactstrap";
+import Swal from "sweetalert2";
+import { callNextAppointment, getAppointmentQueue, getAppointmentSlots, updateAppointmentTime } from "../../helpers/realbackend_helper";
+import { formatApiDate, normalizeAppointmentSlotsResponse, timeInputToApiTime } from "../../helpers/appointmentSlotHelper";
 import { collectAtReception, s4Message, unwrapS4 } from "../../helpers/s4Week4Api";
 import { paymentStatusMeta } from "../../helpers/paymentStatusBadge";
 import TodaysAppointments from "./components/TodaysAppointments";
 import ReceptionNewPatientForm from "./components/ReceptionNewPatientForm";
-import ReceptionHomeCasePaper from "./components/ReceptionHomeCasePaper";
 import RescheduleModal from "../../Components/Common/RescheduleModal";
 import CancelAppointmentModal from "../../Components/Common/CancelAppointmentModal";
 import AssistedBookWizard from "../../Components/Common/AssistedBookWizard";
@@ -40,18 +40,19 @@ const ReceptionHome = () => {
   const [queue, setQueue] = useState([]);
   const [dayVisits, setDayVisits] = useState([]);
   const [error, setError] = useState("");
+  const [deskPanel, setDeskPanel] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [collecting, setCollecting] = useState(false);
   const [issuedReceipt, setIssuedReceipt] = useState(null);
   const [collectError, setCollectError] = useState("");
   const [note, setNote] = useState("");
   const [rescheduleRow, setRescheduleRow] = useState(null);
+  const [timeEditRow, setTimeEditRow] = useState(null);
   const [cancelRow, setCancelRow] = useState(null);
   const [queueLoading, setQueueLoading] = useState(false);
   const [assistedPatientId, setAssistedPatientId] = useState("");
   const [assistedPatientName, setAssistedPatientName] = useState("");
   const [assistedPickKey, setAssistedPickKey] = useState(0);
-  const [casePrefill, setCasePrefill] = useState({ patientId: "", label: "" });
 
   const load = async () => {
     if (!doctorId) return;
@@ -119,7 +120,7 @@ const ReceptionHome = () => {
     setAssistedPatientId(String(patientId));
     setAssistedPatientName(label || "");
     setAssistedPickKey((n) => n + 1);
-    setCasePrefill({ patientId: String(patientId), label: label || "" });
+    setDeskPanel("appointment");
   };
 
   const printReceiptWindow = (printed, method) => {
@@ -201,18 +202,20 @@ const ReceptionHome = () => {
         <Row className="g-3">
           <Col md={6}>
             <Card className="admin-dash-card"><CardBody>
-              {/* REC-03.02 — five front-desk quick actions */}
               <h5>Quick actions</h5>
+              <p className="text-muted small mb-2">Case paper and Schedule stay in the top menu. Open one desk form at a time.</p>
               <div className="d-flex flex-wrap gap-2" data-testid="reception-quick-actions">
                 <Button
                   className="btn btn-sm reception-primary-btn"
-                  onClick={() => document.getElementById("reception-new-patient")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  outline={deskPanel !== "patient"}
+                  onClick={() => setDeskPanel((current) => (current === "patient" ? null : "patient"))}
                 >
                   New patient
                 </Button>
                 <Button
                   className="btn btn-sm reception-primary-btn"
-                  onClick={() => document.getElementById("reception-assisted")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  outline={deskPanel !== "appointment"}
+                  onClick={() => setDeskPanel((current) => (current === "appointment" ? null : "appointment"))}
                 >
                   New appointment
                 </Button>
@@ -220,6 +223,10 @@ const ReceptionHome = () => {
                   color="soft-warning"
                   data-testid="reception-collect-payment"
                   onClick={() => {
+                    if (deskPanel === "collect") {
+                      setDeskPanel(null);
+                      return;
+                    }
                     const source = dayVisits.length ? dayVisits : queue;
                     const firstUnpaid = source.find((row) => {
                       const status = String(row.paymentStatus || row.PaymentStatus || "UNPAID").toUpperCase();
@@ -235,17 +242,11 @@ const ReceptionHome = () => {
                       appointmentId: firstApp,
                       gst: "GST applied by New API on collection",
                     });
+                    setDeskPanel("collect");
                   }}
                 >
                   Collect payment
                 </Button>
-                <Button
-                  color="soft-secondary"
-                  onClick={() => document.getElementById("reception-case-paper")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                >
-                  Case paper
-                </Button>
-                <Link className="btn btn-soft-secondary" to="/reception/schedule">Schedule</Link>
               </div>
             </CardBody></Card>
           </Col>
@@ -299,6 +300,7 @@ const ReceptionHome = () => {
                                 appointmentId: String(id),
                                 gst: "GST applied by New API on collection",
                               });
+                              setDeskPanel("collect");
                             }}
                           >
                             Collect
@@ -325,14 +327,14 @@ const ReceptionHome = () => {
               )}
             </CardBody></Card>
           </Col>
-          {receipt ? (
+          {deskPanel === "collect" && receipt ? (
             <Col md={6}>
               {/* PAY-04 / REC-13 — CollectAtReception on New API :5002 */}
               <Card className="admin-dash-card" data-testid="reception-receipt-shell" style={{ position: "relative", zIndex: 6 }}>
                 <CardBody>
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <h5 className="mb-0">Collect at reception</h5>
-                    <Button size="sm" color="link" className="p-0" type="button" onClick={() => { setReceipt(null); setIssuedReceipt(null); setCollectError(""); }}>
+                    <Button size="sm" color="link" className="p-0" type="button" onClick={() => { setDeskPanel(null); setReceipt(null); setIssuedReceipt(null); setCollectError(""); }}>
                       Close
                     </Button>
                   </div>
@@ -433,6 +435,7 @@ const ReceptionHome = () => {
               </Card>
             </Col>
           ) : null}
+          {deskPanel === "patient" ? (
           <Col md={6} id="reception-new-patient">
             <Card className="admin-dash-card"><CardBody>
               <h5>New patient</h5>
@@ -445,21 +448,8 @@ const ReceptionHome = () => {
               />
             </CardBody></Card>
           </Col>
-          <Col md={6} id="reception-case-paper">
-            <Card className="admin-dash-card"><CardBody>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h5 className="mb-0">Case paper</h5>
-                <Link className="small" to="/reception/case-paper">Open full page</Link>
-              </div>
-              <p className="text-muted small">Log the reason for visit before the doctor opens the board.</p>
-              <ReceptionHomeCasePaper
-                queue={queue}
-                prefillPatientId={casePrefill.patientId}
-                prefillLabel={casePrefill.label}
-                onSelect={(picked) => pickSharedPatient(picked.patientId, picked.label)}
-              />
-            </CardBody></Card>
-          </Col>
+          ) : null}
+          {deskPanel === "appointment" ? (
           <Col md={6} id="reception-assisted">
             <Card className="admin-dash-card"><CardBody>
               {/* SUP-07.03 — assisted-book wizard + open AssistedRequest queue */}
@@ -478,17 +468,20 @@ const ReceptionHome = () => {
               />
             </CardBody></Card>
           </Col>
+          ) : null}
         </Row>
         <TodaysAppointments
-          onEditAppointment={(row) => {
-            setRescheduleRow({
-              patientAppId: row.patientAppId,
-              appointmentDate: row.appointmentDate,
-              appointmentTime: row.appointmentTime,
-            });
-          }}
+          onEditAppointment={(row) => setTimeEditRow(row)}
         />
       </Container>
+      <UpdateAppointmentTimeModal
+        isOpen={!!timeEditRow}
+        toggle={() => setTimeEditRow(null)}
+        doctorId={doctorId}
+        patientAppId={timeEditRow?.patientAppId}
+        appointmentDate={timeEditRow?.appointmentDate}
+        onSaved={load}
+      />
       <RescheduleModal
         isOpen={!!rescheduleRow}
         toggle={() => setRescheduleRow(null)}
@@ -505,6 +498,104 @@ const ReceptionHome = () => {
         onSaved={load}
       />
     </div>
+  );
+};
+
+/** REC-10 — same-day time edit. Does not notify the patient. Reschedule is the other path. */
+const UpdateAppointmentTimeModal = ({ isOpen, toggle, doctorId, patientAppId, appointmentDate, onSaved }) => {
+  const [time, setTime] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [note, setNote] = useState("");
+  const [errorText, setErrorText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const date = formatApiDate(appointmentDate);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    setTime("");
+    setErrorText("");
+    let cancelled = false;
+    const loadSlots = async () => {
+      if (!doctorId || !date) {
+        setSlots([]);
+        setNote(doctorId ? "This visit has no date." : "Doctor is required before slots can load.");
+        return;
+      }
+      setNote("Loading open slots…");
+      try {
+        const response = await getAppointmentSlots({
+          doctorId,
+          appointmentDate: date,
+          currentPatientAppId: patientAppId,
+        });
+        const parsed = normalizeAppointmentSlotsResponse(response?.data ?? response);
+        const open = (parsed.slots || []).filter((slot) => slot.status === "available" && slot.time);
+        if (cancelled) return;
+        setSlots(open);
+        setNote(open.length ? `${open.length} open slot${open.length === 1 ? "" : "s"} on this day.` : "No open slots on this day.");
+      } catch (error) {
+        if (!cancelled) {
+          setSlots([]);
+          setNote(s4Message(error) || "Could not load slots.");
+        }
+      }
+    };
+    loadSlots();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, doctorId, patientAppId, date]);
+
+  const save = async () => {
+    const appointmentTimeValue = timeInputToApiTime(time);
+    if (!patientAppId || !date || !appointmentTimeValue) return;
+    setBusy(true);
+    setErrorText("");
+    try {
+      await updateAppointmentTime({
+        patientAppId: Number(patientAppId),
+        appointmentDate: date,
+        appointmentTime: appointmentTimeValue,
+      });
+      if (toggle) toggle();
+      Swal.fire({
+        icon: "success",
+        text: "Appointment time updated. The patient is not notified. Use Reschedule when they should be told.",
+        timer: 2200,
+        showConfirmButton: false,
+      });
+      if (onSaved) onSaved();
+    } catch (error) {
+      setErrorText(s4Message(error) || "Could not update the time.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} toggle={toggle} centered>
+      <ModalHeader toggle={toggle}>Update appointment time</ModalHeader>
+      <ModalBody>
+        <p className="text-muted small">
+          This changes the time on the same day only. It does not notify the patient. Reschedule on the queue is the path that notifies them.
+        </p>
+        {errorText ? <Alert color="danger">{errorText}</Alert> : null}
+        <Label>Date</Label>
+        <Input value={date || "—"} disabled />
+        <Label className="mt-2">New slot</Label>
+        <Input type="select" value={time} onChange={(event) => setTime(event.target.value)}>
+          <option value="">{note || "Select a slot"}</option>
+          {slots.map((slot) => (
+            <option key={slot.time} value={slot.time}>{slot.label || slot.time}</option>
+          ))}
+        </Input>
+      </ModalBody>
+      <ModalFooter>
+        <Button color="primary" disabled={busy || !time} onClick={save}>
+          {busy ? "Saving…" : "Update time"}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 };
 

@@ -81,17 +81,17 @@ const HelpCentrePage = () => {
     const [query, setQuery] = useState("");
     const [openArticleId, setOpenArticleId] = useState(articleId);
     const [feedback, setFeedback] = useState({});
-    const [publishedArticles, setPublishedArticles] = useState([]);
+    const [published, setPublished] = useState([]);
     const contentRef = useRef(null);
 
     useEffect(() => {
         let cancelled = false;
         listPublicHelp()
             .then((list) => {
-                if (!cancelled) setPublishedArticles(Array.isArray(list) ? list : []);
+                if (!cancelled) setPublished(Array.isArray(list) ? list : []);
             })
             .catch(() => {
-                if (!cancelled) setPublishedArticles([]);
+                if (!cancelled) setPublished([]);
             });
         return () => {
             cancelled = true;
@@ -294,17 +294,20 @@ const HelpCentrePage = () => {
                     <Col lg={8}>{renderMainContent()}</Col>
 
                     <Col lg={4}>
-                        {publishedArticles.length > 0 ? (
-                            <div className="homeojob-help__panel">
-                                <h2 className="homeojob-help__section-title">Published Articles</h2>
+                        {published.length > 0 ? (
+                            <div className="homeojob-help__panel mb-4">
+                                <h2 className="homeojob-help__section-title">Published articles</h2>
                                 <ul className="homeojob-help__latest">
-                                    {publishedArticles.map((article) => {
+                                    {published.map((article) => {
                                         const slug = article.slug || article.Slug;
-                                        const title = article.title || article.Title;
+                                        const title = article.title || article.Title || slug;
                                         if (!slug) return null;
                                         return (
                                             <li key={slug}>
                                                 <Link to={landingPath(`help/${slug}`)}>
+                                                    <span className="homeojob-help__latest-icon" aria-hidden="true">
+                                                        <i className="ri-article-line" />
+                                                    </span>
                                                     <span className="homeojob-help__latest-text">
                                                         <span className="homeojob-help__latest-title">{title}</span>
                                                     </span>
@@ -316,7 +319,6 @@ const HelpCentrePage = () => {
                                 </ul>
                             </div>
                         ) : null}
-
                         <div className="homeojob-help__panel">
                             <h2 className="homeojob-help__section-title">Latest Articles</h2>
                             <ul className="homeojob-help__latest">

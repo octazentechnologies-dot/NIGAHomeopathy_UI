@@ -6,6 +6,7 @@ import {
   markMedicineReady,
   medicineAcceptOtp,
   onboardPharmacy,
+  listPharmacyPartners,
   pharmacyQueue,
   quoteMedicineOrder,
   rejectMedicineOrder,
@@ -13,6 +14,10 @@ import {
   unwrapS4,
 } from "../../helpers/s4Week4Api";
 import "./components/pharmacyDashboard.css";
+
+const orderStatus = (row) => String(row.status || row.Status || "").toUpperCase();
+const orderIdOf = (row) => row.medicineOrderId || row.MedicineOrderId || row.id;
+const quoteAmountOf = (row) => row.quoteAmount ?? row.QuoteAmount ?? "";
 
 const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const [rows, setRows] = useState([]);
@@ -30,8 +35,11 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     area: "",
   });
   const [submitted, setSubmitted] = useState(null);
+  const [mine, setMine] = useState([]);
 
-  document.title = `${mode === "onboarding" ? "Pharmacy onboarding" : "Pharmacy orders"} | Niga Homeocentrum`;
+  document.title = `${
+    mode === "onboarding" ? "Pharmacy onboarding" : mode === "quotes" ? "Quotes" : "Medicine orders"
+  } | Niga Homeocentrum`;
 
   const loadOrders = async () => {
     setLoading(true);
@@ -50,10 +58,33 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     }
   };
 
+  const loadMine = async () => {
+    try {
+      const response = await listPharmacyPartners();
+      const data = unwrapS4(response);
+      const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      setMine(list);
+    } catch (err) {
+      setMine([]);
+      setError(s4Message(err));
+    }
+  };
+
   useEffect(() => {
     if (mode === "orders" || mode === "quotes") loadOrders();
-    else setLoading(false);
+    else {
+      setLoading(false);
+      loadMine();
+    }
   }, [mode]);
+
+  const isQuotes = mode === "quotes";
+  const visibleRows = isQuotes
+    ? rows.filter((row) => {
+        const status = orderStatus(row);
+        return status === "ACCEPTED" || status === "QUOTED";
+      })
+    : rows;
 
   const saveOnboard = async () => {
     setBusyId("onboard");
@@ -108,6 +139,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       });
       setNote(message);
       setOnboard({ name: "", mobile: "", licenceNumber: "", expiryDate: "", area: "" });
+      await loadMine();
     } catch (err) {
       setSubmitted(null);
       setError(s4Message(err));
@@ -121,7 +153,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       <div className="page-content admin-dashboard-page pharmacy-dashboard-page clinic-workspace-page">
         <Container fluid>
           <h2 className="pharmacy-page-title">Pharmacy onboarding</h2>
-          <p className="pharmacy-page-subtitle">Licensed premises details for HomeoMeds activation.</p>
+          <p className="pharmacy-page-subtitle">Submit once. Pending stays here until an admin activates it on Pharmacy partners.</p>
           {error ? <Alert color="danger">{error}</Alert> : null}
           {submitted ? (
             <>
@@ -170,7 +202,8 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     </Col>
                   </Row>
                   <p className="text-muted small mb-3">
-                    Partner #{submitted.pharmacyPartnerId || "—"} stays pending until an admin activates it on Pharmacy partners.
+                    {submitted.name} is {String(submitted.status || "PENDING").toUpperCase() === "ACTIVE" ? "activated" : "pending"}.
+                    {submitted.pharmacyPartnerId ? ` Id ${submitted.pharmacyPartnerId}.` : ""}
                   </p>
                   <Button
                     color="soft-secondary"
@@ -231,6 +264,43 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               </CardBody>
             </Card>
           )}
+          <Card className="admin-dash-card mt-3">
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <h5 className="mb-0">Submitted pharmacies</h5>
+                <Button size="sm" color="soft-secondary" onClick={loadMine}>Refresh</Button>
+              </div>
+              <p className="text-muted small">Pending means submitted and waiting for admin. Active means activated.</p>
+              {mine.length === 0 ? (
+                <p className="text-muted mb-0">Nothing submitted on this login yet.</p>
+              ) : (
+                <Table size="sm" className="mb-0">
+                  <thead>
+                    <tr>
+                      <th>Id</th>
+                      <th>Name</th>
+                      <th>Area</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mine.map((row) => {
+                      const id = row.pharmacyPartnerId || row.PharmacyPartnerId || row.id;
+                      const status = String(row.status || row.Status || "PENDING");
+                      return (
+                        <tr key={id}>
+                          <td>{id || "—"}</td>
+                          <td>{row.name || row.Name || "—"}</td>
+                          <td>{row.area || row.Area || "—"}</td>
+                          <td>{status.toUpperCase() === "ACTIVE" ? "Activated" : status || "Pending"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </Table>
+              )}
+            </CardBody>
+          </Card>
         </Container>
       </div>
     );
@@ -241,8 +311,12 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h2 className="pharmacy-page-title mb-1">{mode === "quotes" ? "Quotes" : "Medicine orders"}</h2>
-            <p className="pharmacy-page-subtitle mb-0">Accept with OTP, confirm stock, and enter the quote before payment.</p>
+            <h2 className="pharmacy-page-title mb-1">{isQuotes ? "Quotes" : "Medicine orders"}</h2>
+            <p className="pharmacy-page-subtitle mb-0">
+              {isQuotes
+                ? "Orders that are accepted and waiting for a price. Stock, ready, and dispatch stay on Medicine orders."
+                : "Confirm the OTP, accept or reject stock, then mark ready and dispatch after the patient pays."}
+            </p>
           </div>
           <Button size="sm" color="soft-secondary" onClick={loadOrders} disabled={loading}>Refresh</Button>
         </div>
@@ -252,8 +326,12 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           <CardBody>
             {loading ? (
               <div className="text-center py-4"><Spinner size="sm" /> Loading…</div>
-            ) : rows.length === 0 ? (
-              <p className="text-muted mb-0">No medicine orders yet.</p>
+            ) : visibleRows.length === 0 ? (
+              <p className="text-muted mb-0">
+                {isQuotes
+                  ? "No orders are waiting for a quote. Accept the order on Medicine orders first."
+                  : "No medicine orders yet."}
+              </p>
             ) : (
               <div className="table-responsive">
                 <Table size="sm" className="align-middle mb-0">
@@ -261,28 +339,59 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     <tr>
                       <th>Order</th>
                       <th>Status</th>
-                      <th>Quote</th>
-                      <th>Actions</th>
+                      <th>{isQuotes ? "Amount" : "Quote"}</th>
+                      <th>{isQuotes ? "Save quote" : "Fulfilment"}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row) => {
-                      const id = row.medicineOrderId || row.MedicineOrderId || row.id;
+                    {visibleRows.map((row) => {
+                      const id = orderIdOf(row);
+                      const status = orderStatus(row);
+                      const savedQuote = quoteAmountOf(row);
                       return (
                         <tr key={id}>
-                          <td>#{id}</td>
-                          <td>{row.status || row.Status || "—"}</td>
+                          <td>{id}</td>
+                          <td>{status || "—"}</td>
                           <td>
-                            <Input
-                              bsSize="sm"
-                              type="number"
-                              style={{ width: 110 }}
-                              placeholder="Amount"
-                              value={quoteById[id] || ""}
-                              onChange={(e) => setQuoteById({ ...quoteById, [id]: e.target.value })}
-                            />
+                            {isQuotes && status === "ACCEPTED" ? (
+                              <Input
+                                bsSize="sm"
+                                type="number"
+                                style={{ width: 110 }}
+                                placeholder="Amount"
+                                value={quoteById[id] || ""}
+                                onChange={(e) => setQuoteById({ ...quoteById, [id]: e.target.value })}
+                              />
+                            ) : (
+                              savedQuote !== "" && savedQuote != null ? savedQuote : "—"
+                            )}
                           </td>
                           <td>
+                            {isQuotes ? (
+                              status === "ACCEPTED" ? (
+                                <Button
+                                  size="sm"
+                                  color="soft-primary"
+                                  disabled={busyId === id}
+                                  onClick={async () => {
+                                    setBusyId(id);
+                                    try {
+                                      await quoteMedicineOrder(id, { amount: Number(quoteById[id] || 0) });
+                                      setNote(`Quote saved for order ${id}.`);
+                                      await loadOrders();
+                                    } catch (err) {
+                                      setError(s4Message(err));
+                                    } finally {
+                                      setBusyId(null);
+                                    }
+                                  }}
+                                >
+                                  Save quote
+                                </Button>
+                              ) : (
+                                <span className="text-muted">Quote saved</span>
+                              )
+                            ) : (
                             <div className="d-flex flex-wrap gap-1 align-items-center">
                               <Button
                                 size="sm"
@@ -352,25 +461,6 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                               </Button>
                               <Button
                                 size="sm"
-                                color="soft-primary"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await quoteMedicineOrder(id, { amount: Number(quoteById[id] || 0) });
-                                    setNote(`Quote saved for order #${id}.`);
-                                    await loadOrders();
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Save quote
-                              </Button>
-                              <Button
-                                size="sm"
                                 color="soft-info"
                                 disabled={busyId === id}
                                 onClick={async () => {
@@ -408,6 +498,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                                 Dispatch
                               </Button>
                             </div>
+                            )}
                           </td>
                         </tr>
                       );

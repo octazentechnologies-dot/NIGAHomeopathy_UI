@@ -151,13 +151,13 @@ const AppointmentActionButtons = ({ row, onView, onEdit }) => (
       id={`reception-appt-edit-${row.id}`}
       type="button"
       className="btn btn-sm btn-soft-success edit-item-btn"
-      aria-label="Edit"
+      aria-label="Update appointment time"
       onClick={() => onEdit?.(row)}
     >
       <i className="ri-pencil-fill" />
     </button>
     <UncontrolledTooltip placement="top" target={`reception-appt-edit-${row.id}`}>
-      Edit
+      Update time
     </UncontrolledTooltip>
   </div>
 );

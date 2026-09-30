@@ -34,8 +34,10 @@ export const logoutApi = () =>
     api.post("/Account/Logout"),
     nigahomeoAPI.post("/Account/Logout"),
   ]);
-export const forgotPasswordSecure = (email) =>
-  nigahomeoAPI.post("/Account/ForgotPassword", { email });
+export const forgotPasswordAccounts = (email) =>
+  nigahomeoAPI.post("/Account/ForgotPasswordAccounts", { email });
+export const forgotPasswordSecure = (email, userId) =>
+  nigahomeoAPI.post("/Account/ForgotPassword", { email, userId: userId || null });
 export const resetPasswordSecure = (payload) =>
   nigahomeoAPI.post("/Account/ResetPassword", payload);
 export const changePasswordSecure = (payload) =>

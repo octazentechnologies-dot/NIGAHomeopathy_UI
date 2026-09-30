@@ -13,7 +13,6 @@ import BlogDetailPage from "./pages/BlogDetailPage";
 import NewsPage from "./pages/NewsPage";
 import NewsDetailPage from "./pages/NewsDetailPage";
 import ContactPage from "../Minimaltheme/pages/ContactPage";
-import HelpCentrePage from "./pages/HelpCentrePage";
 import PrivacyPage from "../Minimaltheme/pages/PrivacyPage";
 import TermsPage from "../Minimaltheme/pages/TermsPage";
 import AccountPage from "../Minimaltheme/pages/AccountPage";
@@ -31,6 +30,7 @@ import InstantQueueOfferPage from "./pages/InstantQueueOfferPage";
 import DeviceCheckPage from "./pages/DeviceCheckPage";
 import RecordingConsentPage from "./pages/RecordingConsentPage";
 import WaitingRoomPage from "./pages/WaitingRoomPage";
+import HelpCentrePage from "./pages/HelpCentrePage";
 import HelpArticlePage from "./pages/HelpArticlePage";
 
 const HomeoJobLanding = () => {

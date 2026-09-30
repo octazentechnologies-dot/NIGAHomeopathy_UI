@@ -29,7 +29,6 @@ export const LANDING_PUBLIC_PATHS = [
     "/blog/:blogId",
     "/news",
     "/news/:newsId",
-    "/help",
     "/contact",
     "/privacy",
     "/terms",

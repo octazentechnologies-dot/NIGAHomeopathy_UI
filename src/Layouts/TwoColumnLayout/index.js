@@ -12,6 +12,7 @@ import { withTranslation } from "react-i18next";
 import { useLayoutMenu } from "../LayoutMenuContext";
 import VerticalLayout from "../VerticalLayouts";
 import { findActiveMenuAnchor } from "../../helpers/menuActivePathHelper";
+import { menuDestination } from "../../helpers/menuDestination";
 
 //SimpleBar
 import SimpleBar from "simplebar-react";
@@ -161,7 +162,7 @@ const TwoColumnLayout = (props) => {
                                                 <>
                                                     <Link
                                                         onClick={item.click}
-                                                        to={item.link ? item.link : "/#"}
+                                                        to={menuDestination(item.link)}
                                                         subitems={item.id}
                                                         className="nav-icon"
                                                         data-bs-toggle="collapse">
@@ -191,7 +192,7 @@ const TwoColumnLayout = (props) => {
                                                             {!subItem.isChildItem ? (
                                                                 <li className="nav-item">
                                                                     <Link
-                                                                        to={subItem.link ? subItem.link : "/#"}
+                                                                        to={menuDestination(subItem.link)}
                                                                         className="nav-link"
                                                                     >
                                                                         {props.t(subItem.label)}
@@ -203,9 +204,12 @@ const TwoColumnLayout = (props) => {
                                                             ) : (
                                                                 <li className="nav-item">
                                                                     <Link
-                                                                        onClick={subItem.click}
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            if (subItem.click) subItem.click(event);
+                                                                        }}
                                                                         className="nav-link"
-                                                                        to="/#"
+                                                                        to="/page-not-available"
                                                                         data-bs-toggle="collapse"
                                                                     > {props.t(subItem.label)}
                                                                         {subItem.badgeName ?
@@ -219,7 +223,7 @@ const TwoColumnLayout = (props) => {
                                                                                 (subItem.childItems || []).map((childItem, key) => (
                                                                                     <li className="nav-item" key={key}>
                                                                                         <Link
-                                                                                            to={childItem.link ? childItem.link : "/#"}
+                                                                                            to={menuDestination(childItem.link)}
                                                                                             onClick={childItem.click}
                                                                                             className="nav-link" >
                                                                                             {props.t(childItem.label)}
@@ -232,7 +236,7 @@ const TwoColumnLayout = (props) => {
                                                                                                     (childItem.childItems || []).map((childItem, key) => (
                                                                                                         <li className="nav-item" key={key} >
                                                                                                             <Link
-                                                                                                                to={childItem.link ? childItem.link : "/#"}
+                                                                                                                to={menuDestination(childItem.link)}
                                                                                                                 className="nav-link">
                                                                                                                 {props.t(childItem.label)}
                                                                                                             </Link>
