@@ -16,7 +16,7 @@ module.exports = {
           Old_API_Base_URL: "https://devapi1.homeocentrum.com/api"
 
          /* 3. Local Development */
-          // New_API_Base_URL: "http:localhost:5002/api",
-          // Old_API_Base_URL: "http:localhost:5001/api"
+          // New_API_Base_URL: "http://localhost:5002/api",
+          // Old_API_Base_URL: "http://localhost:5001/api"
    }
  };

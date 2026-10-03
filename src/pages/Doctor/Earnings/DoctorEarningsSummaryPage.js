@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Card, CardBody, Col, Container, Row, Spinner } from "reactstrap";
+import { Alert, Card, CardBody, Col, Container, Row, Spinner, Table } from "reactstrap";
 import { earningsSummary, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
+import { earningsBuckets } from "../../../helpers/s5Week5Api";
 
 /** DMO-10.02 web surface for doctor earnings summary (same API as mobile). */
 const DoctorEarningsSummaryPage = () => {
   const [data, setData] = useState(null);
+  const [buckets, setBuckets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
@@ -21,7 +23,12 @@ const DoctorEarningsSummaryPage = () => {
       setLoading(true);
       try {
         const response = await earningsSummary({});
-        if (!cancelled) setData(unwrapS4(response));
+        const bucketResponse = await earningsBuckets({});
+        if (!cancelled) {
+          setData(unwrapS4(response));
+          const bucketRows = unwrapS4(bucketResponse);
+          setBuckets(Array.isArray(bucketRows) ? bucketRows : []);
+        }
       } catch (err) {
         if (!cancelled) setError(s4Message(err));
       } finally {
@@ -58,6 +65,27 @@ const DoctorEarningsSummaryPage = () => {
                 <CardBody>
                   <div className="text-muted small mb-1">Pending payout</div>
                   <div className="fs-5">{money(data.pendingPayoutAmount)}</div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col md={12}>
+              <Card className="admin-dash-card">
+                <CardBody>
+                  <div className="text-muted small mb-2">Monthly buckets</div>
+                  {buckets.length === 0 ? <div className="text-muted">No paid months in this window.</div> : (
+                    <Table size="sm" className="mb-0">
+                      <thead><tr><th>Month</th><th>Orders</th><th>Amount</th></tr></thead>
+                      <tbody>
+                        {buckets.map((row) => (
+                          <tr key={row.bucket || row.Bucket}>
+                            <td>{row.bucket || row.Bucket}</td>
+                            <td>{row.cnt ?? row.Cnt}</td>
+                            <td>{money(row.amount ?? row.Amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  )}
                 </CardBody>
               </Card>
             </Col>

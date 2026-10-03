@@ -168,6 +168,9 @@ import FamilyMembers from "../pages/Family/FamilyMembers";
 import CaregiverAccess from "../pages/Family/CaregiverAccess";
 import ReceptionDashboard from "../pages/Reception/Dashboard";
 import DoctorEarningsSummaryPage from "../pages/Doctor/Earnings/DoctorEarningsSummaryPage";
+import DoctorSmsPage from "../pages/Doctor/Sms/DoctorSmsPage";
+import ClinicReportPage from "../pages/Doctor/Reports/ClinicReportPage";
+import SecurityPosturePage from "../pages/Admin/Security/SecurityPosturePage";
 import DoctorConsultFeesPage from "../pages/Doctor/ConsultFees/DoctorConsultFeesPage";
 import DoctorErxPage from "../pages/Doctor/Erx/DoctorErxPage";
 import AccountFinancePage from "../pages/Account/AccountFinancePage";
@@ -615,6 +618,9 @@ const authProtectedRoutes = [
   { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },
   { path: "doctor/consult-fees", component: <DoctorConsultFeesPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/earnings", component: <DoctorEarningsSummaryPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/sms", component: <DoctorSmsPage mode="doctor" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/follow-up-analysis", component: <ClinicReportPage mode="followup" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/clinic-performance", component: <ClinicReportPage mode="performance" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/erx", component: <DoctorErxPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/waitlist", component: <DoctorWaitlistPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/schedule", component: <DoctorSchedulePage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
@@ -642,6 +648,9 @@ const authProtectedRoutes = [
   { path: "account/payees", component: <AccountFinancePage section="payees" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "account/clinic-collections", component: <AccountFinancePage section="clinic-collections" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "admin/consult-payments", component: <AccountFinancePage section="consult-recon" />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/sms", component: <DoctorSmsPage mode="admin" />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/medicine-report", component: <ClinicReportPage mode="medicine" />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/security", component: <SecurityPosturePage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/payment-exceptions", component: <AccountFinancePage section="exceptions" />, allowedRoles: ADMIN_PORTAL_ROLES },
   // Account Side End //
 
