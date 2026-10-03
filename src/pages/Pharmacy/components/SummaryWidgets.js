@@ -8,12 +8,14 @@ const WIDGETS = [
     label: "Open Orders",
     icon: "ri-shopping-bag-3-line",
     linkPath: "/pharmacy/orders",
+    linkLabel: "View orders",
   },
   {
     id: "quotes",
     label: "Active Quotes",
     icon: "ri-file-list-3-line",
     linkPath: "/pharmacy/quotes",
+    linkLabel: "View quotes",
   },
   {
     id: "inventory",
@@ -26,6 +28,7 @@ const WIDGETS = [
     label: "Onboarding",
     icon: "ri-user-add-line",
     linkPath: "/pharmacy/onboarding",
+    linkLabel: "View details",
   },
   {
     id: "prescriptions",
@@ -35,41 +38,46 @@ const WIDGETS = [
   },
 ];
 
-const SummaryWidgets = () => (
+/** `values` maps widget id → display value; widgets without a value stay "Coming Soon". */
+const SummaryWidgets = ({ values = {} }) => (
   <Row className="g-2 pharmacy-dashboard-widgets">
-    {WIDGETS.map((item) => (
-      <Col xs={12} sm={6} lg className="pharmacy-kpi-col" key={item.id}>
-        <Card className="card-animate admin-dash-card">
-          <CardBody>
-            <div className="d-flex align-items-center">
-              <div className="flex-grow-1 overflow-hidden">
-                <p className="text-uppercase fw-bold text-truncate mb-0 pharmacy-kpi-label">
-                  {item.label}
-                </p>
+    {WIDGETS.map((item) => {
+      const value = values[item.id];
+      const live = value != null && item.linkLabel;
+      return (
+        <Col xs={12} sm={6} lg className="pharmacy-kpi-col" key={item.id}>
+          <Card className="card-animate admin-dash-card">
+            <CardBody>
+              <div className="d-flex align-items-center">
+                <div className="flex-grow-1 overflow-hidden">
+                  <p className="text-uppercase fw-bold text-truncate mb-0 pharmacy-kpi-label">
+                    {item.label}
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <h5 className="fs-14 mb-0 text-muted">—</h5>
+                </div>
               </div>
-              <div className="flex-shrink-0">
-                <h5 className="fs-14 mb-0 text-muted">—</h5>
+              <div className="d-flex align-items-end justify-content-between mt-4">
+                <div>
+                  <h4 className="fs-20 fw-semibold ff-secondary mb-4">
+                    <span className="counter-value">{live ? value : "-"}</span>
+                  </h4>
+                  <Link to={item.linkPath} className="pharmacy-kpi-link">
+                    {live ? item.linkLabel : "Coming Soon"}
+                  </Link>
+                </div>
+                <div className="avatar-sm flex-shrink-0">
+                  <span className="avatar-title rounded fs-3 bg-info-subtle border border-info border-opacity-25">
+                    <i className={`text-info ${item.icon}`} />
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="d-flex align-items-end justify-content-between mt-4">
-              <div>
-                <h4 className="fs-20 fw-semibold ff-secondary mb-4">
-                  <span className="counter-value">-</span>
-                </h4>
-                <Link to={item.linkPath} className="pharmacy-kpi-link">
-                  Coming Soon
-                </Link>
-              </div>
-              <div className="avatar-sm flex-shrink-0">
-                <span className="avatar-title rounded fs-3 bg-info-subtle border border-info border-opacity-25">
-                  <i className={`text-info ${item.icon}`} />
-                </span>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </Col>
-    ))}
+            </CardBody>
+          </Card>
+        </Col>
+      );
+    })}
   </Row>
 );
 

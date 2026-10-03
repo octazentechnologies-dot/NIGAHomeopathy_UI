@@ -138,7 +138,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                             )}
 
                             <div className="d-flex align-items-center header-topbar-actions-extra">
-                                {showTopbarMoreMenu ? <AdminMoreMenuDropdown /> : null}
+                                {showTopbarMoreMenu ? <AdminMoreMenuDropdown showLabel={userRole === UserRole.ADMIN} /> : null}
                                 <ThemeCustomizerHeaderButton />
                                 <div className="vr header-topbar-divider align-self-center mx-1" aria-hidden="true" />
                                 <div className="ms-1 header-item">

@@ -65,6 +65,17 @@ import {
   getPatientDetails
 } from '../../../slices/thunks';
 import { erxPotencies, unwrapS4 } from '../../../helpers/s4Week4Api';
+import { DURATION_OPTIONS, FREQUENCY_OPTIONS, INSTRUCTION_OPTIONS, formatDosage } from '../Erx/erxOptions';
+import PatientContinuityModal from './PatientContinuityModal';
+
+const humanizeHeaderValue = (value) =>
+  String(value || '—').replace(/([a-z])([A-Z])/g, '$1 $2');
+
+const HISTORY_NOTE_TYPES = [
+  { value: 'ChiefComplaint', label: 'Chief Complaint', icon: 'ri-stethoscope-line', placeholder: 'Describe the main complaint, onset, duration and modalities...' },
+  { value: 'FollowUp', label: 'Follow-up', icon: 'ri-repeat-line', placeholder: 'Changes since last visit, response to remedy, new symptoms...' },
+  { value: 'General', label: 'General', icon: 'ri-file-list-3-line', placeholder: 'General observations, advice and remarks...' },
+];
 import { pageTitle } from '../../../common/brand';
 import {
   diagnosisSearch,
@@ -2092,6 +2103,10 @@ const PatientBoard = () => {
   const [prescriptionRemedyDescription, setPrescriptionRemedyDescription] = useState('');
   const [potencyOptions, setPotencyOptions] = useState([]);
   const [selectedPotency, setSelectedPotency] = useState(null);
+  const [continuityModalOpen, setContinuityModalOpen] = useState(false);
+  const [prescriptionFrequency, setPrescriptionFrequency] = useState('');
+  const [prescriptionDuration, setPrescriptionDuration] = useState('');
+  const [prescriptionInstructions, setPrescriptionInstructions] = useState('');
   const [historyNoteType, setHistoryNoteType] = useState('General');
   const [historyNoteErxExcluded, setHistoryNoteErxExcluded] = useState(true);
   const [historyNoteContent, setHistoryNoteContent] = useState(() => {
@@ -6379,6 +6394,7 @@ const PatientBoard = () => {
     }
     .pb-prescription-modal__form-row {
       display:flex;
+      flex-wrap:wrap;
       align-items:center;
       gap:10px;
       flex-shrink:0;
@@ -6406,6 +6422,20 @@ const PatientBoard = () => {
       box-shadow:0 2px 8px rgba(30, 136, 229, 0.28);
     }
     .pb-prescription-modal__add-btn i { font-size:18px; color:#fff; }
+    .pb-prescription-modal__dosage-field {
+      flex:1 1 150px;
+      min-width:140px;
+    }
+    .pb-prescription-modal__dosage-field select.form-select {
+      height:38px;
+      font-size:13px;
+      border-radius:10px !important;
+      border-color:#e2ebf3 !important;
+    }
+    .pb-prescription-modal__dosage-text {
+      font-size:12px;
+      color:#475569;
+    }
     .pb-prescription-modal__table-wrap {
       flex:1;
       overflow:auto;
@@ -6513,6 +6543,117 @@ const PatientBoard = () => {
       background:#fff;
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
     }
+    .pb-history-note__bar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:0.75rem;
+      flex-shrink:0;
+      margin-bottom:0.75rem;
+      padding:0.6rem 0.75rem;
+      border:1px solid #e2ebf3;
+      border-radius:12px;
+      background:#fff;
+    }
+    .pb-history-note__types {
+      display:inline-flex;
+      gap:0.25rem;
+      padding:0.2rem;
+      border-radius:10px;
+      background:#f1f5f9;
+    }
+    .pb-history-note__type {
+      display:inline-flex;
+      align-items:center;
+      gap:0.35rem;
+      padding:0.35rem 0.8rem;
+      border:0;
+      border-radius:8px;
+      background:transparent;
+      color:#64748b;
+      font-size:0.78rem;
+      font-weight:600;
+      white-space:nowrap;
+    }
+    .pb-history-note__type i { font-size:0.95rem; line-height:1; }
+    .pb-history-note__type:hover { color:#0b5cab; }
+    .pb-history-note__type.is-active {
+      background:#fff;
+      color:#0b5cab;
+      box-shadow:0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7;
+    }
+    .pb-history-note__erx.form-switch {
+      display:flex;
+      align-items:center;
+      gap:0.6rem;
+      margin:0;
+      padding-left:0;
+      min-height:0;
+    }
+    .pb-history-note__erx.form-switch .form-check-input {
+      float:none;
+      margin:0;
+      width:2.2rem;
+      height:1.15rem;
+      cursor:pointer;
+    }
+    .pb-history-note__erx .form-check-label {
+      display:flex;
+      flex-direction:column;
+      line-height:1.25;
+      cursor:pointer;
+    }
+    .pb-history-note__erx-title { color:#0f172a; font-size:0.8rem; font-weight:600; }
+    .pb-history-note__erx-hint { color:#94a3b8; font-size:0.7rem; }
+    .pb-history-note__editor {
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+    .pb-history-note__wrapper {
+      display:flex;
+      flex-direction:column;
+      flex:1;
+      min-height:0;
+    }
+    .pb-history-note__toolbar.rdw-editor-toolbar {
+      margin:0;
+      padding:0.35rem 0.5rem 0;
+      border:0;
+      border-bottom:1px solid #eef2f6;
+      border-radius:0;
+      background:#f8fafc;
+    }
+    .pb-history-note__toolbar .rdw-option-wrapper,
+    .pb-history-note__toolbar .rdw-dropdown-wrapper {
+      height:26px;
+      min-width:26px;
+      border:1px solid transparent;
+      border-radius:6px;
+      background:transparent;
+      box-shadow:none !important;
+    }
+    .pb-history-note__toolbar .rdw-option-wrapper:hover,
+    .pb-history-note__toolbar .rdw-dropdown-wrapper:hover {
+      border-color:#cfe3f7;
+      background:#fff;
+    }
+    .pb-history-note__toolbar .rdw-option-active {
+      border-color:#cfe3f7;
+      background:#eaf3fd;
+    }
+    .pb-history-note__toolbar .rdw-dropdown-wrapper { min-width:96px; background:#fff; border-color:#e2ebf3; }
+    .pb-history-note__content {
+      flex:1;
+      min-height:240px;
+      max-height:340px;
+      overflow-y:auto;
+      padding:0.6rem 0.9rem;
+      font-size:0.875rem;
+      color:#1e293b;
+    }
+    .pb-history-note__content .public-DraftEditorPlaceholder-root { color:#94a3b8; }
     .pb-prescription-modal__footer {
       border-top:1px solid #eef2f6;
       padding:0.5rem;
@@ -6984,69 +7125,54 @@ const PatientBoard = () => {
     .pb-info__aside {
       display:flex;
       align-items:center;
-      gap:10px;
+      gap:6px;
       flex-wrap:wrap;
       justify-content:flex-end;
       margin-left:auto;
     }
-    .pb-appointment-date {
-      position:static;
-      left:auto;
-      transform:none;
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:5px 10px;
-      border-radius:5px;
-      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
-      border:1px solid #cfe3f7;
-      color:#0f172a;
-      font-size:11px;
-      font-weight:600;
-      white-space:nowrap;
-    }
-    .pb-appointment-date i {
-      color:#0b5cab;
-      font-size:11px;
-      line-height:1;
-    }
-    .pb-info__status {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
     .pb-info__chip {
+      position:static;
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      padding:5px 10px;
+      gap:5px;
+      height:28px;
+      margin:0;
+      padding:0 10px;
       border-radius:5px;
-      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+      background:linear-gradient(180deg, #f8fbff 0%, #eef6fd 100%);
       border:1px solid #cfe3f7;
       color:#0f172a;
-      font-size:11px;
-      font-weight:500;
+      font-size:12px;
+      line-height:1;
       white-space:nowrap;
     }
     .pb-info__chip i {
-      font-size:11px;
+      font-size:14px !important;
       line-height:1;
       color:#0b5cab;
     }
-    .pb-info__chip--due {
-      color:#0f172a;
-      font-weight:600;
-      border-color:#cfe3f7;
-      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
-    }
-    .pb-info__chip--placeholder,
-    .pb-appointment-date--placeholder {
+    .pb-info__chip-label {
       color:#64748b;
       font-weight:500;
     }
-    .pb-info__chip--due i {
-      color:#0b5cab;
+    .pb-info__chip-label::after {
+      content:":";
+    }
+    .pb-info__chip-value {
+      color:#0f172a;
+      font-weight:600;
+    }
+    .pb-info__chip--placeholder .pb-info__chip-value {
+      color:#94a3b8;
+      font-weight:500;
+    }
+    .pb-info__chip--due {
+      background:linear-gradient(180deg, #f6fdf9 0%, #eaf8f0 100%);
+      border-color:#c9ecd7;
+    }
+    .pb-info__chip--due i,
+    .pb-info__chip--due .pb-info__chip-value {
+      color:#15803d;
     }
     @media (max-width: 991.98px) {
       .pb-info__aside {
@@ -12968,33 +13094,44 @@ const PatientBoard = () => {
                     }
                   });
                 }}><i className="ri-vidicon-2-fill" /></Button>
+                <Button
+                  size="sm"
+                  color="primary"
+                  className="btn btn-soft-primary btn-icon"
+                  title="Patient Continuity"
+                  aria-label="Patient Continuity"
+                  onClick={() => setContinuityModalOpen(true)}
+                >
+                  <i className="ri-heart-pulse-line" />
+                </Button>
               </div>
             </div>
+            <PatientContinuityModal
+              isOpen={continuityModalOpen}
+              toggle={() => setContinuityModalOpen(false)}
+              patientName={resolvedPatientName || patientDetails?.patientName}
+            />
             <div className="pb-info__aside">
-              <div className={`pb-appointment-date${formattedAppointmentDate ? '' : ' pb-appointment-date--placeholder'}`}>
+              <span className={`pb-info__chip pb-appointment-date${formattedAppointmentDate ? '' : ' pb-info__chip--placeholder'}`}>
                 <i className="ri-calendar-event-line" aria-hidden="true" />
-                Appointment: {formattedAppointmentDate || '—'}
-              </div>
-              <div className="pb-appointment-meta text-muted small d-flex flex-wrap gap-2 mb-1">
-                <span className={`pb-info__chip${headerVisitType === '—' ? ' pb-info__chip--placeholder' : ''}`}>
-                  Visit: {headerVisitType}
-                </span>
-                <span className={`pb-info__chip${headerConsultMode === '—' ? ' pb-info__chip--placeholder' : ''}`}>
-                  Consult: {headerConsultMode}
-                </span>
-              </div>
-              <div className="pb-info__status">
-                {!formattedAppointmentDate ? (
-                  <span className="pb-info__chip">
-                    <i className="ri-calendar-check-line" aria-hidden="true" />
-                    No Upcoming Appointment
-                  </span>
-                ) : null}
-                <span className="pb-info__chip pb-info__chip--due">
-                  <i className="ri-wallet-3-line" aria-hidden="true" />
-                  Due Amount : ₹ 0.00
-                </span>
-              </div>
+                <span className="pb-info__chip-label">Appointment</span>
+                <span className="pb-info__chip-value">{formattedAppointmentDate || 'No upcoming'}</span>
+              </span>
+              <span className={`pb-info__chip${headerVisitType === '—' ? ' pb-info__chip--placeholder' : ''}`}>
+                <i className="ri-hospital-line" aria-hidden="true" />
+                <span className="pb-info__chip-label">Visit</span>
+                <span className="pb-info__chip-value">{humanizeHeaderValue(headerVisitType)}</span>
+              </span>
+              <span className={`pb-info__chip${headerConsultMode === '—' ? ' pb-info__chip--placeholder' : ''}`}>
+                <i className={/tele|video|online/i.test(headerConsultMode || '') ? 'ri-vidicon-line' : 'ri-stethoscope-line'} aria-hidden="true" />
+                <span className="pb-info__chip-label">Consult</span>
+                <span className="pb-info__chip-value">{humanizeHeaderValue(headerConsultMode)}</span>
+              </span>
+              <span className="pb-info__chip pb-info__chip--due">
+                <i className="ri-wallet-3-line" aria-hidden="true" />
+                <span className="pb-info__chip-label">Due</span>
+                <span className="pb-info__chip-value">₹ 0.00</span>
+              </span>
             </div>
           </div>
 
@@ -15843,7 +15980,7 @@ const PatientBoard = () => {
                     }}
                   />
                 </div>
-                <div style={{ flex: '1' }}>
+                <div style={{ flex: '1 1 220px' }}>
                   <Input
                     type="textarea"
                     name="remedyDescription"
@@ -15871,6 +16008,45 @@ const PatientBoard = () => {
                       menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
                     }}
                   />
+                </div>
+                <div className="pb-prescription-modal__dosage-field">
+                  <Input
+                    type="select"
+                    aria-label="Frequency"
+                    value={prescriptionFrequency}
+                    onChange={(e) => setPrescriptionFrequency(e.target.value)}
+                  >
+                    <option value="">Frequency</option>
+                    {FREQUENCY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </Input>
+                </div>
+                <div className="pb-prescription-modal__dosage-field">
+                  <Input
+                    type="select"
+                    aria-label="Duration"
+                    value={prescriptionDuration}
+                    onChange={(e) => setPrescriptionDuration(e.target.value)}
+                  >
+                    <option value="">Duration</option>
+                    {DURATION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </Input>
+                </div>
+                <div className="pb-prescription-modal__dosage-field">
+                  <Input
+                    type="select"
+                    aria-label="Instructions"
+                    value={prescriptionInstructions}
+                    onChange={(e) => setPrescriptionInstructions(e.target.value)}
+                  >
+                    <option value="">Instructions</option>
+                    {INSTRUCTION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </Input>
                 </div>
                 <Button
                   color="primary"
@@ -15912,13 +16088,19 @@ const PatientBoard = () => {
                       description: prescriptionRemedyDescription.trim(),
                       dose: selectedPotency.label || '',
                       potencyId: selectedPotency.value,
-                      potencyCode: selectedPotency.label || ''
+                      potencyCode: selectedPotency.label || '',
+                      frequency: prescriptionFrequency,
+                      duration: prescriptionDuration,
+                      instructions: prescriptionInstructions
                     };
 
                     setPrescriptionRemedyDetailList([...prescriptionRemedyDetailList, newRemedy]);
                     setSelectedPrescriptionRemedy(null);
                     setPrescriptionRemedyDescription('');
                     setSelectedPotency(null);
+                    setPrescriptionFrequency('');
+                    setPrescriptionDuration('');
+                    setPrescriptionInstructions('');
                   }}
                   className="pb-prescription-modal__add-btn"
                 >
@@ -15934,6 +16116,7 @@ const PatientBoard = () => {
                       <th style={{ width: '50px', textAlign: 'center' }}>No.</th>
                       <th><i className="ri-medicine-bottle-line" aria-hidden="true" />Remedy Name</th>
                       <th style={{ width: '90px' }}>Potency</th>
+                      <th><i className="ri-time-line" aria-hidden="true" />Dosage</th>
                       <th><i className="ri-file-text-line" aria-hidden="true" />Remedy Description</th>
                       <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
                     </tr>
@@ -15945,6 +16128,7 @@ const PatientBoard = () => {
                           <td style={{ textAlign: 'center', padding: '4px 8px' }}>{index + 1}</td>
                           <td style={{ padding: '4px 8px' }}>{item.remedyName}</td>
                           <td style={{ padding: '4px 8px' }}>{item.potencyCode || item.dose || '—'}</td>
+                          <td style={{ padding: '4px 8px' }} className="pb-prescription-modal__dosage-text">{formatDosage(item) || '—'}</td>
                           <td style={{ padding: '4px 8px' }}>{item.description}</td>
                           <td style={{ textAlign: 'center', padding: '4px 4px' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -15962,7 +16146,7 @@ const PatientBoard = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="pb-prescription-modal__empty">
+                        <td colSpan={6} className="pb-prescription-modal__empty">
                           <span className="pb-prescription-modal__empty-inner">
                             <span className="pb-prescription-modal__empty-icon" aria-hidden="true">
                               <i className="ri-capsule-line" />
@@ -16467,59 +16651,59 @@ const PatientBoard = () => {
           )}
           {prescriptionTab === 'History Notes' && (
             <div className="pb-prescription-modal__panel">
-              <div className="d-flex flex-wrap align-items-center gap-3 px-3 pt-3">
-                <div>
-                  <Label className="form-label mb-1" for="historyNoteType">Note type</Label>
-                  <Input
-                    id="historyNoteType"
-                    type="select"
-                    value={historyNoteType}
-                    onChange={(e) => setHistoryNoteType(e.target.value)}
-                    style={{ minWidth: 200 }}
-                  >
-                    <option value="ChiefComplaint">Chief complaint</option>
-                    <option value="FollowUp">Follow-up</option>
-                    <option value="General">General</option>
-                  </Input>
+              <div className="pb-history-note__bar">
+                <div className="pb-history-note__types" role="tablist" aria-label="Note type">
+                  {HISTORY_NOTE_TYPES.map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      role="tab"
+                      aria-selected={historyNoteType === type.value}
+                      className={`pb-history-note__type${historyNoteType === type.value ? ' is-active' : ''}`}
+                      onClick={() => setHistoryNoteType(type.value)}
+                    >
+                      <i className={type.icon} aria-hidden="true" />
+                      {type.label}
+                    </button>
+                  ))}
                 </div>
-                <div className="form-check mt-4">
+                <div className="pb-history-note__erx form-check form-switch">
                   <Input
                     id="historyNoteErxExcluded"
                     type="checkbox"
+                    role="switch"
                     className="form-check-input"
                     checked={historyNoteErxExcluded}
                     onChange={(e) => setHistoryNoteErxExcluded(e.target.checked)}
                   />
                   <Label className="form-check-label" for="historyNoteErxExcluded">
-                    Keep off signed eRx
+                    <span className="pb-history-note__erx-title">Keep off signed eRx</span>
+                    <span className="pb-history-note__erx-hint">
+                      {historyNoteErxExcluded ? 'Note stays private to the case file' : 'Note will print on the eRx'}
+                    </span>
                   </Label>
                 </div>
               </div>
-              {/* Editor - Full Width */}
-              <div className="pb-prescription-modal__history">
+              <div className="pb-prescription-modal__history pb-history-note__editor">
                 <Editor
-                  wrapperClassName="demo-wrapper"
-                  editorClassName="demo-editor"
+                  wrapperClassName="pb-history-note__wrapper"
+                  editorClassName="pb-history-note__content"
+                  toolbarClassName="pb-history-note__toolbar"
                   editorState={historyNoteContent}
                   onEditorStateChange={(editorState) => {
                     setHistoryNoteContent(editorState);
                   }}
-                  toolbarClassName="toolbar-class"
-                  wrapperStyle={{
-                    borderRadius: 12,
-                    borderWidth: 0,
-                    borderColor: 'transparent',
-                    height: '100%'
+                  toolbar={{
+                    options: ['inline', 'blockType', 'list', 'textAlign', 'link', 'history'],
+                    inline: { options: ['bold', 'italic', 'underline', 'strikethrough'] },
+                    blockType: { options: ['Normal', 'H4', 'H5', 'Blockquote'] },
+                    list: { options: ['unordered', 'ordered'] },
+                    textAlign: { options: ['left', 'center', 'right'] },
+                    link: { options: ['link'] },
                   }}
-                  editorStyle={{
-                    borderRadius: 0,
-                    border: 'none',
-                    borderTop: '1px solid #eef2f6',
-                    backgroundColor: '#FFFFFF',
-                    minHeight: '400px',
-                    padding: '12px 14px'
-                  }}
-                  placeholder="History Note Details"
+                  placeholder={
+                    HISTORY_NOTE_TYPES.find((type) => type.value === historyNoteType)?.placeholder || 'Write the note...'
+                  }
                 />
               </div>
             </div>
@@ -16583,7 +16767,10 @@ const PatientBoard = () => {
                 remedyId: item.remedyId,
                 description: item.description,
                 dose: item.dose || item.potencyCode || '',
-                potencyId: item.potencyId || null
+                potencyId: item.potencyId || null,
+                frequency: item.frequency || null,
+                duration: item.duration || null,
+                instructions: item.instructions || null
               }));
 
               const prescriptionRequestData = {

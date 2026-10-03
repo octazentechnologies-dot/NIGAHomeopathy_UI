@@ -251,6 +251,8 @@ const CaregiverAccess = () => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
+        <h2 className="clinic-page-title">Caregiver</h2>
+        <p className="clinic-page-subtitle">Let a trusted person book and manage visits for you, verified by OTP.</p>
         <Row>
           <Col lg={5}>
             <Card>
