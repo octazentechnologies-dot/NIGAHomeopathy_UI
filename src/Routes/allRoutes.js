@@ -172,6 +172,7 @@ import DoctorConsultFeesPage from "../pages/Doctor/ConsultFees/DoctorConsultFees
 import DoctorErxPage from "../pages/Doctor/Erx/DoctorErxPage";
 import AccountFinancePage from "../pages/Account/AccountFinancePage";
 import PatientContinuityPage from "../pages/Patient/Continuity/PatientContinuityPage";
+import { PatientChatPage, PatientRejoinPage, PatientSummaryPage } from "../pages/Patient/Care/PatientCareScreens";
 import PatientPrescriptionsPage from "../pages/Patient/Prescriptions/PatientPrescriptionsPage";
 import PatientMedicineOrdersPage from "../pages/Patient/Medicine/PatientMedicineOrdersPage";
 import PharmacyWorkspacePage from "../pages/Pharmacy/PharmacyWorkspacePage";
@@ -641,11 +642,13 @@ const authProtectedRoutes = [
   { path: "account/payees", component: <AccountFinancePage section="payees" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "account/clinic-collections", component: <AccountFinancePage section="clinic-collections" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "admin/consult-payments", component: <AccountFinancePage section="consult-recon" />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/payment-exceptions", component: <AccountFinancePage section="exceptions" />, allowedRoles: ADMIN_PORTAL_ROLES },
   // Account Side End //
 
   // Pharmacy Side //
   { path: "pharmacydashboard", component: <PharmacyDashboard />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/onboarding", component: <PharmacyWorkspacePage mode="onboarding" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/onboard", component: <PharmacyWorkspacePage mode="onboarding" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/orders", component: <PharmacyWorkspacePage mode="orders" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/quotes", component: <PharmacyWorkspacePage mode="quotes" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" />, allowedRoles: PHARMACY_ROUTE_ROLES },
@@ -655,6 +658,9 @@ const authProtectedRoutes = [
   { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "caregiver", component: <CaregiverAccess />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/continuity", component: <PatientContinuityPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/chat", component: <PatientChatPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/rejoin", component: <PatientRejoinPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/summary", component: <PatientSummaryPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/medicine-orders", component: <PatientMedicineOrdersPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/prescriptions", component: <PatientPrescriptionsPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/support", component: <SupportWorkspacePage mode="mine" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },

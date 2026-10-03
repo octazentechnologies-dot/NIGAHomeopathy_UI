@@ -158,6 +158,7 @@ export const ADMIN_WEEK4_MENU = [
   { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
   { id: "pharmacy-partners", label: "Pharmacy configuration", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
   { id: "consult-payments", label: "Consult payments", icon: "ri-secure-payment-line", link: "/admin/consult-payments" },
+  { id: "payment-exceptions", label: "Payment exceptions", icon: "ri-error-warning-line", link: "/admin/payment-exceptions" },
 ];
 
 export const splitAdminApiNavItems = (items) => {
@@ -270,6 +271,9 @@ export const PATIENT_FALLBACK_MENU = [
     link: "/caregiver",
   },
   { id: "patient-continuity", label: "Care continuity", icon: "ri-heart-pulse-line", link: "/patient/continuity" },
+  { id: "patient-summary", label: "Consultation summary", icon: "ri-file-text-line", link: "/patient/summary" },
+  { id: "patient-chat", label: "Visit chat", icon: "ri-chat-1-line", link: "/patient/chat" },
+  { id: "patient-rejoin", label: "Rejoin call", icon: "ri-refresh-line", link: "/patient/rejoin" },
   { id: "patient-meds", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
   { id: "patient-erx", label: "Digital Prescription", icon: "ri-file-list-3-line", link: "/patient/prescriptions" },
   { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },

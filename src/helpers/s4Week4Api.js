@@ -121,6 +121,7 @@ export const erxHistory = (params) => nigahomeoAPI.get("/Erx/History", params ||
 export const erxPatient = (appointmentId) => nigahomeoAPI.get(`/Erx/Patient/${appointmentId}`, null);
 export const erxPdf = (id) => nigahomeoAPI.get(`/Erx/${id}/Pdf`, { responseType: "blob" });
 export const createErxRefill = (payload) => nigahomeoAPI.post("/Erx/Refills", payload);
+export const cloneMedicineRefill = (refillId) => nigahomeoAPI.post(`/MedicineOrders/Refill/${refillId}`, null);
 export const listErxRefills = () => nigahomeoAPI.get("/Erx/Refills", null);
 export const approveErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Approve`, payload);
 export const rejectErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Reject`, payload);
@@ -129,7 +130,19 @@ export const rejectErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/
 export const getPatientTimeline = () => nigahomeoAPI.get("/Patient/Timeline", null);
 export const getConsultNote = (patientAppId) =>
   nigahomeoAPI.get(`/Patient/Consultations/${patientAppId}/Note`, null);
-export const uploadPatientDocument = (payload) => nigahomeoAPI.post("/Patient/Documents", payload);
+export const uploadPatientDocument = (payload) => {
+  const file = payload instanceof File ? payload : payload?.file;
+  if (file instanceof File) {
+    const body = new FormData();
+    body.append("file", file);
+    return apiHelpers.nigahomeoMultipart.post("/Patient/Documents", body);
+  }
+  return nigahomeoAPI.post("/Patient/Documents", payload);
+};
+export const listTeleChat = (sessionId) => nigahomeoAPI.get(`/Tele/Chat/${sessionId}`, null);
+export const postTeleChat = (payload) => nigahomeoAPI.post("/Tele/Chat", payload);
+export const rejoinTeleSession = (sessionId) => nigahomeoAPI.post(`/Tele/Sessions/${sessionId}/Rejoin`, null);
+export const getConsultationSummary = (patientAppId) => nigahomeoAPI.get(`/Tele/Summary/${patientAppId}`, null);
 export const postFollowUp = (payload) => nigahomeoAPI.post("/Patient/FollowUps", payload);
 export const getPatientFollowUps = () => nigahomeoAPI.get("/Patient/FollowUps", null);
 export const completeFollowUp = (taskId) => nigahomeoAPI.post(`/Patient/FollowUps/${taskId}/Complete`, null);

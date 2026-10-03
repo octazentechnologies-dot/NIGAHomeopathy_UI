@@ -7,10 +7,15 @@ const DoctorEarningsSummaryPage = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
 
   document.title = "Earnings | Niga Homeocentrum";
 
   useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -25,6 +30,8 @@ const DoctorEarningsSummaryPage = () => {
     })();
     return () => {
       cancelled = true;
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
     };
   }, []);
 
@@ -36,6 +43,7 @@ const DoctorEarningsSummaryPage = () => {
       <Container fluid>
         <h2 className="clinic-page-title">Earnings summary</h2>
         <p className="clinic-page-subtitle">Consult captures and clinic collections for this doctor (New API).</p>
+        {offline ? <Alert color="warning">You appear to be offline. Earnings will load when the connection returns.</Alert> : null}
         {error ? <Alert color="danger">{error}</Alert> : null}
         {loading ? (
           <div className="py-4"><Spinner size="sm" /> Loading…</div>

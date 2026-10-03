@@ -15,6 +15,7 @@ import {
   postDataRequest,
   postDiaryEntry,
   s4Message,
+  uploadPatientDocument,
   unwrapS4,
   withdrawConsent,
 } from "../../../helpers/s4Week4Api";
@@ -38,7 +39,6 @@ const asList = (payload) => {
 };
 
 const formatDate = (value, format = "DD MMM YYYY") => (value ? moment(value).format(format) : "—");
-const daysAgo = (days) => moment().subtract(days, "days").toISOString();
 
 const TIMELINE_META = {
   appointment: { label: "Consultation", icon: "ri-stethoscope-line", tone: "blue" },
@@ -47,51 +47,6 @@ const TIMELINE_META = {
   diary: { label: "Diary", icon: "ri-heart-pulse-line", tone: "amber" },
   order: { label: "Medicine order", icon: "ri-capsule-line", tone: "blue" },
 };
-
-const SAMPLE_TIMELINE = [
-  { id: "t1", type: "appointment", title: "Consultation with Dr. Rohit Mehta", summary: "In-Clinic · Acidity, bloating", at: daysAgo(9) },
-  { id: "t2", type: "erx", title: "Prescription signed", summary: "Nux Vomica 30C, Carbo Veg 6X", at: daysAgo(9) },
-  { id: "t3", type: "diary", title: "Symptom diary updated", summary: "Severity 4/10 · feeling better", at: daysAgo(5) },
-  { id: "t4", type: "followup", title: "Follow-up visit", summary: "Tele Consultation · Dr. Anjali Deshmukh", at: daysAgo(22) },
-  { id: "t5", type: "appointment", title: "Consultation with Dr. Sameer Kulkarni", summary: "In-Clinic · Joint pain", at: daysAgo(45) },
-];
-
-const SAMPLE_FOLLOW_UPS = [
-  { id: "f1", title: "Take remedy as prescribed for 2 weeks", due: daysAgo(-3), done: false },
-  { id: "f2", title: "Log symptoms daily in the diary", due: daysAgo(-1), done: false },
-  { id: "f3", title: "Share latest blood report", due: daysAgo(2), done: true },
-].map((task) => ({ ...task, sample: true }));
-
-const SAMPLE_DIARY = [
-  { id: "d1", note: "Acidity much better after dinner, slept well.", severity: 3, at: daysAgo(1) },
-  { id: "d2", note: "Mild bloating in the morning.", severity: 4, at: daysAgo(3) },
-  { id: "d3", note: "Headache in the evening, acidity after lunch.", severity: 6, at: daysAgo(6) },
-];
-
-const SAMPLE_PROGRESS = { visits: 6, series: [8, 7, 7, 5, 4, 3] };
-
-const SAMPLE_CONSENTS = [
-  {
-    id: "privacy",
-    title: "Data Sharing Consent",
-    purpose: "Share your records with your treating doctors on Homeocentrum.",
-    granted: false,
-    privacy: true,
-  },
-  {
-    id: "c2",
-    title: "Pharmacy Order Sharing",
-    purpose: "Send your signed prescription to the pharmacy you order from.",
-    granted: true,
-    grantedAt: daysAgo(9),
-  },
-  {
-    id: "c3",
-    title: "Teleconsult Recording",
-    purpose: "Allow video consultations to be recorded for your records.",
-    granted: false,
-  },
-];
 
 const timelineType = (row) => {
   const raw = String(pick(row, "eventType", "EventType", "type", "Type") || "").toLowerCase();
@@ -220,7 +175,8 @@ const PatientContinuityPage = () => {
   const [timeline, setTimeline] = useState([]);
   const [followUps, setFollowUps] = useState([]);
   const [diary, setDiary] = useState([]);
-  const [progress, setProgress] = useState(SAMPLE_PROGRESS);
+  const [progress, setProgress] = useState({ visits: 0, series: [] });
+  const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
   const [consents, setConsents] = useState([]);
   const [profile, setProfile] = useState(() => normalizeProfile(null));
   const [loading, setLoading] = useState(true);
@@ -229,6 +185,7 @@ const PatientContinuityPage = () => {
   const [diarySeverity, setDiarySeverity] = useState(5);
   const [savingDiary, setSavingDiary] = useState(false);
   const [busyConsentId, setBusyConsentId] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -244,26 +201,22 @@ const PatientContinuityPage = () => {
     const value = (index) => (results[index].status === "fulfilled" ? unwrapS4(results[index].value) : null);
 
     const events = normalizeTimeline(value(0));
-    setTimeline(events.length ? events : SAMPLE_TIMELINE);
+    setTimeline(events);
 
     const tasks = asList(value(1)).map(normalizeFollowUp);
-    setFollowUps(tasks.length ? tasks : SAMPLE_FOLLOW_UPS);
+    setFollowUps(tasks);
 
     const entries = asList(value(2)).map(normalizeDiary);
-    setDiary(entries.length ? entries : SAMPLE_DIARY);
+    setDiary(entries);
 
     const rawProgress = value(3);
     const series = (pick(rawProgress, "series", "Series") || [])
       .map((row) => Number(pick(row, "severity", "Severity")))
       .filter((n) => Number.isFinite(n));
-    setProgress(
-      series.length
-        ? { visits: Number(pick(rawProgress, "visitCount", "VisitCount") || 0), series }
-        : SAMPLE_PROGRESS
-    );
+    setProgress({ visits: Number(pick(rawProgress, "visitCount", "VisitCount") || 0), series });
 
     const consentRows = asList(value(4)).map(normalizeConsent);
-    setConsents(consentRows.length ? consentRows : SAMPLE_CONSENTS);
+    setConsents(consentRows);
 
     setProfile(normalizeProfile(value(5)));
     if (results.every((row) => row.status === "rejected")) setError(s4Message(results[0].reason));
@@ -271,7 +224,15 @@ const PatientContinuityPage = () => {
   };
 
   useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
     load();
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
   }, []);
 
   const sortedTimeline = useMemo(
@@ -296,10 +257,27 @@ const PatientContinuityPage = () => {
 
   const onCompleteTask = async (task) => {
     try {
-      if (!task.sample) await completeFollowUp(task.id);
+      await completeFollowUp(task.id);
       setFollowUps((prev) => prev.map((row) => (row.id === task.id ? { ...row, done: true } : row)));
     } catch (err) {
       setError(s4Message(err));
+    }
+  };
+
+  const onUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      await uploadPatientDocument(file);
+      Swal.fire({ title: "Document saved", icon: "success", timer: 1200, showConfirmButton: false });
+      await load();
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -388,6 +366,7 @@ const PatientContinuityPage = () => {
           </div>
         </div>
 
+        {offline ? <Alert color="warning">You appear to be offline. Records will load when the connection returns.</Alert> : null}
         {error ? <Alert color="danger">{error}</Alert> : null}
 
         {loading ? (
@@ -422,6 +401,7 @@ const PatientContinuityPage = () => {
                 title="My Health Timeline"
                 extra={<span className="pcon-count">{sortedTimeline.length} events</span>}
               >
+                {sortedTimeline.length === 0 ? <p className="pcon-hint">No visits, prescriptions, or diary events yet.</p> : null}
                 <ol className="pcon-timeline">
                   {sortedTimeline.map((event) => {
                     const meta = TIMELINE_META[event.type] || TIMELINE_META.appointment;
@@ -454,6 +434,7 @@ const PatientContinuityPage = () => {
                   </button>
                 }
               >
+                {consents.length === 0 ? <p className="pcon-hint">No consent records yet.</p> : null}
                 <ul className="pcon-consents">
                   {consents.map((consent) => (
                     <li key={consent.id} className={consent.granted ? "is-granted" : ""}>
@@ -564,6 +545,7 @@ const PatientContinuityPage = () => {
                 extra={<span className="pcon-count">{openTasks} open</span>}
               >
                 <p className="pcon-hint">Your doctor adds these after a visit. Mark each one done when completed.</p>
+                {followUps.length === 0 ? <p className="pcon-hint">No follow-up tasks yet.</p> : null}
                 <ul className="pcon-tasks">
                   {followUps.map((task) => (
                     <li key={task.id} className={task.done ? "is-done" : ""}>
@@ -580,6 +562,15 @@ const PatientContinuityPage = () => {
                     </li>
                   ))}
                 </ul>
+              </PconCard>
+
+              <PconCard icon="ri-attachment-2" title="Documents">
+                <p className="pcon-hint">Upload a report or photo for your treating doctor. PDF, JPG, or PNG.</p>
+                <label className="prx-btn prx-btn--primary">
+                  {uploading ? <Spinner size="sm" /> : <i className="ri-upload-2-line" aria-hidden="true" />}
+                  {uploading ? " Uploading…" : " Upload document"}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={onUpload} disabled={uploading} />
+                </label>
               </PconCard>
 
               <PconCard icon="ri-heart-pulse-line" title="Symptom Diary">
@@ -615,6 +606,7 @@ const PatientContinuityPage = () => {
                     Save entry
                   </button>
                 </div>
+                {diary.length === 0 ? <p className="pcon-hint">No diary entries yet.</p> : null}
                 <ul className="pcon-diary">
                   {diary.slice(0, 4).map((entry) => (
                     <li key={entry.id}>
@@ -647,6 +639,7 @@ const PatientContinuityPage = () => {
                   <i className="ri-bar-chart-2-line" aria-hidden="true" />
                   Severity trend
                 </div>
+                {progress.series.length === 0 ? <p className="pcon-hint">Progress appears after diary entries are saved.</p> : null}
                 <div className="pcon-bars">
                   {progress.series.map((value, index) => (
                     <div key={index} className="pcon-bars__col">
