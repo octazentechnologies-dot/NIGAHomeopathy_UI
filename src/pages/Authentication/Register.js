@@ -25,6 +25,8 @@ import { registerUser, apiError, resetRegisterFlag } from "../../slices/thunks";
 import {
   getRegistrationCountries,
   getRegistrationStates,
+  getRegistrationDistricts,
+  getRegistrationCities,
   getRegistrationQualifications,
 } from "../../helpers/realbackend_helper";
 import { pageTitle } from "../../common/brand";
@@ -38,7 +40,7 @@ const STEPS = [
 
 const stepFieldMap = {
   1: ["firstName", "middleName", "lastName", "userName", "emailId", "mobileNo", "userPassword", "confirmPassword"],
-  2: ["companyName", "countryId", "stateId", "city", "permanantAddress"],
+  2: ["companyName", "countryId", "stateId", "districtId", "cityId", "permanantAddress"],
   3: ["qualificationId", "passingUniversity", "passingCertNo"],
 };
 
@@ -69,9 +71,13 @@ const Register = () => {
   const [confirmPasswordShow, setConfirmPasswordShow] = useState(false);
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [cities, setCities] = useState([]);
   const [qualifications, setQualifications] = useState([]);
   const [lookupsLoading, setLookupsLoading] = useState(true);
   const [statesLoading, setStatesLoading] = useState(false);
+  const [districtsLoading, setDistrictsLoading] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(false);
   const [lookupError, setLookupError] = useState("");
   const [step3Attempted, setStep3Attempted] = useState(false);
   const [qualificationDoc, setQualificationDoc] = useState(null);
@@ -105,7 +111,8 @@ const Register = () => {
       companyName: "",
       countryId: 78,
       stateId: null,
-      city: "",
+      districtId: null,
+      cityId: null,
       permanantAddress: "",
       qualificationId: null,
       passingUniversity: "",
@@ -137,7 +144,16 @@ const Register = () => {
           originalValue === "" || originalValue === null || originalValue === undefined ? null : value
         )
         .nullable(),
-      city: Yup.string().trim(),
+      districtId: Yup.number()
+        .transform((value, originalValue) =>
+          originalValue === "" || originalValue === null || originalValue === undefined ? null : value
+        )
+        .nullable(),
+      cityId: Yup.number()
+        .transform((value, originalValue) =>
+          originalValue === "" || originalValue === null || originalValue === undefined ? null : value
+        )
+        .nullable(),
       permanantAddress: Yup.string().trim(),
       qualificationId: Yup.number()
         .transform((value, originalValue) =>
@@ -161,7 +177,14 @@ const Register = () => {
       formData.append("companyName", values.companyName.trim());
       formData.append("countryId", String(Number(values.countryId)));
       if (values.stateId) formData.append("stateId", String(Number(values.stateId)));
-      formData.append("city", values.city?.trim() || "");
+      if (values.districtId) formData.append("districtId", String(Number(values.districtId)));
+      if (values.cityId) {
+        formData.append("cityId", String(Number(values.cityId)));
+        const selected = (cities || []).find(
+          (c) => Number(c.cityId ?? c.CityId) === Number(values.cityId)
+        );
+        formData.append("city", selected?.cityName ?? selected?.CityName ?? "");
+      }
       formData.append("permanantAddress", values.permanantAddress?.trim() || "");
       formData.append("qualificationId", String(Number(values.qualificationId)));
       formData.append("passingUniversity", values.passingUniversity?.trim() || "");
@@ -194,6 +217,28 @@ const Register = () => {
     [states]
   );
 
+  const districtOptions = useMemo(
+    () =>
+      (districts || [])
+        .map((d) => ({
+          value: Number(d.districtId ?? d.DistrictId),
+          label: d.districtName ?? d.DistrictName,
+        }))
+        .filter((o) => Number.isFinite(o.value) && o.label),
+    [districts]
+  );
+
+  const cityOptions = useMemo(
+    () =>
+      (cities || [])
+        .map((c) => ({
+          value: Number(c.cityId ?? c.CityId),
+          label: c.cityName ?? c.CityName,
+        }))
+        .filter((o) => Number.isFinite(o.value) && o.label),
+    [cities]
+  );
+
   const qualificationOptions = useMemo(
     () =>
       (qualifications || [])
@@ -218,6 +263,38 @@ const Register = () => {
       setStates([]);
     } finally {
       setStatesLoading(false);
+    }
+  }, []);
+
+  const loadDistricts = useCallback(async (stateId) => {
+    if (!stateId) {
+      setDistricts([]);
+      return;
+    }
+    setDistrictsLoading(true);
+    try {
+      const list = await getRegistrationDistricts(stateId);
+      setDistricts(Array.isArray(list) ? list : []);
+    } catch {
+      setDistricts([]);
+    } finally {
+      setDistrictsLoading(false);
+    }
+  }, []);
+
+  const loadCities = useCallback(async (districtId) => {
+    if (!districtId) {
+      setCities([]);
+      return;
+    }
+    setCitiesLoading(true);
+    try {
+      const list = await getRegistrationCities(districtId);
+      setCities(Array.isArray(list) ? list : []);
+    } catch {
+      setCities([]);
+    } finally {
+      setCitiesLoading(false);
     }
   }, []);
 
@@ -259,6 +336,14 @@ const Register = () => {
       loadStates(validation.values.countryId);
     }
   }, [validation.values.countryId, loadStates]);
+
+  useEffect(() => {
+    loadDistricts(validation.values.stateId);
+  }, [validation.values.stateId, loadDistricts]);
+
+  useEffect(() => {
+    loadCities(validation.values.districtId);
+  }, [validation.values.districtId, loadCities]);
 
   useEffect(() => {
     if (!success) return undefined;
@@ -311,6 +396,10 @@ const Register = () => {
     countryOptions.find((o) => Number(o.value) === Number(validation.values.countryId)) || null;
   const selectedState =
     stateOptions.find((o) => Number(o.value) === Number(validation.values.stateId)) || null;
+  const selectedDistrict =
+    districtOptions.find((o) => Number(o.value) === Number(validation.values.districtId)) || null;
+  const selectedCity =
+    cityOptions.find((o) => Number(o.value) === Number(validation.values.cityId)) || null;
   const selectedQualification =
     qualificationOptions.find((o) => Number(o.value) === Number(validation.values.qualificationId)) || null;
 
@@ -575,6 +664,8 @@ const Register = () => {
                                   onChange={(option) => {
                                     validation.setFieldValue("countryId", option?.value || null);
                                     validation.setFieldValue("stateId", null);
+                                    validation.setFieldValue("districtId", null);
+                                    validation.setFieldValue("cityId", null);
                                   }}
                                   onBlur={() => validation.setFieldTouched("countryId", true)}
                                 />
@@ -591,19 +682,52 @@ const Register = () => {
                                   isClearable
                                   placeholder={statesLoading ? "Loading states…" : "Select state (optional)"}
                                   styles={selectStyles}
-                                  onChange={(option) => validation.setFieldValue("stateId", option?.value || null)}
+                                  onChange={(option) => {
+                                    validation.setFieldValue("stateId", option?.value || null);
+                                    validation.setFieldValue("districtId", null);
+                                    validation.setFieldValue("cityId", null);
+                                  }}
                                 />
                               </Col>
                               <Col md={6}>
-                                <Label htmlFor="city" className="form-label">City</Label>
-                                <Input
-                                  id="city"
-                                  name="city"
-                                  type="text"
-                                  placeholder="City"
-                                  value={validation.values.city}
-                                  onChange={validation.handleChange}
-                                  onBlur={validation.handleBlur}
+                                <Label className="form-label">District</Label>
+                                <Select
+                                  options={districtOptions}
+                                  value={selectedDistrict}
+                                  isLoading={districtsLoading}
+                                  isClearable
+                                  isDisabled={!validation.values.stateId}
+                                  placeholder={
+                                    !validation.values.stateId
+                                      ? "Select a state first"
+                                      : districtsLoading
+                                        ? "Loading districts…"
+                                        : "Select district"
+                                  }
+                                  styles={selectStyles}
+                                  onChange={(option) => {
+                                    validation.setFieldValue("districtId", option?.value || null);
+                                    validation.setFieldValue("cityId", null);
+                                  }}
+                                />
+                              </Col>
+                              <Col md={6}>
+                                <Label className="form-label">City</Label>
+                                <Select
+                                  options={cityOptions}
+                                  value={selectedCity}
+                                  isLoading={citiesLoading}
+                                  isClearable
+                                  isDisabled={!validation.values.districtId}
+                                  placeholder={
+                                    !validation.values.districtId
+                                      ? "Select a district first"
+                                      : citiesLoading
+                                        ? "Loading cities…"
+                                        : "Select city"
+                                  }
+                                  styles={selectStyles}
+                                  onChange={(option) => validation.setFieldValue("cityId", option?.value || null)}
                                 />
                               </Col>
                               <Col md={6}>
