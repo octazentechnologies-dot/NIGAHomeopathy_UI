@@ -119,7 +119,7 @@ export const erxByAppointment = (id) => nigahomeoAPI.get(`/Erx/ByAppointment/${i
 export const signErx = (payload) => nigahomeoAPI.post("/Erx/Sign", payload);
 export const erxHistory = (params) => nigahomeoAPI.get("/Erx/History", params || {});
 export const erxPatient = (appointmentId) => nigahomeoAPI.get(`/Erx/Patient/${appointmentId}`, null);
-export const erxPdf = (id) => nigahomeoAPI.get(`/Erx/${id}/Pdf`, null);
+export const erxPdf = (id) => nigahomeoAPI.get(`/Erx/${id}/Pdf`, { responseType: "blob" });
 export const createErxRefill = (payload) => nigahomeoAPI.post("/Erx/Refills", payload);
 export const listErxRefills = () => nigahomeoAPI.get("/Erx/Refills", null);
 export const approveErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Approve`, payload);

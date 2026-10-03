@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { useLayoutMenu } from '../../Layouts/LayoutMenuContext';
 
-const AdminMoreMenuDropdown = () => {
+const AdminMoreMenuDropdown = ({ showLabel = false }) => {
   const { moreMenuItems } = useLayoutMenu();
   const [isOpen, setIsOpen] = useState(false);
   const [expandedKey, setExpandedKey] = useState(null);
@@ -87,11 +87,23 @@ const AdminMoreMenuDropdown = () => {
       <DropdownToggle
         tag="button"
         type="button"
-        className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
+        className={
+          showLabel
+            ? "btn btn-topbar btn-ghost-secondary admin-more-menu-toggle"
+            : "btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
+        }
         title="More"
         aria-label="More menu"
       >
-        <i className="ri-briefcase-2-line fs-22" />
+        {showLabel ? (
+          <>
+            <i className="ri-briefcase-2-line" />
+            <span>More</span>
+            <i className="ri-arrow-down-s-line admin-more-menu-toggle__caret" />
+          </>
+        ) : (
+          <i className="ri-briefcase-2-line fs-22" />
+        )}
       </DropdownToggle>
       <DropdownMenu end container="body" strategy="fixed" className="dropdown-menu-lg dropdown-menu-end admin-more-menu-panel">
         <div className="dropdown-header d-flex align-items-center gap-2">

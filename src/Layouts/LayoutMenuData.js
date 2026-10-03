@@ -235,7 +235,7 @@ const Navdata = () => {
 
         {
             id: "trust-queue",
-            label: "Trust queue",
+            label: "Trust & Verification",
             icon: "ri-shield-check-line",
             link: "/admin/trust-queue",
         },
@@ -249,7 +249,7 @@ const Navdata = () => {
 
         {
             id: "pharmacy-partners",
-            label: "Pharmacy partners",
+            label: "Pharmacy configuration",
             icon: "ri-store-3-line",
             link: "/admin/pharmacy-partners",
         },
@@ -257,7 +257,7 @@ const Navdata = () => {
         {
             id: "consult-payments",
             label: "Consult payments",
-            icon: "ri-money-rupee-circle-line",
+            icon: "ri-secure-payment-line",
             link: "/admin/consult-payments",
         },
 
@@ -1595,6 +1595,7 @@ const Navdata = () => {
                     { id: "caregiver", label: "Caregiver", icon: "ri-user-heart-line", link: "/caregiver" },
                     { id: "continuity", label: "Care continuity", icon: "ri-heart-pulse-line", link: "/patient/continuity" },
                     { id: "medicine-orders", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
+                    { id: "patient-erx", label: "Digital Prescription", icon: "ri-file-list-3-line", link: "/patient/prescriptions" },
                 ]}
             </React.Fragment>
         );
