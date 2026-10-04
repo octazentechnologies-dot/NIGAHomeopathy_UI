@@ -5232,6 +5232,41 @@ body.admin-layout {
   z-index: 1200;
 }
 
+.admin-more-menu-dropdown .btn.btn-topbar.admin-more-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: auto !important;
+  height: 32px !important;
+  margin-right: 0.35rem;
+  padding: 0 0.6rem !important;
+  border: 1px solid #d5dde6 !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: none !important;
+
+  i {
+    font-size: 0.95rem !important;
+    line-height: 1;
+  }
+
+  .admin-more-menu-toggle__caret {
+    margin-left: -0.1rem;
+    font-size: 0.85rem !important;
+    opacity: 0.7;
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    border-color: #25a0e2 !important;
+    background: #f3f9fe !important;
+  }
+}
+
 .admin-more-menu-panel {
   min-width: 14rem;
   max-height: 70vh;
@@ -5317,6 +5352,7 @@ html:not([data-bs-theme="dark"]) {
 
 @import "./components/appointment-slot-grid";
 @import "./pages/clinic-workspace";
+@import "./pages/patient-portal";
 @import "./theme/velzon-minimal";
 
 // App-wide card border radius (5px) — overrides page-specific card styles

@@ -148,9 +148,12 @@ export const LayoutMenuProvider = ({ children }) => {
       if (isAdminRole) {
         const split = splitAdminApiNavItems(spaItems);
         if (!split.menuItems.length) {
+          const mainLinks = new Set(spaItems.map((item) => String(item.link || '').toLowerCase()));
           return {
-            menuItems: withDropdownState(mergeMissingMenuItems(spaItems, ADMIN_WEEK4_MENU)),
-            moreMenuItems: [],
+            menuItems: withDropdownState(spaItems),
+            moreMenuItems: withDropdownState(
+              ADMIN_WEEK4_MENU.filter((item) => !mainLinks.has(String(item.link || '').toLowerCase()))
+            ),
           };
         }
         return {
@@ -171,8 +174,10 @@ export const LayoutMenuProvider = ({ children }) => {
         };
       }
       if (role === UserRole.PATIENT) {
+        const merged = mergeMissingMenuItems(spaItems, PATIENT_FALLBACK_MENU);
+        const isTail = (item) => ['/patient/support', '/profile'].includes(String(item.link || '').toLowerCase());
         return {
-          menuItems: withDropdownState(mergeMissingMenuItems(spaItems, PATIENT_FALLBACK_MENU)),
+          menuItems: withDropdownState([...merged.filter((item) => !isTail(item)), ...merged.filter(isTail)]),
           moreMenuItems: [],
         };
       }

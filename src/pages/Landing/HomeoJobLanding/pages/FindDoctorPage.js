@@ -311,7 +311,7 @@ const FindDoctorPage = () => {
                                         </div>
                                         {Array.isArray(doc.rankingReasons) && doc.rankingReasons.length > 0 ? (
                                             <p className="homeojob-doctor-card__specs mb-0 mt-1">
-                                                <strong>Why this order?</strong>{" "}
+                                                <strong>Why this doctor?</strong>{" "}
                                                 {doc.rankingReasons
                                                     .slice(0, 2)
                                                     .map((reason) =>
