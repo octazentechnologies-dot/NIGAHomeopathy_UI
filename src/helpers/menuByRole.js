@@ -6,7 +6,7 @@ const SEED_URL_TO_SPA = {
   "/account/home": "/accountdashboard",
   "/account/earnings": "/account/doctor-earnings",
   "/pharmacy/home": "/pharmacydashboard",
-  "/admin/dashboard": "/dashboard",
+  "/admin/dashboard": "/admin/dashboard",
   "/admin/enquiries": "/enquiries",
 };
 
@@ -158,6 +158,10 @@ export const ADMIN_WEEK4_MENU = [
   { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
   { id: "pharmacy-partners", label: "Pharmacy configuration", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
   { id: "consult-payments", label: "Consult payments", icon: "ri-secure-payment-line", link: "/admin/consult-payments" },
+  { id: "payment-exceptions", label: "Payment exceptions", icon: "ri-error-warning-line", link: "/admin/payment-exceptions" },
+  { id: "admin-sms", label: "SMS templates", icon: "ri-message-2-line", link: "/admin/sms" },
+  { id: "medicine-report", label: "Medicine report", icon: "ri-capsule-line", link: "/admin/medicine-report" },
+  { id: "security-posture", label: "Security posture", icon: "ri-shield-keyhole-line", link: "/admin/security" },
 ];
 
 export const splitAdminApiNavItems = (items) => {
@@ -252,6 +256,9 @@ export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
   { id: "doctor-fees", label: "Consult fees", icon: "ri-money-dollar-circle-line", link: "/doctor/consult-fees" },
   { id: "doctor-earnings", label: "Earnings", icon: "ri-wallet-3-line", link: "/doctor/earnings" },
+  { id: "doctor-sms", label: "SMS events", icon: "ri-message-2-line", link: "/doctor/sms" },
+  { id: "doctor-followup", label: "Follow-up analysis", icon: "ri-calendar-check-line", link: "/doctor/follow-up-analysis" },
+  { id: "doctor-performance", label: "Clinic performance", icon: "ri-bar-chart-grouped-line", link: "/doctor/clinic-performance" },
   { id: "doctor-erx", label: "eRx", icon: "ri-file-text-line", link: "/doctor/erx" },
   { id: "doctor-waitlist", label: "Waitlist", icon: "ri-time-line", link: "/doctor/waitlist" },
   { id: "doctor-schedule", label: "Schedule", icon: "ri-calendar-2-line", link: "/doctor/schedule" },
@@ -270,6 +277,9 @@ export const PATIENT_FALLBACK_MENU = [
     link: "/caregiver",
   },
   { id: "patient-continuity", label: "Care continuity", icon: "ri-heart-pulse-line", link: "/patient/continuity" },
+  { id: "patient-summary", label: "Consultation summary", icon: "ri-file-text-line", link: "/patient/summary" },
+  { id: "patient-chat", label: "Visit chat", icon: "ri-chat-1-line", link: "/patient/chat" },
+  { id: "patient-rejoin", label: "Rejoin call", icon: "ri-refresh-line", link: "/patient/rejoin" },
   { id: "patient-meds", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
   { id: "patient-erx", label: "Digital Prescription", icon: "ri-file-list-3-line", link: "/patient/prescriptions" },
   { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },

@@ -247,6 +247,8 @@ export const ACTIVATE_BY_TOKEN = "/users/ActivateByToken";
 export const RESEND_ACTIVATION = "/users/ResendActivation";
 export const REGISTRATION_COUNTRIES = "/registration/countries";
 export const REGISTRATION_STATES = "/registration/states";
+export const REGISTRATION_DISTRICTS = "/registration/districts";
+export const REGISTRATION_CITIES = "/registration/cities";
 export const REGISTRATION_QUALIFICATIONS = "/registration/qualifications";
 
 //User Api Urls

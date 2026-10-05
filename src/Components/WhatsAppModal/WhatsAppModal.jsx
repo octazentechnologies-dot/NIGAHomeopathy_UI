@@ -46,6 +46,7 @@ import {
   sendWhatsAppForTab,
 } from "../../helpers/whatsapp_helper";
 import { dedupeRepeatedBlocks } from "../../utils/formatForWhatsApp";
+import { whatsAppBulk } from "../../helpers/s5Week5Api";
 
 const TABS = {
   SERVICES: "services",
@@ -91,6 +92,24 @@ export default function WhatsAppModal({ isOpen, toggle }) {
   const [languagesLoading, setLanguagesLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(null);
   const [sending, setSending] = useState(false);
+  const [campaignRows, setCampaignRows] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await whatsAppBulk();
+        const rows = Array.isArray(response?.data) ? response.data : [];
+        if (!cancelled) setCampaignRows(rows);
+      } catch {
+        if (!cancelled) setCampaignRows([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const editorApiRef = useRef(null);
   const compose = composeByTab[activeTab] || defaultComposeState();
@@ -566,6 +585,21 @@ export default function WhatsAppModal({ isOpen, toggle }) {
       </div>
 
       <ModalBody className="whatsapp-modal__body" style={{ minHeight: 380 }}>
+        {campaignRows.length > 0 ? (
+          <div className="mb-3 small">
+            <div className="fw-semibold mb-1">Recent bulk sends</div>
+            {campaignRows.slice(0, 5).map((row) => {
+              const failed = String(row.deliveryStatus || row.DeliveryStatus || "").toLowerCase() === "failed"
+                || row.sendStatus === false || row.SendStatus === false;
+              return (
+                <div key={row.id || row.Id}>
+                  {row.mobileNumber || row.MobileNumber} · {row.deliveryStatus || row.DeliveryStatus || (failed ? "failed" : "pending")}
+                  {failed ? " · failure" : ""}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
         <div className="whatsapp-modal__form-stack">
         <Row className="g-3">
           <Col md={6}>

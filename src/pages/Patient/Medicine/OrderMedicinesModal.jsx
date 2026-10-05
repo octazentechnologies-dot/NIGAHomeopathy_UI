@@ -11,7 +11,6 @@ import {
 } from "../../../helpers/s4Week4Api";
 import { formatDosage } from "../../Doctor/Erx/erxOptions";
 import {
-  SAMPLE_PHARMACIES,
   buildDemoOrder,
   formatDate,
   normalizePharmacy,
@@ -42,10 +41,13 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
       .then((response) => {
         const data = unwrapS4(response);
         const rows = (Array.isArray(data) ? data : []).map(normalizePharmacy).filter((row) => row.id != null);
-        if (!cancelled) setPharmacies(rows.length ? rows : SAMPLE_PHARMACIES);
+        if (!cancelled) setPharmacies(rows);
       })
-      .catch(() => {
-        if (!cancelled) setPharmacies(SAMPLE_PHARMACIES);
+      .catch((err) => {
+        if (!cancelled) {
+          setPharmacies([]);
+          setError(s4Message(err));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingPharmacies(false);
