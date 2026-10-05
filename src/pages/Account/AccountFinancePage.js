@@ -27,6 +27,12 @@ import {
   settlementDetail,
   unwrapS4,
 } from "../../helpers/s4Week4Api";
+import {
+  downloadCsvEnvelope,
+  exportPayouts,
+  exportReconciliation,
+  exportSettlements,
+} from "../../helpers/s5Week5Api";
 import "./components/accountDashboard.css";
 
 const SECTIONS = {
@@ -566,6 +572,19 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     }
   };
 
+  const runReportExport = async (call, fallbackName) => {
+    setError("");
+    try {
+      const response = await call();
+      const envelope = response?.csv || response?.Csv ? response : (response?.data || response);
+      if (!downloadCsvEnvelope(envelope, fallbackName)) {
+        setError("The export did not include a CSV file.");
+      }
+    } catch (err) {
+      setError(s4Message(err));
+    }
+  };
+
   return (
     <div className="page-content admin-dashboard-page account-dashboard-page clinic-workspace-page">
       <Container fluid>
@@ -581,6 +600,21 @@ const AccountFinancePage = ({ section = "ledger" }) => {
             <Button size="sm" className="account-primary-btn" onClick={load} disabled={loading}>
               Refresh
             </Button>
+            {section === "consult-recon" || section === "reports" ? (
+              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportReconciliation, "reconciliation.csv")}>
+                Export reconciliation
+              </Button>
+            ) : null}
+            {section === "settlements" || section === "reports" ? (
+              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportSettlements, "settlements.csv")}>
+                Export settlements
+              </Button>
+            ) : null}
+            {section === "payouts" || section === "reports" ? (
+              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportPayouts, "payouts.csv")}>
+                Export payouts
+              </Button>
+            ) : null}
           </div>
         </div>
 

@@ -572,7 +572,9 @@ const Register = () => {
     validation.setFieldValue("districtId", null);
     validation.setFieldValue("city", "");
     validation.setFieldValue("postalCode", "");
-  };  const selectedState =
+  };
+
+  const selectedState =
     stateOptions.find((o) => Number(o.value) === Number(validation.values.stateId)) || null;
   const selectedDistrict =
     districtOptions.find((o) => Number(o.value) === Number(validation.values.districtId)) || null;
