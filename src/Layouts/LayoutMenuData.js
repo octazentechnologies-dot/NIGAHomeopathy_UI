@@ -1594,6 +1594,9 @@ const Navdata = () => {
                     { id: "family", label: "Family", icon: "ri-group-line", link: "/family" },
                     { id: "caregiver", label: "Caregiver", icon: "ri-user-heart-line", link: "/caregiver" },
                     { id: "continuity", label: "Care continuity", icon: "ri-heart-pulse-line", link: "/patient/continuity" },
+                    { id: "patient-summary", label: "Consultation summary", icon: "ri-file-text-line", link: "/patient/summary" },
+                    { id: "patient-chat", label: "Visit chat", icon: "ri-chat-1-line", link: "/patient/chat" },
+                    { id: "patient-rejoin", label: "Rejoin call", icon: "ri-refresh-line", link: "/patient/rejoin" },
                     { id: "medicine-orders", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
                     { id: "patient-erx", label: "Digital Prescription", icon: "ri-file-list-3-line", link: "/patient/prescriptions" },
                 ]}

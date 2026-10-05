@@ -3,11 +3,15 @@ import { CardHeader, Card, CardBody, Col, Container, Row, Spinner } from 'reacts
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUserList } from '../../../../slices/admin/users/thunk';
+import { downloadCsvEnvelope, exportUsers, importUsers, s4Message } from '../../../../helpers/s5Week5Api';
 
 const ListUser = () => {
   const dispatch = useDispatch();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [verificationByUser, setVerificationByUser] = useState({});
+  const [actionMessage, setActionMessage] = useState('');
+  const fileRef = React.useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -23,6 +27,57 @@ const ListUser = () => {
       PageSize: pageSize,
     }));
   }, [dispatch, searchQuery, currentPage]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await exportUsers();
+        const csv = response?.csv || response?.Csv || '';
+        const map = {};
+        csv.split(/\r?\n/).slice(1).forEach((line) => {
+          if (!line) return;
+          const cells = line.split(',');
+          map[cells[0]] = cells[6] || '';
+        });
+        if (!cancelled) setVerificationByUser(map);
+      } catch {
+        if (!cancelled) setVerificationByUser({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleExport = async () => {
+    setActionMessage('');
+    try {
+      const response = await exportUsers();
+      if (!downloadCsvEnvelope(response, 'users.csv')) setActionMessage('Export did not include a file.');
+    } catch (err) {
+      setActionMessage(s4Message(err));
+    }
+  };
+
+  const handleImportFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setActionMessage('');
+    try {
+      const text = await file.text();
+      const users = text.split(/\r?\n/).slice(1).map((line) => {
+        const cells = line.split(',');
+        return { userName: (cells[1] || cells[0] || '').replace(/"/g, '').trim(), emailId: (cells[2] || '').replace(/"/g, '').trim() };
+      }).filter((row) => row.userName);
+      const response = await importUsers({ users });
+      const unknown = response?.unknown || response?.Unknown || [];
+      setActionMessage(unknown.length ? `Unknown names: ${unknown.join(', ')}` : (response?.message || 'Import checked.'));
+    } catch (err) {
+      setActionMessage(s4Message(err));
+    }
+  };
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -61,11 +116,12 @@ const ListUser = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={handleImportFile} />
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" onClick={() => fileRef.current?.click()}>
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={handleExport}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>
@@ -90,13 +146,14 @@ const ListUser = () => {
                           <th scope="col">Email</th>
                           <th scope="col">Role</th>
                           <th scope="col">Status</th>
+                          <th scope="col">Verification</th>
                           <th scope="col" className="text-center" style={{ width: '12%' }}>Action</th>
                         </tr>
                       </thead>
                       {userLoading ? (
                         <tbody>
                           <tr>
-                            <td colSpan="8" className="text-center">
+                            <td colSpan="9" className="text-center">
                               <Spinner color="primary" size="sm" />
                             </td>
                           </tr>
@@ -113,6 +170,7 @@ const ListUser = () => {
                                 <td>{user.emailId || '—'}</td>
                                 <td>{user.role || '—'}</td>
                                 <td>{user.userStatus || '—'}</td>
+                                <td>{verificationByUser[String(user.userId)] || '—'}</td>
                                 <td className="text-center">
                                   <div className="d-inline-flex gap-2">
                                     <div className="edit">
@@ -133,7 +191,7 @@ const ListUser = () => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan="8" className="text-center text-muted py-4">
+                              <td colSpan="9" className="text-center text-muted py-4">
                                 {searchQuery ? 'No users match your search' : 'No Users Found'}
                               </td>
                             </tr>
@@ -143,6 +201,7 @@ const ListUser = () => {
                     </table>
                   </div>
 
+                  {actionMessage ? <div className="text-muted small mb-2">{actionMessage}</div> : null}
                   <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
                     <div className="text-muted patient-list-modal__footer-text">
                       {userLoading

@@ -5,9 +5,11 @@ import Swal from "sweetalert2";
 
 import {
   acceptMedicineQuote,
+  cloneMedicineRefill,
   createMedicineOrder,
   createMedicinePayment,
   grantMedicineConsent,
+  listErxRefills,
   medicineTracking,
   patientMedicineOrders,
   patientPayments,
@@ -16,7 +18,6 @@ import {
 } from "../../../helpers/s4Week4Api";
 import OrderDetailsModal from "./OrderDetailsModal";
 import {
-  SAMPLE_ORDERS,
   formatDate,
   formatINR,
   isOrderOpen,
@@ -68,20 +69,26 @@ const PatientMedicineOrdersPage = () => {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [approvedRefills, setApprovedRefills] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    const [ordersResult, paymentsResult] = await Promise.allSettled([patientMedicineOrders(), patientPayments()]);
+    const [ordersResult, paymentsResult, refillResult] = await Promise.allSettled([
+      patientMedicineOrders(),
+      patientPayments(),
+      listErxRefills(),
+    ]);
     const apiOrders = ordersResult.status === "fulfilled" ? asList(ordersResult.value).map(normalizeOrder) : [];
-    if (apiOrders.length) {
-      setOrders(apiOrders);
-    } else {
-      const demo = readDemoOrders();
-      const seen = new Set(demo.map((row) => row.id));
-      setOrders([...demo, ...SAMPLE_ORDERS.filter((row) => !seen.has(row.id))]);
-    }
+    const demo = readDemoOrders();
+    const seen = new Set(apiOrders.map((row) => row.id));
+    setOrders([...apiOrders, ...demo.filter((row) => !seen.has(row.id))]);
+    if (ordersResult.status === "rejected") setError(s4Message(ordersResult.reason));
     setPayments(paymentsResult.status === "fulfilled" ? asList(paymentsResult.value) : []);
+    const refills = refillResult.status === "fulfilled" ? asList(refillResult.value) : [];
+    setApprovedRefills(
+      refills.filter((row) => String(row.status || row.Status || "").toUpperCase() === "APPROVED")
+    );
     setLoading(false);
   }, []);
 
@@ -180,6 +187,22 @@ const PatientMedicineOrdersPage = () => {
       });
     });
 
+  const onStartRefill = async (row) => {
+    const id = Number(row.refillRequestId || row.RefillRequestId || row.id || row.Id);
+    if (!id) return;
+    setBusy(true);
+    setError("");
+    try {
+      await cloneMedicineRefill(id);
+      Swal.fire({ title: "Refill order started", text: "The pharmacy will send a quote.", icon: "success", timer: 1600, showConfirmButton: false });
+      await load();
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onReorder = (order) =>
     runAction(async () => {
       if (order.isDemo) {
@@ -229,6 +252,22 @@ const PatientMedicineOrdersPage = () => {
         </div>
 
         {error ? <Alert color="danger">{error}</Alert> : null}
+        {approvedRefills.length ? (
+          <Alert color="info">
+            <div className="fw-semibold mb-2">Approved refills</div>
+            {approvedRefills.map((row) => {
+              const id = row.refillRequestId || row.RefillRequestId;
+              return (
+                <div key={id} className="d-flex align-items-center justify-content-between gap-2 mb-1">
+                  <span>Prescription {row.erxSnapshotId || row.ErxSnapshotId}</span>
+                  <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => onStartRefill(row)}>
+                    Start order
+                  </button>
+                </div>
+              );
+            })}
+          </Alert>
+        ) : null}
 
         <div className="prx-stats">
           <div className="prx-stat">
