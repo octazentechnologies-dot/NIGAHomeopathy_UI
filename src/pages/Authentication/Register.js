@@ -25,6 +25,9 @@ import { registerUser, apiError, resetRegisterFlag } from "../../slices/thunks";
 import {
   getRegistrationCountries,
   getRegistrationStates,
+  getRegistrationDistricts,
+  getRegistrationCities,
+  getRegistrationPinCodes,
   getRegistrationQualifications,
 } from "../../helpers/realbackend_helper";
 import { pageTitle } from "../../common/brand";
@@ -37,9 +40,32 @@ const STEPS = [
 ];
 
 const stepFieldMap = {
-  1: ["firstName", "middleName", "lastName", "userName", "emailId", "mobileNo", "userPassword", "confirmPassword"],
-  2: ["companyName", "countryId", "stateId", "city", "permanantAddress"],
+  1: ["firstName", "middleName", "lastName", "userName", "emailId", "countryCode", "mobileNo", "userPassword", "confirmPassword"],
+  2: ["companyName", "countryId", "stateId", "districtId", "city", "addressLine1", "addressLine2", "landmark", "postalCode"],
   3: ["qualificationId", "passingUniversity", "passingCertNo"],
+};
+
+// Dial-code helpers: backend codes vary ("+1 684", "+1-268", "+672, +64").
+// Option values are normalized to "+<digits>"; labels keep backend formatting.
+const normalizeDialCode = (code) => {
+  const digits = String(code || "").replace(/[^\d]/g, "");
+  return digits ? `+${digits}` : "";
+};
+const splitDialCodes = (code) =>
+  String(code || "")
+    .split(",")
+    .map(normalizeDialCode)
+    .filter(Boolean);
+
+// Fallback when the countries API omits dial codes.
+const FALLBACK_DIAL_CODES = ["+91", "+1", "+44", "+61", "+65", "+971", "+966", "+880", "+977", "+94", "+60", "+49"];
+
+// Shared "meaningful value" check: rejects blank / symbols-only / numeric-only
+// strings while allowing letters, digits and common punctuation (space / - , . #).
+const MEANINGFUL_PATTERN = /^(?=.*[A-Za-z0-9])[A-Za-z0-9\s/\-,.#]+$/;
+const meaningfulTest = (value) => {
+  if (value == null || String(value).trim() === "") return true;
+  return MEANINGFUL_PATTERN.test(String(value).trim());
 };
 
 const selectStyles = {
@@ -72,6 +98,16 @@ const Register = () => {
   const [qualifications, setQualifications] = useState([]);
   const [lookupsLoading, setLookupsLoading] = useState(true);
   const [statesLoading, setStatesLoading] = useState(false);
+  const [statesError, setStatesError] = useState("");
+  const [districts, setDistricts] = useState([]);
+  const [districtsLoading, setDistrictsLoading] = useState(false);
+  const [districtsError, setDistrictsError] = useState("");
+  const [cities, setCities] = useState([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [citiesError, setCitiesError] = useState("");
+  const [pincodes, setPincodes] = useState([]);
+  const [pincodesLoading, setPincodesLoading] = useState(false);
+  const [pincodesError, setPincodesError] = useState("");
   const [lookupError, setLookupError] = useState("");
   const [step3Attempted, setStep3Attempted] = useState(false);
   const [qualificationDoc, setQualificationDoc] = useState(null);
@@ -99,14 +135,19 @@ const Register = () => {
       lastName: "",
       userName: "",
       emailId: "",
+      countryCode: "+91",
       mobileNo: "",
       userPassword: "",
       confirmPassword: "",
       companyName: "",
       countryId: 78,
       stateId: null,
+      districtId: null,
       city: "",
-      permanantAddress: "",
+      addressLine1: "",
+      addressLine2: "",
+      landmark: "",
+      postalCode: "",
       qualificationId: null,
       passingUniversity: "",
       passingCertNo: "",
@@ -117,15 +158,37 @@ const Register = () => {
       lastName: Yup.string().trim().required("Please enter last name"),
       userName: Yup.string().trim().required("Please enter user name"),
       emailId: Yup.string().email("Please enter a valid email").required("Please enter email"),
+      countryCode: Yup.string()
+        .matches(/^\+\d{1,6}$/, "Please select a valid country code")
+        .required("Please select country code"),
       mobileNo: Yup.string()
         .trim()
-        .matches(/^[0-9+\-\s()]{8,15}$/, "Please enter a valid mobile number")
-        .required("Please enter mobile number"),
+        .required("Please enter mobile number")
+        .test("mobile-format", "Please enter a valid mobile number", function (value) {
+          const digits = String(value || "").replace(/[\s\-()]/g, "");
+          if (!digits) return true;
+          if ((this.parent?.countryCode || "+91") === "+91") {
+            return /^[6-9]\d{9}$/.test(digits);
+          }
+          return /^[0-9]{7,15}$/.test(digits);
+        }),
       userPassword: Yup.string().min(4, "Password must be at least 4 characters").required("Please enter password"),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref("userPassword")], "Passwords do not match")
         .required("Please confirm password"),
-      companyName: Yup.string().trim().required("Please enter clinic / company name"),
+      companyName: Yup.string()
+        .trim()
+        .required("Please enter clinic / company name")
+        .test(
+          "clinic-name",
+          "Please enter clinic / company name",
+          (value) => {
+            if (!value) return true;
+            const v = String(value).trim();
+            if (/^[0-9\s]+$/.test(v)) return false;
+            return /^(?=.*[A-Za-z])[A-Za-z0-9\s.,'&\-()/#]+$/.test(v);
+          }
+        ),
       countryId: Yup.number()
         .transform((value, originalValue) =>
           originalValue === "" || originalValue === null || originalValue === undefined ? undefined : value
@@ -137,8 +200,36 @@ const Register = () => {
           originalValue === "" || originalValue === null || originalValue === undefined ? null : value
         )
         .nullable(),
-      city: Yup.string().trim(),
-      permanantAddress: Yup.string().trim(),
+      districtId: Yup.number()
+        .transform((value, originalValue) =>
+          originalValue === "" || originalValue === null || originalValue === undefined ? null : value
+        )
+        .nullable(),
+      city: Yup.number()
+        .transform((value, originalValue) =>
+          originalValue === "" || originalValue === null || originalValue === undefined ? null : value
+        )
+        .nullable(),
+      addressLine1: Yup.string()
+        .trim()
+        .test("address-line-1", "Please enter a valid address line", (value) => meaningfulTest(value)),
+      addressLine2: Yup.string()
+        .trim()
+        .test("address-line-2", "Please enter a valid address line", (value) => meaningfulTest(value)),
+      landmark: Yup.string()
+        .trim()
+        .test("landmark", "Please enter a valid landmark", (value) => meaningfulTest(value)),
+      postalCode: Yup.string()
+        .trim()
+        .test("postal-code", "Please enter a valid PIN / ZIP code", function (value) {
+          if (!value) return true;
+          const v = String(value).trim();
+          if (v.toLowerCase() === "other") return true;
+          if (Number(this.parent?.countryId) === 78) {
+            return /^\d{6}$/.test(v);
+          }
+          return /^[A-Za-z0-9\s\-]{3,10}$/.test(v);
+        }),
       qualificationId: Yup.number()
         .transform((value, originalValue) =>
           originalValue === "" || originalValue === null || originalValue === undefined ? undefined : Number(originalValue)
@@ -156,13 +247,28 @@ const Register = () => {
       formData.append("lastName", values.lastName.trim());
       formData.append("userName", values.userName.trim());
       formData.append("emailId", values.emailId.trim());
-      formData.append("mobileNo", values.mobileNo.trim());
+      const mobileDigits = String(values.mobileNo || "").replace(/[^\d]/g, "");
+      const dialCode = String(values.countryCode || "+91").trim() || "+91";
+      formData.append("mobileNo", `${dialCode}${mobileDigits}`);
       formData.append("userPassword", values.userPassword);
       formData.append("companyName", values.companyName.trim());
       formData.append("countryId", String(Number(values.countryId)));
       if (values.stateId) formData.append("stateId", String(Number(values.stateId)));
-      formData.append("city", values.city?.trim() || "");
-      formData.append("permanantAddress", values.permanantAddress?.trim() || "");
+      const cityId = Number(values.city);
+      const cityRow = Number.isFinite(cityId)
+        ? cities.find((c) => Number(c.cityId ?? c.CityId ?? c.id ?? c.Id) === cityId)
+        : null;
+      formData.append(
+        "city",
+        String(cityRow?.cityName ?? cityRow?.CityName ?? cityRow?.name ?? cityRow?.Name ?? "").trim()
+      );
+      const addressParts = [
+        values.addressLine1?.trim() || "",
+        values.addressLine2?.trim() || "",
+        values.landmark?.trim() || "",
+        values.postalCode?.trim() || "",
+      ].filter(Boolean);
+      formData.append("permanantAddress", addressParts.join(", "));
       formData.append("qualificationId", String(Number(values.qualificationId)));
       formData.append("passingUniversity", values.passingUniversity?.trim() || "");
       formData.append("passingCertNo", values.passingCertNo?.trim() || "");
@@ -194,6 +300,34 @@ const Register = () => {
     [states]
   );
 
+  const districtOptions = useMemo(() => {
+    const seen = new Set();
+    return (districts || [])
+      .map((d) => ({
+        value: Number(d.districtId ?? d.DistrictId ?? d.id ?? d.Id),
+        label: d.districtName ?? d.DistrictName ?? d.name ?? d.Name,
+      }))
+      .filter((o) => Number.isFinite(o.value) && o.label && !seen.has(o.value) && (seen.add(o.value), true));
+  }, [districts]);
+
+  const cityOptions = useMemo(() => {
+    const seen = new Set();
+    return (cities || [])
+      .map((c) => ({
+        value: Number(c.cityId ?? c.CityId ?? c.id ?? c.Id),
+        label: c.cityName ?? c.CityName ?? c.name ?? c.Name,
+      }))
+      .filter((o) => Number.isFinite(o.value) && o.label && !seen.has(o.value) && (seen.add(o.value), true));
+  }, [cities]);
+
+  const pincodeOptions = useMemo(() => {
+    const seen = new Set();
+    return (pincodes || [])
+      .map((p) => String(p.pinCode ?? p.PinCode ?? "").trim())
+      .filter((code) => code && !seen.has(code) && (seen.add(code), true))
+      .map((code) => ({ value: code, label: code }));
+  }, [pincodes]);
+
   const qualificationOptions = useMemo(
     () =>
       (qualifications || [])
@@ -205,19 +339,99 @@ const Register = () => {
     [qualifications]
   );
 
+  // Step 1 dial-code options bound to the countries API response.
+  const dialCodeOptions = useMemo(() => {
+    const seen = new Map();
+    (countries || []).forEach((c) => {
+      const name = c.countryName ?? c.CountryName;
+      const raw = c.countryCode ?? c.CountryCode;
+      if (!name) return;
+      splitDialCodes(raw).forEach((normalized, index) => {
+        if (!seen.has(normalized)) {
+          const original = String(raw).split(",")[index]?.trim() || normalized;
+          seen.set(normalized, { value: normalized, label: `${name} (${original})` });
+        }
+      });
+    });
+    if (seen.size === 0) {
+      return FALLBACK_DIAL_CODES.map((code) => ({ value: code, label: code }));
+    }
+    return [...seen.values()];
+  }, [countries]);
+
   const loadStates = useCallback(async (countryId) => {
     if (!countryId) {
       setStates([]);
+      setStatesError("");
       return;
     }
     setStatesLoading(true);
+    setStatesError("");
     try {
       const list = await getRegistrationStates(countryId);
       setStates(Array.isArray(list) ? list : []);
     } catch {
       setStates([]);
+      setStatesError("Could not load states for the selected country. Please retry.");
     } finally {
       setStatesLoading(false);
+    }
+  }, []);
+
+  const loadDistricts = useCallback(async (stateId) => {
+    if (!stateId) {
+      setDistricts([]);
+      setDistrictsError("");
+      return;
+    }
+    setDistrictsLoading(true);
+    setDistrictsError("");
+    try {
+      const list = await getRegistrationDistricts(stateId);
+      setDistricts(Array.isArray(list) ? list : []);
+    } catch {
+      setDistricts([]);
+      setDistrictsError("Could not load districts for the selected state. Please retry.");
+    } finally {
+      setDistrictsLoading(false);
+    }
+  }, []);
+
+  const loadCities = useCallback(async (districtId) => {
+    if (!districtId) {
+      setCities([]);
+      setCitiesError("");
+      return;
+    }
+    setCitiesLoading(true);
+    setCitiesError("");
+    try {
+      const list = await getRegistrationCities(districtId);
+      setCities(Array.isArray(list) ? list : []);
+    } catch {
+      setCities([]);
+      setCitiesError("Could not load cities for the selected district. Please retry.");
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, []);
+
+  const loadPinCodes = useCallback(async (cityId) => {
+    if (!cityId) {
+      setPincodes([]);
+      setPincodesError("");
+      return;
+    }
+    setPincodesLoading(true);
+    setPincodesError("");
+    try {
+      const list = await getRegistrationPinCodes(cityId);
+      setPincodes(Array.isArray(list) ? list : []);
+    } catch {
+      setPincodes([]);
+      setPincodesError("Could not load PIN codes for the selected city. Please retry.");
+    } finally {
+      setPincodesLoading(false);
     }
   }, []);
 
@@ -259,6 +473,33 @@ const Register = () => {
       loadStates(validation.values.countryId);
     }
   }, [validation.values.countryId, loadStates]);
+
+  useEffect(() => {
+    if (validation.values.stateId) {
+      loadDistricts(validation.values.stateId);
+    } else {
+      setDistricts([]);
+      setDistrictsError("");
+    }
+  }, [validation.values.stateId, loadDistricts]);
+
+  useEffect(() => {
+    if (validation.values.districtId) {
+      loadCities(validation.values.districtId);
+    } else {
+      setCities([]);
+      setCitiesError("");
+    }
+  }, [validation.values.districtId, loadCities]);
+
+  useEffect(() => {
+    if (validation.values.city) {
+      loadPinCodes(validation.values.city);
+    } else {
+      setPincodes([]);
+      setPincodesError("");
+    }
+  }, [validation.values.city, loadPinCodes]);
 
   useEffect(() => {
     if (!success) return undefined;
@@ -309,8 +550,36 @@ const Register = () => {
 
   const selectedCountry =
     countryOptions.find((o) => Number(o.value) === Number(validation.values.countryId)) || null;
-  const selectedState =
+
+  // Code -> country sync: selecting a dial code auto-selects the matching
+  // Step 2 country (existing countryId effect then reloads its states).
+  const handleDialCodeChange = (code) => {
+    validation.setFieldValue("countryCode", code);
+    validation.setFieldTouched("countryCode", true, false);
+    validation.setFieldTouched("mobileNo", true, false);
+    validation.validateField("mobileNo");
+    const candidateIds = (countries || [])
+      .map((c) => ({
+        id: Number(c.countryId ?? c.CountryId),
+        codes: splitDialCodes(c.countryCode ?? c.CountryCode),
+      }))
+      .filter((c) => Number.isFinite(c.id) && c.codes.includes(code))
+      .map((c) => c.id);
+    if (candidateIds.length === 0) return;
+    if (candidateIds.includes(Number(validation.values.countryId))) return;
+    validation.setFieldValue("countryId", [...candidateIds].sort((a, b) => a - b)[0]);
+    validation.setFieldValue("stateId", null);
+    validation.setFieldValue("districtId", null);
+    validation.setFieldValue("city", "");
+    validation.setFieldValue("postalCode", "");
+  };  const selectedState =
     stateOptions.find((o) => Number(o.value) === Number(validation.values.stateId)) || null;
+  const selectedDistrict =
+    districtOptions.find((o) => Number(o.value) === Number(validation.values.districtId)) || null;
+  const selectedCity =
+    cityOptions.find((o) => Number(o.value) === Number(validation.values.city)) || null;
+  const selectedPostalCode =
+    pincodeOptions.find((o) => o.value === String(validation.values.postalCode || "")) || null;
   const selectedQualification =
     qualificationOptions.find((o) => Number(o.value) === Number(validation.values.qualificationId)) || null;
 
@@ -327,7 +596,9 @@ const Register = () => {
                 <Card className="mt-3 mb-4 auth-signin-card auth-register-card">
                   <CardBody className="p-4 p-lg-5">
                     <div className="text-center mb-4">
-                      <img src={logoDark} alt="Homeocentrum" className="auth-signin-logo mb-3" height="38" />
+                      <Link to="/" className="d-inline-block" title="Homeocentrum">
+                        <img src={logoDark} alt="Homeocentrum" className="auth-signin-logo mb-3" height="38" />
+                      </Link>
                       <h4 className="auth-register-title mb-1">Register as a Doctor</h4>
                       <p className="text-muted mb-0 auth-register-lead">
                         Create your practice profile. After sign-in you can choose a subscription plan.
@@ -465,19 +736,55 @@ const Register = () => {
                               </Col>
                               <Col md={6}>
                                 <Label htmlFor="mobileNo" className="form-label">Mobile number <span className="text-danger">*</span></Label>
-                                <Input
-                                  id="mobileNo"
-                                  name="mobileNo"
-                                  type="tel"
-                                  placeholder="e.g. 9876543210"
-                                  value={validation.values.mobileNo}
-                                  onChange={validation.handleChange}
-                                  onBlur={validation.handleBlur}
-                                  invalid={validation.touched.mobileNo && !!validation.errors.mobileNo}
-                                />
-                                {validation.touched.mobileNo && validation.errors.mobileNo ? (
-                                  <FormFeedback type="invalid">{validation.errors.mobileNo}</FormFeedback>
+                                <div className="d-flex gap-2">
+                                  <div style={{ width: "9rem" }} className="flex-shrink-0">
+                                    <Select
+                                      inputId="countryCode"
+                                      aria-label="Country code"
+                                      options={dialCodeOptions}
+                                      value={
+                                        dialCodeOptions.find(
+                                          (o) => o.value === validation.values.countryCode
+                                        ) || null
+                                      }
+                                      isLoading={lookupsLoading}
+                                      isDisabled={lookupsLoading}
+                                      isSearchable
+                                      placeholder={lookupsLoading ? "Loading…" : "Code"}
+                                      noOptionsMessage={() => "No dial codes found."}
+                                      styles={{
+                                        ...selectStyles,
+                                        menu: (base) => ({ ...base, width: "max-content", minWidth: "100%" }),
+                                      }}
+                                      onChange={(option) => handleDialCodeChange(option?.value || "")}
+                                      onBlur={() => validation.setFieldTouched("countryCode", true)}
+                                    />
+                                  </div>
+                                  <Input
+                                    id="mobileNo"
+                                    name="mobileNo"
+                                    type="tel"
+                                    className="flex-fill"
+                                    style={{ minWidth: 0 }}
+                                    placeholder="e.g. 9876543210"
+                                    value={validation.values.mobileNo}
+                                    onChange={validation.handleChange}
+                                    onBlur={validation.handleBlur}
+                                    invalid={
+                                      (validation.touched.mobileNo && !!validation.errors.mobileNo) ||
+                                      (validation.touched.countryCode && !!validation.errors.countryCode)
+                                    }
+                                  />
+                                </div>
+                                {validation.touched.countryCode && validation.errors.countryCode ? (
+                                  <div className="invalid-feedback d-block">{validation.errors.countryCode}</div>
                                 ) : null}
+                                {validation.touched.mobileNo && validation.errors.mobileNo ? (
+                                  <FormFeedback type="invalid" className="d-block">{validation.errors.mobileNo}</FormFeedback>
+                                ) : null}
+                                <div className="form-text text-muted">
+                                  Select the country code first — it sets the expected mobile format and selects the matching country below.
+                                </div>
                               </Col>
                               <Col md={6} className="d-none d-md-block" />
                               <Col md={6}>
@@ -554,7 +861,7 @@ const Register = () => {
                                   id="companyName"
                                   name="companyName"
                                   type="text"
-                                  placeholder="Your clinic or practice name"
+                                  placeholder="Enter clinic or company name"
                                   value={validation.values.companyName}
                                   onChange={validation.handleChange}
                                   onBlur={validation.handleBlur}
@@ -575,6 +882,9 @@ const Register = () => {
                                   onChange={(option) => {
                                     validation.setFieldValue("countryId", option?.value || null);
                                     validation.setFieldValue("stateId", null);
+                                    validation.setFieldValue("districtId", null);
+                                    validation.setFieldValue("city", "");
+                                    validation.setFieldValue("postalCode", "");
                                   }}
                                   onBlur={() => validation.setFieldTouched("countryId", true)}
                                 />
@@ -589,34 +899,215 @@ const Register = () => {
                                   value={selectedState}
                                   isLoading={statesLoading}
                                   isClearable
+                                  isDisabled={statesLoading}
                                   placeholder={statesLoading ? "Loading states…" : "Select state (optional)"}
+                                  noOptionsMessage={() =>
+                                    statesError
+                                      ? "Could not load states. Please retry."
+                                      : "No states found for this country."
+                                  }
                                   styles={selectStyles}
-                                  onChange={(option) => validation.setFieldValue("stateId", option?.value || null)}
+                                  onChange={(option) => {
+                                    validation.setFieldValue("stateId", option?.value || null);
+                                    validation.setFieldValue("districtId", null);
+                                    validation.setFieldValue("city", "");
+                                    validation.setFieldValue("postalCode", "");
+                                  }}
                                 />
+                                {statesError && !statesLoading ? (
+                                  <div className="text-danger mt-1" style={{ fontSize: "0.75rem" }}>
+                                    {statesError}{" "}
+                                    <button
+                                      type="button"
+                                      className="btn btn-link p-0 align-baseline"
+                                      style={{ fontSize: "0.75rem" }}
+                                      onClick={() => loadStates(validation.values.countryId)}
+                                    >
+                                      Retry
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </Col>
+                              <Col md={6}>
+                                <Label className="form-label">District</Label>
+                                <Select
+                                  options={districtOptions}
+                                  value={selectedDistrict}
+                                  isLoading={districtsLoading}
+                                  isClearable
+                                  isDisabled={districtsLoading || !validation.values.stateId}
+                                  placeholder={
+                                    !validation.values.stateId
+                                      ? "Select state first"
+                                      : districtsLoading
+                                        ? "Loading districts…"
+                                        : "Select district (optional)"
+                                  }
+                                  noOptionsMessage={() =>
+                                    districtsError
+                                      ? "Could not load districts. Please retry."
+                                      : "No districts found for this state."
+                                  }
+                                  styles={selectStyles}
+                                  onChange={(option) => {
+                                    validation.setFieldValue("districtId", option?.value || null);
+                                    validation.setFieldValue("city", "");
+                                    validation.setFieldValue("postalCode", "");
+                                  }}
+                                />
+                                {districtsError && !districtsLoading ? (
+                                  <div className="text-danger mt-1" style={{ fontSize: "0.75rem" }}>
+                                    {districtsError}{" "}
+                                    <button
+                                      type="button"
+                                      className="btn btn-link p-0 align-baseline"
+                                      style={{ fontSize: "0.75rem" }}
+                                      onClick={() => loadDistricts(validation.values.stateId)}
+                                    >
+                                      Retry
+                                    </button>
+                                  </div>
+                                ) : null}
                               </Col>
                               <Col md={6}>
                                 <Label htmlFor="city" className="form-label">City</Label>
-                                <Input
-                                  id="city"
-                                  name="city"
-                                  type="text"
-                                  placeholder="City"
-                                  value={validation.values.city}
-                                  onChange={validation.handleChange}
-                                  onBlur={validation.handleBlur}
+                                <Select
+                                  inputId="city"
+                                  options={cityOptions}
+                                  value={selectedCity}
+                                  isLoading={citiesLoading}
+                                  isClearable
+                                  isDisabled={citiesLoading || !validation.values.districtId}
+                                  placeholder={
+                                    !validation.values.districtId
+                                      ? "Select district first"
+                                      : citiesLoading
+                                        ? "Loading cities…"
+                                        : "Select city (optional)"
+                                  }
+                                  noOptionsMessage={() =>
+                                    citiesError
+                                      ? "Could not load cities. Please retry."
+                                      : "No cities found for this district."
+                                  }
+                                  styles={selectStyles}
+                                  onChange={(option) => {
+                                    validation.setFieldValue("city", option?.value || "");
+                                    validation.setFieldValue("postalCode", "");
+                                  }}
+                                  onBlur={() => validation.setFieldTouched("city", true)}
                                 />
+                                {validation.touched.city && validation.errors.city ? (
+                                  <div className="invalid-feedback d-block">{validation.errors.city}</div>
+                                ) : null}
+                                {citiesError && !citiesLoading ? (
+                                  <div className="text-danger mt-1" style={{ fontSize: "0.75rem" }}>
+                                    {citiesError}{" "}
+                                    <button
+                                      type="button"
+                                      className="btn btn-link p-0 align-baseline"
+                                      style={{ fontSize: "0.75rem" }}
+                                      onClick={() => loadCities(validation.values.districtId)}
+                                    >
+                                      Retry
+                                    </button>
+                                  </div>
+                                ) : null}
                               </Col>
                               <Col md={6}>
-                                <Label htmlFor="permanantAddress" className="form-label">Permanent address</Label>
+                                <Label htmlFor="addressLine1" className="form-label">Address line 1</Label>
                                 <Input
-                                  id="permanantAddress"
-                                  name="permanantAddress"
+                                  id="addressLine1"
+                                  name="addressLine1"
                                   type="text"
-                                  placeholder="Clinic or residential address"
-                                  value={validation.values.permanantAddress}
+                                  placeholder="Building / clinic name, street"
+                                  value={validation.values.addressLine1}
                                   onChange={validation.handleChange}
                                   onBlur={validation.handleBlur}
+                                  invalid={validation.touched.addressLine1 && !!validation.errors.addressLine1}
                                 />
+                                {validation.touched.addressLine1 && validation.errors.addressLine1 ? (
+                                  <FormFeedback type="invalid">{validation.errors.addressLine1}</FormFeedback>
+                                ) : null}
+                              </Col>
+                              <Col md={6}>
+                                <Label htmlFor="addressLine2" className="form-label">Address line 2</Label>
+                                <Input
+                                  id="addressLine2"
+                                  name="addressLine2"
+                                  type="text"
+                                  placeholder="Area / locality, apartment / floor"
+                                  value={validation.values.addressLine2}
+                                  onChange={validation.handleChange}
+                                  onBlur={validation.handleBlur}
+                                  invalid={validation.touched.addressLine2 && !!validation.errors.addressLine2}
+                                />
+                                {validation.touched.addressLine2 && validation.errors.addressLine2 ? (
+                                  <FormFeedback type="invalid">{validation.errors.addressLine2}</FormFeedback>
+                                ) : null}
+                              </Col>
+                              <Col md={6}>
+                                <Label htmlFor="landmark" className="form-label">Landmark</Label>
+                                <Input
+                                  id="landmark"
+                                  name="landmark"
+                                  type="text"
+                                  placeholder="Nearby identifiable landmark"
+                                  value={validation.values.landmark}
+                                  onChange={validation.handleChange}
+                                  onBlur={validation.handleBlur}
+                                  invalid={validation.touched.landmark && !!validation.errors.landmark}
+                                />
+                                {validation.touched.landmark && validation.errors.landmark ? (
+                                  <FormFeedback type="invalid">{validation.errors.landmark}</FormFeedback>
+                                ) : null}
+                              </Col>
+                              <Col md={6}>
+                                <Label htmlFor="postalCode" className="form-label">ZIP / PIN code</Label>
+                                <Select
+                                  inputId="postalCode"
+                                  options={pincodeOptions}
+                                  value={selectedPostalCode}
+                                  isLoading={pincodesLoading}
+                                  isClearable
+                                  isDisabled={pincodesLoading || !validation.values.city}
+                                  placeholder={
+                                    !validation.values.city
+                                      ? "Select city first"
+                                      : pincodesLoading
+                                        ? "Loading PIN codes…"
+                                        : "Select PIN code (optional)"
+                                  }
+                                  noOptionsMessage={() =>
+                                    pincodesError
+                                      ? "Could not load PIN codes. Please retry."
+                                      : "No PIN codes found for this city."
+                                  }
+                                  styles={selectStyles}
+                                  onChange={(option) => validation.setFieldValue("postalCode", option?.value || "")}
+                                  onBlur={() => validation.setFieldTouched("postalCode", true)}
+                                />
+                                {validation.touched.postalCode && validation.errors.postalCode ? (
+                                  <div className="invalid-feedback d-block">{validation.errors.postalCode}</div>
+                                ) : null}
+                                {pincodesError && !pincodesLoading ? (
+                                  <div className="text-danger mt-1" style={{ fontSize: "0.75rem" }}>
+                                    {pincodesError}{" "}
+                                    <button
+                                      type="button"
+                                      className="btn btn-link p-0 align-baseline"
+                                      style={{ fontSize: "0.75rem" }}
+                                      onClick={() => loadPinCodes(validation.values.city)}
+                                    >
+                                      Retry
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </Col>
+                              <Col xs={12}>
+                                <div className="form-text text-muted">
+                                  Country follows the mobile country code selected in Step 1; you can still change it.
+                                </div>
                               </Col>
                             </Row>
                           </div>
@@ -755,6 +1246,11 @@ const Register = () => {
                         Already have an account?{" "}
                         <Link to="/login" className="fw-semibold text-primary text-decoration-underline">
                           Sign in
+                        </Link>
+                      </p>
+                      <p className="mb-0 mt-2">
+                        <Link to="/" className="fw-semibold text-primary text-decoration-underline">
+                          Back to home
                         </Link>
                       </p>
                     </div>

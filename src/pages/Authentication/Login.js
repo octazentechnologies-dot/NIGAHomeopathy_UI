@@ -259,6 +259,14 @@ const Login = (props) => {
                             Register as a Doctor
                           </Link>
                         </p>
+                        <p className="mb-0 mt-2">
+                          <Link
+                            to="/"
+                            className="fw-semibold text-primary text-decoration-underline"
+                          >
+                            Back to home
+                          </Link>
+                        </p>
                       </div>
                     </div>
                   </CardBody>

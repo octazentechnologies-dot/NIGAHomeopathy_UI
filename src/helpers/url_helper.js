@@ -245,8 +245,11 @@ export const REGISTER_DOCTOR_WITH_DOCS = "/users/RegisterDoctorWithDocuments";
 export const REGISTER_STATUS = "/users/RegistrationStatus";
 export const ACTIVATE_BY_TOKEN = "/users/ActivateByToken";
 export const RESEND_ACTIVATION = "/users/ResendActivation";
-export const REGISTRATION_COUNTRIES = "/registration/countries";
-export const REGISTRATION_STATES = "/registration/states";
+export const REGISTRATION_COUNTRIES = "/UserAddressLocation/Countries";
+export const REGISTRATION_STATES = "/UserAddressLocation/States/ByCountry/";
+export const REGISTRATION_DISTRICTS = "/UserAddressLocation/Districts/ByState/";
+export const REGISTRATION_CITIES = "/UserAddressLocation/Cities/ByDistrict/";
+export const REGISTRATION_PINCODES_BY_CITY = (cityId) => `/UserAddressLocation/PinCodes/ByCity/${cityId}`;
 export const REGISTRATION_QUALIFICATIONS = "/registration/qualifications";
 
 //User Api Urls

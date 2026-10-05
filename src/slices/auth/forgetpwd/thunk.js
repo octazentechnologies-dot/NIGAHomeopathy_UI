@@ -10,7 +10,7 @@ export const userForgetPassword = (user) => async (dispatch) => {
   try {
     const email = user?.email;
     if (!email) {
-      dispatch(userForgetPasswordError("Please Enter Your Email"));
+      dispatch(userForgetPasswordError("Please Enter Your Email or username"));
       return;
     }
     dispatch(userForgetPasswordLoading(true));
@@ -31,6 +31,12 @@ export const userForgetPassword = (user) => async (dispatch) => {
       })
     );
   } catch (forgetError) {
+    if (forgetError?.response?.status === 404) {
+      dispatch(
+        userForgetPasswordError("If an account exists for those details, a password reset link has been sent.")
+      );
+      return;
+    }
     const msg =
       (typeof forgetError === "string" && forgetError) ||
       forgetError?.response?.data?.message ||

@@ -66,7 +66,22 @@ export const getRegistrationCountries = async () =>
 
 export const getRegistrationStates = async (countryId) =>
   unwrapRegistrationList(
-    await nigahomeoAPI.get(url.REGISTRATION_STATES, countryId ? { countryId } : null)
+    await nigahomeoAPI.get(`${url.REGISTRATION_STATES}${countryId}`, null)
+  );
+
+export const getRegistrationDistricts = async (stateId) =>
+  unwrapRegistrationList(
+    await nigahomeoAPI.get(`${url.REGISTRATION_DISTRICTS}${stateId}`, null)
+  );
+
+export const getRegistrationCities = async (districtId) =>
+  unwrapRegistrationList(
+    await nigahomeoAPI.get(`${url.REGISTRATION_CITIES}${districtId}`, null)
+  );
+
+export const getRegistrationPinCodes = async (cityId) =>
+  unwrapRegistrationList(
+    await nigahomeoAPI.get(url.REGISTRATION_PINCODES_BY_CITY(cityId), null)
   );
 
 export const getRegistrationQualifications = async () => {
