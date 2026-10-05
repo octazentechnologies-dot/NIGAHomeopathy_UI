@@ -74,14 +74,21 @@ const ADMIN_HORIZONTAL_MAIN_LABELS = new Set([
   "Rubric Intelligence",
 ]);
 
+const MENU_LINK_OVERRIDES = {
+  "/admin/trust-queue": { label: "Trust & Verification", icon: "ri-shield-check-line" },
+  "/admin/consult-payments": { icon: "ri-secure-payment-line" },
+  "/admin/pharmacy-partners": { label: "Pharmacy configuration", icon: "ri-store-3-line" },
+};
+
 export const mapMenuMasterToNavItems = (rows) => {
   const mapped = unwrapApiList(rows)
     .map((menu) => {
       const menuId = menu.menuId ?? menu.MenuId;
       const parentMenuId = menu.parentMenuId ?? menu.ParentMenuId ?? null;
-      const label = menu.menuName ?? menu.MenuName;
-      const icon = (menu.menuIcon ?? menu.MenuIcon) || "ri-menu-line";
       const link = normalizeMenuUrl(menu.menuUrl ?? menu.MenuUrl);
+      const override = MENU_LINK_OVERRIDES[String(link || "").toLowerCase()] || {};
+      const label = override.label || (menu.menuName ?? menu.MenuName);
+      const icon = override.icon || (menu.menuIcon ?? menu.MenuIcon) || "ri-menu-line";
       const seq = Number(menu.seqNo ?? menu.SeqNo ?? 0);
       if (!label) return null;
       return {
@@ -147,10 +154,10 @@ export const mergeMissingMenuItems = (existing, extras) => {
 };
 
 export const ADMIN_WEEK4_MENU = [
-  { id: "trust-queue", label: "Trust queue", icon: "ri-shield-check-line", link: "/admin/trust-queue" },
+  { id: "trust-queue", label: "Trust & Verification", icon: "ri-shield-check-line", link: "/admin/trust-queue" },
   { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
-  { id: "pharmacy-partners", label: "Pharmacy partners", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
-  { id: "consult-payments", label: "Consult payments", icon: "ri-money-rupee-circle-line", link: "/admin/consult-payments" },
+  { id: "pharmacy-partners", label: "Pharmacy configuration", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
+  { id: "consult-payments", label: "Consult payments", icon: "ri-secure-payment-line", link: "/admin/consult-payments" },
 ];
 
 export const splitAdminApiNavItems = (items) => {
@@ -262,8 +269,9 @@ export const PATIENT_FALLBACK_MENU = [
     icon: "ri-user-heart-line",
     link: "/caregiver",
   },
-  { id: "patient-continuity", label: "My records", icon: "ri-time-line", link: "/patient/continuity" },
+  { id: "patient-continuity", label: "Care continuity", icon: "ri-heart-pulse-line", link: "/patient/continuity" },
   { id: "patient-meds", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
+  { id: "patient-erx", label: "Digital Prescription", icon: "ri-file-list-3-line", link: "/patient/prescriptions" },
   { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },
   { id: "patient-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];

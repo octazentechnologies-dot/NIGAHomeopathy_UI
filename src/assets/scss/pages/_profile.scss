@@ -311,7 +311,7 @@ $value in $theme-colors {
         border-bottom: 1px solid #e9ecef !important;
 
         .nav-item {
-            flex: 1 1 0;
+            flex: 1 1 auto;
             min-width: 0;
             text-align: center;
         }
@@ -766,6 +766,585 @@ $value in $theme-colors {
             background: #f1f5f9;
             color: #64748b;
             border: 1px solid #e2e8f0;
+        }
+    }
+
+    .user-profile-page__cred-wrap {
+        border: 1px solid #e2ebf3;
+        border-radius: 12px;
+        overflow-x: auto;
+        background: #fff;
+    }
+
+    .user-profile-page__cred-table {
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.5rem 0.85rem;
+            border-bottom: 1px solid #e9ecef;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.4rem 0.85rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.8125rem;
+            line-height: 1.3;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+    }
+
+    .user-profile-page__cred-name {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #1e293b;
+        font-weight: 600;
+    }
+
+    .user-profile-page__cred-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 0.4rem;
+        background: #eef6fc;
+        color: #25a0e2;
+        flex-shrink: 0;
+
+        i {
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+    }
+
+    .user-profile-page__cred-file {
+        display: block;
+        max-width: 16rem;
+        color: #94a3b8;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-profile-page__cred-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        min-width: 4.75rem;
+        justify-content: center;
+        padding: 0.2rem 0.55rem;
+        border-radius: 0.375rem;
+        border: 1px solid transparent;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.2;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        i {
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+
+        &--uploaded {
+            background: #e7f7ee;
+            border-color: #c9ecd7;
+            color: #15803d;
+        }
+
+        &--upload {
+            background: #eaf5fd;
+            border-color: #cfe6f8;
+            color: #25a0e2;
+
+            &:hover {
+                background: #dcedfb;
+                border-color: #25a0e2;
+            }
+        }
+
+        &:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+    }
+
+    .user-profile-page__cred-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.375rem;
+        border: 1px solid #cfe6f8;
+        background: #fff;
+        color: #25a0e2;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.2;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        i {
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+
+        &:hover {
+            background: #eaf5fd;
+            border-color: #25a0e2;
+        }
+    }
+
+    .user-profile-page__cred-link {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #25a0e2;
+        font-size: 0.75rem;
+        font-weight: 600;
+
+        &:hover {
+            text-decoration: underline;
+        }
+
+        &:disabled {
+            color: #94a3b8;
+            text-decoration: none;
+        }
+    }
+
+    .user-profile-page__cred-approval {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.15rem;
+        height: 1.15rem;
+        border-radius: 50%;
+        flex-shrink: 0;
+
+        i {
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        &--yes {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        &--no {
+            background: #fdecec;
+            color: #dc3545;
+            border: 1px solid #f8c6cb;
+        }
+    }
+
+    .user-profile-page__cred-approval-cell {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .user-profile-page__cred-approval-text {
+        color: #94a3b8;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .doctor-reviews__summary {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.85rem;
+        border: 1px solid #e2ebf3;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
+    }
+
+    .doctor-reviews__score {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding-right: 1.5rem;
+        border-right: 1px solid #e2ebf3;
+
+        @media (max-width: 575.98px) {
+            padding-right: 0;
+            border-right: 0;
+        }
+    }
+
+    .doctor-reviews__score-star {
+        color: #f59e0b;
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .doctor-reviews__score-value {
+        color: #f59e0b;
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .doctor-reviews__score-count {
+        color: #64748b;
+        font-size: 0.8125rem;
+    }
+
+    .doctor-reviews__breakdown {
+        flex: 1 1 14rem;
+        max-width: 22rem;
+        display: grid;
+        gap: 0.15rem;
+    }
+
+    .doctor-reviews__bar-row {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.7rem;
+        color: #64748b;
+
+        i {
+            color: #f59e0b;
+            font-size: 0.7rem;
+            line-height: 1;
+        }
+    }
+
+    .doctor-reviews__bar-label,
+    .doctor-reviews__bar-total {
+        width: 0.9rem;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .doctor-reviews__bar {
+        flex: 1;
+        height: 0.35rem;
+        border-radius: 999px;
+        background: #eef2f7;
+        overflow: hidden;
+    }
+
+    .doctor-reviews__bar-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #f59e0b;
+    }
+
+    .doctor-reviews__toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+    }
+
+    .doctor-reviews__tabs {
+        display: inline-flex;
+        gap: 0.25rem;
+        padding: 0.2rem;
+        border-radius: 0.5rem;
+        background: #f1f5f9;
+    }
+
+    .doctor-reviews__tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.7rem;
+        border: 0;
+        border-radius: 0.375rem;
+        background: transparent;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 600;
+
+        &.is-active {
+            background: #fff;
+            color: #25a0e2;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        }
+    }
+
+    .doctor-reviews__tab-count {
+        min-width: 1rem;
+        padding: 0 0.3rem;
+        border-radius: 999px;
+        background: #dc3545;
+        color: #fff;
+        font-size: 0.625rem;
+        line-height: 1rem;
+    }
+
+    .doctor-reviews__search {
+        position: relative;
+        width: 14rem;
+
+        i {
+            position: absolute;
+            top: 50%;
+            left: 0.65rem;
+            z-index: 2;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.85rem !important;
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .form-control {
+            padding-left: 2rem !important;
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 575.98px) {
+            width: 100%;
+        }
+    }
+
+    .doctor-reviews__list {
+        display: grid;
+        gap: 0.6rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .doctor-reviews__item {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid #e2ebf3;
+        border-radius: 10px;
+        background: #fff;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:hover {
+            border-color: #cfe6f8;
+            box-shadow: 0 4px 12px rgba(37, 160, 226, 0.06);
+        }
+    }
+
+    .doctor-reviews__avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #4cb6ec 0%, #25a0e2 100%);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .doctor-reviews__body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .doctor-reviews__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .doctor-reviews__name {
+        display: block;
+        color: #0f172a;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+    .doctor-reviews__meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #94a3b8;
+        font-size: 0.7rem;
+    }
+
+    .doctor-reviews__stars {
+        display: inline-flex;
+        gap: 0.05rem;
+        color: #f59e0b;
+
+        i {
+            font-size: 0.75rem;
+            line-height: 1;
+        }
+    }
+
+    .doctor-reviews__actions {
+        display: inline-flex;
+        gap: 0.3rem;
+        flex-shrink: 0;
+    }
+
+    .doctor-reviews__icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        padding: 0;
+
+        i {
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+    }
+
+    .doctor-reviews__comment {
+        margin: 0.35rem 0 0;
+        color: #334155;
+        font-size: 0.8125rem;
+        line-height: 1.45;
+    }
+
+    .doctor-reviews__reply {
+        margin-top: 0.5rem;
+        padding: 0.5rem 0.7rem;
+        border-left: 3px solid #25a0e2;
+        border-radius: 0 8px 8px 0;
+        background: #f3f9fe;
+    }
+
+    .doctor-reviews__reply-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .doctor-reviews__reply-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        color: #25a0e2;
+        font-size: 0.72rem;
+        font-weight: 700;
+
+        i {
+            font-size: 0.8rem;
+            line-height: 1;
+        }
+    }
+
+    .doctor-reviews__reply-date {
+        margin-left: 0.25rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .doctor-reviews__reply-tools {
+        display: inline-flex;
+        gap: 0.15rem;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.4rem;
+            height: 1.4rem;
+            padding: 0;
+            border: 0;
+            border-radius: 0.3rem;
+            background: transparent;
+            color: #64748b;
+
+            i {
+                font-size: 0.8rem;
+                line-height: 1;
+            }
+
+            &:hover {
+                background: #fff;
+                color: #25a0e2;
+            }
+
+            & + button:hover {
+                color: #dc3545;
+            }
+        }
+    }
+
+    .doctor-reviews__reply-text {
+        margin: 0.2rem 0 0;
+        color: #334155;
+        font-size: 0.78rem;
+        line-height: 1.45;
+    }
+
+    .doctor-reviews__reply-form {
+        margin-top: 0.5rem;
+    }
+
+    textarea.form-control.doctor-reviews__reply-input {
+        height: 4.5rem;
+        min-height: 4.5rem !important;
+        padding-top: 0.4rem !important;
+        padding-bottom: 0.4rem !important;
+        font-size: 0.8125rem;
+        line-height: 1.45 !important;
+        vertical-align: top;
+        resize: vertical;
+    }
+
+    .doctor-reviews__reply-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
+
+        .modal-action-btn {
+            padding: 0.2rem 0.6rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    .doctor-reviews__reply-hint {
+        margin-right: auto;
+        color: #94a3b8;
+        font-size: 0.7rem;
+    }
+
+    .doctor-reviews__empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 1.5rem 1rem;
+        border: 1px dashed #d7e3ef;
+        border-radius: 10px;
+        color: #94a3b8;
+        font-size: 0.8125rem;
+
+        i {
+            font-size: 1.5rem;
+            line-height: 1;
         }
     }
 }

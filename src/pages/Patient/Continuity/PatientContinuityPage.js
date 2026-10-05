@@ -1,597 +1,663 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Alert, Container, Input, Spinner } from "reactstrap";
+import Swal from "sweetalert2";
+import moment from "moment";
+
 import {
-  Alert,
-  Button,
-  Card,
-  CardBody,
-  Col,
-  Container,
-  FormGroup,
-  Input,
-  Label,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Row,
-  Spinner,
-  Table,
-} from "reactstrap";
-import {
-  acceptMedicineQuote,
   completeFollowUp,
-  createMedicineOrder,
-  createMedicinePayment,
-  erxHistory,
+  getPatientConsents,
   getPatientDiary,
   getPatientFollowUps,
+  getPatientProfileS4,
   getPatientProgress,
   getPatientTimeline,
-  grantMedicineConsent,
-  listPharmacySellers,
-  medicineTracking,
-  patientMedicineOrders,
-  patientPayments,
+  postDataRequest,
   postDiaryEntry,
   s4Message,
   unwrapS4,
+  withdrawConsent,
 } from "../../../helpers/s4Week4Api";
+import { grantPrivacyConsent } from "../../../helpers/realbackend_helper";
+import "../Prescriptions/patientPrescriptions.css";
+import "./patientContinuity.css";
+
+const pick = (row, ...keys) => {
+  for (const key of keys) {
+    if (row?.[key] != null && row[key] !== "") return row[key];
+  }
+  return null;
+};
+
+const asList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  for (const key of ["data", "items", "entries", "tasks", "events", "consents"]) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+  }
+  return [];
+};
+
+const formatDate = (value, format = "DD MMM YYYY") => (value ? moment(value).format(format) : "—");
+const daysAgo = (days) => moment().subtract(days, "days").toISOString();
+
+const TIMELINE_META = {
+  appointment: { label: "Consultation", icon: "ri-stethoscope-line", tone: "blue" },
+  followup: { label: "Follow-up", icon: "ri-calendar-check-line", tone: "green" },
+  erx: { label: "Prescription", icon: "ri-file-list-3-line", tone: "purple" },
+  diary: { label: "Diary", icon: "ri-heart-pulse-line", tone: "amber" },
+  order: { label: "Medicine order", icon: "ri-capsule-line", tone: "blue" },
+};
+
+const SAMPLE_TIMELINE = [
+  { id: "t1", type: "appointment", title: "Consultation with Dr. Rohit Mehta", summary: "In-Clinic · Acidity, bloating", at: daysAgo(9) },
+  { id: "t2", type: "erx", title: "Prescription signed", summary: "Nux Vomica 30C, Carbo Veg 6X", at: daysAgo(9) },
+  { id: "t3", type: "diary", title: "Symptom diary updated", summary: "Severity 4/10 · feeling better", at: daysAgo(5) },
+  { id: "t4", type: "followup", title: "Follow-up visit", summary: "Tele Consultation · Dr. Anjali Deshmukh", at: daysAgo(22) },
+  { id: "t5", type: "appointment", title: "Consultation with Dr. Sameer Kulkarni", summary: "In-Clinic · Joint pain", at: daysAgo(45) },
+];
+
+const SAMPLE_FOLLOW_UPS = [
+  { id: "f1", title: "Take remedy as prescribed for 2 weeks", due: daysAgo(-3), done: false },
+  { id: "f2", title: "Log symptoms daily in the diary", due: daysAgo(-1), done: false },
+  { id: "f3", title: "Share latest blood report", due: daysAgo(2), done: true },
+].map((task) => ({ ...task, sample: true }));
+
+const SAMPLE_DIARY = [
+  { id: "d1", note: "Acidity much better after dinner, slept well.", severity: 3, at: daysAgo(1) },
+  { id: "d2", note: "Mild bloating in the morning.", severity: 4, at: daysAgo(3) },
+  { id: "d3", note: "Headache in the evening, acidity after lunch.", severity: 6, at: daysAgo(6) },
+];
+
+const SAMPLE_PROGRESS = { visits: 6, series: [8, 7, 7, 5, 4, 3] };
+
+const SAMPLE_CONSENTS = [
+  {
+    id: "privacy",
+    title: "Data Sharing Consent",
+    purpose: "Share your records with your treating doctors on Homeocentrum.",
+    granted: false,
+    privacy: true,
+  },
+  {
+    id: "c2",
+    title: "Pharmacy Order Sharing",
+    purpose: "Send your signed prescription to the pharmacy you order from.",
+    granted: true,
+    grantedAt: daysAgo(9),
+  },
+  {
+    id: "c3",
+    title: "Teleconsult Recording",
+    purpose: "Allow video consultations to be recorded for your records.",
+    granted: false,
+  },
+];
+
+const timelineType = (row) => {
+  const raw = String(pick(row, "eventType", "EventType", "type", "Type") || "").toLowerCase();
+  if (raw.includes("erx") || raw.includes("prescription")) return "erx";
+  if (raw.includes("follow")) return "followup";
+  if (raw.includes("diary")) return "diary";
+  if (raw.includes("order") || raw.includes("medicine")) return "order";
+  return "appointment";
+};
+
+const normalizeTimeline = (payload) => {
+  const inner = payload && typeof payload === "object" && !Array.isArray(payload) && payload.data ? payload.data : payload;
+  const direct = asList(inner);
+  if (direct.length) {
+    return direct.map((row, index) => ({
+      id: pick(row, "eventId", "EventId", "id") || `e${index}`,
+      type: timelineType(row),
+      title: pick(row, "title", "Title") || "Event",
+      summary: pick(row, "summary", "Summary") || "",
+      at: pick(row, "occurredAt", "OccurredAt", "createdAt", "CreatedAt"),
+    }));
+  }
+  const events = [];
+  (inner?.appointments || inner?.Appointments || []).forEach((row, index) => {
+    const status = String(pick(row, "title", "status", "Status") || "").trim();
+    if (status.toUpperCase() === "CANCELLED") return;
+    events.push({
+      id: `apt-${pick(row, "refId", "patientAppId", "PatientAppId") || index}`,
+      type: "appointment",
+      title: `Visit ${status}`.trim(),
+      summary: pick(row, "doctorName", "DoctorName") || "",
+      at: pick(row, "at", "At", "appointmentDate", "AppointmentDate"),
+    });
+  });
+  (inner?.prescriptions || inner?.Prescriptions || []).forEach((row, index) => {
+    events.push({
+      id: `erx-${pick(row, "erxSnapshotId", "ErxSnapshotId") || index}`,
+      type: "erx",
+      title: "Prescription signed",
+      summary: `eRx ${pick(row, "erxSnapshotId", "ErxSnapshotId") || "—"}`,
+      at: pick(row, "signedAt", "SignedAt"),
+    });
+  });
+  return events;
+};
+
+const normalizeFollowUp = (row, index) => ({
+  id: pick(row, "followUpTaskId", "FollowUpTaskId", "taskId", "TaskId", "id") || `f${index}`,
+  title: pick(row, "title", "Title") || "Follow-up task",
+  due: pick(row, "dueDate", "DueDate", "dueAt", "DueAt"),
+  done: Boolean(pick(row, "completedAt", "CompletedAt")) || /done|complete/i.test(String(pick(row, "status", "Status") || "")),
+});
+
+const normalizeDiary = (row, index) => ({
+  id: pick(row, "symptomDiaryId", "SymptomDiaryId", "diaryId", "DiaryId", "id") || `d${index}`,
+  note: pick(row, "note", "Note", "body", "Body") || "—",
+  severity: pick(row, "severity", "Severity"),
+  at: pick(row, "entryDate", "EntryDate", "createdAt", "CreatedAt"),
+});
+
+const normalizeConsent = (row, index) => {
+  const status = String(pick(row, "status", "Status") || "");
+  const withdrawn = Boolean(pick(row, "withdrawnAt", "WithdrawnAt")) || /withdraw|revok/i.test(status);
+  return {
+    id: pick(row, "patientConsentId", "PatientConsentId", "consentId", "ConsentId", "id") || `c${index}`,
+    title: pick(row, "title", "Title", "consentType", "ConsentType", "purpose", "Purpose") || "Consent",
+    purpose: pick(row, "description", "Description", "purpose", "Purpose") || "",
+    granted: !withdrawn && (row.isActive ?? row.IsActive ?? true),
+    grantedAt: pick(row, "grantedAt", "GrantedAt", "createdAt", "CreatedAt"),
+    fromApi: true,
+  };
+};
+
+const readAuthProfile = () => {
+  try {
+    const user = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+    return user.data || user;
+  } catch (_) {
+    return {};
+  }
+};
+
+const normalizeProfile = (raw) => {
+  const source = { ...readAuthProfile(), ...(raw || {}) };
+  const name =
+    pick(source, "fullName", "FullName", "patientName", "PatientName") ||
+    [pick(source, "firstName", "FirstName"), pick(source, "lastName", "LastName")].filter(Boolean).join(" ") ||
+    pick(source, "userName", "UserName") ||
+    "Patient";
+  const dob = pick(source, "dateOfBirth", "DateOfBirth", "dob", "Dob");
+  const age = pick(source, "age", "Age") || (dob ? moment().diff(moment(dob), "years") : null);
+  const toList = (value) =>
+    Array.isArray(value) ? value : String(value || "").split(/[,;]/).map((item) => item.trim()).filter(Boolean);
+  return {
+    name,
+    gender: pick(source, "gender", "Gender") || "",
+    age,
+    mobile: pick(source, "mobileNo", "MobileNo", "mobile", "phoneNumber", "PhoneNumber") || "—",
+    email: pick(source, "email", "Email") || "—",
+    bloodGroup: pick(source, "bloodGroup", "BloodGroup") || "—",
+    city: pick(source, "city", "City", "address", "Address") || "—",
+    allergies: toList(pick(source, "allergies", "Allergies")),
+    conditions: toList(pick(source, "chronicConditions", "ChronicConditions", "medicalHistory", "MedicalHistory")),
+  };
+};
+
+const PconCard = ({ icon, title, extra, className = "", children }) => (
+  <section className={`prx-card pcon-card ${className}`.trim()}>
+    <div className="prx-card__head">
+      <h5 className="prx-card__title">
+        <i className={icon} aria-hidden="true" />
+        {title}
+      </h5>
+      {extra}
+    </div>
+    <div className="prx-card__body">{children}</div>
+  </section>
+);
 
 /**
- * CON / MED patient continuity — timeline, follow-ups, diary, medicine orders (New API :5002).
+ * CON patient continuity — health timeline, consent centre, profile, follow-ups, diary and progress.
  */
-const PatientContinuityPage = ({ section = "continuity" }) => {
-  const medicineOnly = section === "medicine";
+const PatientContinuityPage = () => {
+  document.title = "Care continuity | Niga Homeocentrum";
+
   const [timeline, setTimeline] = useState([]);
   const [followUps, setFollowUps] = useState([]);
   const [diary, setDiary] = useState([]);
-  const [progress, setProgress] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [payments, setPayments] = useState([]);
+  const [progress, setProgress] = useState(SAMPLE_PROGRESS);
+  const [consents, setConsents] = useState([]);
+  const [profile, setProfile] = useState(() => normalizeProfile(null));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [note, setNote] = useState("");
   const [diaryText, setDiaryText] = useState("");
-  const [diarySeverity, setDiarySeverity] = useState("5");
-  const [snapshots, setSnapshots] = useState([]);
-  const [sellers, setSellers] = useState([]);
-  const [pharmacyPartnerId, setPharmacyPartnerId] = useState("");
-  const [busyId, setBusyId] = useState(null);
-  const [confirmOrder, setConfirmOrder] = useState(null);
-
-  document.title = `${medicineOnly ? "Medicine orders" : "Care continuity"} | Niga Homeocentrum`;
-
-  const asList = (payload) => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload?.items)) return payload.items;
-    if (Array.isArray(payload?.orders)) return payload.orders;
-    if (Array.isArray(payload?.entries)) return payload.entries;
-    if (Array.isArray(payload?.tasks)) return payload.tasks;
-    if (Array.isArray(payload?.events)) return payload.events;
-    return [];
-  };
-
-  const asTimeline = (payload) => {
-    const inner =
-      payload?.data && typeof payload.data === "object" && !Array.isArray(payload.data)
-        ? payload.data
-        : payload;
-    const direct = asList(inner);
-    if (direct.length) return direct;
-    const visits = inner?.appointments || inner?.Appointments || [];
-    const scripts = inner?.prescriptions || inner?.Prescriptions || [];
-    const events = [];
-    if (Array.isArray(visits)) {
-      visits.forEach((row, idx) => {
-        const status = String(row.title || row.status || row.Status || "").trim();
-        if (status.toUpperCase() === "CANCELLED") return;
-        events.push({
-          eventId: `apt-${row.refId || row.patientAppId || row.PatientAppId || idx}`,
-          title: `Visit ${status}`.trim(),
-          eventType: "appointment",
-          occurredAt: row.at || row.At || row.appointmentDate || row.AppointmentDate,
-          summary: row.refId || row.patientAppId ? `Appointment ${row.refId || row.patientAppId || row.PatientAppId}` : "",
-        });
-      });
-    }
-    if (Array.isArray(scripts)) {
-      scripts.forEach((row, idx) => {
-        events.push({
-          eventId: `erx-${row.erxSnapshotId || row.ErxSnapshotId || idx}`,
-          title: "Signed prescription",
-          eventType: "erx",
-          occurredAt: row.signedAt || row.SignedAt,
-          summary: `eRx ${row.erxSnapshotId || row.ErxSnapshotId || "—"} · visit ${row.patientAppId || row.PatientAppId || "—"}`,
-        });
-      });
-    }
-    return events.sort((a, b) => String(b.occurredAt || "").localeCompare(String(a.occurredAt || "")));
-  };
+  const [diarySeverity, setDiarySeverity] = useState(5);
+  const [savingDiary, setSavingDiary] = useState(false);
+  const [busyConsentId, setBusyConsentId] = useState("");
 
   const load = async () => {
     setLoading(true);
     setError("");
-    try {
-      if (medicineOnly) {
-        const [o, h, s, pay] = await Promise.all([
-          patientMedicineOrders(),
-          erxHistory(),
-          listPharmacySellers(),
-          patientPayments(),
-        ]);
-        setOrders(asList(unwrapS4(o)));
-        setSnapshots(asList(unwrapS4(h)));
-        setSellers(asList(unwrapS4(s)));
-        setPayments(asList(unwrapS4(pay)));
-      } else {
-        const [t, f, d, p, o] = await Promise.all([
-          getPatientTimeline(),
-          getPatientFollowUps(),
-          getPatientDiary(),
-          getPatientProgress(),
-          patientMedicineOrders(),
-        ]);
-        setTimeline(asTimeline(unwrapS4(t)));
-        setFollowUps(asList(unwrapS4(f)));
-        setDiary(asList(unwrapS4(d)));
-        setProgress(unwrapS4(p));
-        setOrders(asList(unwrapS4(o)));
-      }
-    } catch (err) {
-      setError(s4Message(err));
-    } finally {
-      setLoading(false);
-    }
+    const results = await Promise.allSettled([
+      getPatientTimeline(),
+      getPatientFollowUps(),
+      getPatientDiary(),
+      getPatientProgress(),
+      getPatientConsents(),
+      getPatientProfileS4(),
+    ]);
+    const value = (index) => (results[index].status === "fulfilled" ? unwrapS4(results[index].value) : null);
+
+    const events = normalizeTimeline(value(0));
+    setTimeline(events.length ? events : SAMPLE_TIMELINE);
+
+    const tasks = asList(value(1)).map(normalizeFollowUp);
+    setFollowUps(tasks.length ? tasks : SAMPLE_FOLLOW_UPS);
+
+    const entries = asList(value(2)).map(normalizeDiary);
+    setDiary(entries.length ? entries : SAMPLE_DIARY);
+
+    const rawProgress = value(3);
+    const series = (pick(rawProgress, "series", "Series") || [])
+      .map((row) => Number(pick(row, "severity", "Severity")))
+      .filter((n) => Number.isFinite(n));
+    setProgress(
+      series.length
+        ? { visits: Number(pick(rawProgress, "visitCount", "VisitCount") || 0), series }
+        : SAMPLE_PROGRESS
+    );
+
+    const consentRows = asList(value(4)).map(normalizeConsent);
+    setConsents(consentRows.length ? consentRows : SAMPLE_CONSENTS);
+
+    setProfile(normalizeProfile(value(5)));
+    if (results.every((row) => row.status === "rejected")) setError(s4Message(results[0].reason));
+    setLoading(false);
   };
 
   useEffect(() => {
     load();
-  }, [medicineOnly]);
+  }, []);
 
-  const placeMedicineOrder = async (id) => {
-    setBusyId(id);
+  const sortedTimeline = useMemo(
+    () => [...timeline].sort((a, b) => String(b.at || "").localeCompare(String(a.at || ""))),
+    [timeline]
+  );
+
+  const nextFollowUp = useMemo(
+    () =>
+      followUps
+        .filter((task) => !task.done && task.due)
+        .sort((a, b) => String(a.due).localeCompare(String(b.due)))[0] || null,
+    [followUps]
+  );
+
+  const openTasks = followUps.filter((task) => !task.done).length;
+  const firstSeverity = progress.series[0];
+  const lastSeverity = progress.series[progress.series.length - 1];
+  const improvement =
+    firstSeverity > 0 ? Math.max(0, Math.min(100, Math.round(((firstSeverity - lastSeverity) / firstSeverity) * 100))) : 0;
+  const maxSeverity = Math.max(...progress.series, 10);
+
+  const onCompleteTask = async (task) => {
+    try {
+      if (!task.sample) await completeFollowUp(task.id);
+      setFollowUps((prev) => prev.map((row) => (row.id === task.id ? { ...row, done: true } : row)));
+    } catch (err) {
+      setError(s4Message(err));
+    }
+  };
+
+  const onSaveDiary = async () => {
+    const note = diaryText.trim();
+    if (!note) return;
+    setSavingDiary(true);
     setError("");
     try {
-      const payload = { erxSnapshotId: id };
-      if (pharmacyPartnerId) payload.pharmacyPartnerId = Number(pharmacyPartnerId);
-      const created = unwrapS4(await createMedicineOrder(payload));
-      const orderId = created?.medicineOrderId || created?.MedicineOrderId;
-      if (orderId) await grantMedicineConsent(orderId);
-      setNote(`Medicine order ${orderId || ""} started. You are not charged until you accept a quote and choose Pay online or COD.`);
-      setConfirmOrder(null);
-      await load();
+      await postDiaryEntry({ entryDate: new Date().toISOString(), severity: Number(diarySeverity), note });
+      setDiaryText("");
+      setDiary((prev) => [
+        { id: `new-${Date.now()}`, note, severity: Number(diarySeverity), at: new Date().toISOString() },
+        ...prev,
+      ]);
+      Swal.fire({ title: "Diary entry saved", icon: "success", timer: 1200, showConfirmButton: false });
     } catch (err) {
       setError(s4Message(err));
     } finally {
-      setBusyId(null);
+      setSavingDiary(false);
     }
   };
 
-  const askMedicineOrder = (id) => {
-    const previous = orders.find((row) => String(row.erxSnapshotId || row.ErxSnapshotId) === String(id));
-    if (previous) {
-      setConfirmOrder({
-        erxId: id,
-        previousId: previous.medicineOrderId || previous.MedicineOrderId || previous.id,
-        status: previous.status || previous.Status || "",
-      });
-      return;
+  const onGiveConsent = async (consent) => {
+    setBusyConsentId(consent.id);
+    setError("");
+    try {
+      if (consent.privacy) await grantPrivacyConsent();
+      setConsents((prev) =>
+        prev.map((row) => (row.id === consent.id ? { ...row, granted: true, grantedAt: new Date().toISOString() } : row))
+      );
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyConsentId("");
     }
-    placeMedicineOrder(id);
   };
 
-  if (medicineOnly) {
-    return (
-      <div className="page-content admin-dashboard-page clinic-workspace-page">
-        <Container fluid>
-          <h2 className="clinic-page-title">Medicine orders</h2>
-          <p className="clinic-page-subtitle">Order medicines does not take payment. Pay only after the pharmacy quotes and you accept.</p>
-          {error ? <Alert color="danger">{error}</Alert> : null}
-          {note ? <Alert color="success">{note}</Alert> : null}
-          <Card className="admin-dash-card mb-3">
-            <CardBody>
-              <h5>Signed prescriptions</h5>
-              <FormGroup>
-                <Label>Pharmacy (optional)</Label>
-                <Input
-                  type="select"
-                  value={pharmacyPartnerId}
-                  onChange={(e) => setPharmacyPartnerId(e.target.value)}
-                >
-                  <option value="">Auto-route</option>
-                  {sellers.map((row) => {
-                    const id = row.pharmacyPartnerId || row.PharmacyPartnerId;
-                    return (
-                      <option key={id} value={id}>
-                        {row.name || row.Name || `${id}`} {row.area || row.Area ? `(${row.area || row.Area})` : ""}
-                      </option>
-                    );
-                  })}
-                </Input>
-              </FormGroup>
-              {loading ? (
-                <Spinner size="sm" />
-              ) : snapshots.length === 0 ? (
-                <p className="text-muted mb-0">No signed eRx yet. After the doctor signs, it appears here.</p>
-              ) : (
-                <Table size="sm">
-                  <thead>
-                    <tr>
-                      <th>eRx</th>
-                      <th>Visit</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {snapshots.map((row) => {
-                      const id = row.erxSnapshotId || row.ErxSnapshotId;
-                      return (
-                        <tr key={id}>
-                          <td>{id}</td>
-                          <td>{row.patientAppId || row.PatientAppId || "—"}</td>
-                          <td>
-                            <Button
-                              size="sm"
-                              className="clinic-primary-btn"
-                              disabled={busyId === id}
-                              onClick={() => askMedicineOrder(id)}
-                            >
-                              Order medicines
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              )}
-            </CardBody>
-          </Card>
-          <Card className="admin-dash-card">
-            <CardBody>
-              <h5>Orders</h5>
-              {loading ? (
-                <div className="text-center py-4"><Spinner size="sm" /> Loading…</div>
-              ) : orders.length === 0 ? (
-                <p className="text-muted mb-0">No medicine orders yet.</p>
-              ) : (
-                <Table size="sm" className="mb-0">
-                  <thead>
-                    <tr>
-                      <th>Order</th>
-                      <th>Status</th>
-                      <th>Amount</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((row) => {
-                      const id = row.medicineOrderId || row.MedicineOrderId || row.id;
-                      const status = String(row.status || row.Status || "");
-                      return (
-                        <tr key={id}>
-                          <td>{id}</td>
-                          <td>{status || "—"}</td>
-                          <td>{row.quoteAmount ?? row.QuoteAmount ?? row.amount ?? "—"}</td>
-                          <td>
-                            <div className="d-flex flex-wrap gap-1">
-                              {status.toUpperCase() === "QUOTED" ? (
-                                <Button
-                                  size="sm"
-                                  color="soft-success"
-                                  disabled={busyId === id}
-                                  onClick={async () => {
-                                    setBusyId(id);
-                                    try {
-                                      await acceptMedicineQuote(id);
-                                      setNote(`Quote accepted for ${id}.`);
-                                      await load();
-                                    } catch (err) {
-                                      setError(s4Message(err));
-                                    } finally {
-                                      setBusyId(null);
-                                    }
-                                  }}
-                                >
-                                  Accept quote
-                                </Button>
-                              ) : null}
-                              {status.toUpperCase() === "QUOTED_ACCEPTED" ? (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    color="soft-primary"
-                                    disabled={busyId === id}
-                                    onClick={async () => {
-                                      setBusyId(id);
-                                      try {
-                                        await createMedicinePayment({ medicineOrderId: id, payMode: "ONLINE" });
-                                        setNote(`Online payment started for ${id}.`);
-                                        await load();
-                                      } catch (err) {
-                                        setError(s4Message(err));
-                                      } finally {
-                                        setBusyId(null);
-                                      }
-                                    }}
-                                  >
-                                    Pay online
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    color="soft-secondary"
-                                    disabled={busyId === id}
-                                    onClick={async () => {
-                                      setBusyId(id);
-                                      try {
-                                        await createMedicinePayment({ medicineOrderId: id, payMode: "COD" });
-                                        setNote(`COD recorded for ${id}.`);
-                                        await load();
-                                      } catch (err) {
-                                        setError(s4Message(err));
-                                      } finally {
-                                        setBusyId(null);
-                                      }
-                                    }}
-                                  >
-                                    COD
-                                  </Button>
-                                </>
-                              ) : null}
-                              <Button
-                                size="sm"
-                                color="soft-info"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await medicineTracking(id);
-                                    setNote(`Tracking refreshed for ${id}.`);
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Track
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              )}
-            </CardBody>
-          </Card>
-          <Card className="admin-dash-card mt-3">
-            <CardBody>
-              <h5>How payments work</h5>
-              <ol className="mb-3 ps-3">
-                <li>Patient — Order medicines creates the order and grants consent. No charge yet.</li>
-                <li>Pharmacy — accepts with OTP, confirms stock, and saves a quote.</li>
-                <li>Patient — Accept quote, then Pay online or COD.</li>
-                <li>Pharmacy — marks the order ready and dispatches it.</li>
-              </ol>
-              <p className="text-muted small mb-3">
-                Admin activates the pharmacy and handles exceptions. Account sees the medicine ledger.
-                Reception collects visit fees only, not medicine orders.
-              </p>
-              <h5>Payments</h5>
-              {payments.length === 0 ? (
-                <p className="text-muted mb-0">No consult or medicine payments yet.</p>
-              ) : (
-                <Table size="sm" className="mb-0">
-                  <thead>
-                    <tr>
-                      <th>Order</th>
-                      <th>Stream</th>
-                      <th>Status</th>
-                      <th>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((row, idx) => (
-                      <tr key={row.paymentOrderId || row.PaymentOrderId || idx}>
-                        <td>{row.paymentOrderId || row.PaymentOrderId || "—"}</td>
-                        <td>{row.stream || row.Stream || "—"}</td>
-                        <td>{row.status || row.Status || "—"}</td>
-                        <td>{row.amount ?? row.Amount ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </CardBody>
-          </Card>
-          <Modal isOpen={!!confirmOrder} toggle={() => setConfirmOrder(null)}>
-            <ModalHeader toggle={() => setConfirmOrder(null)}>Order these medicines again?</ModalHeader>
-            <ModalBody>
-              This prescription already has order {confirmOrder?.previousId || ""}
-              {confirmOrder?.status ? ` (${confirmOrder.status})` : ""}.
-              A new order uses the same signed prescription.
-            </ModalBody>
-            <ModalFooter>
-              <Button color="soft-secondary" onClick={() => setConfirmOrder(null)}>Cancel</Button>
-              <Button
-                className="clinic-primary-btn"
-                disabled={busyId === confirmOrder?.erxId}
-                onClick={() => placeMedicineOrder(confirmOrder.erxId)}
-              >
-                Order again
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </Container>
-      </div>
-    );
-  }
+  const onWithdrawConsent = async (consent) => {
+    const result = await Swal.fire({
+      title: "Withdraw consent?",
+      text: `${consent.title} will stop from now on.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Withdraw",
+      confirmButtonColor: "#dc3545",
+    });
+    if (!result.isConfirmed) return;
+    setBusyConsentId(consent.id);
+    setError("");
+    try {
+      if (consent.fromApi) await withdrawConsent(consent.id);
+      setConsents((prev) => prev.map((row) => (row.id === consent.id ? { ...row, granted: false } : row)));
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyConsentId("");
+    }
+  };
+
+  const onRequestData = async () => {
+    const result = await Swal.fire({
+      title: "Request a copy of your data?",
+      text: "We will prepare your records and notify you when they are ready to download.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Send request",
+      confirmButtonColor: "#25a0e2",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await postDataRequest({ requestType: "Export" });
+      Swal.fire({ title: "Request sent", icon: "success", timer: 1400, showConfirmButton: false });
+    } catch (err) {
+      setError(s4Message(err));
+    }
+  };
 
   return (
-    <div className="page-content admin-dashboard-page clinic-workspace-page">
+    <div className="page-content admin-dashboard-page clinic-workspace-page prx-page pcon-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Care continuity</h2>
-        <p className="clinic-page-subtitle">Timeline, follow-ups, diary, and progress from your clinic visits.</p>
+        <div className="prx-page__header">
+          <div>
+            <h2 className="clinic-page-title">Care continuity</h2>
+            <p className="clinic-page-subtitle">Your health timeline, consents, profile, follow-ups and progress in one place.</p>
+          </div>
+        </div>
+
         {error ? <Alert color="danger">{error}</Alert> : null}
-        {note ? <Alert color="success">{note}</Alert> : null}
+
         {loading ? (
-          <div className="py-4"><Spinner size="sm" /> Loading…</div>
+          <div className="prx-empty">
+            <Spinner size="sm" />
+            <span>Loading your records…</span>
+          </div>
         ) : (
-          <Row className="g-3">
-            <Col lg={6}>
-              <Card className="admin-dash-card">
-                <CardBody>
-                  <h5>Timeline</h5>
-                  {timeline.length === 0 ? (
-                    <p className="text-muted mb-0">No timeline events yet.</p>
-                  ) : (
-                    <div style={{ maxHeight: 320, overflowY: "auto" }}>
-                    <ul className="list-unstyled mb-0">
-                      {timeline.map((row, idx) => (
-                        <li key={row.eventId || row.id || idx} className="border-bottom py-2">
-                          <div className="fw-medium">{row.title || row.eventType || row.EventType || "Event"}</div>
-                          <div className="text-muted small">
-                            {String(row.occurredAt || row.OccurredAt || row.createdAt || "").slice(0, 16)}
-                            {row.summary || row.Summary ? ` · ${row.summary || row.Summary}` : ""}
+          <>
+            <div className="prx-stats">
+              <div className="prx-stat">
+                <span className="prx-stat__icon"><i className="ri-stethoscope-line" aria-hidden="true" /></span>
+                <div><strong>{progress.visits || sortedTimeline.filter((e) => e.type === "appointment").length}</strong><span>Visits</span></div>
+              </div>
+              <div className="prx-stat prx-stat--info">
+                <span className="prx-stat__icon"><i className="ri-calendar-check-line" aria-hidden="true" /></span>
+                <div><strong>{nextFollowUp ? formatDate(nextFollowUp.due, "DD MMM") : "—"}</strong><span>Next follow-up</span></div>
+              </div>
+              <div className="prx-stat prx-stat--warning">
+                <span className="prx-stat__icon"><i className="ri-task-line" aria-hidden="true" /></span>
+                <div><strong>{openTasks}</strong><span>Open tasks</span></div>
+              </div>
+              <div className="prx-stat prx-stat--success">
+                <span className="prx-stat__icon"><i className="ri-line-chart-line" aria-hidden="true" /></span>
+                <div><strong>{improvement}%</strong><span>Improvement</span></div>
+              </div>
+            </div>
+
+            <div className="pcon-grid">
+              <PconCard
+                icon="ri-time-line"
+                title="My Health Timeline"
+                extra={<span className="pcon-count">{sortedTimeline.length} events</span>}
+              >
+                <ol className="pcon-timeline">
+                  {sortedTimeline.map((event) => {
+                    const meta = TIMELINE_META[event.type] || TIMELINE_META.appointment;
+                    return (
+                      <li key={event.id} className={`pcon-timeline__item pcon-tone--${meta.tone}`}>
+                        <span className="pcon-timeline__dot">
+                          <i className={meta.icon} aria-hidden="true" />
+                        </span>
+                        <div className="pcon-timeline__body">
+                          <div className="pcon-timeline__top">
+                            <span className="pcon-timeline__date">{formatDate(event.at)}</span>
+                            <span className="pcon-timeline__type">{meta.label}</span>
                           </div>
-                        </li>
-                      ))}
-                    </ul>
-                    </div>
-                  )}
-                </CardBody>
-              </Card>
-              <Card className="admin-dash-card mt-3">
-                <CardBody>
-                  <h5>Progress</h5>
-                  {progress ? (
-                    <>
-                      <div className="fs-4 mb-2">{progress.visitCount ?? 0} visits</div>
-                      {(progress.series || progress.Series || []).length ? (
-                        <ul className="list-unstyled mb-0 small">
-                          {(progress.series || progress.Series).map((row, idx) => (
-                            <li key={idx} className="d-flex justify-content-between border-bottom py-1">
-                              <span>{String(row.date || row.Date || "").slice(0, 10)}</span>
-                              <span>Severity {row.severity ?? row.Severity ?? "—"}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-muted mb-0">No diary trend yet. Save a symptom diary entry to plot severity.</p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-muted mb-0">No progress snapshot yet.</p>
-                  )}
-                </CardBody>
-              </Card>
-            </Col>
-            <Col lg={6}>
-              <Card className="admin-dash-card">
-                <CardBody>
-                  <h5>Follow-ups</h5>
-                  <p className="text-muted small">Your doctor adds these after a visit. Mark a task done when you have completed it.</p>
-                  {followUps.length === 0 ? (
-                    <p className="text-muted mb-0">No follow-up tasks.</p>
-                  ) : (
-                    <ul className="list-unstyled mb-0">
-                      {followUps.map((row) => {
-                        const id = row.followUpTaskId || row.FollowUpTaskId || row.taskId || row.TaskId || row.id;
-                        return (
-                          <li key={id} className="d-flex justify-content-between border-bottom py-2 gap-2">
-                            <span>{row.title || row.Title || `${id}`}</span>
-                            <Button
-                              size="sm"
-                              color="soft-success"
-                              onClick={async () => {
-                                try {
-                                  await completeFollowUp(id);
-                                  setNote(`Follow-up ${id} completed.`);
-                                  await load();
-                                } catch (err) {
-                                  setError(s4Message(err));
-                                }
-                              }}
+                          <strong>{event.title}</strong>
+                          {event.summary ? <span>{event.summary}</span> : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </PconCard>
+
+              <PconCard
+                icon="ri-shield-user-line"
+                title="Consent Centre"
+                extra={
+                  <button type="button" className="pcon-link-btn" onClick={onRequestData}>
+                    <i className="ri-download-cloud-2-line" aria-hidden="true" />
+                    Request my data
+                  </button>
+                }
+              >
+                <ul className="pcon-consents">
+                  {consents.map((consent) => (
+                    <li key={consent.id} className={consent.granted ? "is-granted" : ""}>
+                      <span className="pcon-consents__icon">
+                        <i className={consent.granted ? "ri-shield-check-line" : "ri-shield-line"} aria-hidden="true" />
+                      </span>
+                      <div className="pcon-consents__main">
+                        <div className="pcon-consents__top">
+                          <strong>{consent.title}</strong>
+                          {consent.granted ? (
+                            <span className="prx-chip prx-chip--signed">
+                              <i className="ri-checkbox-circle-fill" aria-hidden="true" />
+                              Given
+                            </span>
+                          ) : (
+                            <span className="prx-chip pcon-chip--off">Not given</span>
+                          )}
+                        </div>
+                        {consent.purpose ? <span>{consent.purpose}</span> : null}
+                        <div className="pcon-consents__actions">
+                          {consent.granted ? (
+                            <>
+                              <small>Since {formatDate(consent.grantedAt)}</small>
+                              <button
+                                type="button"
+                                className="pcon-link-btn pcon-link-btn--danger"
+                                disabled={busyConsentId === consent.id}
+                                onClick={() => onWithdrawConsent(consent)}
+                              >
+                                Withdraw
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              className="prx-btn prx-btn--primary"
+                              disabled={busyConsentId === consent.id}
+                              onClick={() => onGiveConsent(consent)}
                             >
-                              Done
-                            </Button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </CardBody>
-              </Card>
-              <Card className="admin-dash-card mt-3">
-                <CardBody>
-                  <h5>Symptom diary</h5>
-                  <FormGroup>
-                    <Label>Severity (0–10)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={10}
-                      className="mb-2"
-                      value={diarySeverity}
-                      onChange={(e) => setDiarySeverity(e.target.value)}
-                    />
-                    <Input
-                      type="textarea"
-                      rows={3}
-                      value={diaryText}
-                      onChange={(e) => setDiaryText(e.target.value)}
-                      placeholder="How are you feeling today?"
-                    />
-                  </FormGroup>
-                  <Button
-                    size="sm"
-                    className="clinic-primary-btn"
-                    className="mb-3"
-                    disabled={!diaryText.trim()}
-                    onClick={async () => {
-                      try {
-                        await postDiaryEntry({
-                          entryDate: new Date().toISOString(),
-                          severity: Number(diarySeverity || 0),
-                          note: diaryText.trim(),
-                        });
-                        setDiaryText("");
-                        setNote("Diary entry saved.");
-                        await load();
-                      } catch (err) {
-                        setError(s4Message(err));
-                      }
-                    }}
+                              {busyConsentId === consent.id ? <Spinner size="sm" /> : <i className="ri-check-line" aria-hidden="true" />}
+                              Give Consent
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </PconCard>
+
+              <PconCard
+                icon="ri-user-heart-line"
+                title="My Profile"
+                extra={
+                  <Link to="/profile" className="pcon-link-btn">
+                    <i className="ri-pencil-line" aria-hidden="true" />
+                    Edit
+                  </Link>
+                }
+              >
+                <div className="pcon-profile">
+                  <span className="pcon-profile__avatar" aria-hidden="true">
+                    {profile.name
+                      .split(" ")
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part[0].toUpperCase())
+                      .join("")}
+                  </span>
+                  <div>
+                    <strong>{profile.name}</strong>
+                    <span>{[profile.gender, profile.age ? `${profile.age} yrs` : ""].filter(Boolean).join(" · ") || "Patient"}</span>
+                  </div>
+                </div>
+                <div className="pcon-subhead">
+                  <i className="ri-user-3-line" aria-hidden="true" />
+                  Personal Information
+                </div>
+                <dl className="pcon-facts">
+                  <div><dt>Mobile</dt><dd>{profile.mobile}</dd></div>
+                  <div><dt>Email</dt><dd>{profile.email}</dd></div>
+                  <div><dt>Blood group</dt><dd>{profile.bloodGroup}</dd></div>
+                  <div><dt>City</dt><dd>{profile.city}</dd></div>
+                </dl>
+                <div className="pcon-subhead">
+                  <i className="ri-health-book-line" aria-hidden="true" />
+                  Medical History
+                </div>
+                <div className="pcon-history">
+                  <div>
+                    <span>Allergies</span>
+                    <div className="pcon-tags">
+                      {profile.allergies.length ? profile.allergies.map((item) => <em key={item}>{item}</em>) : <small>None recorded</small>}
+                    </div>
+                  </div>
+                  <div>
+                    <span>Conditions</span>
+                    <div className="pcon-tags">
+                      {profile.conditions.length ? profile.conditions.map((item) => <em key={item}>{item}</em>) : <small>None recorded</small>}
+                    </div>
+                  </div>
+                </div>
+              </PconCard>
+
+              <PconCard
+                icon="ri-calendar-check-line"
+                title="Follow-up Tasks"
+                extra={<span className="pcon-count">{openTasks} open</span>}
+              >
+                <p className="pcon-hint">Your doctor adds these after a visit. Mark each one done when completed.</p>
+                <ul className="pcon-tasks">
+                  {followUps.map((task) => (
+                    <li key={task.id} className={task.done ? "is-done" : ""}>
+                      <i className={task.done ? "ri-checkbox-circle-fill" : "ri-checkbox-blank-circle-line"} aria-hidden="true" />
+                      <div>
+                        <strong>{task.title}</strong>
+                        {task.due ? <span>Due {formatDate(task.due)}</span> : null}
+                      </div>
+                      {!task.done ? (
+                        <button type="button" className="prx-btn pcon-soft-btn" onClick={() => onCompleteTask(task)}>
+                          Done
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </PconCard>
+
+              <PconCard icon="ri-heart-pulse-line" title="Symptom Diary">
+                <div className="pcon-diary-form">
+                  <div className="pcon-severity">
+                    <span>How severe today?</span>
+                    <strong className={diarySeverity >= 7 ? "is-high" : diarySeverity >= 4 ? "is-mid" : "is-low"}>
+                      {diarySeverity}/10
+                    </strong>
+                  </div>
+                  <input
+                    type="range"
+                    className="form-range pcon-range"
+                    min={0}
+                    max={10}
+                    value={diarySeverity}
+                    onChange={(e) => setDiarySeverity(Number(e.target.value))}
+                  />
+                  <Input
+                    type="textarea"
+                    className="pcon-diary-input"
+                    value={diaryText}
+                    onChange={(e) => setDiaryText(e.target.value)}
+                    placeholder="How are you feeling today?"
+                  />
+                  <button
+                    type="button"
+                    className="prx-btn prx-btn--primary"
+                    disabled={!diaryText.trim() || savingDiary}
+                    onClick={onSaveDiary}
                   >
+                    {savingDiary ? <Spinner size="sm" /> : <i className="ri-save-line" aria-hidden="true" />}
                     Save entry
-                  </Button>
-                  {diary.length === 0 ? (
-                    <p className="text-muted mb-0">No diary entries.</p>
-                  ) : (
-                    <ul className="list-unstyled mb-0">
-                      {diary.map((row) => {
-                        const id = row.symptomDiaryId || row.SymptomDiaryId || row.diaryId || row.DiaryId || row.id;
-                        const when = row.entryDate || row.EntryDate || row.createdAt || row.CreatedAt || "";
-                        const severity = row.severity ?? row.Severity;
-                        return (
-                          <li key={id} className="border-bottom py-2">
-                            <div>{row.note || row.Note || row.body || "—"}</div>
-                            <div className="text-muted small">
-                              {String(when).slice(0, 10)}
-                              {severity != null && severity !== "" ? ` · severity ${severity}` : ""}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </CardBody>
-              </Card>
-            </Col>
-          </Row>
+                  </button>
+                </div>
+                <ul className="pcon-diary">
+                  {diary.slice(0, 4).map((entry) => (
+                    <li key={entry.id}>
+                      <span className={`pcon-diary__score ${entry.severity >= 7 ? "is-high" : entry.severity >= 4 ? "is-mid" : "is-low"}`}>
+                        {entry.severity ?? "—"}
+                      </span>
+                      <div>
+                        <strong>{entry.note}</strong>
+                        <span>{formatDate(entry.at)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </PconCard>
+
+              <PconCard icon="ri-line-chart-line" title="Progress">
+                <div className="pcon-progress__head">
+                  <span>Overall improvement</span>
+                  <strong>{improvement}%</strong>
+                </div>
+                <div className="pcon-progress__bar">
+                  <span style={{ width: `${improvement}%` }} />
+                </div>
+                <div className="pcon-progress__stats">
+                  <div><strong>{progress.visits || "—"}</strong><span>Visits</span></div>
+                  <div><strong>{firstSeverity ?? "—"}</strong><span>Start severity</span></div>
+                  <div><strong>{lastSeverity ?? "—"}</strong><span>Now</span></div>
+                </div>
+                <div className="pcon-subhead">
+                  <i className="ri-bar-chart-2-line" aria-hidden="true" />
+                  Severity trend
+                </div>
+                <div className="pcon-bars">
+                  {progress.series.map((value, index) => (
+                    <div key={index} className="pcon-bars__col">
+                      <span className="pcon-bars__bar" style={{ height: `${(value / maxSeverity) * 100}%` }} />
+                      <small>{index + 1}</small>
+                    </div>
+                  ))}
+                </div>
+              </PconCard>
+            </div>
+          </>
         )}
       </Container>
     </div>

@@ -28,7 +28,7 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from 'reselect';
 import { useProfile } from '../Components/Hooks/UserHooks';
-import { resolveUserRole, usesDoctorDashboardLayout, usesAdminDashboardLayout } from '../Components/constants/roles';
+import { resolveUserRole, usesDoctorDashboardLayout, usesAdminDashboardLayout, usesPatientDashboardLayout } from '../Components/constants/roles';
 import { layoutTypes, sidebarVisibilitytypes } from '../Components/constants/layout';
 import useDoctorLayout from '../Components/Hooks/DoctorLayoutHook';
 
@@ -72,6 +72,7 @@ const Layout = (props) => {
         } else if (usesAdminDashboardLayout(role)) {
             document.body.classList.add('admin-layout');
             document.body.classList.remove('doctor-layout');
+            document.body.classList.toggle('patient-layout', usesPatientDashboardLayout(role));
             dispatch(changeLayout(layoutTypes.HORIZONTAL));
         }
     }, []);
@@ -187,6 +188,8 @@ const Layout = (props) => {
         const hideSidebarLayout = usesDoctorDashboardLayout(role);
         const adminDashboardLayout = usesAdminDashboardLayout(role);
 
+        document.body.classList.toggle('patient-layout', usesPatientDashboardLayout(role));
+
         if (hideSidebarLayout) {
             document.body.classList.remove('admin-layout');
             document.body.classList.add('doctor-layout');
@@ -250,6 +253,7 @@ const Layout = (props) => {
         return () => {
             document.body.classList.remove('doctor-layout');
             document.body.classList.remove('admin-layout');
+            document.body.classList.remove('patient-layout');
         };
     }, [userProfile?.role, dispatch]);
 

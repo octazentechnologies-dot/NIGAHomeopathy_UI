@@ -34,6 +34,7 @@ import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
 import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import PatientProfileFields from "./PatientProfileFields";
+import DoctorReviewsPanel from "./DoctorReviewsPanel";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import {
   getDoctorProfileMe,
@@ -53,9 +54,10 @@ const PROFILE_TABS = [
   { id: "fees", label: "Fees", doctorOnly: true },
   { id: "photo", label: "Photo" },
   { id: "qualifications", label: "Qualifications", doctorOnly: true },
-  { id: "credentials", label: "Credentials / documents", doctorOnly: true },
+  { id: "credentials", label: "Credentials/Documents", doctorOnly: true },
   { id: "hours", label: "Hours" },
   { id: "bank", label: "Bank" },
+  { id: "reviews", label: "My Reviews", doctorOnly: true },
 ];
 
 const getProfileTabsForRole = (role) => {
@@ -70,12 +72,37 @@ const getRoleDisplayLabel = (role) => {
   return role || "N/A";
 };
 
+const CREDENTIAL_DOCUMENTS = [
+  { type: "Qualification", label: "BHMS Certificate" },
+  { type: "Registration", label: "Registration" },
+  { type: "Experience", label: "Experience" },
+  { type: "Other", label: "Other Document" },
+];
+
+const getCredentialDocId = (doc) => doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId;
+const getCredentialDocType = (doc) => doc.documentType || doc.DocumentType || "Other";
+const getCredentialDocStatus = (doc) =>
+  doc.status || doc.Status || doc.verificationStatus || doc.VerificationStatus || "";
+
+const openCredentialDocument = async (id) => {
+  try {
+    const response = await downloadDoctorCredentialDocument(id);
+    const blob = response?.data instanceof Blob ? response.data : response;
+    if (!(blob instanceof Blob)) throw new Error("Could not open the document.");
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (err) {
+    Swal.fire({ title: "Could not open file", text: err?.message || String(err), icon: "error" });
+  }
+};
+
 const DoctorCredentialsPanel = () => {
   const [status, setStatus] = useState("");
   const [docs, setDocs] = useState([]);
-  const [docType, setDocType] = useState("Registration");
-  const [busy, setBusy] = useState(false);
+  const [busyType, setBusyType] = useState("");
   const fileRef = useRef(null);
+  const pendingTypeRef = useRef("");
 
   const reload = () => {
     getDoctorCredentialsMe()
@@ -94,90 +121,139 @@ const DoctorCredentialsPanel = () => {
     reload();
   }, []);
 
-  const upload = async (event) => {
-    event.preventDefault();
-    const file = fileRef.current?.files?.[0];
-    if (!file) {
-      Swal.fire({ title: "Choose a file", text: "PDF, JPG, or PNG.", icon: "warning", timer: 1600, showConfirmButton: false });
-      return;
-    }
-    setBusy(true);
+  const pickFile = (type) => {
+    pendingTypeRef.current = type;
+    fileRef.current?.click();
+  };
+
+  const handleFileChosen = async (event) => {
+    const file = event.target.files?.[0];
+    const type = pendingTypeRef.current;
+    event.target.value = "";
+    if (!file || !type) return;
+    setBusyType(type);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("documentType", docType);
+      formData.append("documentType", type);
       await uploadDoctorCredentialDocument(formData);
-      if (fileRef.current) fileRef.current.value = "";
       reload();
       Swal.fire({ title: "Uploaded", text: "Status is Pending until Admin reviews Trust queue.", icon: "success", timer: 1800, showConfirmButton: false });
     } catch (err) {
       Swal.fire({ title: "Upload failed", text: err?.message || String(err), icon: "error" });
     } finally {
-      setBusy(false);
+      setBusyType("");
     }
   };
+
+  const latestDocByType = docs.reduce((acc, doc) => {
+    acc[getCredentialDocType(doc)] = doc;
+    return acc;
+  }, {});
+
+  const rows = CREDENTIAL_DOCUMENTS.map((item) => ({ ...item, doc: latestDocByType[item.type] }));
 
   return (
     <div>
       <h5 className="user-profile-page__section-title">
         <i className="ri-shield-check-line" aria-hidden="true" />
-        Credentials / documents
+        Credentials/Documents
       </h5>
       <p className="text-muted">Verification status: <strong>{status || "Pending"}</strong></p>
-      <Form onSubmit={upload}>
-        <Row className="g-3 align-items-end">
-          <Col md={4}>
-            <Label>Document type</Label>
-            <Input type="select" value={docType} onChange={(e) => setDocType(e.target.value)}>
-              <option value="Registration">Registration</option>
-              <option value="Qualification">Qualification</option>
-              <option value="Other">Other</option>
-            </Input>
-          </Col>
-          <Col md={5}>
-            <Label>File (PDF / JPG / PNG)</Label>
-            <Input innerRef={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" />
-          </Col>
-          <Col md={3}>
-            <button className="btn clinic-primary-btn w-100" type="submit" disabled={busy}>
-              {busy ? "Uploading…" : "Upload"}
-            </button>
-          </Col>
-        </Row>
-      </Form>
-      <ul className="mt-3 mb-0 ps-3">
-        {docs.length === 0 ? (
-          <li className="text-muted">No documents uploaded yet.</li>
-        ) : (
-          docs.map((doc) => {
-            const id = doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId;
-            const name = doc.fileName || doc.FileName || "document";
-            return (
-              <li key={id} className="mb-1">
-                {doc.documentType || doc.DocumentType} — {name}{" "}
-                <button
-                  type="button"
-                  className="btn btn-link btn-sm p-0 align-baseline"
-                  onClick={async () => {
-                    try {
-                      const response = await downloadDoctorCredentialDocument(id);
-                      const blob = response?.data instanceof Blob ? response.data : response;
-                      if (!(blob instanceof Blob)) throw new Error("Could not open the document.");
-                      const url = URL.createObjectURL(blob);
-                      window.open(url, "_blank", "noopener");
-                      setTimeout(() => URL.revokeObjectURL(url), 60000);
-                    } catch (err) {
-                      Swal.fire({ title: "Could not open file", text: err?.message || String(err), icon: "error" });
-                    }
-                  }}
-                >
-                  Open
-                </button>
-              </li>
-            );
-          })
-        )}
-      </ul>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png"
+        className="d-none"
+        onChange={handleFileChosen}
+      />
+
+      <div className="user-profile-page__cred-wrap">
+        <table className="table align-middle mb-0 user-profile-page__cred-table">
+          <thead>
+            <tr>
+              <th scope="col">Document</th>
+              <th scope="col">Upload</th>
+              <th scope="col" className="text-center">Approval</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ type, label, doc }) => {
+              const docStatus = doc ? getCredentialDocStatus(doc) || status || "Pending" : "Not uploaded";
+              const approved = Boolean(doc) && /^approved$/i.test(docStatus);
+              const busy = busyType === type;
+              return (
+                <tr key={type}>
+                  <td>
+                    <span className="user-profile-page__cred-name">
+                      <span className="user-profile-page__cred-icon" aria-hidden="true">
+                        <i className="ri-file-text-line" />
+                      </span>
+                      <span>
+                        {label}
+                        {doc ? (
+                          <span className="user-profile-page__cred-file">{doc.fileName || doc.FileName || "document"}</span>
+                        ) : null}
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    {doc ? (
+                      <span className="d-inline-flex align-items-center gap-2 flex-wrap">
+                        <span className="user-profile-page__cred-badge user-profile-page__cred-badge--uploaded">
+                          Uploaded
+                        </span>
+                        <button
+                          type="button"
+                          className="user-profile-page__cred-view"
+                          onClick={() => openCredentialDocument(getCredentialDocId(doc))}
+                          title="View document"
+                        >
+                          <i className="ri-eye-line" aria-hidden="true" />
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          className="user-profile-page__cred-link"
+                          onClick={() => pickFile(type)}
+                          disabled={busy}
+                        >
+                          {busy ? "Uploading…" : "Replace"}
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="user-profile-page__cred-badge user-profile-page__cred-badge--upload"
+                        onClick={() => pickFile(type)}
+                        disabled={busy}
+                      >
+                        <i className="ri-upload-cloud-2-line" aria-hidden="true" />
+                        {busy ? "Uploading…" : "Upload"}
+                      </button>
+                    )}
+                  </td>
+                  <td className="text-center">
+                    <span className="user-profile-page__cred-approval-cell">
+                      <span
+                        className={`user-profile-page__cred-approval ${
+                          approved ? "user-profile-page__cred-approval--yes" : "user-profile-page__cred-approval--no"
+                        }`}
+                        title={approved ? "Approved" : docStatus}
+                      >
+                        <i className={approved ? "ri-check-line" : "ri-close-line"} aria-hidden="true" />
+                      </span>
+                      <span className="user-profile-page__cred-approval-text">{approved ? "Approved" : docStatus}</span>
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-muted small mt-2 mb-0">Accepted formats: PDF, JPG, PNG.</p>
     </div>
   );
 };
@@ -2323,6 +2399,9 @@ const UserProfile = () => {
                         </ModalActionButton>
                       </div>
                     </Form>
+                  </TabPane>
+                  <TabPane tabId="reviews">
+                    {activeTab === "reviews" ? <DoctorReviewsPanel /> : null}
                   </TabPane>
                 </TabContent>
               </CardBody>

@@ -261,10 +261,11 @@ const FamilyMembers = () => {
       <Container fluid>
         <Row>
           <Col xs={12}>
-            <h2 className="clinic-page-title mb-3">
+            <h2 className="clinic-page-title">
               {actingAsCaregiver ? "Family you manage" : "Family"}
               {ownerName ? ` · ${ownerName}` : ""}
             </h2>
+            <p className="clinic-page-subtitle">Add family members and book appointments on their behalf.</p>
             {actingAsCaregiver ? (
               <Alert color="info" className="mb-3">
                 Signed in as caregiver for <strong>{ownerName || "this patient"}</strong>.
