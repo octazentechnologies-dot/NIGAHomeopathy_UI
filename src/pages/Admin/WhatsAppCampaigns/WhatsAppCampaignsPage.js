@@ -8,25 +8,18 @@ import {
   UncontrolledDropdown,
 } from "reactstrap";
 import moment from "moment";
-import { getWhatsAppCampaignHistory } from "../../../helpers/realbackend_helper";
-import {
-  CampaignDetailsModal,
-  CampaignFormModal,
-  CampaignStatusPill,
-  ConfirmCampaignModal,
-} from "./CampaignModals";
+import { getWhatsAppCampaignHistory, sendWhatsAppBulkMessage } from "../../../helpers/realbackend_helper";
+import { whatsAppAudience } from "../../../helpers/s5Week5Api";
+import { CampaignDetailsModal, CampaignFormModal, CampaignStatusPill } from "./CampaignModals";
 import {
   CAMPAIGN_STATUS,
   STATUS_LABELS,
-  audienceLabel,
   campaignInitials,
   categoryLabel,
   formatCount,
   formatDateTime,
   normalizeApiCampaign,
   pct,
-  readCampaigns,
-  writeCampaigns,
 } from "./campaignStore";
 import { downloadCsv } from "../PlatformUsers/platformUsersData";
 import "./whatsappCampaigns.css";
@@ -35,27 +28,17 @@ const PAGE_SIZE = 8;
 
 const TABS = [
   { id: "all", label: "All Campaigns" },
-  { id: "scheduled", label: "Scheduled" },
-  { id: "completed", label: "Completed" },
-  { id: "failed", label: "Failed" },
-  { id: "draft", label: "Drafts" },
+  { id: CAMPAIGN_STATUS.QUEUED, label: "In progress" },
+  { id: CAMPAIGN_STATUS.COMPLETED, label: "Completed" },
+  { id: CAMPAIGN_STATUS.FAILED, label: "Failed" },
 ];
 
-const inTab = (campaign, tab) => {
-  if (tab === "all") return true;
-  if (tab === "scheduled") return campaign.status === CAMPAIGN_STATUS.SCHEDULED || campaign.status === CAMPAIGN_STATUS.QUEUED;
-  return campaign.status === tab;
-};
+const inTab = (campaign, tab) => tab === "all" || campaign.status === tab;
 
-const isLocalEditable = (c) =>
-  c.source !== "api" && (c.status === CAMPAIGN_STATUS.DRAFT || c.status === CAMPAIGN_STATUS.SCHEDULED);
+const campaignMeta = (c) =>
+  `${categoryLabel(c.category)} · ${c.createdAt ? moment(c.createdAt).format("DD MMM YYYY") : "—"}`;
 
-const campaignMeta = (c) => {
-  if (c.status === CAMPAIGN_STATUS.SCHEDULED) return `Scheduled · ${formatDateTime(c.scheduledAt)}`;
-  if (c.status === CAMPAIGN_STATUS.QUEUED) return "Queued for delivery";
-  if (c.status === CAMPAIGN_STATUS.DRAFT) return "Draft · not sent";
-  return c.sentAt ? `Sent · ${moment(c.sentAt).format("DD MMM YYYY")}` : categoryLabel(c.category);
-};
+const errorText = (err, fallback) => (typeof err === "string" ? err : err?.message || fallback);
 
 const pageNumbers = (page, total) => {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -69,13 +52,14 @@ const pageNumbers = (page, total) => {
   return pages;
 };
 
-/** Admin → WhatsApp campaigns: create, schedule and track bulk WhatsApp messages to patients. */
+/** Admin → WhatsApp campaigns: send bulk template messages to a doctor's opted-in patients and track delivery. */
 const WhatsAppCampaignsPage = () => {
   document.title = "WhatsApp Campaigns | Niga Homeocentrum";
 
-  const [apiCampaigns, setApiCampaigns] = useState([]);
-  const [localCampaigns, setLocalCampaigns] = useState(() => readCampaigns());
+  const [rawCampaigns, setRawCampaigns] = useState([]);
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -85,19 +69,37 @@ const WhatsAppCampaignsPage = () => {
 
   const [formState, setFormState] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [confirmState, setConfirmState] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const response = await getWhatsAppCampaignHistory({ pageNumber: 1, pageSize: 100 });
-      const list = response?.resultObject ?? response?.ResultObject ?? [];
-      setApiCampaigns(response?.success !== false && Array.isArray(list) ? list.map(normalizeApiCampaign) : []);
-    } catch {
-      setApiCampaigns([]);
-    } finally {
-      setLoading(false);
+    const [historyRes, audienceRes] = await Promise.allSettled([
+      getWhatsAppCampaignHistory({ pageNumber: 1, pageSize: 100 }),
+      whatsAppAudience(),
+    ]);
+    if (historyRes.status === "fulfilled" && historyRes.value?.success !== false) {
+      const list = historyRes.value?.resultObject ?? historyRes.value?.ResultObject ?? [];
+      setRawCampaigns(Array.isArray(list) ? list : []);
+    } else {
+      setRawCampaigns([]);
+      setError(
+        historyRes.status === "fulfilled"
+          ? historyRes.value?.message || "Campaign history could not be loaded."
+          : errorText(historyRes.reason, "Campaign history could not be loaded.")
+      );
     }
+    if (audienceRes.status === "fulfilled") {
+      const rows = audienceRes.value?.data ?? [];
+      setDoctors(
+        (Array.isArray(rows) ? rows : []).map((r) => ({
+          doctorId: r.doctorId,
+          doctorName: r.doctorName || `Doctor #${r.doctorId}`,
+          optedIn: Number(r.optedIn) || 0,
+        }))
+      );
+    } else {
+      setDoctors([]);
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -108,41 +110,25 @@ const WhatsAppCampaignsPage = () => {
     setPage(1);
   }, [tab, search]);
 
-  const persist = (updater) => {
-    setLocalCampaigns((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      writeCampaigns(next);
-      return next;
-    });
-  };
-
   const campaigns = useMemo(() => {
-    const merged = [...apiCampaigns, ...localCampaigns];
-    return merged.sort((a, b) => {
-      const at = moment(a.sentAt || a.scheduledAt || a.createdAt).valueOf() || 0;
-      const bt = moment(b.sentAt || b.scheduledAt || b.createdAt).valueOf() || 0;
-      return bt - at;
-    });
-  }, [apiCampaigns, localCampaigns]);
-
-  const showsSample = campaigns.some((c) => c.sample);
+    const doctorNameById = doctors.reduce((acc, d) => ({ ...acc, [d.doctorId]: d.doctorName }), {});
+    return rawCampaigns.map((row) => normalizeApiCampaign(row, doctorNameById));
+  }, [rawCampaigns, doctors]);
 
   const stats = useMemo(() => {
-    const sentCampaigns = campaigns.filter((c) => c.sent > 0);
-    const sent = sentCampaigns.reduce((s, c) => s + c.sent, 0);
-    const targeted = sentCampaigns.reduce((s, c) => s + (c.targeted || c.sent), 0);
-    const delivered = campaigns.reduce((s, c) => s + (c.delivered || 0), 0);
-    const failed = campaigns.reduce((s, c) => s + (c.failed || 0), 0);
-    const optOuts = campaigns.reduce((s, c) => s + (c.optOuts || 0), 0);
+    const sent = campaigns.reduce((s, c) => s + c.sent, 0);
+    const delivered = campaigns.reduce((s, c) => s + c.delivered, 0);
+    const failed = campaigns.reduce((s, c) => s + c.failed, 0);
+    const reachable = doctors.reduce((s, d) => s + d.optedIn, 0);
     const completedCount = campaigns.filter((c) => c.status === CAMPAIGN_STATUS.COMPLETED).length;
     return [
       { id: "total", label: "Total Campaigns", value: campaigns.length, sub: `${pct(completedCount, campaigns.length, 0)} completed`, tone: "blue", icon: "ri-megaphone-line" },
-      { id: "sent", label: "Sent", value: sent, sub: `${pct(sent, targeted)} of targeted`, tone: "green", icon: "ri-send-plane-line" },
+      { id: "sent", label: "Messages", value: sent, sub: "Across all campaigns", tone: "green", icon: "ri-send-plane-line" },
       { id: "delivered", label: "Delivered", value: delivered, sub: `${pct(delivered, sent)} delivery rate`, tone: "teal", icon: "ri-check-double-line" },
-      { id: "failed", label: "Failed", value: failed, sub: `${pct(failed, sent, 1)} of sent`, tone: "red", icon: "ri-error-warning-line" },
-      { id: "optouts", label: "Opt-outs", value: optOuts, sub: `${pct(optOuts, sent, 1)} of sent`, tone: "amber", icon: "ri-user-unfollow-line" },
+      { id: "failed", label: "Failed", value: failed, sub: `${pct(failed, sent, 1)} of messages`, tone: "red", icon: "ri-error-warning-line" },
+      { id: "reach", label: "Opted-in patients", value: reachable, sub: "Reachable on WhatsApp", tone: "amber", icon: "ri-user-follow-line" },
     ];
-  }, [campaigns]);
+  }, [campaigns, doctors]);
 
   const counts = useMemo(
     () => TABS.reduce((acc, t) => ({ ...acc, [t.id]: campaigns.filter((c) => inTab(c, t.id)).length }), {}),
@@ -154,7 +140,7 @@ const WhatsAppCampaignsPage = () => {
     return campaigns.filter((c) => {
       if (!inTab(c, tab)) return false;
       if (!query) return true;
-      return [c.name, audienceLabel(c.audience), c.templateName, categoryLabel(c.category)].join(" ").toLowerCase().includes(query);
+      return [c.name, c.doctorName, categoryLabel(c.category)].join(" ").toLowerCase().includes(query);
     });
   }, [campaigns, tab, search]);
 
@@ -163,94 +149,57 @@ const WhatsAppCampaignsPage = () => {
   const startIndex = (safePage - 1) * PAGE_SIZE;
   const pageRows = filtered.slice(startIndex, startIndex + PAGE_SIZE);
 
-  const flash = (message) => {
-    setNotice(message);
+  const handleSend = async (values) => {
+    setSending(true);
     setError("");
-  };
-
-  const handleSave = (values, action) => {
-    const status =
-      action === "draft" ? CAMPAIGN_STATUS.DRAFT : action === "schedule" ? CAMPAIGN_STATUS.SCHEDULED : CAMPAIGN_STATUS.QUEUED;
-    const isEdit = formState?.mode === "edit";
-    if (isEdit) {
-      persist((prev) => prev.map((c) => (c.id === formState.campaign.id ? { ...c, ...values, status } : c)));
-    } else {
-      persist((prev) => [
-        {
-          id: `cmp-${Date.now()}`,
-          ...values,
-          sent: 0,
-          delivered: 0,
-          failed: 0,
-          optOuts: 0,
-          status,
-          sentAt: null,
-          createdAt: moment().toISOString(),
-        },
-        ...prev,
-      ]);
+    try {
+      const response = await sendWhatsAppBulkMessage({
+        doctorID: values.doctorId,
+        campaignName: values.name,
+        messageCategory: values.category,
+        templateID: values.templateID,
+        doctorName: values.doctorName,
+      });
+      if (response?.success === false) throw new Error(response?.message || "The campaign could not be sent.");
+      const queued = response?.resultObject?.totalQueued ?? values.recipients;
+      setFormState(null);
+      setNotice(`"${values.name}" was queued for delivery to ${formatCount(queued)} patients.`);
+      await load();
+    } catch (err) {
+      setError(errorText(err, "The campaign could not be sent."));
+    } finally {
+      setSending(false);
     }
-    setFormState(null);
-    if (action === "draft") flash(`"${values.name}" was saved as a draft.`);
-    else if (action === "schedule") flash(`"${values.name}" is scheduled for ${formatDateTime(values.scheduledAt)}.`);
-    else flash(`"${values.name}" was queued for delivery to ~${formatCount(values.targeted)} patients.`);
-  };
-
-  const handleConfirm = () => {
-    if (!confirmState) return;
-    const { kind, campaign } = confirmState;
-    if (kind === "delete") {
-      persist((prev) => prev.filter((c) => c.id !== campaign.id));
-      flash(`"${campaign.name}" was deleted.`);
-    } else if (kind === "cancel") {
-      persist((prev) =>
-        prev.map((c) => (c.id === campaign.id ? { ...c, status: CAMPAIGN_STATUS.DRAFT, scheduledAt: null } : c))
-      );
-      flash(`"${campaign.name}" was moved back to drafts.`);
-    } else if (kind === "send") {
-      persist((prev) =>
-        prev.map((c) => (c.id === campaign.id ? { ...c, status: CAMPAIGN_STATUS.QUEUED, scheduledAt: null } : c))
-      );
-      flash(`"${campaign.name}" was queued for delivery.`);
-    }
-    setConfirmState(null);
   };
 
   const exportCampaign = (c) => {
     downloadCsv(`campaign-${c.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`, [
       ["Campaign", c.name],
       ["Status", STATUS_LABELS[c.status] || c.status],
-      ["Audience", audienceLabel(c.audience)],
+      ["Doctor", c.doctorName],
       ["Message type", categoryLabel(c.category)],
-      ["Template", c.templateName || ""],
-      ["Scheduled for", formatDateTime(c.scheduledAt)],
-      ["Sent on", formatDateTime(c.sentAt)],
+      ["Created", formatDateTime(c.createdAt)],
       [],
       ["Metric", "Count", "Rate"],
-      ["Targeted", c.targeted, ""],
-      ["Sent", c.sent, pct(c.sent, c.targeted)],
+      ["Messages", c.sent, ""],
       ["Delivered", c.delivered, pct(c.delivered, c.sent)],
       ["Failed", c.failed, pct(c.failed, c.sent, 1)],
-      ["Opt-outs", c.optOuts, pct(c.optOuts, c.sent, 1)],
     ]);
   };
 
   const exportList = () => {
     downloadCsv(`whatsapp-campaigns-${moment().format("YYYYMMDD-HHmm")}.csv`, [
-      ["Campaign", "Audience", "Message type", "Status", "Targeted", "Sent", "Delivered", "Delivery %", "Failed", "Opt-outs", "Scheduled for", "Sent on"],
+      ["Campaign", "Doctor", "Message type", "Status", "Messages", "Delivered", "Delivery %", "Failed", "Created"],
       ...filtered.map((c) => [
         c.name,
-        audienceLabel(c.audience),
+        c.doctorName,
         categoryLabel(c.category),
         STATUS_LABELS[c.status] || c.status,
-        c.targeted,
         c.sent,
         c.delivered,
         pct(c.delivered, c.sent),
         c.failed,
-        c.optOuts,
-        formatDateTime(c.scheduledAt),
-        formatDateTime(c.sentAt),
+        formatDateTime(c.createdAt),
       ]),
     ]);
   };
@@ -268,17 +217,17 @@ const WhatsAppCampaignsPage = () => {
         <div className="wac-page">
           <div className="wac-page__head">
             <div>
-              <h2 className="clinic-page-title mb-1">
-                WhatsApp Campaigns
-                {showsSample ? <span className="wac-sample">Sample data</span> : null}
-              </h2>
-              <p className="clinic-page-subtitle mb-0">Create and manage WhatsApp campaigns to engage patients</p>
+              <h2 className="clinic-page-title mb-1">WhatsApp Campaigns</h2>
+              <p className="clinic-page-subtitle mb-0">Send WhatsApp campaigns to opted-in patients and track delivery</p>
             </div>
             <div className="wac-page__actions">
+              <button type="button" className="wac-btn wac-btn--soft" onClick={load} disabled={loading}>
+                <i className="ri-refresh-line" aria-hidden="true" /> Refresh
+              </button>
               <button type="button" className="wac-btn wac-btn--soft" onClick={exportList} disabled={!filtered.length}>
                 <i className="ri-download-2-line" aria-hidden="true" /> Export CSV
               </button>
-              <button type="button" className="wac-btn wac-btn--primary" onClick={() => openForm("new")}>
+              <button type="button" className="wac-btn wac-btn--primary" onClick={() => openForm("new")} disabled={loading}>
                 <i className="ri-add-line" aria-hidden="true" /> New Campaign
               </button>
             </div>
@@ -309,7 +258,7 @@ const WhatsAppCampaignsPage = () => {
                 <span className="wac-stat__icon"><i className={s.icon} aria-hidden="true" /></span>
                 <div>
                   <span className="wac-stat__label">{s.label}</span>
-                  <strong>{formatCount(s.value)}</strong>
+                  <strong>{loading ? "—" : formatCount(s.value)}</strong>
                   <small>{s.sub}</small>
                 </div>
               </div>
@@ -353,18 +302,16 @@ const WhatsAppCampaignsPage = () => {
                   <col className="wac-col-num" />
                   <col className="wac-col-delivered" />
                   <col className="wac-col-num" />
-                  <col className="wac-col-num" />
                   <col className="wac-col-status" />
                   <col className="wac-col-action" />
                 </colgroup>
                 <thead>
                   <tr>
                     <th>Campaign Name</th>
-                    <th>Audience</th>
-                    <th>Sent</th>
+                    <th>Doctor</th>
+                    <th>Messages</th>
                     <th>Delivered</th>
                     <th>Failed</th>
-                    <th>Opt-outs</th>
                     <th>Status</th>
                     <th className="text-center">Actions</th>
                   </tr>
@@ -372,7 +319,7 @@ const WhatsAppCampaignsPage = () => {
                 <tbody>
                   {loading && !campaigns.length ? (
                     <tr>
-                      <td colSpan={8} className="wac-table__state">
+                      <td colSpan={7} className="wac-table__state">
                         <Spinner size="sm" className="me-2" /> Loading campaigns…
                       </td>
                     </tr>
@@ -388,7 +335,7 @@ const WhatsAppCampaignsPage = () => {
                             </span>
                           </button>
                         </td>
-                        <td title={audienceLabel(c.audience)}>{audienceLabel(c.audience)}</td>
+                        <td title={c.doctorName}>{c.doctorName}</td>
                         <td>{numberCell(c, c.sent)}</td>
                         <td>
                           {c.sent ? (
@@ -398,7 +345,6 @@ const WhatsAppCampaignsPage = () => {
                           ) : "—"}
                         </td>
                         <td className={c.failed ? "wac-failed" : undefined}>{numberCell(c, c.failed)}</td>
-                        <td>{numberCell(c, c.optOuts)}</td>
                         <td><CampaignStatusPill status={c.status} /></td>
                         <td className="wac-action-cell">
                           <UncontrolledDropdown>
@@ -409,35 +355,12 @@ const WhatsAppCampaignsPage = () => {
                               <DropdownItem onClick={() => setDetail(c)}>
                                 <i className="ri-eye-line" aria-hidden="true" /> View details
                               </DropdownItem>
-                              {isLocalEditable(c) ? (
-                                <>
-                                  <DropdownItem onClick={() => openForm("edit", c)}>
-                                    <i className="ri-pencil-line" aria-hidden="true" /> Edit campaign
-                                  </DropdownItem>
-                                  <DropdownItem onClick={() => setConfirmState({ kind: "send", campaign: c })}>
-                                    <i className="ri-send-plane-line" aria-hidden="true" /> Send now
-                                  </DropdownItem>
-                                </>
-                              ) : null}
-                              {c.source !== "api" && c.status === CAMPAIGN_STATUS.SCHEDULED ? (
-                                <DropdownItem onClick={() => setConfirmState({ kind: "cancel", campaign: c })}>
-                                  <i className="ri-calendar-close-line" aria-hidden="true" /> Cancel schedule
-                                </DropdownItem>
-                              ) : null}
                               <DropdownItem onClick={() => openForm("duplicate", c)}>
                                 <i className="ri-file-copy-line" aria-hidden="true" /> Duplicate
                               </DropdownItem>
                               <DropdownItem onClick={() => exportCampaign(c)}>
                                 <i className="ri-download-2-line" aria-hidden="true" /> Export report
                               </DropdownItem>
-                              {c.source !== "api" ? (
-                                <>
-                                  <DropdownItem divider />
-                                  <DropdownItem className="is-danger" onClick={() => setConfirmState({ kind: "delete", campaign: c })}>
-                                    <i className="ri-delete-bin-line" aria-hidden="true" /> Delete
-                                  </DropdownItem>
-                                </>
-                              ) : null}
                             </DropdownMenu>
                           </UncontrolledDropdown>
                         </td>
@@ -445,7 +368,7 @@ const WhatsAppCampaignsPage = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="wac-table__state">
+                      <td colSpan={7} className="wac-table__state">
                         <i className="ri-chat-off-line" aria-hidden="true" /> No campaigns here yet.
                       </td>
                     </tr>
@@ -485,22 +408,16 @@ const WhatsAppCampaignsPage = () => {
           isOpen={Boolean(formState)}
           mode={formState?.mode}
           campaign={formState?.campaign}
-          busy={false}
+          doctors={doctors}
+          busy={sending}
           onClose={() => setFormState(null)}
-          onSave={handleSave}
+          onSend={handleSend}
         />
         <CampaignDetailsModal
           campaign={detail}
           onClose={() => setDetail(null)}
-          onEdit={(c) => openForm("edit", c)}
           onDuplicate={(c) => openForm("duplicate", c)}
           onExport={exportCampaign}
-        />
-        <ConfirmCampaignModal
-          state={confirmState}
-          busy={false}
-          onClose={() => setConfirmState(null)}
-          onConfirm={handleConfirm}
         />
       </Container>
     </div>

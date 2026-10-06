@@ -14,13 +14,32 @@ import {
 } from "../../../helpers/s4Week4Api";
 import { downloadDoctorCredentialDocument } from "../../../helpers/realbackend_helper";
 import { listPublicDoctors } from "../../../helpers/publicBookingApi";
-import {
-  REVIEWS_CHANGED_EVENT,
-  REVIEW_STATUS,
-  listModerationReviews,
-  setReviewStatus,
-} from "../../../helpers/reviewModerationStore";
+import { listAdminReviews, setAdminReviewStatus } from "../../../helpers/s5Week5Api";
 import "./trustVerification.css";
+
+const REVIEW_STATUS = { PENDING: "PENDING", APPROVED: "APPROVED", REJECTED: "REJECTED" };
+
+const reviewStatusKey = (value) => {
+  const status = String(value || "").toUpperCase();
+  if (status === "APPROVED") return REVIEW_STATUS.APPROVED;
+  if (status === "REJECTED" || status === "HIDDEN") return REVIEW_STATUS.REJECTED;
+  return REVIEW_STATUS.PENDING;
+};
+
+const normalizeReview = (row) => ({
+  id: row.reviewId,
+  name: row.patientName || "Patient",
+  doctorName: row.doctorName || "",
+  rating: Number(row.rating) || 0,
+  text: row.text || "",
+  at: row.at,
+  mode: row.consultMode || "",
+  status: reviewStatusKey(row.status),
+  rawStatus: String(row.status || "").toUpperCase(),
+  note: row.moderationNote || "",
+  doctorReply: row.doctorReply || "",
+  openAppealId: row.openAppealId || null,
+});
 
 const REVIEW_PAGE_SIZE = 4;
 
@@ -70,17 +89,9 @@ const DOCTOR_TABS = [
   { id: "rejected", label: "Rejected" },
 ];
 
-const SAMPLE_DOCTORS = [
-  { name: "Dr. Rohit Mehta", qualification: "BHMS, MD", email: "rohit.mehta@homeocentrum.com", status: "verified" },
-  { name: "Dr. Sneha Patil", qualification: "BHMS", email: "sneha.patil@homeocentrum.com", status: "pending" },
-  { name: "Dr. Amit Shah", qualification: "MD", email: "amit.shah@homeocentrum.com", status: "rejected" },
-  { name: "Dr. Kavita Rao", qualification: "BHMS, PGDHHM", email: "kavita.rao@homeocentrum.com", status: "pending" },
-  { name: "Dr. Imran Shaikh", qualification: "BHMS", email: "imran.s@homeocentrum.com", status: "needsinfo" },
-].map((row, index) => ({ ...row, id: `sample-${index + 1}`, sample: true }));
-
 const REVIEW_TABS = [
+  { id: REVIEW_STATUS.APPROVED, label: "Published" },
   { id: REVIEW_STATUS.PENDING, label: "Pending" },
-  { id: REVIEW_STATUS.APPROVED, label: "Approved" },
   { id: REVIEW_STATUS.REJECTED, label: "Rejected" },
 ];
 
@@ -171,16 +182,15 @@ const DecisionModal = ({ state, onClose, onSubmit, busy }) => {
   );
 };
 
-/** TRU — admin Trust & Verification: doctor credentialing, visitor review moderation, review appeals. */
+/** TRU — admin Trust & Verification: doctor credentialing, patient review moderation, review appeals. */
 const TrustQueuePage = () => {
   const [doctors, setDoctors] = useState([]);
-  const [doctorsSample, setDoctorsSample] = useState(false);
   const [doctorTab, setDoctorTab] = useState("all");
   const [doctorSearch, setDoctorSearch] = useState("");
   const [docsByDoctor, setDocsByDoctor] = useState({});
   const [appeals, setAppeals] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [reviewTab, setReviewTab] = useState(REVIEW_STATUS.PENDING);
+  const [reviewTab, setReviewTab] = useState(REVIEW_STATUS.APPROVED);
   const [reviewDoctor, setReviewDoctor] = useState("all");
   const [reviewPage, setReviewPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -191,15 +201,14 @@ const TrustQueuePage = () => {
 
   document.title = "Trust & Verification | Niga Homeocentrum";
 
-  const refreshReviews = useCallback(() => setReviews(listModerationReviews()), []);
-
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    const [queueRes, appealRes, publicRes] = await Promise.allSettled([
+    const [queueRes, appealRes, publicRes, reviewRes] = await Promise.allSettled([
       listTrustQueue("All"),
       listReviewAppeals(),
       listPublicDoctors({ pageNumber: 1, pageSize: 200 }),
+      listAdminReviews(),
     ]);
 
     const qualificationById = {};
@@ -225,22 +234,20 @@ const TrustQueuePage = () => {
     } else {
       setError(s4Message(queueRes.reason));
     }
-    setDoctors(rows.length ? rows : SAMPLE_DOCTORS);
-    setDoctorsSample(!rows.length);
+    setDoctors(rows);
     setAppeals(appealRes.status === "fulfilled" ? asList(unwrapS4(appealRes.value)) : []);
-    refreshReviews();
+    if (reviewRes.status === "fulfilled") {
+      setReviews(asList(unwrapS4(reviewRes.value)).map(normalizeReview));
+    } else {
+      setReviews([]);
+      setError((prev) => prev || s4Message(reviewRes.reason));
+    }
     setLoading(false);
-  }, [refreshReviews]);
+  }, []);
 
   useEffect(() => {
     load();
-    window.addEventListener(REVIEWS_CHANGED_EVENT, refreshReviews);
-    window.addEventListener("storage", refreshReviews);
-    return () => {
-      window.removeEventListener(REVIEWS_CHANGED_EVENT, refreshReviews);
-      window.removeEventListener("storage", refreshReviews);
-    };
-  }, [load, refreshReviews]);
+  }, [load]);
 
   useEffect(() => {
     setReviewPage(1);
@@ -270,7 +277,7 @@ const TrustQueuePage = () => {
     setError("");
     const nextStatus = { Approve: "verified", Reject: "rejected", NeedsInfo: "needsinfo" }[verdict];
     try {
-      if (!doctor.sample) await decideTrust(doctor.id, { decision: verdict, note });
+      await decideTrust(doctor.id, { decision: verdict, note });
       setDoctors((prev) => prev.map((row) => (row.id === doctor.id ? { ...row, status: nextStatus } : row)));
       setNotice(`${doctor.name} marked as ${DOCTOR_STATUS[nextStatus].label.toLowerCase()}.`);
       setDecision(null);
@@ -288,10 +295,6 @@ const TrustQueuePage = () => {
         delete next[doctor.id];
         return next;
       });
-      return;
-    }
-    if (doctor.sample) {
-      setDocsByDoctor((prev) => ({ ...prev, [doctor.id]: [] }));
       return;
     }
     setBusyId(`files-${doctor.id}`);
@@ -347,16 +350,48 @@ const TrustQueuePage = () => {
   const reviewStart = (reviewPage - 1) * REVIEW_PAGE_SIZE;
   const pageReviews = filteredReviews.slice(reviewStart, reviewStart + REVIEW_PAGE_SIZE);
 
-  const approveReview = (review) => {
-    setReviewStatus(review.id, REVIEW_STATUS.APPROVED);
-    setNotice(`Review by ${review.name} approved and published on ${review.doctorName || "the doctor"}'s profile.`);
+  const moderateReview = async (review, status, note = "") => {
+    setBusyId(`rev-${review.id}`);
+    setError("");
+    try {
+      await setAdminReviewStatus(review.id, status, note);
+      setReviews((prev) =>
+        prev.map((row) => (row.id === review.id ? { ...row, status, rawStatus: status, note } : row))
+      );
+      setNotice(
+        status === REVIEW_STATUS.APPROVED
+          ? `Review by ${review.name} published on ${review.doctorName || "the doctor"}'s profile.`
+          : `Review by ${review.name} rejected.`
+      );
+      setDecision(null);
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const rejectReview = (review, note) => {
-    setReviewStatus(review.id, REVIEW_STATUS.REJECTED, note);
-    setNotice(`Review by ${review.name} rejected.`);
-    setDecision(null);
+  const resolveAppeal = async (appealId, decisionValue) => {
+    setBusyId(`appeal-${appealId}`);
+    setError("");
+    try {
+      await resolveReviewAppeal(appealId, {
+        decision: decisionValue,
+        note: decisionValue === "Remove" ? "Removed from Trust & Verification" : "Kept from Trust & Verification",
+      });
+      setNotice(`Appeal #${appealId} resolved — review ${decisionValue === "Remove" ? "removed" : "kept"}.`);
+      await load();
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
   };
+
+  const reviewById = useMemo(
+    () => reviews.reduce((acc, row) => ({ ...acc, [row.id]: row }), {}),
+    [reviews]
+  );
 
   /* ---------- Decision modal ---------- */
 
@@ -400,7 +435,7 @@ const TrustQueuePage = () => {
   const submitDecision = (note) => {
     if (!decision) return;
     if (decision.kind === "doctor") applyDoctorDecision(decision.target, decision.verdict, note);
-    else rejectReview(decision.target, note);
+    else moderateReview(decision.target, REVIEW_STATUS.REJECTED, note);
   };
 
   const stats = [
@@ -418,7 +453,7 @@ const TrustQueuePage = () => {
             <div>
               <h2 className="clinic-page-title mb-1">Trust &amp; Verification</h2>
               <p className="clinic-page-subtitle mb-0">
-                Verify doctor credentials and moderate visitor reviews before they appear on the website.
+                Verify doctor credentials and moderate patient reviews shown on the website.
               </p>
             </div>
             <button type="button" className="tv-btn tv-btn--soft" onClick={load} disabled={loading}>
@@ -467,7 +502,6 @@ const TrustQueuePage = () => {
                 <span className="tv-card__title">
                   <i className="ri-shield-user-line" aria-hidden="true" />
                   Doctor Credentialing
-                  {doctorsSample ? <span className="tv-sample">Sample data</span> : null}
                 </span>
                 <span className="tv-card__meta">{doctors.length} doctors</span>
               </header>
@@ -682,7 +716,19 @@ const TrustQueuePage = () => {
                             </span>
                             {review.mode ? <span className="tv-review__mode">{review.mode}</span> : null}
                           </div>
-                          <p className="tv-review__text">{review.text}</p>
+                          <p className="tv-review__text">{review.text || "No written comment."}</p>
+                          {review.doctorReply ? (
+                            <p className="tv-review__note">
+                              <i className="ri-reply-line" aria-hidden="true" />
+                              Doctor reply: {review.doctorReply}
+                            </p>
+                          ) : null}
+                          {review.openAppealId ? (
+                            <p className="tv-review__note">
+                              <i className="ri-scales-3-line" aria-hidden="true" />
+                              Removal requested by the doctor (appeal #{review.openAppealId})
+                            </p>
+                          ) : null}
                           {review.status === REVIEW_STATUS.REJECTED && review.note ? (
                             <p className="tv-review__note">
                               <i className="ri-information-line" aria-hidden="true" />
@@ -691,7 +737,12 @@ const TrustQueuePage = () => {
                           ) : null}
                           <div className="tv-review__actions">
                             {review.status !== REVIEW_STATUS.APPROVED ? (
-                              <button type="button" className="tv-btn tv-btn--approve" onClick={() => approveReview(review)}>
+                              <button
+                                type="button"
+                                className="tv-btn tv-btn--approve"
+                                disabled={busyId === `rev-${review.id}`}
+                                onClick={() => moderateReview(review, REVIEW_STATUS.APPROVED)}
+                              >
                                 <i className="ri-check-line" aria-hidden="true" />
                                 {review.status === REVIEW_STATUS.REJECTED ? "Restore & approve" : "Approve"}
                               </button>
@@ -702,7 +753,12 @@ const TrustQueuePage = () => {
                               </span>
                             )}
                             {review.status !== REVIEW_STATUS.REJECTED ? (
-                              <button type="button" className="tv-btn tv-btn--reject" onClick={() => openReviewReject(review)}>
+                              <button
+                                type="button"
+                                className="tv-btn tv-btn--reject"
+                                disabled={busyId === `rev-${review.id}`}
+                                onClick={() => openReviewReject(review)}
+                              >
                                 <i className="ri-close-line" aria-hidden="true" />
                                 {review.status === REVIEW_STATUS.APPROVED ? "Unpublish" : "Reject"}
                               </button>
@@ -766,34 +822,41 @@ const TrustQueuePage = () => {
                 <ul className="tv-appeals">
                   {appeals.map((row) => {
                     const id = row.reviewAppealId || row.ReviewAppealId || row.appealId || row.AppealId || row.id;
+                    const review = reviewById[row.reviewId ?? row.ReviewId];
+                    const busy = busyId === `appeal-${id}`;
                     return (
                       <li key={id}>
                         <div>
                           <strong>
-                            Appeal #{id} · Doctor {row.doctorId || row.DoctorId || "—"}
+                            Appeal #{id} · {review?.doctorName || `Doctor #${row.doctorId || row.DoctorId || "—"}`}
                           </strong>
-                          <span>{row.reason || row.Reason || row.note || "—"}</span>
+                          <span>Reason: {row.reason || row.Reason || "—"}</span>
+                          {review ? (
+                            <span>
+                              {review.name} · {review.rating}/5 · “{review.text || "No written comment."}”
+                            </span>
+                          ) : null}
                         </div>
-                        <button
-                          type="button"
-                          className="tv-btn tv-btn--soft"
-                          disabled={busyId === `appeal-${id}`}
-                          onClick={async () => {
-                            setBusyId(`appeal-${id}`);
-                            try {
-                              await resolveReviewAppeal(id, { decision: "Uphold", note: "Kept from Trust & Verification" });
-                              setNotice(`Appeal #${id} resolved.`);
-                              await load();
-                            } catch (err) {
-                              setError(s4Message(err));
-                            } finally {
-                              setBusyId(null);
-                            }
-                          }}
-                        >
-                          <i className="ri-check-double-line" aria-hidden="true" />
-                          Resolve
-                        </button>
+                        <div className="d-flex gap-2">
+                          <button
+                            type="button"
+                            className="tv-btn tv-btn--soft"
+                            disabled={busy}
+                            onClick={() => resolveAppeal(id, "Uphold")}
+                          >
+                            <i className="ri-check-double-line" aria-hidden="true" />
+                            Keep review
+                          </button>
+                          <button
+                            type="button"
+                            className="tv-btn tv-btn--reject"
+                            disabled={busy}
+                            onClick={() => resolveAppeal(id, "Remove")}
+                          >
+                            <i className="ri-delete-bin-line" aria-hidden="true" />
+                            Remove review
+                          </button>
+                        </div>
                       </li>
                     );
                   })}
@@ -806,7 +869,10 @@ const TrustQueuePage = () => {
 
       <DecisionModal
         state={decision}
-        busy={decision?.kind === "doctor" && busyId === `doc-${decision.target.id}`}
+        busy={
+          !!decision &&
+          busyId === (decision.kind === "doctor" ? `doc-${decision.target.id}` : `rev-${decision.target.id}`)
+        }
         onClose={() => setDecision(null)}
         onSubmit={submitDecision}
       />

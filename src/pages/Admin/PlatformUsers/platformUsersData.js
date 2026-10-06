@@ -92,47 +92,6 @@ export const normalizeApiUser = (row, roleNameById = {}) => {
   };
 };
 
-const daysAgo = (days) => moment().subtract(days, "days").toISOString();
-
-const SAMPLE_ROWS = [
-  [210245, "Aarav", "Patil", "aarav.patil", "aarav@gmail.com", "9876543210", "Patient", "active", "verified", 2],
-  [210244, "Ananya", "Shah", "ananya.shah", "ananya@gmail.com", "9876501234", "Patient", "active", "verified", 4],
-  [21, "N.", "Gaurav", "dr.gaurav", "dr.gaurav@clinic.com", "9876512345", "Doctor", "active", "verified", 40],
-  [22, "Priya", "Kulkarni", "dr.priya", "dr.priya@clinic.com", "9876523456", "Doctor", "pending", "pending", 3],
-  [210243, "Rohan", "Deshmukh", "rohan.d", "rohan@gmail.com", "9876549876", "Patient", "active", "verified", 8],
-  [210241, "Sneha", "Joshi", "sneha.joshi", "sneha@gmail.com", "9876598765", "Patient", "active", "verified", 12],
-  [10, "Rekha", "Shinde", "rekha.shinde", "rekha@mclinic.com", "9876505678", "Reception", "active", "verified", 60],
-  [2, "Mumbai", "Pharmacy", "mumbai.pharmacy", "pharmacy@mumbai.com", "9876234566", "Pharmacy", "active", "verified", 75],
-  [1, "Digvijay", "Admin", "a.digvijay", "admin@homeocentrum.com", "9822011223", "Admin", "active", "verified", 300],
-  [5, "Kiran", "Mehta", "kiran.accounts", "accounts@homeocentrum.com", "9890011122", "Account", "active", "verified", 120],
-  [23, "Imran", "Shaikh", "dr.imran", "dr.imran@clinic.com", "9765432109", "Doctor", "inactive", "unverified", 90],
-  [210240, "Rahul", "Verma", "rahul.v", "rahul.v@gmail.com", "9004022110", "Patient", "inactive", "unverified", 30],
-  [3, "Pune", "MedPlus", "pune.medplus", "medplus@pune.com", "9850077889", "Pharmacy", "pending", "pending", 1],
-  [210239, "Meera", "Iyer", "meera.i", "meera.i@gmail.com", "9819033221", "Patient", "active", "verified", 52],
-];
-
-export const SAMPLE_USERS = SAMPLE_ROWS.map(
-  ([userId, firstName, lastName, userName, email, phone, roleName, status, verification, joinedDays]) => {
-    const type = typeFromRoleName(roleName);
-    return {
-      id: `sample-${type}-${userId}`,
-      userId,
-      firstName: type === "doctor" ? `Dr. ${firstName}` : firstName,
-      lastName,
-      name: `${type === "doctor" ? "Dr. " : ""}${firstName} ${lastName}`,
-      userName,
-      email,
-      phone,
-      roleId: null,
-      roleName,
-      type,
-      status,
-      verification,
-      joined: daysAgo(joinedDays),
-      sample: true,
-    };
-  }
-);
 
 export const formatJoined = (value) => {
   const m = value ? moment(value) : null;

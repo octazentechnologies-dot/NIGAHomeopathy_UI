@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from "react";
 import moment from "moment";
+import { clinicPerformance } from "../../../helpers/s5Week5Api";
 import {
   Card,
   ChartLegend,
-  ConfirmModal,
   DonutChart,
   DonutLegend,
   KpiGrid,
-  RecordFormModal,
   RecordViewModal,
   ReportShell,
   RowActions,
@@ -16,83 +15,89 @@ import {
   TableEmpty,
 } from "./ReportComponents";
 import {
-  PATIENT_NAMES,
-  buildDailySeries,
   defaultRange,
   downloadCsv,
+  fillDaily,
   formatCount,
   formatInrShort,
+  formatTime,
   initialsOf,
   pct,
   rangeKey,
   rangeLabel,
-  seededRandom,
+  useReportLoader,
 } from "./reportData";
 
 const COLORS = { completed: "#3b82f6", noshow: "#f59e0b", cancelled: "#ef4444" };
-const TYPE_COLORS = ["#2563eb", "#f59e0b", "#60a5fa"];
-const STATUS_TONE = { "No-show": "amber", Cancelled: "red", Rescheduled: "blue" };
-const AVG_FEE = 177;
+const TYPE_COLORS = ["#2563eb", "#f59e0b", "#60a5fa", "#14b8a6"];
+const STATUS_TONE = { "No-show": "amber", Cancelled: "red" };
+const STATUS_KEY = { COMPLETED: "completed", "NOT ARRIVED": "noshow", CANCELLED: "cancelled" };
 
-const RESCHEDULE_FIELDS = [
-  { key: "date", label: "New date", type: "date", required: true },
-  { key: "time", label: "Time", type: "time", required: true },
-  { key: "mode", label: "Appointment type", type: "select", options: ["In-clinic", "Video", "Chat"] },
-  { key: "notes", label: "Notes for patient", type: "textarea", placeholder: "Optional message sent with the new slot" },
-];
+const modeLabel = (name) => {
+  const v = String(name || "").toLowerCase();
+  if (v === "tele") return "Video";
+  if (v === "inclinic") return "In-clinic";
+  if (v === "first") return "New (mode not set)";
+  return name || "Unknown";
+};
 
-const REASONS = ["Patient unwell", "Travel / out of town", "Forgot appointment", "Work commitment", "Booked by mistake", "No reason given"];
-
-const SEED = PATIENT_NAMES.slice(0, 7).map((name, i) => ({
-  id: `ap-${i + 1}`,
-  patient: name,
-  date: moment().subtract([1, 2, 3, 4, 6, 8, 9][i], "days").format("YYYY-MM-DD"),
-  time: ["10:00", "11:30", "17:15", "09:45", "12:30", "16:00", "18:30"][i],
-  mode: ["In-clinic", "Video", "In-clinic", "Chat", "In-clinic", "Video", "In-clinic"][i],
-  status: i % 3 === 1 ? "Cancelled" : "No-show",
-  reason: REASONS[i % REASONS.length],
-  notes: "",
-}));
+const peakLabel = (hour) => {
+  if (hour == null) return "—";
+  const start = moment({ hour });
+  return `${start.format("h A")} - ${start.clone().add(1, "hour").format("h A")}`;
+};
 
 const ClinicPerformancePage = () => {
   document.title = "Clinic Performance Analysis | Niga Homeocentrum";
 
   const [range, setRange] = useState(defaultRange);
-  const [rows, setRows] = useState(SEED);
+  const { data, loading, error, reload } = useReportLoader(clinicPerformance, range);
   const [filter, setFilter] = useState("all");
-  const [formState, setFormState] = useState(null);
   const [viewState, setViewState] = useState(null);
-  const [confirmState, setConfirmState] = useState(null);
 
   const key = rangeKey(range);
-  const trend = useMemo(
-    () => buildDailySeries(range, "clinic", { completed: [100, 160], noshow: [4, 12], cancelled: [3, 11] }),
-    [range]
+
+  const trend = useMemo(() => {
+    const byDay = {};
+    (data?.dailyStatus || []).forEach((r) => {
+      const k = STATUS_KEY[String(r.status || "").toUpperCase()];
+      if (!k) return;
+      const date = String(r.bucket).slice(0, 10);
+      byDay[date] = byDay[date] || { date, completed: 0, noshow: 0, cancelled: 0 };
+      byDay[date][k] += Number(r.cnt || 0);
+    });
+    return fillDaily(range, Object.values(byDay), ["completed", "noshow", "cancelled"]);
+  }, [range, data]);
+
+  const statusCount = (name) =>
+    (data?.statuses || []).filter((s) => String(s.name).toUpperCase() === name).reduce((s, r) => s + Number(r.cnt || 0), 0);
+  const total = (data?.statuses || []).reduce((s, r) => s + Number(r.cnt || 0), 0);
+  const completed = statusCount("COMPLETED");
+  const noshow = statusCount("NOT ARRIVED");
+  const cancelled = statusCount("CANCELLED");
+  const days = Math.max(1, trend.categories.length);
+  const revenue = Number(data?.paid?.amount || 0);
+
+  const types = (data?.visits || []).map((v) => ({ label: modeLabel(v.name), value: Number(v.cnt || 0) }));
+
+  const rows = useMemo(
+    () =>
+      (data?.missed || []).map((r) => ({
+        id: r.patientAppId,
+        patient: r.patientName || `Patient #${r.patientId ?? "—"}`,
+        mobile: r.mobileNo || "",
+        date: r.appointmentDate,
+        time: r.appointmentTime,
+        mode: r.isTele || String(r.consultMode).toLowerCase() === "tele" ? "Video" : "In-clinic",
+        status: String(r.status).toUpperCase() === "CANCELLED" ? "Cancelled" : "No-show",
+        reason: r.cancelReasonText || r.cancelReasonCode || (String(r.status).toUpperCase() === "CANCELLED" ? "No reason given" : "Did not arrive"),
+        cancelledAt: r.cancelledAt,
+      })),
+    [data]
   );
-  const { completed, noshow, cancelled } = trend.totals;
-  const total = completed + noshow + cancelled;
-
-  const extras = useMemo(() => {
-    const rand = seededRandom(`clinic-extra-${key}`);
-    return {
-      waiting: Math.round(9 + rand() * 8),
-      utilisation: Math.round(70 + rand() * 18),
-      peak: rand() > 0.5 ? "10 AM - 12 PM" : "5 PM - 7 PM",
-    };
-  }, [key]);
-
-  const types = [
-    { label: "In-clinic", value: Math.round(total * 0.6) },
-    { label: "Video", value: Math.round(total * 0.3) },
-  ];
-  types.push({ label: "Chat", value: Math.max(0, total - types[0].value - types[1].value) });
-
   const visible = rows.filter((r) => filter === "all" || r.status.toLowerCase() === filter);
 
-  const fmtSlot = (r) => `${moment(r.date).format("DD MMM YYYY")}, ${moment(r.time, "HH:mm").format("hh:mm A")}`;
-
-  const openEdit = (r) =>
-    setFormState({ id: r.id, title: "Reschedule appointment", icon: "ri-calendar-event-line", subject: r.patient, values: r, submitLabel: "Reschedule" });
+  const fmtSlot = (r) => `${moment(r.date).format("DD MMM YYYY")}${r.time ? `, ${formatTime(r.time)}` : ""}`;
 
   const handleExport = () => {
     downloadCsv(`clinic-performance-${key}.csv`, [
@@ -101,13 +106,13 @@ const ClinicPerformancePage = () => {
       ["Date", "Completed", "No-show", "Cancelled"],
       ...trend.categories.map((d, i) => [d, trend.series.completed[i], trend.series.noshow[i], trend.series.cancelled[i]]),
       [],
-      ["Avg waiting time", `${extras.waiting} mins`],
-      ["Clinic utilisation", `${extras.utilisation}%`],
-      ["Peak hours", extras.peak],
-      ["Revenue", completed * AVG_FEE],
+      ["Total appointments", total],
+      ["Unique patients", data?.uniquePatients ?? 0],
+      ["Peak hours", peakLabel(data?.peakHour)],
+      ["Revenue collected", revenue],
       [],
-      ["Patient", "Slot", "Type", "Status", "Reason"],
-      ...rows.map((r) => [r.patient, fmtSlot(r), r.mode, r.status, r.reason]),
+      ["Patient", "Mobile", "Slot", "Type", "Status", "Reason"],
+      ...rows.map((r) => [r.patient, r.mobile, fmtSlot(r), r.mode, r.status, r.reason]),
     ]);
   };
 
@@ -118,6 +123,9 @@ const ClinicPerformancePage = () => {
       range={range}
       onRangeChange={setRange}
       onExport={handleExport}
+      loading={loading}
+      error={error}
+      onRetry={reload}
     >
       <KpiGrid
         items={[
@@ -154,17 +162,17 @@ const ClinicPerformancePage = () => {
         <Card title="Appointment Type">
           <div className="drp-donut">
             <DonutChart labels={types.map((t) => t.label)} values={types.map((t) => t.value)} colors={TYPE_COLORS} totalValue={formatCount(total)} />
-            <DonutLegend items={types.map((t, i) => ({ label: t.label, color: TYPE_COLORS[i], value: pct(t.value, total) }))} />
+            <DonutLegend items={types.map((t, i) => ({ label: t.label, color: TYPE_COLORS[i % TYPE_COLORS.length], value: pct(t.value, total) }))} />
           </div>
         </Card>
       </div>
 
       <KpiGrid
         items={[
-          { label: "Avg. Waiting Time", value: `${extras.waiting} mins`, tone: "blue", icon: "ri-timer-line" },
-          { label: "Clinic Utilisation", value: `${extras.utilisation}%`, tone: "teal", icon: "ri-pie-chart-2-line" },
-          { label: "Peak Hours", value: extras.peak, tone: "purple", icon: "ri-time-line" },
-          { label: "Revenue", value: formatInrShort(completed * AVG_FEE), tone: "green", icon: "ri-secure-payment-line" },
+          { label: "Unique Patients", value: formatCount(data?.uniquePatients), tone: "blue", icon: "ri-group-line" },
+          { label: "Avg. Appointments / Day", value: (total / days).toFixed(1), tone: "teal", icon: "ri-pie-chart-2-line" },
+          { label: "Peak Hours", value: peakLabel(data?.peakHour), tone: "purple", icon: "ri-time-line" },
+          { label: "Revenue Collected", value: formatInrShort(revenue), tone: "green", icon: "ri-secure-payment-line" },
         ]}
       />
 
@@ -176,7 +184,6 @@ const ClinicPerformancePage = () => {
               ["all", "All"],
               ["no-show", "No-shows"],
               ["cancelled", "Cancelled"],
-              ["rescheduled", "Rescheduled"],
             ].map(([id, label]) => (
               <button key={id} type="button" className={filter === id ? "is-active" : undefined} onClick={() => setFilter(id)}>
                 {label}
@@ -191,7 +198,7 @@ const ClinicPerformancePage = () => {
               <col />
               <col style={{ width: "22%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "19%" }} />
+              <col style={{ width: "22%" }} />
               <col style={{ width: "12%" }} />
               <col className="drp-col-actions" />
             </colgroup>
@@ -233,61 +240,31 @@ const ClinicPerformancePage = () => {
                                 header: r.patient,
                                 rows: [
                                   ["Appointment", fmtSlot(r)],
+                                  ["Mobile", r.mobile],
                                   ["Type", r.mode],
                                   ["Status", r.status],
                                   ["Reason", r.reason],
-                                  ["Notes", r.notes],
+                                  ["Cancelled at", r.cancelledAt ? moment(r.cancelledAt).format("DD MMM YYYY, hh:mm A") : ""],
                                 ],
-                                onEdit: () => {
-                                  setViewState(null);
-                                  openEdit(r);
-                                },
                               }),
                           },
-                          { label: "Reschedule", icon: "ri-pencil-line", tone: "edit", onClick: () => openEdit(r) },
-                          {
-                            label: "Delete",
-                            icon: "ri-delete-bin-line",
-                            tone: "delete",
-                            onClick: () =>
-                              setConfirmState({
-                                id: r.id,
-                                title: "Delete appointment record",
-                                subject: `${r.patient} · ${fmtSlot(r)}`,
-                                text: "This record will be removed from the missed appointments list.",
-                              }),
-                          },
+                          ...(r.mobile
+                            ? [{ label: "Call patient", icon: "ri-phone-line", tone: "edit", onClick: () => window.open(`tel:${r.mobile}`) }]
+                            : []),
                         ]}
                       />
                     </td>
                   </tr>
                 ))
               ) : (
-                <TableEmpty colSpan={6}>No appointments in this view.</TableEmpty>
+                <TableEmpty colSpan={6}>{loading ? "Loading…" : "No missed or cancelled appointments in this view."}</TableEmpty>
               )}
             </tbody>
           </table>
         </div>
       </Card>
 
-      <RecordFormModal
-        state={formState}
-        fields={RESCHEDULE_FIELDS}
-        onClose={() => setFormState(null)}
-        onSubmit={(values) => {
-          setRows((prev) => prev.map((r) => (r.id === formState.id ? { ...r, ...values, status: "Rescheduled" } : r)));
-          setFormState(null);
-        }}
-      />
       <RecordViewModal state={viewState} onClose={() => setViewState(null)} />
-      <ConfirmModal
-        state={confirmState}
-        onClose={() => setConfirmState(null)}
-        onConfirm={() => {
-          setRows((prev) => prev.filter((r) => r.id !== confirmState.id));
-          setConfirmState(null);
-        }}
-      />
     </ReportShell>
   );
 };

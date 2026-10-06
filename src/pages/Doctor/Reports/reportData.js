@@ -1,23 +1,7 @@
+import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
 
 export const defaultRange = () => [moment().startOf("month").toDate(), moment().endOf("day").toDate()];
-
-/** Deterministic pseudo-random generator so a given date range always renders the same sample numbers. */
-export const seededRandom = (seedText) => {
-  let h = 2166136261;
-  const text = String(seedText);
-  for (let i = 0; i < text.length; i += 1) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return () => {
-    h += 0x6d2b79f5;
-    let t = h;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-};
 
 export const rangeDays = (range) => {
   const start = moment(range[0]).startOf("day");
@@ -27,23 +11,28 @@ export const rangeDays = (range) => {
   return days;
 };
 
+export const rangeParams = (range) => ({
+  from: moment(range[0]).format("YYYY-MM-DD"),
+  to: moment(range[1]).format("YYYY-MM-DD"),
+});
+
 /**
- * Builds one stacked daily series per key. `spec` = { key: [min, max] } per day.
+ * Lays API daily rows (`{ date: "YYYY-MM-DD", ...keys }`) over every day in the range, filling gaps with 0.
  * Returns { categories, series: { key: number[] }, totals: { key: number } }.
  */
-export const buildDailySeries = (range, seedKey, spec) => {
+export const fillDaily = (range, rows, keys) => {
   const days = rangeDays(range);
+  const byDate = new Map((rows || []).map((r) => [String(r.date || r.Date || r.bucket || r.Bucket).slice(0, 10), r]));
   const series = {};
   const totals = {};
-  Object.keys(spec).forEach((key) => {
+  keys.forEach((key) => {
     series[key] = [];
     totals[key] = 0;
   });
   days.forEach((day) => {
-    const rand = seededRandom(`${seedKey}-${day.format("YYYYMMDD")}`);
-    const weekend = day.day() === 0 ? 0.35 : 1;
-    Object.entries(spec).forEach(([key, [min, max]]) => {
-      const value = Math.round((min + rand() * (max - min)) * weekend);
+    const row = byDate.get(day.format("YYYY-MM-DD")) || {};
+    keys.forEach((key) => {
+      const value = Number(row[key] || 0);
       series[key].push(value);
       totals[key] += value;
     });
@@ -51,13 +40,43 @@ export const buildDailySeries = (range, seedKey, spec) => {
   return { categories: days.map((d) => d.format("D MMM")), series, totals, days };
 };
 
+/** Loads a report for the selected range; reloads when the range changes. */
+export const useReportLoader = (loader, range) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const from = moment(range[0]).format("YYYY-MM-DD");
+  const to = moment(range[1]).format("YYYY-MM-DD");
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await loader({ from, to });
+      setData(res || null);
+    } catch (err) {
+      setError(typeof err === "string" ? err : err?.message || "Could not load this report.");
+    } finally {
+      setLoading(false);
+    }
+  }, [loader, from, to]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  return { data, loading, error, reload };
+};
+
+export const changePct = (current, previous) => {
+  const cur = Number(current || 0);
+  const prev = Number(previous || 0);
+  if (!prev) return undefined;
+  return Math.round(((cur - prev) / prev) * 1000) / 10;
+};
+
 export const sumSeries = (...arrays) =>
   arrays.reduce((acc, arr) => acc.map((v, i) => v + (arr[i] || 0)), new Array(arrays[0]?.length || 0).fill(0));
-
-export const changeFor = (seedKey, min = -6, max = 18) => {
-  const rand = seededRandom(`change-${seedKey}`);
-  return Math.round((min + rand() * (max - min)) * 10) / 10;
-};
 
 export const formatCount = (value) => Number(value || 0).toLocaleString("en-IN");
 
@@ -76,6 +95,12 @@ export const pct = (part, whole, digits = 0) => (whole ? `${((part / whole) * 10
 export const formatDate = (value) => {
   const m = value ? moment(value) : null;
   return m && m.isValid() ? m.format("DD MMM YYYY") : "—";
+};
+
+export const formatTime = (value) => {
+  if (!value) return "";
+  const m = moment(String(value), ["HH:mm:ss", "HH:mm"]);
+  return m.isValid() ? m.format("hh:mm A") : String(value);
 };
 
 export const rangeLabel = (range) => `${moment(range[0]).format("DD MMM YYYY")} - ${moment(range[1]).format("DD MMM YYYY")}`;
@@ -106,21 +131,5 @@ export const initialsOf = (name) =>
     .map((part) => part[0].toUpperCase())
     .join("") || "?";
 
-export const PATIENT_NAMES = [
-  "Amit Sharma",
-  "Neha Kulkarni",
-  "Ramesh Shah",
-  "Priya Sharma",
-  "Sunil Desai",
-  "Kavita Joshi",
-  "Rohan Deshmukh",
-  "Sneha Patil",
-  "Meera Iyer",
-  "Rahul Verma",
-];
-
-/** Spreads `count` dates across the range (or after `from`) using the seed. */
-export const sampleDates = (seedKey, count, start, spanDays) => {
-  const rand = seededRandom(seedKey);
-  return Array.from({ length: count }, () => moment(start).add(Math.floor(rand() * spanDays), "days"));
-};
+export const errorText = (err, fallback = "Something went wrong.") =>
+  typeof err === "string" ? err : err?.message || fallback;

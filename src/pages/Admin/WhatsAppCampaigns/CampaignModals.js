@@ -7,13 +7,10 @@ import {
   fetchWhatsAppTemplatesForCategory,
   resolveTemplatePreview,
 } from "../../../helpers/whatsapp_helper";
+import { getWhatsAppCampaignDetails } from "../../../helpers/realbackend_helper";
 import {
-  AUDIENCES,
-  CAMPAIGN_STATUS,
   CATEGORIES,
-  SAMPLE_TEMPLATES,
   STATUS_LABELS,
-  audienceLabel,
   categoryLabel,
   formatCount,
   formatDateTime,
@@ -59,60 +56,46 @@ const EMPTY_FORM = {
   templateID: "",
   templateName: "",
   templateBody: "",
-  audience: "all",
-  scheduleMode: "now",
-  scheduledAt: "",
+  doctorId: "",
 };
 
-const toLocalInput = (value) => (value ? moment(value).format("YYYY-MM-DDTHH:mm") : "");
-
-export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSave }) => {
+/** New / duplicate campaign: sends now through /WhatsApp/SendBulkMessage to the doctor's opted-in patients. */
+export const CampaignFormModal = ({ isOpen, mode, campaign, doctors, busy, onClose, onSend }) => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [touched, setTouched] = useState(false);
   const [templates, setTemplates] = useState([]);
-  const [templatesSample, setTemplatesSample] = useState(false);
+  const [templatesError, setTemplatesError] = useState("");
   const [templatesLoading, setTemplatesLoading] = useState(false);
-  const isEdit = mode === "edit";
 
   useEffect(() => {
     if (!isOpen) return;
     setTouched(false);
+    const firstDoctor = doctors.find((d) => d.optedIn > 0) || doctors[0];
     if (campaign) {
       setForm({
         ...EMPTY_FORM,
         name: mode === "duplicate" ? `${campaign.name} (copy)` : campaign.name,
         category: campaign.category || "HospitalService",
-        templateID: campaign.templateID || "",
-        templateName: campaign.templateName || "",
-        templateBody: campaign.templateBody || "",
-        audience: campaign.audience || "all",
-        scheduleMode: isEdit && campaign.scheduledAt ? "later" : "now",
-        scheduledAt: isEdit ? toLocalInput(campaign.scheduledAt) : "",
+        doctorId: campaign.doctorId ? String(campaign.doctorId) : firstDoctor ? String(firstDoctor.doctorId) : "",
       });
     } else {
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, doctorId: firstDoctor ? String(firstDoctor.doctorId) : "" });
     }
-  }, [isOpen, campaign, mode, isEdit]);
+  }, [isOpen, campaign, mode, doctors]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
     let cancelled = false;
     setTemplatesLoading(true);
+    setTemplatesError("");
     fetchWhatsAppTemplatesForCategory(form.category)
       .then((list) => {
-        if (cancelled) return;
-        if (list.length) {
-          setTemplates(list);
-          setTemplatesSample(false);
-        } else {
-          setTemplates(SAMPLE_TEMPLATES[form.category] || []);
-          setTemplatesSample(true);
-        }
+        if (!cancelled) setTemplates(list);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
-        setTemplates(SAMPLE_TEMPLATES[form.category] || []);
-        setTemplatesSample(true);
+        setTemplates([]);
+        setTemplatesError(err?.message || "Templates could not be loaded.");
       })
       .finally(() => {
         if (!cancelled) setTemplatesLoading(false);
@@ -121,12 +104,6 @@ export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSav
       cancelled = true;
     };
   }, [isOpen, form.category]);
-
-  useEffect(() => {
-    if (!templates.length || form.templateID) return;
-    const byName = templates.find((t) => t.templateName === form.templateName);
-    if (byName) setForm((prev) => ({ ...prev, templateID: String(byName.templateID) }));
-  }, [templates, form.templateID, form.templateName]);
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -139,7 +116,7 @@ export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSav
       templateBody: template?.templateBody || "",
       name: prev.name || template?.templateName || "",
     }));
-    if (template && !template.templateBody && !templatesSample) {
+    if (template && !template.templateBody) {
       try {
         const detail = await fetchWhatsAppTemplateDetail(template.templateID);
         setForm((prev) => (prev.templateID === templateID ? { ...prev, templateBody: detail?.templateBody || "" } : prev));
@@ -149,39 +126,34 @@ export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSav
     }
   };
 
-  const audience = AUDIENCES.find((a) => a.id === form.audience);
-  const preview = useMemo(() => resolveTemplatePreview(form.templateBody), [form.templateBody]);
+  const doctor = doctors.find((d) => String(d.doctorId) === String(form.doctorId));
+  const preview = useMemo(
+    () => resolveTemplatePreview(form.templateBody, doctor ? { "{{DoctorName}}": doctor.doctorName } : {}),
+    [form.templateBody, doctor]
+  );
 
   const errors = {};
   if (!form.name.trim()) errors.name = "Campaign name is required";
-  if (!form.templateID && !form.templateName) errors.templateID = "Select a template";
-  if (form.scheduleMode === "later") {
-    if (!form.scheduledAt) errors.scheduledAt = "Pick a date and time";
-    else if (moment(form.scheduledAt).isBefore(moment())) errors.scheduledAt = "Schedule time must be in the future";
-  }
+  if (!form.templateID) errors.templateID = "Select a template";
+  if (!form.doctorId) errors.doctorId = "Select the doctor whose patients will receive this";
+  else if (!doctor?.optedIn) errors.doctorId = "This doctor has no patients opted in to WhatsApp";
   const fieldError = (key) => (touched && errors[key] ? errors[key] : "");
 
-  const submit = (action) => {
+  const submit = () => {
     setTouched(true);
-    const blocking = action === "draft" ? ["name"] : Object.keys(errors);
-    if (blocking.some((key) => errors[key])) return;
-    onSave(
-      {
-        name: form.name.trim(),
-        category: form.category,
-        templateID: form.templateID,
-        templateName: form.templateName,
-        templateBody: form.templateBody,
-        audience: form.audience,
-        targeted: audience?.estimate || 0,
-        scheduledAt: form.scheduleMode === "later" && form.scheduledAt ? moment(form.scheduledAt).toISOString() : null,
-      },
-      action
-    );
+    if (Object.keys(errors).length) return;
+    onSend({
+      name: form.name.trim(),
+      category: form.category,
+      templateID: Number(form.templateID),
+      templateName: form.templateName,
+      doctorId: Number(form.doctorId),
+      doctorName: doctor?.doctorName || "",
+      recipients: doctor?.optedIn || 0,
+    });
   };
 
-  const primaryAction = form.scheduleMode === "later" ? "schedule" : "send";
-  const title = isEdit ? "Edit campaign" : mode === "duplicate" ? "Duplicate campaign" : "New campaign";
+  const title = mode === "duplicate" ? "Duplicate campaign" : "New campaign";
 
   return (
     <Modal isOpen={isOpen} centered size="xl" toggle={busy ? undefined : onClose} className="patient-list-modal wac-modal">
@@ -201,7 +173,7 @@ export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSav
                   onChange={(e) => set("name", e.target.value)}
                   invalid={Boolean(fieldError("name"))}
                   placeholder="e.g. Follow-up Reminder - October"
-                  maxLength={80}
+                  maxLength={200}
                 />
                 {fieldError("name") ? <div className="invalid-feedback d-block">{fieldError("name")}</div> : null}
               </div>
@@ -222,7 +194,6 @@ export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSav
             <div className="wac-field">
               <label htmlFor="wac-template">
                 WhatsApp template<span className="text-danger"> *</span>
-                {templatesSample ? <span className="wac-tag">Sample templates</span> : null}
                 {templatesLoading ? <Spinner size="sm" className="ms-2" /> : null}
               </label>
               <Input
@@ -233,91 +204,57 @@ export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSav
                 invalid={Boolean(fieldError("templateID"))}
                 disabled={templatesLoading}
               >
-                <option value="">Select an approved template</option>
+                <option value="">
+                  {!templatesLoading && !templates.length ? "No active templates for this message type" : "Select an approved template"}
+                </option>
                 {templates.map((t) => (
                   <option key={t.templateID} value={t.templateID}>{t.templateName}</option>
                 ))}
               </Input>
+              {templatesError ? <div className="invalid-feedback d-block">{templatesError}</div> : null}
               {fieldError("templateID") ? <div className="invalid-feedback d-block">{fieldError("templateID")}</div> : null}
             </div>
 
             <p className="wac-section">2. Audience</p>
-            <div className="wac-audiences" role="radiogroup" aria-label="Audience">
-              {AUDIENCES.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={form.audience === a.id}
-                  className={`wac-audience${form.audience === a.id ? " is-active" : ""}`}
-                  onClick={() => set("audience", a.id)}
-                >
-                  <i className={a.icon} aria-hidden="true" />
-                  <span>
-                    <strong>{a.label}</strong>
-                    <small>{a.hint}</small>
-                  </span>
-                  <em>~{formatCount(a.estimate)}</em>
-                </button>
-              ))}
+            <div className="wac-field">
+              <label htmlFor="wac-doctor">Send to patients of<span className="text-danger"> *</span></label>
+              <Input
+                id="wac-doctor"
+                type="select"
+                value={form.doctorId}
+                onChange={(e) => set("doctorId", e.target.value)}
+                invalid={Boolean(fieldError("doctorId"))}
+              >
+                <option value="">Select a doctor</option>
+                {doctors.map((d) => (
+                  <option key={d.doctorId} value={d.doctorId}>
+                    {d.doctorName} — {formatCount(d.optedIn)} opted-in patient{d.optedIn === 1 ? "" : "s"}
+                  </option>
+                ))}
+              </Input>
+              {fieldError("doctorId") ? <div className="invalid-feedback d-block">{fieldError("doctorId")}</div> : null}
             </div>
             <p className="wac-note">
-              <i className="ri-information-line" aria-hidden="true" /> Patients who opted out of WhatsApp messages are excluded automatically.
+              <i className="ri-information-line" aria-hidden="true" /> Only patients who opted in to WhatsApp and have a mobile number receive the message.
             </p>
-
-            <p className="wac-section">3. Schedule</p>
-            <div className="wac-schedule">
-              <label className={`wac-radio${form.scheduleMode === "now" ? " is-active" : ""}`}>
-                <input type="radio" name="wac-schedule" checked={form.scheduleMode === "now"} onChange={() => set("scheduleMode", "now")} />
-                <i className="ri-send-plane-line" aria-hidden="true" /> Send now
-              </label>
-              <label className={`wac-radio${form.scheduleMode === "later" ? " is-active" : ""}`}>
-                <input type="radio" name="wac-schedule" checked={form.scheduleMode === "later"} onChange={() => set("scheduleMode", "later")} />
-                <i className="ri-calendar-event-line" aria-hidden="true" /> Schedule for later
-              </label>
-              {form.scheduleMode === "later" ? (
-                <div className="wac-field wac-schedule__at">
-                  <Input
-                    type="datetime-local"
-                    value={form.scheduledAt}
-                    min={moment().format("YYYY-MM-DDTHH:mm")}
-                    onChange={(e) => set("scheduledAt", e.target.value)}
-                    invalid={Boolean(fieldError("scheduledAt"))}
-                    aria-label="Schedule date and time"
-                  />
-                  {fieldError("scheduledAt") ? <div className="invalid-feedback d-block">{fieldError("scheduledAt")}</div> : null}
-                </div>
-              ) : null}
-            </div>
           </div>
 
           <aside className="wac-form__side">
             <p className="wac-section">Message preview</p>
             <WhatsAppPreview body={preview} />
             <dl className="wac-summary">
-              <div><dt>Audience</dt><dd>{audience?.label}</dd></div>
-              <div><dt>Est. recipients</dt><dd>{formatCount(audience?.estimate)}</dd></div>
+              <div><dt>Doctor</dt><dd>{doctor?.doctorName || "—"}</dd></div>
+              <div><dt>Recipients</dt><dd>{formatCount(doctor?.optedIn)}</dd></div>
               <div><dt>Message type</dt><dd>{categoryLabel(form.category)}</dd></div>
-              <div>
-                <dt>Delivery</dt>
-                <dd>{form.scheduleMode === "later" ? (form.scheduledAt ? formatDateTime(form.scheduledAt) : "Not set") : "Immediately"}</dd>
-              </div>
+              <div><dt>Delivery</dt><dd>Immediately</dd></div>
             </dl>
           </aside>
         </div>
       </ModalBody>
       <ModalFooter className="wac-modal__footer">
         <ModalActionButton action="cancel" onClick={onClose} disabled={busy} />
-        <ModalActionButton action="save" iconClassName="ri-draft-line" onClick={() => submit("draft")} disabled={busy}>
-          Save as draft
-        </ModalActionButton>
-        <ModalActionButton
-          action={primaryAction === "schedule" ? "confirm" : "send"}
-          iconClassName={primaryAction === "schedule" ? "ri-calendar-event-line" : undefined}
-          loading={busy}
-          onClick={() => submit(primaryAction)}
-        >
-          {primaryAction === "schedule" ? "Schedule campaign" : "Send campaign"}
+        <ModalActionButton action="send" loading={busy} onClick={submit}>
+          Send campaign
         </ModalActionButton>
       </ModalFooter>
     </Modal>
@@ -326,11 +263,9 @@ export const CampaignFormModal = ({ isOpen, mode, campaign, busy, onClose, onSav
 
 const Funnel = ({ campaign }) => {
   const rows = [
-    { label: "Targeted", value: campaign.targeted, base: campaign.targeted, tone: "slate" },
-    { label: "Sent", value: campaign.sent, base: campaign.targeted, tone: "blue" },
+    { label: "Sent", value: campaign.sent, base: campaign.sent, tone: "blue" },
     { label: "Delivered", value: campaign.delivered, base: campaign.sent, tone: "green" },
     { label: "Failed", value: campaign.failed, base: campaign.sent, tone: "red" },
-    { label: "Opt-outs", value: campaign.optOuts, base: campaign.sent, tone: "amber" },
   ];
   return (
     <div className="wac-funnel">
@@ -342,7 +277,7 @@ const Funnel = ({ campaign }) => {
           </span>
           <span className="wac-funnel__value">
             {formatCount(r.value)}
-            {r.label !== "Targeted" ? <small> {pct(r.value, r.base)}</small> : null}
+            {r.label !== "Sent" ? <small> {pct(r.value, r.base)}</small> : null}
           </span>
         </div>
       ))}
@@ -350,15 +285,37 @@ const Funnel = ({ campaign }) => {
   );
 };
 
-export const CampaignDetailsModal = ({ campaign, onClose, onEdit, onDuplicate, onExport }) => {
+export const CampaignDetailsModal = ({ campaign, onClose, onDuplicate, onExport }) => {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!campaign?.apiId) return undefined;
+    let cancelled = false;
+    setDetail(null);
+    setError("");
+    setLoading(true);
+    getWhatsAppCampaignDetails(campaign.apiId)
+      .then((response) => {
+        if (cancelled) return;
+        if (response?.success === false) setError(response?.message || "Campaign details could not be loaded.");
+        else setDetail(response?.resultObject ?? response?.ResultObject ?? null);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(typeof err === "string" ? err : err?.message || "Campaign details could not be loaded.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign]);
+
   if (!campaign) return null;
-  const editable = campaign.source !== "api" && [CAMPAIGN_STATUS.DRAFT, CAMPAIGN_STATUS.SCHEDULED].includes(campaign.status);
-  const preview = resolveTemplatePreview(campaign.templateBody);
-  const timeline = [
-    { label: "Created", value: campaign.createdAt, icon: "ri-add-circle-line" },
-    campaign.scheduledAt ? { label: "Scheduled for", value: campaign.scheduledAt, icon: "ri-calendar-event-line" } : null,
-    campaign.sentAt ? { label: "Sent", value: campaign.sentAt, icon: "ri-send-plane-line" } : null,
-  ].filter(Boolean);
+  const messageBody = detail?.messageBody || "";
+  const recent = Array.isArray(detail?.recentMessages) ? detail.recentMessages : [];
 
   return (
     <Modal isOpen centered size="lg" toggle={onClose} className="patient-list-modal wac-modal">
@@ -369,14 +326,14 @@ export const CampaignDetailsModal = ({ campaign, onClose, onEdit, onDuplicate, o
         <div className="wac-detail-head">
           <div>
             <strong>{campaign.name}</strong>
-            <span>{audienceLabel(campaign.audience)} · {categoryLabel(campaign.category)}{campaign.templateName ? ` · ${campaign.templateName}` : ""}</span>
+            <span>{campaign.doctorName} · {categoryLabel(campaign.category)}</span>
           </div>
           <CampaignStatusPill status={campaign.status} />
         </div>
-        {campaign.failureReason ? (
+        {error ? (
           <div className="wac-alert wac-alert--error">
             <i className="ri-error-warning-line" aria-hidden="true" />
-            <span>{campaign.failureReason}</span>
+            <span>{error}</span>
           </div>
         ) : null}
         <div className="wac-detail">
@@ -387,89 +344,50 @@ export const CampaignDetailsModal = ({ campaign, onClose, onEdit, onDuplicate, o
             ) : (
               <div className="wac-detail__empty">
                 <i className="ri-time-line" aria-hidden="true" />
-                {campaign.status === CAMPAIGN_STATUS.DRAFT
-                  ? "This campaign is a draft and has not been sent."
-                  : `Delivery numbers will appear once the campaign is sent to ${formatCount(campaign.targeted)} patients.`}
+                Messages are being sent. Delivery numbers appear here as each message is logged.
               </div>
             )}
-            <p className="wac-section">Timeline</p>
+            <p className="wac-section">Created</p>
             <ul className="wac-timeline">
-              {timeline.map((t) => (
-                <li key={t.label}>
-                  <i className={t.icon} aria-hidden="true" />
-                  <span>{t.label}</span>
-                  <strong>{formatDateTime(t.value)}</strong>
-                </li>
-              ))}
+              <li>
+                <i className="ri-add-circle-line" aria-hidden="true" />
+                <span>Created</span>
+                <strong>{formatDateTime(campaign.createdAt)}</strong>
+              </li>
             </ul>
+            <p className="wac-section">Recent messages</p>
+            {loading ? (
+              <Spinner size="sm" />
+            ) : recent.length ? (
+              <ul className="wac-timeline">
+                {recent.map((m) => (
+                  <li key={m.whatsAppMessageLogID}>
+                    <i
+                      className={m.sendStatus ? "ri-check-double-line" : "ri-error-warning-line"}
+                      style={{ color: m.sendStatus ? "#16a34a" : "#ef4444" }}
+                      aria-hidden="true"
+                    />
+                    <span title={m.errorMessage || ""}>
+                      {m.patientName || m.mobileNumber || "Patient"}
+                      {!m.sendStatus && m.errorMessage ? ` — ${m.errorMessage}` : ""}
+                    </span>
+                    <strong>{formatDateTime(m.createdDate)}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="wac-detail__empty">No messages logged for this campaign yet.</div>
+            )}
           </div>
           <aside className="wac-detail__side">
             <p className="wac-section">Message</p>
-            <WhatsAppPreview body={preview || (campaign.templateName ? `Template: ${campaign.templateName}` : "")} sentAt={campaign.sentAt} />
+            <WhatsAppPreview body={resolveTemplatePreview(messageBody)} sentAt={campaign.createdAt} />
           </aside>
         </div>
       </ModalBody>
       <ModalFooter className="wac-modal__footer">
         <ModalActionButton action="download" onClick={() => onExport(campaign)}>Export report</ModalActionButton>
         <ModalActionButton action="add" iconClassName="ri-file-copy-line" onClick={() => onDuplicate(campaign)}>Duplicate</ModalActionButton>
-        {editable ? <ModalActionButton action="edit" onClick={() => onEdit(campaign)} /> : null}
-      </ModalFooter>
-    </Modal>
-  );
-};
-
-const CONFIRM_COPY = {
-  delete: {
-    title: "Delete campaign",
-    icon: "ri-delete-bin-line",
-    color: "#ef4444",
-    text: "The campaign and its report will be removed. This cannot be undone.",
-    action: "delete",
-    label: "Delete campaign",
-  },
-  cancel: {
-    title: "Cancel scheduled campaign",
-    icon: "ri-calendar-close-line",
-    color: "#f59e0b",
-    text: "The campaign will not be sent and will move back to drafts.",
-    action: "confirm",
-    label: "Cancel schedule",
-    confirmIcon: "ri-calendar-close-line",
-  },
-  send: {
-    title: "Send campaign now",
-    icon: "ri-send-plane-line",
-    color: "#16a34a",
-    text: "The campaign will be queued for delivery to the selected audience right away.",
-    action: "send",
-    label: "Send now",
-  },
-};
-
-export const ConfirmCampaignModal = ({ state, busy, onClose, onConfirm }) => {
-  if (!state) return null;
-  const copy = CONFIRM_COPY[state.kind];
-  const { campaign } = state;
-  return (
-    <Modal isOpen centered toggle={busy ? undefined : onClose} className="patient-list-modal wac-modal">
-      <ModalHeader toggle={busy ? undefined : onClose} className="patient-list-modal__header">
-        <ModalTitle icon={copy.icon} color={copy.color}>{copy.title}</ModalTitle>
-      </ModalHeader>
-      <ModalBody className="wac-confirm">
-        <div className="wac-confirm__subject">
-          <span className="wac-avatar"><i className="ri-whatsapp-line" aria-hidden="true" /></span>
-          <div>
-            <strong>{campaign.name}</strong>
-            <span>{audienceLabel(campaign.audience)} · ~{formatCount(campaign.targeted)} patients</span>
-          </div>
-        </div>
-        <p>{copy.text}</p>
-      </ModalBody>
-      <ModalFooter className="wac-modal__footer">
-        <ModalActionButton action="cancel" onClick={onClose} disabled={busy}>Close</ModalActionButton>
-        <ModalActionButton action={copy.action} iconClassName={copy.confirmIcon} loading={busy} onClick={onConfirm}>
-          {copy.label}
-        </ModalActionButton>
       </ModalFooter>
     </Modal>
   );

@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from "react";
 import moment from "moment";
+import { earningsReport } from "../../../helpers/s5Week5Api";
 import {
   Card,
   ChartLegend,
-  ConfirmModal,
   DonutChart,
   DonutLegend,
   KpiGrid,
-  RecordFormModal,
   RecordViewModal,
   ReportShell,
   RowActions,
@@ -16,10 +15,9 @@ import {
   TableEmpty,
 } from "./ReportComponents";
 import {
-  PATIENT_NAMES,
-  buildDailySeries,
   defaultRange,
   downloadCsv,
+  fillDaily,
   formatDate,
   formatInr,
   formatInrShort,
@@ -27,72 +25,48 @@ import {
   pct,
   rangeKey,
   rangeLabel,
+  useReportLoader,
 } from "./reportData";
 
 const COLORS = ["#2563eb", "#14b8a6", "#a78bfa"];
-const STATUS_TONE = { Paid: "green", Pending: "amber", Refunded: "slate" };
-
-const TRANSACTION_FIELDS = [
-  { key: "date", label: "Date", type: "date", required: true },
-  { key: "patient", label: "Patient", required: true, placeholder: "Patient name" },
-  { key: "type", label: "Type", type: "select", options: ["Consultation", "Medicine Order", "Follow-up", "Other"], defaultValue: "Consultation" },
-  { key: "amount", label: "Amount (₹)", type: "number", required: true, min: 1 },
-  { key: "mode", label: "Payment mode", type: "select", options: ["UPI", "Cash", "Card", "Online"], defaultValue: "UPI" },
-  { key: "status", label: "Status", type: "select", options: ["Paid", "Pending", "Refunded"], defaultValue: "Paid" },
-  { key: "notes", label: "Notes", type: "textarea", placeholder: "Optional" },
-];
-
-const SEED = [
-  ["Consultation", 500, "Paid", "UPI", 3],
-  ["Medicine Order", 1250, "Paid", "Online", 3],
-  ["Consultation", 500, "Pending", "Cash", 4],
-  ["Consultation", 700, "Paid", "Card", 5],
-  ["Follow-up", 320, "Paid", "UPI", 6],
-  ["Medicine Order", 860, "Refunded", "Online", 7],
-  ["Consultation", 500, "Paid", "UPI", 8],
-].map(([type, amount, status, mode, daysAgo], i) => ({
-  id: `tx-${i + 1}`,
-  date: moment().subtract(daysAgo, "days").format("YYYY-MM-DD"),
-  patient: PATIENT_NAMES[i],
-  type,
-  amount,
-  status,
-  mode,
-  notes: "",
-  ref: `TXN${(482310 + i * 37).toString()}`,
-}));
+const STATUS_TONE = { Paid: "green", Pending: "amber", Refunded: "slate", Failed: "red" };
 
 const EarningsAnalysisPage = () => {
   document.title = "Doctor Earning Analysis | Niga Homeocentrum";
 
   const [range, setRange] = useState(defaultRange);
-  const [rows, setRows] = useState(SEED);
+  const { data, loading, error, reload } = useReportLoader(earningsReport, range);
   const [filter, setFilter] = useState("all");
-  const [formState, setFormState] = useState(null);
   const [viewState, setViewState] = useState(null);
-  const [confirmState, setConfirmState] = useState(null);
 
   const key = rangeKey(range);
-  const trend = useMemo(
-    () => buildDailySeries(range, "earnings", { consultation: [8000, 14000], medicine: [1800, 4600], others: [300, 1200] }),
-    [range]
-  );
-  const { consultation, medicine, others } = trend.totals;
-  const total = consultation + medicine + others;
-  const payoutPending = Math.round(total * 0.18);
+  const trend = useMemo(() => fillDaily(range, data?.daily, ["consultation", "medicine", "others"]), [range, data]);
+  const totals = data?.totals || {};
+  const total = Number(totals.total || 0);
 
   const breakdown = [
-    { label: "Consultation", value: consultation },
-    { label: "Medicine", value: medicine },
-    { label: "Others", value: others },
+    { label: "Consultation", value: Number(totals.consultation || 0) },
+    { label: "Medicine", value: Number(totals.medicine || 0) },
+    { label: "Others", value: Number(totals.others || 0) },
   ];
 
-  const visible = rows
-    .filter((r) => filter === "all" || r.status.toLowerCase() === filter)
-    .sort((a, b) => moment(b.date).valueOf() - moment(a.date).valueOf());
-
-  const openEdit = (r) =>
-    setFormState({ id: r.id, title: "Edit transaction", icon: "ri-pencil-line", subject: `${r.ref} · ${r.patient}`, values: r, size: "lg" });
+  const rows = useMemo(
+    () =>
+      (data?.data || []).map((r) => ({
+        id: r.paymentOrderId,
+        ref: r.reference,
+        date: r.date,
+        patient: r.patientName || (r.patientId ? `Patient #${r.patientId}` : "—"),
+        type: r.type,
+        amount: Number(r.amount || 0),
+        mode: r.method || "—",
+        status: r.status,
+        rawStatus: r.rawStatus,
+        patientAppId: r.patientAppId,
+      })),
+    [data]
+  );
+  const visible = rows.filter((r) => filter === "all" || r.status.toLowerCase() === filter);
 
   const openView = (r) =>
     setViewState({
@@ -100,18 +74,14 @@ const EarningsAnalysisPage = () => {
       icon: "ri-bill-line",
       header: `${r.ref} · ${formatInr(r.amount)}`,
       rows: [
-        ["Date", formatDate(r.date)],
+        ["Date", r.date ? moment(r.date).format("DD MMM YYYY, hh:mm A") : ""],
         ["Patient", r.patient],
         ["Type", r.type],
         ["Payment mode", r.mode],
-        ["Status", r.status],
+        ["Status", `${r.status}${r.rawStatus && r.rawStatus !== r.status.toUpperCase() ? ` (${r.rawStatus})` : ""}`],
         ["Amount", formatInr(r.amount)],
-        ["Notes", r.notes],
+        ["Appointment", r.patientAppId ? `#${r.patientAppId}` : ""],
       ],
-      onEdit: () => {
-        setViewState(null);
-        openEdit(r);
-      },
     });
 
   const handleExport = () => {
@@ -128,7 +98,8 @@ const EarningsAnalysisPage = () => {
       ]),
       [],
       ["Total earnings", total],
-      ["Payout pending", payoutPending],
+      ["Pending collection", totals.pending ?? 0],
+      ["Payout pending", totals.payoutPending ?? 0],
       [],
       ["Reference", "Date", "Patient", "Type", "Amount", "Mode", "Status"],
       ...rows.map((r) => [r.ref, formatDate(r.date), r.patient, r.type, r.amount, r.mode, r.status]),
@@ -142,13 +113,16 @@ const EarningsAnalysisPage = () => {
       range={range}
       onRangeChange={setRange}
       onExport={handleExport}
+      loading={loading}
+      error={error}
+      onRetry={reload}
     >
       <KpiGrid
         items={[
           { label: "Total Earnings", value: formatInr(total), tone: "teal", icon: "ri-wallet-3-line" },
-          { label: "Consultation Fees", value: formatInr(consultation), tone: "blue", icon: "ri-stethoscope-line" },
-          { label: "Medicine Orders", value: formatInr(medicine), tone: "green", icon: "ri-capsule-line" },
-          { label: "Payout Pending", value: formatInr(payoutPending), tone: "red", icon: "ri-bank-line", emphasis: true },
+          { label: "Consultation Fees", value: formatInr(totals.consultation), tone: "blue", icon: "ri-stethoscope-line" },
+          { label: "Medicine Orders", value: formatInr(totals.medicine), tone: "green", icon: "ri-capsule-line" },
+          { label: "Payout Pending", value: formatInr(totals.payoutPending), tone: "red", icon: "ri-bank-line", emphasis: true },
         ]}
       />
 
@@ -184,29 +158,12 @@ const EarningsAnalysisPage = () => {
       <Card
         title="Recent Transactions"
         actions={
-          <div className="d-flex align-items-center gap-2">
-            <div className="drp-tabs" role="tablist">
-              {["all", "paid", "pending", "refunded"].map((t) => (
-                <button key={t} type="button" className={filter === t ? "is-active" : undefined} onClick={() => setFilter(t)}>
-                  {t === "all" ? "All" : t[0].toUpperCase() + t.slice(1)}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="drp-card-btn"
-              onClick={() =>
-                setFormState({
-                  isNew: true,
-                  title: "Add transaction",
-                  icon: "ri-add-line",
-                  size: "lg",
-                  values: { date: moment().format("YYYY-MM-DD") },
-                })
-              }
-            >
-              <i className="ri-add-line" aria-hidden="true" /> Add entry
-            </button>
+          <div className="drp-tabs" role="tablist">
+            {["all", "paid", "pending", "refunded"].map((t) => (
+              <button key={t} type="button" className={filter === t ? "is-active" : undefined} onClick={() => setFilter(t)}>
+                {t === "all" ? "All" : t[0].toUpperCase() + t.slice(1)}
+              </button>
+            ))}
           </div>
         }
       >
@@ -245,58 +202,19 @@ const EarningsAnalysisPage = () => {
                     <td className="is-strong">{formatInr(r.amount)}</td>
                     <td><StatusPill tone={STATUS_TONE[r.status]}>{r.status}</StatusPill></td>
                     <td>
-                      <RowActions
-                        actions={[
-                          { label: "View receipt", icon: "ri-eye-line", tone: "view", onClick: () => openView(r) },
-                          { label: "Edit", icon: "ri-pencil-line", tone: "edit", onClick: () => openEdit(r) },
-                          {
-                            label: "Delete",
-                            icon: "ri-delete-bin-line",
-                            tone: "delete",
-                            onClick: () =>
-                              setConfirmState({
-                                id: r.id,
-                                title: "Delete transaction",
-                                subject: `${r.ref} · ${r.patient} · ${formatInr(r.amount)}`,
-                                text: "This transaction will be removed from your earnings report.",
-                                confirmLabel: "Delete transaction",
-                              }),
-                          },
-                        ]}
-                      />
+                      <RowActions actions={[{ label: "View receipt", icon: "ri-eye-line", tone: "view", onClick: () => openView(r) }]} />
                     </td>
                   </tr>
                 ))
               ) : (
-                <TableEmpty colSpan={6}>No transactions in this view.</TableEmpty>
+                <TableEmpty colSpan={6}>{loading ? "Loading…" : "No transactions in this view."}</TableEmpty>
               )}
             </tbody>
           </table>
         </div>
       </Card>
 
-      <RecordFormModal
-        state={formState}
-        fields={TRANSACTION_FIELDS}
-        onClose={() => setFormState(null)}
-        onSubmit={(values) => {
-          if (formState.isNew) {
-            setRows((prev) => [{ id: `tx-${Date.now()}`, ref: `TXN${Date.now().toString().slice(-6)}`, ...values }, ...prev]);
-          } else {
-            setRows((prev) => prev.map((r) => (r.id === formState.id ? { ...r, ...values } : r)));
-          }
-          setFormState(null);
-        }}
-      />
       <RecordViewModal state={viewState} onClose={() => setViewState(null)} />
-      <ConfirmModal
-        state={confirmState}
-        onClose={() => setConfirmState(null)}
-        onConfirm={() => {
-          setRows((prev) => prev.filter((r) => r.id !== confirmState.id));
-          setConfirmState(null);
-        }}
-      />
     </ReportShell>
   );
 };

@@ -24,7 +24,6 @@ import {
   VerificationPill,
 } from "./PlatformUserModals";
 import {
-  SAMPLE_USERS,
   STATUS_OPTIONS,
   USER_TYPES,
   VERIFICATION_LABELS,
@@ -70,7 +69,6 @@ const PlatformUsersPage = () => {
 
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [isSample, setIsSample] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -107,12 +105,10 @@ const PlatformUsersPage = () => {
       .filter((row) => !(row.deleteStatus ?? row.DeleteStatus))
       .map((row) => normalizeApiUser(row, roleNameById));
 
-    if (apiUsers.length) {
-      setUsers(apiUsers);
-      setIsSample(false);
-    } else {
-      setUsers(SAMPLE_USERS);
-      setIsSample(true);
+    setUsers(apiUsers);
+    if (usersResult.status === "rejected") {
+      const reason = usersResult.reason;
+      setError(typeof reason === "string" ? reason : reason?.message || "Could not load users.");
     }
     setLoading(false);
   }, []);
@@ -202,40 +198,16 @@ const PlatformUsersPage = () => {
       mobileNo: values.phone,
     });
 
-  const localUserFrom = (values, base = {}) => ({
-    ...base,
-    firstName: values.firstName,
-    lastName: values.lastName,
-    name: `${values.firstName} ${values.lastName}`.trim(),
-    userName: values.userName,
-    email: values.email,
-    phone: values.phone,
-    roleName: values.roleName,
-    type: values.type,
-    status: values.active ? "active" : "inactive",
-    verification: base.verification || (values.active ? "verified" : "pending"),
-  });
-
   const handleFormSubmit = async (values) => {
     setFormError("");
     const isEdit = formState?.mode === "edit";
-    if (!isSample && !Number.isFinite(Number(values.roleId))) {
+    if (!Number.isFinite(Number(values.roleId))) {
       setFormError("User types could not be loaded from the server. Refresh and try again.");
       return;
     }
     setBusy(true);
     try {
-      if (isSample) {
-        if (isEdit) {
-          setUsers((prev) => prev.map((u) => (u.id === formState.user.id ? localUserFrom(values, u) : u)));
-        } else {
-          const nextId = Date.now() % 100000;
-          setUsers((prev) => [
-            localUserFrom(values, { id: `sample-new-${nextId}`, userId: nextId, joined: moment().toISOString(), sample: true }),
-            ...prev,
-          ]);
-        }
-      } else if (isEdit) {
+      if (isEdit) {
         await saveApiUser(formState.user, { ...values, roleId: Number(values.roleId) });
         await load();
       } else {
@@ -256,21 +228,11 @@ const PlatformUsersPage = () => {
     const { kind, user } = confirmState;
     setBusy(true);
     try {
-      if (isSample) {
-        if (kind === "delete") {
-          setUsers((prev) => prev.filter((u) => u.id !== user.id));
-        } else {
-          setUsers((prev) =>
-            prev.map((u) => (u.id === user.id ? { ...u, status: kind === "activate" ? "active" : "inactive" } : u))
-          );
-        }
-      } else {
-        await saveApiUser(
-          user,
-          kind === "delete" ? { deleteStatus: true } : { active: kind === "activate" }
-        );
-        await load();
-      }
+      await saveApiUser(
+        user,
+        kind === "delete" ? { deleteStatus: true } : { active: kind === "activate" }
+      );
+      await load();
       setConfirmState(null);
       setViewUser(null);
       flash(
@@ -291,7 +253,6 @@ const PlatformUsersPage = () => {
     setImportProgress({ done: 0, total: rows.length });
     let added = 0;
     const failed = [];
-    const imported = [];
     for (const row of rows) {
       const role =
         roleOptions.find((r) => String(r.label).toLowerCase() === row.roleName.toLowerCase()) ||
@@ -309,23 +270,15 @@ const PlatformUsersPage = () => {
         password: row.password || "Welcome@123",
       };
       try {
-        if (isSample) {
-          const nextId = (Date.now() + added) % 100000;
-          imported.push(
-            localUserFrom(values, { id: `sample-imp-${nextId}`, userId: nextId, joined: moment().toISOString(), sample: true })
-          );
-        } else {
-          if (!Number.isFinite(Number(values.roleId))) throw new Error("Unknown user type");
-          await createApiUser({ ...values, roleId: Number(values.roleId) });
-        }
+        if (!Number.isFinite(Number(values.roleId))) throw new Error("Unknown user type");
+        await createApiUser({ ...values, roleId: Number(values.roleId) });
         added += 1;
       } catch (e) {
         failed.push(`Row ${row.line}`);
       }
       setImportProgress((prev) => ({ ...prev, done: prev.done + 1 }));
     }
-    if (isSample) setUsers((prev) => [...imported, ...prev]);
-    else await load();
+    await load();
     setBusy(false);
     setImportProgress(null);
     setImportOpen(false);
@@ -379,7 +332,6 @@ const PlatformUsersPage = () => {
             <div>
               <h2 className="clinic-page-title mb-1">
                 Platform Users
-                {isSample ? <span className="pu-sample">Sample data</span> : null}
               </h2>
               <p className="clinic-page-subtitle mb-0">Manage all users, import/export and account activation</p>
             </div>

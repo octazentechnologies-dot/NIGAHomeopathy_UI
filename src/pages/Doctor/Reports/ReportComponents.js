@@ -6,7 +6,7 @@ import ModalActionButton from "../../../Components/Common/ModalActionButton";
 import { formatCount } from "./reportData";
 import "./doctorReports.css";
 
-export const ReportShell = ({ title, subtitle, range, onRangeChange, onExport, sample = true, children }) => (
+export const ReportShell = ({ title, subtitle, range, onRangeChange, onExport, sample = false, loading = false, error = "", onRetry, children }) => (
   <div className="page-content clinic-workspace-page">
     <Container fluid>
       <div className="drp-page">
@@ -30,11 +30,21 @@ export const ReportShell = ({ title, subtitle, range, onRangeChange, onExport, s
                 options={{ mode: "range", dateFormat: "d M Y", maxDate: "today", disableMobile: true }}
               />
             </label>
-            <button type="button" className="drp-icon-btn" title="Export report (CSV)" aria-label="Export report" onClick={onExport}>
-              <i className="ri-upload-2-line" aria-hidden="true" />
+            <button type="button" className="drp-icon-btn" title="Export report (CSV)" aria-label="Export report" onClick={onExport} disabled={loading}>
+              <i className={loading ? "ri-loader-4-line" : "ri-upload-2-line"} aria-hidden="true" />
             </button>
           </div>
         </div>
+        {error ? (
+          <div className="alert alert-danger d-flex align-items-center justify-content-between py-2" role="alert">
+            <span>{error}</span>
+            {onRetry ? (
+              <button type="button" className="btn btn-sm btn-outline-danger" onClick={onRetry}>
+                Retry
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {children}
       </div>
     </Container>

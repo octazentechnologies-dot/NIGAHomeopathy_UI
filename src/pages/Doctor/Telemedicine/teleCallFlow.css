@@ -651,6 +651,29 @@
   object-fit: cover;
 }
 
+.tele-initials-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #e8f5ff;
+  color: #25a0e2;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+}
+
+.tele-call-video__main.tele-initials-avatar {
+  background: linear-gradient(160deg, #1f2937 0%, #111827 100%);
+  color: #e5e7eb;
+  font-size: 4rem;
+  border-radius: 0;
+}
+
+.tele-waiting-avatar.tele-initials-avatar {
+  font-size: 1.25rem;
+}
+
 .tele-call-patient-card h5 {
   color: #495057;
   font-size: 0.75rem !important;

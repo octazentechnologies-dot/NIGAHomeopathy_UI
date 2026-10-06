@@ -1,339 +1,217 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Col, Dropdown, DropdownMenu, DropdownToggle, Nav, NavItem, NavLink, Row, TabContent, TabPane } from 'reactstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import classnames from 'classnames';
 import { useSelector } from 'react-redux';
-
-import avatar2 from "../../assets/images/users/avatar-2.jpg";
-import avatar3 from "../../assets/images/users/avatar-3.jpg";
-import avatar4 from "../../assets/images/users/avatar-4.jpg";
-import avatar5 from "../../assets/images/users/avatar-5.jpg";
-import avatar6 from "../../assets/images/users/avatar-6.jpg";
 
 import SimpleBar from "simplebar-react";
 import { UserRole } from '../constants/roles';
 import { readPlanActive } from '../../helpers/client_error_reporter';
-import { listNotifications, patchNotification } from '../../helpers/s5Week5Api';
+import { listNotifications, patchNotification, followUpDue } from '../../helpers/s5Week5Api';
 
-const MESSAGE_NOTIFICATIONS = [
-    {
-        id: 'msg-1',
-        name: 'Priya Kulkarni',
-        message: 'Hello Doctor, I wanted to confirm my follow-up appointment for tomorrow.',
-        time: '12 min ago',
-        avatar: avatar2,
-        active: true,
-    },
-    {
-        id: 'msg-2',
-        name: 'Rahul Patil',
-        message: 'Can I reschedule my consultation from 4 PM to 6 PM?',
-        time: '35 min ago',
-        avatar: avatar3,
-    },
-    {
-        id: 'msg-3',
-        name: 'Sneha Deshmukh',
-        message: 'I have uploaded my previous prescription. Please check it before my appointment.',
-        time: '1 hr ago',
-        avatar: avatar4,
-    },
-    {
-        id: 'msg-4',
-        name: 'Clinic Reception',
-        message: "Today's 3:30 PM appointment has been confirmed by the patient.",
-        time: '2 hrs ago',
-        icon: 'ri-building-line',
-        iconClass: 'bg-info-subtle text-info',
-    },
-    {
-        id: 'msg-5',
-        name: 'Aarav Sharma',
-        message: 'Doctor, I have completed my prescribed course. Should I continue the same medicine?',
-        time: '3 hrs ago',
-        avatar: avatar5,
-    },
-    {
-        id: 'msg-6',
-        name: 'Dr. Riya Kulkarni',
-        message: 'Please review the patient history for consultation #HC-10281.',
-        time: '4 hrs ago',
-        avatar: avatar6,
-    },
-];
+const noteId = (row) => row.appNotificationId ?? row.AppNotificationId;
+const noteRead = (row) => Boolean(row.isRead ?? row.IsRead);
 
-const ALERT_NOTIFICATIONS = [
-    {
-        id: 'alert-1',
-        title: 'Low Medicine Stock',
-        message: (
-            <>
-                <b>Arnica Montana 30C</b> has reached its minimum stock level.
-            </>
-        ),
-        time: '10 min ago',
-        icon: 'ri-medicine-bottle-line',
-        iconClass: 'bg-warning-subtle text-warning',
-        active: true,
-    },
-    {
-        id: 'alert-2',
-        title: 'Missed Appointment',
-        message: (
-            <>
-                Patient <b>Rohan Patil</b> did not attend the 11:00 AM consultation.
-            </>
-        ),
-        time: '1 hr ago',
-        icon: 'ri-calendar-close-line',
-        iconClass: 'bg-danger-subtle text-danger',
-    },
-    {
-        id: 'alert-3',
-        title: 'Payment Pending',
-        message: (
-            <>
-                Payment of <b className="text-success">₹2,500</b> is pending for consultation #HC-10276.
-            </>
-        ),
-        time: '2 hrs ago',
-        icon: 'ri-money-rupee-circle-line',
-        iconClass: 'bg-success-subtle text-success',
-    },
-    {
-        id: 'alert-4',
-        title: 'Follow-up Due',
-        message: (
-            <>
-                <b className="text-primary">12</b> patients are due for follow-up today.
-            </>
-        ),
-        time: '3 hrs ago',
-        icon: 'ri-user-follow-line',
-        iconClass: 'bg-primary-subtle text-primary',
-    },
-];
+const timeAgo = (value) => {
+    if (!value) return '';
+    const at = new Date(value);
+    if (Number.isNaN(at.getTime())) return '';
+    const minutes = Math.max(0, Math.round((Date.now() - at.getTime()) / 60000));
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+    const days = Math.round(hours / 24);
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    return at.toLocaleDateString();
+};
 
-const NotificationCheckbox = ({ id }) => (
-    <div className="px-2 fs-15">
-        <div className="form-check notification-check">
-            <input className="form-check-input" type="checkbox" value="" id={id} />
-            <label className="form-check-label" htmlFor={id}></label>
-        </div>
-    </div>
+const EmptyRow = ({ text }) => (
+    <div className="text-center text-muted py-4 fs-13">{text}</div>
 );
 
-const MessageItem = ({ item, checkId }) => (
-    <div className={`text-reset notification-item d-block dropdown-item position-relative${item.active ? ' active' : ''}`}>
-        <div className="d-flex">
-            {item.avatar ? (
-                <img src={item.avatar} className="me-3 rounded-circle avatar-xs" alt={item.name} />
-            ) : (
+const NoteItem = ({ row, onRead }) => {
+    const id = noteId(row);
+    const read = noteRead(row);
+    return (
+        <div className={`text-reset notification-item d-block dropdown-item position-relative${read ? '' : ' active'}`}>
+            <div className="d-flex">
                 <div className="avatar-xs me-3">
-                    <span className={`avatar-title ${item.iconClass} rounded-circle fs-16`}>
-                        <i className={item.icon}></i>
+                    <span className="avatar-title bg-info-subtle text-info rounded-circle fs-16">
+                        <i className="ri-notification-3-line"></i>
                     </span>
                 </div>
-            )}
-            <div className="flex-grow-1">
-                <Link to="#" className="stretched-link">
-                    <h6 className="mt-0 mb-1 fs-13 fw-semibold">{item.name}</h6>
-                </Link>
-                <div className="fs-13 text-muted">
-                    <p className="mb-1">{item.message}</p>
+                <div className="flex-grow-1">
+                    <h6 className="mt-0 mb-1 fs-13 fw-semibold">{row.title || row.Title}</h6>
+                    <div className="fs-13 text-muted">
+                        <p className="mb-1">{row.body || row.Body}</p>
+                    </div>
+                    <p className="mb-0 fs-11 fw-medium text-uppercase text-muted">
+                        <span><i className="mdi mdi-clock-outline"></i> {timeAgo(row.createdAt || row.CreatedAt)}</span>
+                    </p>
                 </div>
-                <p className="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                    <span><i className="mdi mdi-clock-outline"></i> {item.time}</span>
-                </p>
+                {!read ? (
+                    <div className="px-2">
+                        <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onRead(id)}>
+                            Mark read
+                        </button>
+                    </div>
+                ) : null}
             </div>
-            <NotificationCheckbox id={checkId} />
         </div>
-    </div>
-);
+    );
+};
 
-const AlertItem = ({ item, checkId }) => (
-    <div className={`text-reset notification-item d-block dropdown-item position-relative${item.active ? ' active' : ''}`}>
+const AlertItem = ({ alert, onOpen }) => (
+    <div className={`text-reset notification-item d-block dropdown-item position-relative${alert.active ? ' active' : ''}`}>
         <div className="d-flex">
             <div className="avatar-xs me-3">
-                <span className={`avatar-title ${item.iconClass} rounded-circle fs-16`}>
-                    <i className={item.icon}></i>
+                <span className={`avatar-title ${alert.iconClass} rounded-circle fs-16`}>
+                    <i className={alert.icon}></i>
                 </span>
             </div>
             <div className="flex-grow-1">
-                <Link to="#" className="stretched-link">
-                    <h6 className="mt-0 mb-1 fs-13 fw-semibold">{item.title}</h6>
-                </Link>
+                <h6 className="mt-0 mb-1 fs-13 fw-semibold">{alert.title}</h6>
                 <div className="fs-13 text-muted">
-                    <p className="mb-1">{item.message}</p>
+                    <p className="mb-1">{alert.message}</p>
                 </div>
-                <p className="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                    <span><i className="mdi mdi-clock-outline"></i> {item.time}</span>
-                </p>
+                {alert.to ? (
+                    <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onOpen(alert.to)}>
+                        {alert.linkText || 'Open'}
+                    </button>
+                ) : null}
             </div>
-            <NotificationCheckbox id={checkId} />
-        </div>
-    </div>
-);
-
-const SubscriptionItem = ({ subscriptionExpiration, checkId }) => (
-    <div className="text-reset notification-item d-block dropdown-item position-relative active">
-        <div className="d-flex">
-            <div className="avatar-xs me-3">
-                <span className="avatar-title bg-danger-subtle text-danger rounded-circle fs-16">
-                    <i className="bx bx-error-circle"></i>
-                </span>
-            </div>
-            <div className="flex-grow-1">
-                <h6 className="mt-0 mb-2 lh-base">
-                    {subscriptionExpiration.isPlanActive ? (
-                        <>
-                            Your subscription will expire after <b className="text-danger">{subscriptionExpiration.daysRemaining}</b> {subscriptionExpiration.daysRemaining === 1 ? 'day' : 'days'}. Please buy new subscription to continue your valuable practice.
-                        </>
-                    ) : (
-                        <>
-                            Your subscription has expired. Please <b className="text-danger">buy a new subscription</b> to continue your valuable practice.
-                        </>
-                    )}
-                </h6>
-                <p className="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                    <span><i className="mdi mdi-clock-outline"></i> Subscription Alert</span>
-                </p>
-            </div>
-            <NotificationCheckbox id={checkId} />
         </div>
     </div>
 );
 
 const NotificationDropdown = () => {
     const [isNotificationDropdown, setIsNotificationDropdown] = useState(false);
-    const toggleNotificationDropdown = () => {
-        setIsNotificationDropdown(!isNotificationDropdown);
-    };
     const navigate = useNavigate();
-    const openNotificationsPage = () => {
-        setIsNotificationDropdown(false);
-        navigate('/notifications');
-    };
-
-    const [activeTab, setActiveTab] = useState('1');
-    const toggleTab = (tab) => {
-        if (activeTab !== tab) {
-            setActiveTab(tab);
-        }
-    };
-
-    const [subscriptionExpiration, setSubscriptionExpiration] = useState({
-        show: false,
-        daysRemaining: 0,
-        isPlanActive: true
-    });
-    const [isDoctorRole, setIsDoctorRole] = useState(false);
-    const [clinicNotes, setClinicNotes] = useState([]);
     const loginUser = useSelector((state) => state?.Login?.user);
 
-    useEffect(() => {
+    const [activeTab, setActiveTab] = useState('1');
+    const [notes, setNotes] = useState([]);
+    const [alerts, setAlerts] = useState([]);
+
+    const loadData = useCallback(async () => {
+        let auth = null;
         try {
-            const auth = JSON.parse(sessionStorage.getItem('authUser') || 'null');
-            const subscriptionData = (loginUser && Object.keys(loginUser).length > 0)
-                ? loginUser
-                : (auth?.data || auth);
+            auth = JSON.parse(sessionStorage.getItem('authUser') || 'null');
+        } catch {
+            auth = null;
+        }
+        const session = (loginUser && Object.keys(loginUser).length > 0) ? loginUser : (auth?.data || auth);
+        if (!session) {
+            setNotes([]);
+            setAlerts([]);
+            return;
+        }
+        const role = session?.role || auth?.role;
+        const isDoctor = role === UserRole.DOCTOR;
+        const isClinic = isDoctor || role === UserRole.ADMIN || role === UserRole.RECEPTION;
 
-            const userRole = subscriptionData?.role || auth?.role;
-            const isDoctor = userRole === UserRole.DOCTOR;
-            setIsDoctorRole(isDoctor);
+        try {
+            const response = await listNotifications();
+            setNotes(Array.isArray(response?.data) ? response.data : []);
+        } catch {
+            setNotes([]);
+        }
 
-            if (isDoctor && subscriptionData) {
-                const isPlanActive = readPlanActive(subscriptionData);
-                const islastFiveDays = subscriptionData.islastFiveDays === true || subscriptionData.IslastFiveDays === true;
-                const daysRemaining = subscriptionData.daysRemaining || subscriptionData.DaysRemaining || 0;
-
-                if (isPlanActive && islastFiveDays === true && daysRemaining > 0) {
-                    setSubscriptionExpiration({
-                        show: true,
-                        daysRemaining: daysRemaining,
-                        isPlanActive: true
-                    });
-                } else if (!isPlanActive) {
-                    setSubscriptionExpiration({
-                        show: true,
-                        daysRemaining: 0,
-                        isPlanActive: false
-                    });
-                } else {
-                    setSubscriptionExpiration({
-                        show: false,
-                        daysRemaining: 0,
-                        isPlanActive: true
-                    });
-                }
-            } else {
-                setSubscriptionExpiration({
-                    show: false,
-                    daysRemaining: 0,
-                    isPlanActive: true
+        const nextAlerts = [];
+        if (isDoctor) {
+            const isPlanActive = readPlanActive(session);
+            const islastFiveDays = session.islastFiveDays === true || session.IslastFiveDays === true;
+            const daysRemaining = session.daysRemaining || session.DaysRemaining || 0;
+            if (!isPlanActive) {
+                nextAlerts.push({
+                    id: 'subscription',
+                    title: 'Subscription expired',
+                    message: 'Buy a new subscription to continue your practice.',
+                    icon: 'bx bx-error-circle',
+                    iconClass: 'bg-danger-subtle text-danger',
+                    active: true,
+                });
+            } else if (islastFiveDays && daysRemaining > 0) {
+                nextAlerts.push({
+                    id: 'subscription',
+                    title: 'Subscription ending',
+                    message: `Your subscription expires in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}.`,
+                    icon: 'bx bx-error-circle',
+                    iconClass: 'bg-warning-subtle text-warning',
+                    active: true,
                 });
             }
-        } catch (error) {
-            console.error('Error checking subscription status:', error);
         }
+        if (isClinic) {
+            try {
+                const due = await followUpDue();
+                const rows = Array.isArray(due?.data) ? due.data : [];
+                if (rows.length > 0) {
+                    nextAlerts.push({
+                        id: 'follow-up-due',
+                        title: 'Follow-ups due',
+                        message: `${rows.length} open follow-up ${rows.length === 1 ? 'task is' : 'tasks are'} due today or overdue.`,
+                        icon: 'ri-user-follow-line',
+                        iconClass: 'bg-primary-subtle text-primary',
+                        to: '/doctor/follow-up-analysis',
+                        linkText: 'View follow-ups',
+                    });
+                }
+            } catch {
+                /* follow-up alert is optional */
+            }
+        }
+        setAlerts(nextAlerts);
     }, [loginUser]);
 
     useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const response = await listNotifications();
-                const rows = Array.isArray(response?.data) ? response.data : [];
-                if (!cancelled) setClinicNotes(rows);
-            } catch {
-                if (!cancelled) setClinicNotes([]);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [loginUser]);
+        loadData();
+    }, [loadData]);
 
-    const markClinicNote = async (id) => {
+    const toggleNotificationDropdown = () => {
+        if (!isNotificationDropdown) loadData();
+        setIsNotificationDropdown(!isNotificationDropdown);
+    };
+
+    const openPage = (to) => {
+        setIsNotificationDropdown(false);
+        navigate(to);
+    };
+
+    const toggleTab = (tab) => {
+        if (activeTab !== tab) setActiveTab(tab);
+    };
+
+    const markRead = async (id) => {
         try {
             await patchNotification(id, true);
-            setClinicNotes((current) => current.map((row) => (
-                (row.appNotificationId || row.AppNotificationId) === id ? { ...row, isRead: true } : row
-            )));
+            setNotes((current) => current.map((row) => (noteId(row) === id ? { ...row, isRead: true, IsRead: true } : row)));
         } catch {
-            /* keep the row visible if the mark fails */
+            /* keep the row unread if the update fails */
         }
     };
 
-    const unreadClinic = clinicNotes.filter((row) => !(row.isRead ?? row.IsRead)).length;
-    const messageCount = MESSAGE_NOTIFICATIONS.length;
-    const alertCount = ALERT_NOTIFICATIONS.length + (subscriptionExpiration.show && isDoctorRole ? 1 : 0);
-    const totalNotificationCount = messageCount + alertCount + unreadClinic;
+    const unreadNotes = notes.filter((row) => !noteRead(row)).length;
+    const badgeCount = unreadNotes + alerts.length;
 
-    // Combined All feed ordered by recency (alerts/messages interleaved by time)
-    const allItems = [
-        { type: 'alert', item: ALERT_NOTIFICATIONS[0], minutes: 10 },
-        { type: 'message', item: MESSAGE_NOTIFICATIONS[0], minutes: 12 },
-        { type: 'message', item: MESSAGE_NOTIFICATIONS[1], minutes: 35 },
-        { type: 'message', item: MESSAGE_NOTIFICATIONS[2], minutes: 60 },
-        { type: 'alert', item: ALERT_NOTIFICATIONS[1], minutes: 60 },
-        { type: 'message', item: MESSAGE_NOTIFICATIONS[3], minutes: 120 },
-        { type: 'alert', item: ALERT_NOTIFICATIONS[2], minutes: 120 },
-        { type: 'message', item: MESSAGE_NOTIFICATIONS[4], minutes: 180 },
-        { type: 'alert', item: ALERT_NOTIFICATIONS[3], minutes: 180 },
-        { type: 'message', item: MESSAGE_NOTIFICATIONS[5], minutes: 240 },
-    ];
+    const viewAll = (
+        <div className="my-3 text-center">
+            <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={() => openPage('/notifications')}>
+                View All Notifications <i className="ri-arrow-right-line align-middle"></i>
+            </button>
+        </div>
+    );
 
     return (
         <React.Fragment>
             <Dropdown isOpen={isNotificationDropdown} toggle={toggleNotificationDropdown} className="topbar-head-dropdown ms-1 header-item">
                 <DropdownToggle type="button" tag="button" className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle">
                     <i className='bx bx-bell fs-22'></i>
-                    {totalNotificationCount > 0 && (
-                        <span
-                            className="position-absolute topbar-badge fs-10 translate-middle badge rounded-pill bg-danger">
-                            {totalNotificationCount}
-                            <span className="visually-hidden">unread messages</span>
+                    {badgeCount > 0 && (
+                        <span className="position-absolute topbar-badge fs-10 translate-middle badge rounded-pill bg-danger">
+                            {badgeCount}
+                            <span className="visually-hidden">unread notifications</span>
                         </span>
                     )}
                 </DropdownToggle>
@@ -348,7 +226,7 @@ const NotificationDropdown = () => {
                                     <button
                                         type="button"
                                         className="btn btn-sm btn-soft-primary notification-view-all-btn"
-                                        onClick={openNotificationsPage}
+                                        onClick={() => openPage('/notifications')}
                                     >
                                         View all <i className="ri-arrow-right-line align-middle"></i>
                                     </button>
@@ -359,30 +237,18 @@ const NotificationDropdown = () => {
                         <div className="px-2 pt-2">
                             <Nav className="nav-tabs dropdown-tabs nav-tabs-custom">
                                 <NavItem>
-                                    <NavLink
-                                        href="#"
-                                        className={classnames({ active: activeTab === '1' })}
-                                        onClick={() => { toggleTab('1'); }}
-                                    >
-                                        All ({totalNotificationCount})
+                                    <NavLink href="#" className={classnames({ active: activeTab === '1' })} onClick={() => toggleTab('1')}>
+                                        All ({notes.length + alerts.length})
                                     </NavLink>
                                 </NavItem>
                                 <NavItem>
-                                    <NavLink
-                                        href="#"
-                                        className={classnames({ active: activeTab === '2' })}
-                                        onClick={() => { toggleTab('2'); }}
-                                    >
-                                        Messages ({messageCount})
+                                    <NavLink href="#" className={classnames({ active: activeTab === '2' })} onClick={() => toggleTab('2')}>
+                                        Messages ({notes.length})
                                     </NavLink>
                                 </NavItem>
                                 <NavItem>
-                                    <NavLink
-                                        href="#"
-                                        className={classnames({ active: activeTab === '3' })}
-                                        onClick={() => { toggleTab('3'); }}
-                                    >
-                                        Alerts ({alertCount})
+                                    <NavLink href="#" className={classnames({ active: activeTab === '3' })} onClick={() => toggleTab('3')}>
+                                        Alerts ({alerts.length})
                                     </NavLink>
                                 </NavItem>
                             </Nav>
@@ -392,89 +258,26 @@ const NotificationDropdown = () => {
                     <TabContent activeTab={activeTab}>
                         <TabPane tabId="1" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
-                                {clinicNotes.map((row) => {
-                                    const id = row.appNotificationId || row.AppNotificationId;
-                                    const read = row.isRead ?? row.IsRead;
-                                    return (
-                                        <div key={id} className="text-reset notification-item d-block dropdown-item position-relative">
-                                            <div className="d-flex">
-                                                <div className="flex-grow-1">
-                                                    <h6 className="mt-0 mb-1 fs-13 fw-semibold">{row.title || row.Title}</h6>
-                                                    <div className="fs-13 text-muted">{row.body || row.Body}</div>
-                                                </div>
-                                                {!read ? (
-                                                    <button type="button" className="btn btn-sm btn-link" onClick={() => markClinicNote(id)}>Read</button>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                {subscriptionExpiration.show && isDoctorRole && (
-                                    <SubscriptionItem
-                                        subscriptionExpiration={subscriptionExpiration}
-                                        checkId="all-subscription-notification-check"
-                                    />
-                                )}
-                                {allItems.map(({ type, item }, index) => (
-                                    type === 'message' ? (
-                                        <MessageItem
-                                            key={item.id}
-                                            item={item}
-                                            checkId={`all-notification-check-${index}`}
-                                        />
-                                    ) : (
-                                        <AlertItem
-                                            key={item.id}
-                                            item={item}
-                                            checkId={`all-notification-check-${index}`}
-                                        />
-                                    )
-                                ))}
-                                <div className="my-3 text-center">
-                                    <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={openNotificationsPage}>
-                                        View All Notifications <i className="ri-arrow-right-line align-middle"></i>
-                                    </button>
-                                </div>
+                                {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openPage} />)}
+                                {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} />)}
+                                {alerts.length === 0 && notes.length === 0 ? <EmptyRow text="You are all caught up." /> : null}
+                                {viewAll}
                             </SimpleBar>
                         </TabPane>
 
                         <TabPane tabId="2" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
-                                {MESSAGE_NOTIFICATIONS.map((item, index) => (
-                                    <MessageItem
-                                        key={item.id}
-                                        item={item}
-                                        checkId={`messages-notification-check-${index}`}
-                                    />
-                                ))}
-                                <div className="my-3 text-center">
-                                    <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={openNotificationsPage}>
-                                        View All Messages <i className="ri-arrow-right-line align-middle"></i>
-                                    </button>
-                                </div>
+                                {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} />)}
+                                {notes.length === 0 ? <EmptyRow text="No messages yet." /> : null}
+                                {viewAll}
                             </SimpleBar>
                         </TabPane>
 
                         <TabPane tabId="3" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
-                                {subscriptionExpiration.show && isDoctorRole && (
-                                    <SubscriptionItem
-                                        subscriptionExpiration={subscriptionExpiration}
-                                        checkId="alerts-subscription-notification-check"
-                                    />
-                                )}
-                                {ALERT_NOTIFICATIONS.map((item, index) => (
-                                    <AlertItem
-                                        key={item.id}
-                                        item={item}
-                                        checkId={`alerts-notification-check-${index}`}
-                                    />
-                                ))}
-                                <div className="my-3 text-center">
-                                    <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={openNotificationsPage}>
-                                        View All Alerts <i className="ri-arrow-right-line align-middle"></i>
-                                    </button>
-                                </div>
+                                {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openPage} />)}
+                                {alerts.length === 0 ? <EmptyRow text="No alerts right now." /> : null}
+                                {viewAll}
                             </SimpleBar>
                         </TabPane>
                     </TabContent>

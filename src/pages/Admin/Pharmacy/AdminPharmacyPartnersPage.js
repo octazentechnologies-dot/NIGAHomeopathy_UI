@@ -11,13 +11,6 @@ import {
 import PharmacyConfigForm from "../../Pharmacy/components/PharmacyConfigForm";
 import "./pharmacyConfig.css";
 
-const SAMPLE_PARTNERS = [
-  { id: "sample-1", name: "HomeoCare Pharmacy", area: "Mumbai", status: "ACTIVE" },
-  { id: "sample-2", name: "Wellness Homeo Store", area: "Thane", status: "ACTIVE" },
-  { id: "sample-3", name: "Sai Homeopathic Medicals", area: "Navi Mumbai", status: "PENDING" },
-  { id: "sample-4", name: "Pune Homeo Hub", area: "Pune", status: "PENDING" },
-].map((row) => ({ ...row, sample: true }));
-
 const STATUS_TABS = [
   { id: "all", label: "All" },
   { id: "active", label: "Active" },
@@ -45,7 +38,6 @@ const initialsOf = (name) =>
 /** MED-05 — admin pharmacy partners: activation, licence sweep and per-partner configuration. */
 const AdminPharmacyPartnersPage = () => {
   const [partners, setPartners] = useState([]);
-  const [isSample, setIsSample] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
@@ -67,10 +59,8 @@ const AdminPharmacyPartnersPage = () => {
     } catch (err) {
       setError(s4Message(err));
     }
-    const next = rows.length ? rows : SAMPLE_PARTNERS;
-    setPartners(next);
-    setIsSample(!rows.length);
-    setSelectedId((prev) => (next.some((row) => row.id === prev) ? prev : next[0]?.id || ""));
+    setPartners(rows);
+    setSelectedId((prev) => (rows.some((row) => row.id === prev) ? prev : rows[0]?.id || ""));
     setLoading(false);
   }, []);
 
@@ -117,7 +107,7 @@ const AdminPharmacyPartnersPage = () => {
     setBusyId(`act-${partner.id}`);
     setError("");
     try {
-      if (!partner.sample) await activatePharmacy(partner.id);
+      await activatePharmacy(partner.id);
       setPartners((prev) => prev.map((row) => (row.id === partner.id ? { ...row, status: "ACTIVE" } : row)));
       setNotice(`${partner.name} activated.`);
     } catch (err) {
@@ -176,7 +166,6 @@ const AdminPharmacyPartnersPage = () => {
                 <span className="phc-card__title">
                   <i className="ri-store-3-line" aria-hidden="true" />
                   Pharmacy Partners
-                  {isSample ? <span className="phc-sample">Sample data</span> : null}
                 </span>
                 <span className="phc-card__meta">{partners.length} partners</span>
               </header>
@@ -232,7 +221,7 @@ const AdminPharmacyPartnersPage = () => {
                     ) : filtered.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="phc-empty">
-                          No pharmacies match your filters.
+                          {partners.length ? "No pharmacies match your filters." : "No pharmacy partners registered yet."}
                         </td>
                       </tr>
                     ) : (
@@ -318,7 +307,7 @@ const AdminPharmacyPartnersPage = () => {
                     <div>
                       <strong>{selected.name}</strong>
                       <span>
-                        {selected.sample ? "Sample partner" : `Partner #${selected.id}`}
+                        {`Partner #${selected.id}`}
                         {selected.area ? ` · ${selected.area}` : ""}
                       </span>
                     </div>
