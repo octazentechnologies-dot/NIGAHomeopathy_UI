@@ -10,7 +10,6 @@ import { UserRole } from '../constants/roles';
 import { dispatchOpenBillingListModal } from '../../helpers/dashboard_helper';
 import { getCaregiverMe } from '../../helpers/realbackend_helper';
 
-const DEFAULT_BALANCE = 5971.67;
 const DOCTOR_ONLINE_STATUS_KEY = 'doctorOnlineStatus';
 
 const readDoctorOnlineStatus = () => {
@@ -22,14 +21,6 @@ const readDoctorOnlineStatus = () => {
     }
 };
 
-const formatIndianRupeeAmount = (amount) => {
-    const value = Math.round(Number(amount) || 0);
-    return value.toLocaleString('en-IN', {
-        maximumFractionDigits: 0,
-        minimumFractionDigits: 0,
-    });
-};
-
 const ProfileDropdown = () => {
 
     const profiledropdownData = createSelector(
@@ -39,15 +30,14 @@ const ProfileDropdown = () => {
     // Inside your component
     const user = useSelector(profiledropdownData);
 
-    const [userName, setUserName] = useState("Admin");
-    const [userRole, setUserRole] = useState("Admin");
-    const [displayName, setDisplayName] = useState("J. Nikhil");
-    const [userData, setUserData] = useState(null);
+    const [userName, setUserName] = useState("");
+    const [userRole, setUserRole] = useState("");
+    const [displayName, setDisplayName] = useState("");
     const [actingForName, setActingForName] = useState("");
 
-    // Function to format name to initials (e.g., "NIKHIL JAMDAR" -> "J. Nikhil")
+    // "NIKHIL JAMDAR" -> "J. Nikhil"
     const formatNameToInitials = (fullName) => {
-        if (!fullName || fullName.trim() === "") return "Admin";
+        if (!fullName || fullName.trim() === "") return "";
         
         const nameParts = fullName.trim().split(/\s+/);
         if (nameParts.length === 1) {
@@ -67,23 +57,27 @@ const ProfileDropdown = () => {
         if (authUserStr) {
             try {
                 const obj = JSON.parse(authUserStr);
-                // Handle both direct user object and wrapped in data property
                 const userInfo = obj.data || obj;
-                
+
                 if (userInfo) {
-                    setUserData(userInfo);
-                    setUserName(userInfo.userName || "Admin");
-                    setUserRole(userInfo.role || "Admin");
+                    const loginName = userInfo.userName || userInfo.UserName || "";
+                    const fullName = [userInfo.firstName || userInfo.FirstName, userInfo.lastName || userInfo.LastName]
+                        .filter(Boolean)
+                        .join(" ");
+                    setUserName(loginName);
+                    setUserRole(userInfo.role || userInfo.Role || "");
                     setDisplayName(
                         userInfo.displayName ||
-                        formatNameToInitials(userInfo.userName || "Admin")
+                        userInfo.DisplayName ||
+                        formatNameToInitials(fullName || loginName) ||
+                        "User"
                     );
                 }
             } catch (error) {
                 console.error("Error parsing authUser:", error);
             }
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         if (userRole !== UserRole.PATIENT) {
@@ -205,28 +199,7 @@ const ProfileDropdown = () => {
                             <span className="align-middle">Profile</span>
                         </Link>
                     </DropdownItem>
-                    <DropdownItem className='p-0'>
-                        <Link to="/apps-chat" className="dropdown-item">
-                            <i className="mdi mdi-message-text-outline text-muted fs-16 align-middle me-1"></i> <span
-                                className="align-middle">Messages</span>
-                            <span className="badge bg-success-subtle text-success mt-1 float-end">New</span>
-                        </Link>
-                    </DropdownItem>
-                    <DropdownItem className='p-0'>
-                        <Link to="/pages-faqs" className="dropdown-item">
-                            <i
-                                className="mdi mdi-lifebuoy text-muted fs-16 align-middle me-1"></i> <span
-                                    className="align-middle">Help</span>
-                        </Link>
-                    </DropdownItem>
                     <div className="dropdown-divider"></div>
-                    <DropdownItem className='p-0'>
-                        <Link to="/pages-profile" className="dropdown-item">
-                            <i
-                                className="mdi mdi-currency-rupee text-muted fs-16 align-middle me-1"></i> <span
-                                    className="align-middle">Balance : <b>₹{formatIndianRupeeAmount(userData?.balance ?? DEFAULT_BALANCE)}</b></span>
-                        </Link>
-                    </DropdownItem >
                     {isDoctor ? (
                         <DropdownItem className='p-0'>
                             <button
@@ -239,19 +212,6 @@ const ProfileDropdown = () => {
                             </button>
                         </DropdownItem>
                     ) : null}
-                    <DropdownItem className='p-0'>
-                        <Link to="/pages-profile-settings" className="dropdown-item">
-                            <i
-                                    className="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i> <span
-                                        className="align-middle">Settings</span>
-                        </Link>
-                    </DropdownItem>
-                    <DropdownItem className='p-0'>
-                        <Link to="/auth-lockscreen-basic" className="dropdown-item">
-                            <i
-                                className="mdi mdi-lock text-muted fs-16 align-middle me-1"></i> <span className="align-middle">Lock screen</span>
-                        </Link>
-                    </DropdownItem>
                     <DropdownItem className='p-0'>
                         <Link to="/logout" className="dropdown-item">
                             <i

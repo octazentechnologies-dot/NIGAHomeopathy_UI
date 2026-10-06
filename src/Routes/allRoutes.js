@@ -1,4 +1,5 @@
 import React from "react";
+import { Navigate } from "react-router-dom";
 import PageNotAvailable from "../pages/Pages/PageNotAvailable";
 import {
   ACCOUNT_ROUTE_ROLES,
@@ -159,7 +160,6 @@ import ListRubricBenchmarkDashboard from "../pages/Admin/RubricIntelligence/List
 import DoctorDashboard from "../pages/Doctor/Dashboard";
 import PatientBoardRoute from "./PatientBoardRoute";
 import AnatomyPage from "../pages/AnatomyPage";
-import TelemedicineDashboard from "../pages/Doctor/Telemedicine";
 import DoctorTeleconsultPage from "../pages/Doctor/Teleconsult/DoctorTeleconsultPage";
 import AccountDashboard from "../pages/Account/Dashboard";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
@@ -612,7 +612,7 @@ const authProtectedRoutes = [
   // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
   { path: "patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/tele", component: <DoctorTeleconsultPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
-  { path: "doctor/telemedicine", component: <TelemedicineDashboard />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/telemedicine", component: <Navigate to="/doctor/tele" replace />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },

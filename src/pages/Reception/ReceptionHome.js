@@ -53,6 +53,18 @@ const ReceptionHome = () => {
   const [assistedPatientId, setAssistedPatientId] = useState("");
   const [assistedPatientName, setAssistedPatientName] = useState("");
   const [assistedPickKey, setAssistedPickKey] = useState(0);
+  const [listRefreshKey, setListRefreshKey] = useState(0);
+  const [paymentPatch, setPaymentPatch] = useState(null);
+
+  const markRowPaid = (patientAppId, method) => {
+    const patch = (row) =>
+      String(row.patientAppId || row.PatientAppId) === String(patientAppId)
+        ? { ...row, paymentStatus: "PAID", PaymentStatus: "PAID", paymentMethod: method, PaymentMethod: method }
+        : row;
+    setQueue((rows) => rows.map(patch));
+    setDayVisits((rows) => rows.map(patch));
+    setPaymentPatch({ patientAppId, paymentStatus: "PAID", paymentMethod: method, at: Date.now() });
+  };
 
   const load = async () => {
     if (!doctorId) return;
@@ -181,8 +193,23 @@ const ReceptionHome = () => {
             ? "Pay link reserved. Visit stays unpaid until collection or webhook."
             : "Collected at reception.")
       );
+      if (payload.method !== "PAY_LINK") {
+        markRowPaid(payload.patientAppId, payload.method);
+        const source = dayVisits.length ? dayVisits : queue;
+        const nextUnpaid = source.find((row) => {
+          const id = String(row.patientAppId || row.PatientAppId || "");
+          const status = String(row.paymentStatus || row.PaymentStatus || "UNPAID").toUpperCase();
+          return id !== String(payload.patientAppId) && status !== "PAID" && status !== "REFUNDED";
+        });
+        setReceipt((current) => (current ? {
+          ...current,
+          appointmentId: nextUnpaid ? String(nextUnpaid.patientAppId || nextUnpaid.PatientAppId) : "",
+          amount: "",
+        } : current));
+      }
       window.setTimeout(() => printReceiptWindow(printed, payload.method), 50);
-      await load();
+      setListRefreshKey((n) => n + 1);
+      load().catch(() => {});
     } catch (err) {
       const message = s4Message(err) || apiMessage(err, "Collection failed");
       setCollectError(message);
@@ -472,6 +499,8 @@ const ReceptionHome = () => {
         </Row>
         <TodaysAppointments
           onEditAppointment={(row) => setTimeEditRow(row)}
+          refreshKey={listRefreshKey}
+          paymentPatch={paymentPatch}
         />
       </Container>
       <UpdateAppointmentTimeModal

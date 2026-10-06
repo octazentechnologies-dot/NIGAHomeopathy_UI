@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Container } from "reactstrap";
 
@@ -7,31 +7,43 @@ import { landingPath } from "../../../../constants/landingRoutes";
 import {
     acceptInstantDoctorOffer,
     buildInstantQueueOfferView,
+    cancelInstantConsult,
     fetchInstantDoctorOffers,
-    loadInstantQueueOfferScreen,
+    getInstantConsultStatus,
+    isInstantConsultWaiting,
+    resolvePublicAccessToken,
 } from "../../../../helpers/publicBookingApi";
+
+const POLL_MS = 5000;
 
 /**
  * PAT-25.02 — queue & doctor offer from Phase 8–15 Instant APIs.
- * Patient: queuePosition + OFFERED/NO_DOCTOR from Instant response (no poll URL).
- * Doctor (optional accessToken + role=doctor): list Offers + Accept.
+ * Patient: polls GET /api/Tele/Instant/{id} while waiting; can cancel before a doctor accepts.
+ * Doctor (role=doctor): list Offers + Accept.
  */
 const InstantQueueOfferPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const accessToken = searchParams.get("accessToken") || "";
+    const accessToken = resolvePublicAccessToken(searchParams.get("accessToken"));
     const role = (searchParams.get("role") || "patient").toLowerCase();
     const isDoctorView = role === "doctor";
 
-    const [view, setView] = useState(() =>
-        buildInstantQueueOfferView(location.state?.instantResult || null)
-    );
+    const initialResult = location.state?.instantResult || null;
+    const [view, setView] = useState(() => buildInstantQueueOfferView(initialResult));
+    const requestId =
+        view.instantConsultRequestId ||
+        Number(searchParams.get("requestId")) ||
+        null;
+
     const [offers, setOffers] = useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [offline, setOffline] = useState(false);
     const [acceptingId, setAcceptingId] = useState(null);
+    const [cancelling, setCancelling] = useState(false);
+    const [lastChecked, setLastChecked] = useState(null);
+    const pollingRef = useRef(false);
 
     useEffect(() => {
         document.title = `${SITE.name} | Instant queue & offer`;
@@ -42,6 +54,44 @@ const InstantQueueOfferPage = () => {
             setView(buildInstantQueueOfferView(location.state.instantResult));
         }
     }, [location.state]);
+
+    const refreshPatientQueue = useCallback(
+        async ({ quiet = false } = {}) => {
+            if (!requestId) {
+                if (!quiet) setError("No instant request yet. Start a new request first.");
+                return;
+            }
+            if (!accessToken) {
+                if (!quiet) setError("Sign in as the patient to see this request.");
+                return;
+            }
+            if (pollingRef.current) return;
+            pollingRef.current = true;
+            if (!quiet) setLoading(true);
+            try {
+                const next = await getInstantConsultStatus(requestId, accessToken);
+                setView(next);
+                setError("");
+                setOffline(false);
+                setLastChecked(new Date());
+            } catch (err) {
+                if (err?.code === "OFFLINE") setOffline(true);
+                setError(err?.message || "Could not load queue & offer.");
+            } finally {
+                pollingRef.current = false;
+                if (!quiet) setLoading(false);
+            }
+        },
+        [requestId, accessToken]
+    );
+
+    useEffect(() => {
+        if (isDoctorView || !requestId || !accessToken) return undefined;
+        if (!view.empty && !isInstantConsultWaiting(view.status)) return undefined;
+        if (view.empty) refreshPatientQueue();
+        const timer = setInterval(() => refreshPatientQueue({ quiet: true }), POLL_MS);
+        return () => clearInterval(timer);
+    }, [isDoctorView, requestId, accessToken, view.empty, view.status, refreshPatientQueue]);
 
     useEffect(() => {
         if (!isDoctorView || !accessToken) return undefined;
@@ -70,36 +120,29 @@ const InstantQueueOfferPage = () => {
         };
     }, [isDoctorView, accessToken]);
 
-    const refreshPatientQueue = async () => {
+    const handleCancel = async () => {
+        if (!requestId || cancelling) return;
+        if (!window.confirm("Cancel this instant consult request?")) return;
         setError("");
-        setOffline(false);
-        if (!accessToken) {
-            setError("Patient Bearer token required to refresh queue from the Instant API.");
-            return;
-        }
-        setLoading(true);
+        setCancelling(true);
         try {
-            const next = await loadInstantQueueOfferScreen({
-                contactName: searchParams.get("contactName") || "Patient",
-                contactMobile: searchParams.get("contactMobile") || "7768046064",
-                accessToken,
-            });
-            setView(next);
+            await cancelInstantConsult(requestId, accessToken);
+            await refreshPatientQueue();
         } catch (err) {
             if (err?.code === "OFFLINE") setOffline(true);
-            setError(err?.message || "Could not load queue & offer.");
+            setError(err?.message || "Could not cancel the request.");
         } finally {
-            setLoading(false);
+            setCancelling(false);
         }
     };
 
-    const handleAccept = async (requestId) => {
+    const handleAccept = async (offerRequestId) => {
         setError("");
-        setAcceptingId(requestId);
+        setAcceptingId(offerRequestId);
         try {
-            const accepted = await acceptInstantDoctorOffer(requestId, accessToken);
+            const accepted = await acceptInstantDoctorOffer(offerRequestId, accessToken);
             setOffers((prev) =>
-                prev.filter((o) => o.instantConsultRequestId !== requestId)
+                prev.filter((o) => o.instantConsultRequestId !== offerRequestId)
             );
             setView(
                 buildInstantQueueOfferView({
@@ -119,13 +162,20 @@ const InstantQueueOfferPage = () => {
         }
     };
 
+    const waiting = !view.empty && isInstantConsultWaiting(view.status);
+    const accepted = String(view.status || "").toUpperCase() === "ACCEPTED";
+    const newRequestPath = searchParams.get("accessToken")
+        ? `${landingPath("instant-consult")}?accessToken=${encodeURIComponent(searchParams.get("accessToken"))}`
+        : landingPath("instant-consult");
+
     return (
         <section className="homeojob-doctor-detail" data-testid="instant-queue-offer">
             <Container className="py-5" style={{ maxWidth: 720 }}>
                 <h1 className="h3 mb-2">Queue &amp; doctor offer</h1>
                 <p className="text-muted mb-4">
-                    Status comes from the Instant API only. There is no patient poll URL — use the
-                    queue position and offer fields returned on request (or doctor Offers/Accept).
+                    {isDoctorView
+                        ? "Open instant requests offered to you."
+                        : "This page checks your request every few seconds until a doctor accepts."}
                 </p>
 
                 {loading ? (
@@ -141,17 +191,22 @@ const InstantQueueOfferPage = () => {
                 ) : null}
 
                 {!loading && error && !offline ? (
-                    <p className="text-danger" data-testid="instant-queue-error">
+                    <p className="text-danger" data-testid="instant-queue-error" role="alert">
                         {error}
                     </p>
                 ) : null}
 
                 {!isDoctorView ? (
                     <>
-                        {view.empty && !loading ? (
+                        {!accessToken ? (
+                            <p className="text-muted" data-testid="instant-queue-auth">
+                                <Link to="/login">Sign in</Link> as the patient to follow this request.
+                            </p>
+                        ) : null}
+
+                        {view.empty && !loading && !requestId ? (
                             <p className="text-muted" data-testid="instant-queue-empty">
-                                No queue yet. Request an instant consult first, or refresh with a
-                                patient token.
+                                No queue yet. Request an instant consult first.
                             </p>
                         ) : null}
 
@@ -160,55 +215,73 @@ const InstantQueueOfferPage = () => {
                                 className="homeojob-doctor-detail__card p-4 mb-3"
                                 data-testid="instant-queue-body"
                             >
-                                <p className="mb-2">
-                                    <strong>Queue position:</strong>{" "}
-                                    {view.queuePosition != null ? view.queuePosition : "—"}
+                                <p className="mb-2 small text-muted">
+                                    Request #{view.instantConsultRequestId}
                                 </p>
+                                {waiting ? (
+                                    <p className="mb-2">
+                                        <strong>Queue position:</strong>{" "}
+                                        {view.queuePosition != null ? view.queuePosition : "—"}
+                                    </p>
+                                ) : null}
                                 <p className="mb-2">
                                     <strong>Status:</strong> {view.statusLabel}
                                 </p>
                                 {view.hasOffer && view.doctorId != null ? (
                                     <p className="mb-0" data-testid="instant-doctor-offer">
-                                        <strong>Doctor offer:</strong> A doctor is available
-                                        (status from API — not marked paid here)
+                                        <strong>Doctor:</strong>{" "}
+                                        {view.doctorName || `Doctor #${view.doctorId}`}
+                                        {accepted
+                                            ? " accepted your request."
+                                            : " has been offered your request."}
                                     </p>
                                 ) : view.statusKind === "no_doctor" ? (
                                     <p className="mb-0 text-muted">
-                                        {view.message || "No doctor is online."}
+                                        No doctor is online right now. We keep checking and offer your
+                                        request as soon as one comes online.
                                     </p>
-                                ) : (
-                                    <p className="mb-0 text-muted">No doctor offer on this response.</p>
-                                )}
+                                ) : null}
+                                {waiting && lastChecked ? (
+                                    <p className="mb-0 mt-2 small text-muted" data-testid="instant-last-checked">
+                                        Last checked {lastChecked.toLocaleTimeString()}
+                                    </p>
+                                ) : null}
                             </div>
                         ) : null}
 
-                        <div className="mb-3">
+                        <div className="mb-3 d-flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                className="btn btn-primary me-2"
-                                onClick={refreshPatientQueue}
-                                disabled={loading || !accessToken}
-                                aria-label="Refresh queue from Instant API"
+                                className="btn btn-primary"
+                                onClick={() => refreshPatientQueue()}
+                                disabled={loading || !accessToken || !requestId}
+                                aria-label="Check status now"
                             >
-                                Refresh from Instant API
+                                Check now
                             </button>
-                            <Link
-                                className="btn btn-outline-secondary"
-                                to={
-                                    accessToken
-                                        ? `${landingPath("instant-consult")}?accessToken=${encodeURIComponent(accessToken)}`
-                                        : landingPath("instant-consult")
-                                }
-                            >
-                                New request
-                            </Link>
+                            {view.canCancel && waiting ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-danger"
+                                    onClick={handleCancel}
+                                    disabled={cancelling || !accessToken}
+                                    data-testid="instant-cancel"
+                                >
+                                    {cancelling ? "Cancelling…" : "Cancel request"}
+                                </button>
+                            ) : null}
+                            {!waiting ? (
+                                <Link className="btn btn-outline-secondary" to={newRequestPath}>
+                                    New request
+                                </Link>
+                            ) : null}
                         </div>
                     </>
                 ) : (
                     <>
                         {!accessToken ? (
                             <p className="text-muted" data-testid="instant-offers-empty-auth">
-                                Pass doctor <code>?accessToken=…&amp;role=doctor</code> to list offers.
+                                <Link to="/login">Sign in</Link> as a doctor to list offers.
                             </p>
                         ) : null}
 

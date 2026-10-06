@@ -438,18 +438,55 @@ export const loadCancelAppointmentScreen = async (bookingToken, { accessToken } 
   };
 };
 
+const readSessionUser = () => {
+  try {
+    const raw = sessionStorage.getItem("authUser");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.data && typeof parsed.data === "object" ? { ...parsed, ...parsed.data } : parsed;
+  } catch (_) {
+    return null;
+  }
+};
+
+/** Explicit token (e.g. ?accessToken=) wins; otherwise the signed-in web session token. */
+export const resolvePublicAccessToken = (explicit) => {
+  const given = String(explicit || "").trim();
+  if (given) return given;
+  const user = readSessionUser();
+  return String(user?.token || user?.accessToken || "").trim();
+};
+
+/** Name and mobile of the signed-in user, for pre-filling contact fields. */
+export const sessionContactDefaults = () => {
+  const user = readSessionUser();
+  if (!user) return { name: "", mobile: "" };
+  const name =
+    user.displayName ||
+    [user.first_name || user.firstName, user.lastName || user.last_name].filter(Boolean).join(" ") ||
+    user.userName ||
+    "";
+  const mobile = user.mobileNo || user.mobile || user.phone || "";
+  return { name: String(name).trim(), mobile: String(mobile).trim() };
+};
+
 /**
  * PAT-24.02 — Phase 8–15 instant consult request for Patient Mobile (same URL as web).
  * POST /api/Tele/Instant — Bearer required. Status OFFERED | NO_DOCTOR from API only.
- * No patient poll URL — use queuePosition on this response. Do not invent paid/matched locally.
+ * Poll GET /api/Tele/Instant/{id} afterwards for queue position and doctor offer.
  */
 export const mapInstantConsultStatusKind = (raw) => {
   const s = String(raw ?? "").trim().toUpperCase();
   if (s === "OFFERED" || s === "ACCEPTED") return "matched";
   if (s === "NO_DOCTOR") return "no_doctor";
   if (s === "OPEN") return "queued";
+  if (s === "CANCELLED") return "cancelled";
   return "unknown";
 };
+
+/** PAT-25.02 — waiting states that keep polling and can still be cancelled. */
+export const isInstantConsultWaiting = (raw) =>
+  ["OPEN", "NO_DOCTOR", "OFFERED"].includes(String(raw ?? "").trim().toUpperCase());
 
 export const instantConsultStatusLabel = (kind, raw, message) => {
   if (kind === "matched") {
@@ -459,6 +496,7 @@ export const instantConsultStatusLabel = (kind, raw, message) => {
   }
   if (kind === "no_doctor") return message || "No doctor is online.";
   if (kind === "queued") return "Waiting in the instant queue";
+  if (kind === "cancelled") return "You cancelled this request.";
   return String(raw || message || "Unknown status");
 };
 
@@ -520,8 +558,7 @@ export const getPublicTeleAvailability = async (doctorId) => {
 
 /**
  * PAT-25.02 — Phase 8–15 queue & doctor offer for Patient Mobile.
- * There is no patient poll URL — queuePosition + status + doctorId come only from
- * POST /api/Tele/Instant (or the last API result passed into the screen).
+ * Patient polls GET /api/Tele/Instant/{id}; cancels with POST …/Cancel.
  * Doctor offer list/accept: GET /Tele/Instant/Offers + POST …/Accept (doctor JWT).
  * Do not invent paid/matched/accepted locally.
  */
@@ -557,28 +594,41 @@ export const buildInstantQueueOfferView = (apiResult) => {
     instantConsultRequestId:
       apiResult.instantConsultRequestId ?? apiResult.InstantConsultRequestId ?? null,
     message,
+    doctorName: apiResult.doctorName ?? apiResult.DoctorName ?? "",
+    canCancel: apiResult.canCancel ?? isInstantConsultWaiting(status),
   };
 };
 
-/** PAT-25.02 — request (or refresh) queue & offer from Instant API — no separate poll. */
-export const loadInstantQueueOfferScreen = async ({
-  patientId,
-  contactName,
-  contactMobile,
-  accessToken,
-  existingResult,
-} = {}) => {
+/** PAT-25.02 — poll one instant request (patient who raised it, offered doctor, or admin). */
+export const getInstantConsultStatus = async (requestId, accessToken) => {
   assertOnline();
-  if (existingResult) {
-    return buildInstantQueueOfferView(existingResult);
-  }
-  const result = await requestInstantConsult({
-    patientId,
-    contactName,
-    contactMobile,
-    accessToken,
+  const id = Number(requestId);
+  if (!id) throw new Error("instantConsultRequestId is required.");
+  if (!accessToken) throw new Error("Sign in as the patient to see this request.");
+  const res = await publicClient.get(`/Tele/Instant/${id}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
-  return buildInstantQueueOfferView(result);
+  const payload = unwrap(res);
+  const data = payload.data ?? payload.Data ?? payload;
+  const status = data.status ?? data.Status ?? "";
+  return buildInstantQueueOfferView({
+    ...data,
+    status,
+    statusKind: mapInstantConsultStatusKind(status),
+    statusLabel: data.message ?? data.Message ?? undefined,
+  });
+};
+
+/** PAT-25.02 — patient cancels a request that no doctor has accepted yet. */
+export const cancelInstantConsult = async (requestId, accessToken) => {
+  assertOnline();
+  const id = Number(requestId);
+  if (!id) throw new Error("instantConsultRequestId is required.");
+  if (!accessToken) throw new Error("Sign in as the patient to cancel this request.");
+  const res = await publicClient.post(`/Tele/Instant/${id}/Cancel`, {}, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return unwrap(res);
 };
 
 /** PAT-25.02 — doctor lists open instant offers (Bearer treating doctor). */
