@@ -8,8 +8,10 @@ import {
   issueTeleSessionToken,
   listTeleChat,
   postTeleChat,
+  reportTeleJoinFailure,
   saveTeleConsultationSummary,
   startTeleSession,
+  teleJoinFailureCode,
 } from "../../helpers/realbackend_helper";
 
 const unwrapSession = (payload) => {
@@ -34,6 +36,7 @@ const unwrapList = (payload) => {
 };
 
 const messageOf = (err, fallback) =>
+  (typeof err === "string" && err.trim() ? err : "") ||
   err?.response?.data?.message ||
   err?.response?.data?.Message ||
   err?.data?.message ||
@@ -57,6 +60,7 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
   const [chatRows, setChatRows] = useState([]);
   const [chatText, setChatText] = useState("");
   const [summaryText, setSummaryText] = useState("");
+  const [joinFallback, setJoinFallback] = useState(null);
 
   useEffect(() => {
     if (sessionId) setActiveSessionId(String(sessionId));
@@ -193,15 +197,22 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
     }
   };
 
+  const handleJoinFailure = async (err) => {
+    const id = Number(activeSessionId);
+    if (!id) return;
+    setJoinFallback(await reportTeleJoinFailure(id, teleJoinFailureCode(err)));
+  };
+
   const onJoinToken = async () => {
     try {
       const tok = await runAction("token", () => issueTeleSessionToken(Number(activeSessionId)));
       setTokenPayload(tok);
+      setJoinFallback(null);
       if (tok.status) {
         setSession((prev) => (prev ? { ...prev, status: tok.status } : prev));
       }
-    } catch {
-      /* error set */
+    } catch (err) {
+      await handleJoinFailure(err);
     }
   };
 
@@ -211,8 +222,9 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
         issueTeleSessionRejoinToken(Number(activeSessionId))
       );
       setTokenPayload(tok);
-    } catch {
-      /* error set */
+      setJoinFallback(null);
+    } catch (err) {
+      await handleJoinFailure(err);
     }
   };
 
@@ -392,6 +404,41 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
             </p>
           ) : null}
 
+          {joinFallback ? (
+            <div className="alert alert-warning py-2" role="alert" data-testid="videoroom-join-fallback">
+              <p className="mb-2 small">
+                {joinFallback.message || "Could not join the call."}
+              </p>
+              <div className="d-flex flex-wrap gap-2">
+                {joinFallback.retry ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    disabled={!!busy}
+                    onClick={onJoinToken}
+                  >
+                    Retry
+                  </button>
+                ) : null}
+                {joinFallback.rejoin ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary"
+                    disabled={!!busy}
+                    onClick={onRejoin}
+                  >
+                    Rejoin
+                  </button>
+                ) : null}
+                {joinFallback.supportPath ? (
+                  <a className="btn btn-sm btn-outline-secondary" href={joinFallback.supportPath}>
+                    Contact support
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {tokenPayload ? (
             <div className="border rounded p-3 bg-white" data-testid="videoroom-token" aria-live="polite">
               <p className="mb-1">
@@ -418,7 +465,7 @@ const TeleVideoRoom = ({ sessionId, patientAppId = "", onSessionCreated, classNa
             <p className="mb-0 small text-muted">
                 Recording allowed: {tokenPayload.recordAllowed ? "yes" : "no"} · Status{" "}
                 {tokenPayload.status || session.status}. Waiting room / rejoin / chat use poll APIs — no
-                SignalR. Live A/V starts when Agora (or vendor) keys are set; this build uses a stub token.
+                SignalR. Live A/V starts when the configured vendor (100ms, Agora, Twilio or Daily) has its keys set; this build uses a stub token.
               </p>
             </div>
           ) : (
