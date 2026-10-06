@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner, Table } from "reactstrap";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
 import {
+  accountDoctorEarnings,
   approvePayout,
   createRefund,
   createSettlement,
@@ -11,7 +13,6 @@ import {
   getMedicineLedger,
   getReconciliation,
   getTaxReport,
-  earningsSummary,
   listExceptions,
   listPayees,
   updatePayee,
@@ -19,6 +20,7 @@ import {
   listPayouts,
   listRefunds,
   listSettlements,
+  previewRefundPolicy,
   rejectPayout,
   requestPayoutOtp,
   resolveException,
@@ -50,6 +52,17 @@ const SECTIONS = {
   "consult-recon": { title: "Consultation reconciliation", subtitle: "Online and reception collections matched to visits." },
   refunds: { title: "Refunds", subtitle: "Refunds against original payment orders." },
 };
+
+const REPORT_LINKS = [
+  { to: "/account/ledger", label: "Ledger", icon: "ri-book-line", hint: "All ledger lines by stream, with CSV export." },
+  { to: "/account/consult-recon", label: "Consultation recon", icon: "ri-exchange-line", hint: "Online vs clinic consult collections." },
+  { to: "/account/doctor-earnings", label: "Doctor earnings", icon: "ri-money-dollar-circle-line", hint: "Per-doctor visit totals." },
+  { to: "/account/medicine-ledger", label: "Medicine ledger", icon: "ri-capsule-line", hint: "Medicine money kept apart from consults." },
+  { to: "/account/tax", label: "GST & tax", icon: "ri-percent-line", hint: "GST rate, totals and CSV." },
+  { to: "/account/settlements", label: "Settlements", icon: "ri-shake-hands-line", hint: "Settlement runs and their lines." },
+  { to: "/account/exceptions", label: "Exceptions", icon: "ri-error-warning-line", hint: "Open payment exceptions to resolve." },
+  { to: "/account/payees", label: "Payees", icon: "ri-bank-line", hint: "Bank and KYC records." },
+];
 
 const money = (value) => {
   const n = Number(value);
@@ -195,7 +208,10 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [otpById, setOtpById] = useState({});
+  const [otpMetaById, setOtpMetaById] = useState({});
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const [refundForm, setRefundForm] = useState({ paymentOrderId: "", amount: "", reason: "" });
+  const [refundPolicy, setRefundPolicy] = useState(null);
   const [taxFrom, setTaxFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -241,7 +257,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           });
           break;
         case "doctor-earnings":
-          response = await earningsSummary({});
+          response = await accountDoctorEarnings({ from: ledgerFrom, to: ledgerTo });
           break;
         case "consult-recon":
           response = await getReconciliation({});
@@ -362,19 +378,36 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     }
   };
 
+  const hasOtpCooldown = Object.values(otpMetaById).some((meta) => meta.resendAt > nowTick || meta.expiresAt > nowTick);
+  useEffect(() => {
+    if (!hasOtpCooldown) return undefined;
+    const timer = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [hasOtpCooldown]);
+
   const runPayoutOtp = async (id) => {
     setBusyId(id);
     setError("");
+    setNote("");
     try {
       const response = await requestPayoutOtp(id);
       const body = unwrapS4(response) || response || {};
       const code = body.devCode || body.DevCode || body.data?.devCode;
-      if (code) {
-        setOtpById((current) => ({ ...current, [id]: String(code) }));
-        setNote(`OTP for this payout (dev): ${code}. Click Approve to release. Bank/RazorpayX stays skipped until keys exist.`);
-      } else {
-        setNote(body.message || response?.message || "OTP sent. Enter the 6-digit code, then Approve.");
-      }
+      const resendAfter = Number(body.resendAfterSeconds ?? body.ResendAfterSeconds ?? 30);
+      const ttlMinutes = Number(body.expiresInMinutes ?? body.ExpiresInMinutes ?? 10);
+      const sentAt = Date.now();
+      setNowTick(sentAt);
+      setOtpMetaById((current) => ({
+        ...current,
+        [id]: { resendAt: sentAt + resendAfter * 1000, expiresAt: sentAt + ttlMinutes * 60000 },
+      }));
+      if (code) setOtpById((current) => ({ ...current, [id]: String(code) }));
+      const message = body.message || response?.message || "OTP sent.";
+      setNote(
+        code
+          ? `${message} Dev code ${code} is filled in. Click Approve to release payout #${id}.`
+          : `${message} Enter the 6-digit code, then click Approve.`
+      );
     } catch (err) {
       setError(s4Message(err));
     } finally {
@@ -385,15 +418,21 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   const runApprove = async (id) => {
     const otp = String(otpById[id] || "").trim();
     if (!/^\d{6}$/.test(otp)) {
-      setBusyId(null);
-      setError("Click OTP first, then Approve with the 6-digit code (exactly 6 numbers).");
+      setError("Enter the 6-digit OTP for this payout, then click Approve.");
       return;
     }
     setBusyId(id);
     setError("");
+    setNote("");
     try {
       await approvePayout(id, { otp });
-      setNote("Payout approved.");
+      setOtpById((current) => ({ ...current, [id]: "" }));
+      setOtpMetaById((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      setNote(`Payout #${id} approved.`);
       await load();
     } catch (err) {
       setError(s4Message(err));
@@ -403,11 +442,23 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   };
 
   const runReject = async (id) => {
+    const answer = await Swal.fire({
+      title: `Reject payout #${id}?`,
+      input: "text",
+      inputLabel: "Reason",
+      inputPlaceholder: "Why is this payout rejected?",
+      showCancelButton: true,
+      confirmButtonText: "Reject",
+      confirmButtonColor: "#d33",
+      inputValidator: (value) => (!String(value || "").trim() ? "A reason is required." : undefined),
+    });
+    if (!answer.isConfirmed) return;
     setBusyId(id);
     setError("");
+    setNote("");
     try {
-      await rejectPayout(id, { reason: "Rejected from Account screen" });
-      setNote("Payout rejected.");
+      await rejectPayout(id, { reason: String(answer.value).trim() });
+      setNote(`Payout #${id} rejected.`);
       await load();
     } catch (err) {
       setError(s4Message(err));
@@ -430,6 +481,33 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         setNote(`Settlement committed. ${lines} PENDING payout(s) created. Open Payouts, click OTP, then Approve with the 6-digit code.`);
       }
       await load();
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const checkRefundPolicy = async () => {
+    const orderId = Number(refundForm.paymentOrderId);
+    if (!Number.isFinite(orderId) || orderId <= 0) {
+      setError("Enter a valid payment order id.");
+      return;
+    }
+    setBusyId("refund-policy");
+    setError("");
+    setRefundPolicy(null);
+    try {
+      const body = unwrapS4(await previewRefundPolicy(orderId)) || {};
+      const policy = {
+        policy: pick(body, "policy", "Policy") || "",
+        amount: Number(pick(body, "amount", "Amount") || 0),
+        reason: pick(body, "reason", "Reason") || "",
+      };
+      setRefundPolicy(policy);
+      if (policy.policy !== "NONE" && policy.amount > 0) {
+        setRefundForm((current) => ({ ...current, amount: String(policy.amount) }));
+      }
     } catch (err) {
       setError(s4Message(err));
     } finally {
@@ -465,6 +543,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
       });
       setNote("Refund recorded.");
       setRefundForm({ paymentOrderId: "", amount: "", reason: "" });
+      setRefundPolicy(null);
       await load();
     } catch (err) {
       setError(s4Message(err));
@@ -665,13 +744,67 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           </Card>
         ) : null}
 
+        {section === "doctor-earnings" ? (
+          <Card className="admin-dash-card mb-3">
+            <CardBody>
+              <Row className="g-2 align-items-end">
+                <Col md={3}>
+                  <Label>From</Label>
+                  <Input type="date" value={ledgerFrom} onChange={(e) => setLedgerFrom(e.target.value)} />
+                </Col>
+                <Col md={3}>
+                  <Label>To</Label>
+                  <Input type="date" value={ledgerTo} onChange={(e) => setLedgerTo(e.target.value)} />
+                </Col>
+                <Col md={3}>
+                  <Button className="account-primary-btn" onClick={load} disabled={loading}>Apply dates</Button>
+                </Col>
+              </Row>
+            </CardBody>
+          </Card>
+        ) : null}
+
         {section === "doctor-earnings" && detail && !loading ? (
-          <Row className="g-3 mb-3">
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Visits</div><div className="fs-4">{detail.visitCount ?? 0}</div></CardBody></Card></Col>
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Total</div><div className="fs-4">{money(detail.totalCaptured)}</div></CardBody></Card></Col>
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Online</div><div className="fs-4">{money(detail.onlineCaptured)}</div></CardBody></Card></Col>
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">At clinic</div><div className="fs-4">{money(detail.clinicCollected)}</div></CardBody></Card></Col>
-          </Row>
+          <>
+            <Row className="g-3 mb-3">
+              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Visits</div><div className="fs-4">{detail.visitCount ?? 0}</div></CardBody></Card></Col>
+              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Total</div><div className="fs-4">{money(detail.totalCaptured)}</div></CardBody></Card></Col>
+              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Online</div><div className="fs-4">{money(detail.onlineCaptured)}</div></CardBody></Card></Col>
+              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">At clinic</div><div className="fs-4">{money(detail.clinicCollected)}</div></CardBody></Card></Col>
+              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Pending payouts</div><div className="fs-4">{money(detail.pendingPayoutAmount)}</div></CardBody></Card></Col>
+            </Row>
+            {Array.isArray(detail.byDoctor) && detail.byDoctor.length > 0 ? (
+              <Card className="admin-dash-card mb-3">
+                <CardBody>
+                  <h5 className="mb-3">By doctor</h5>
+                  <div className="table-responsive">
+                    <Table className="table-nowrap align-middle mb-0" size="sm">
+                      <thead>
+                        <tr>
+                          <th>Doctor</th>
+                          <th>Visits</th>
+                          <th>Total</th>
+                          <th>Online</th>
+                          <th>At clinic</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detail.byDoctor.map((doc) => (
+                          <tr key={doc.doctorId}>
+                            <td>{doc.doctorName} <span className="text-muted small">#{doc.doctorId}</span></td>
+                            <td>{doc.visitCount}</td>
+                            <td>{money(doc.totalCaptured)}</td>
+                            <td>{money(doc.onlineCaptured)}</td>
+                            <td>{money(doc.clinicCollected)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                </CardBody>
+              </Card>
+            ) : null}
+          </>
         ) : null}
 
         {section === "ledger" ? (
@@ -829,7 +962,30 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           </Card>
         ) : null}
 
-        {(section === "settlements" || section === "reports") ? (
+        {section === "reports" ? (
+          <Row className="g-3 mb-3">
+            {REPORT_LINKS.map((item) => (
+              <Col xs={12} sm={6} lg={3} key={item.to}>
+                <Card className="admin-dash-card h-100">
+                  <CardBody>
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <i className={`${item.icon} text-info fs-4`} aria-hidden="true" />
+                      <h6 className="mb-0">{item.label}</h6>
+                    </div>
+                    <p className="text-muted small mb-2">{item.hint}</p>
+                    <Link to={item.to} className="account-kpi-link">Open report</Link>
+                  </CardBody>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        ) : null}
+
+        {section === "reports" ? (
+          <h5 className="mb-2">Clinic collections (last 30 days)</h5>
+        ) : null}
+
+        {section === "settlements" ? (
           <Card className="admin-dash-card mb-3">
             <CardBody>
               <p className="mb-2">
@@ -869,22 +1025,37 @@ const AccountFinancePage = ({ section = "ledger" }) => {
             <CardBody>
               <h5 className="mb-3">Create refund</h5>
               <Row className="g-2 align-items-end">
-                <Col md={3}>
+                <Col md={2}>
                   <Label>Payment order id</Label>
                   <Input
                     value={refundForm.paymentOrderId}
-                    onChange={(e) => setRefundForm({ ...refundForm, paymentOrderId: e.target.value })}
+                    onChange={(e) => {
+                      setRefundForm({ ...refundForm, paymentOrderId: e.target.value });
+                      setRefundPolicy(null);
+                    }}
                   />
+                </Col>
+                <Col md={2}>
+                  <Button
+                    color="secondary"
+                    outline
+                    className="w-100"
+                    disabled={busyId === "refund-policy" || !refundForm.paymentOrderId}
+                    onClick={checkRefundPolicy}
+                  >
+                    {busyId === "refund-policy" ? "Checking…" : "Check policy"}
+                  </Button>
                 </Col>
                 <Col md={2}>
                   <Label>Amount</Label>
                   <Input
                     type="number"
                     value={refundForm.amount}
+                    max={refundPolicy && refundPolicy.amount > 0 ? refundPolicy.amount : undefined}
                     onChange={(e) => setRefundForm({ ...refundForm, amount: e.target.value })}
                   />
                 </Col>
-                <Col md={5}>
+                <Col md={4}>
                   <Label>Reason</Label>
                   <Input
                     value={refundForm.reason}
@@ -892,11 +1063,31 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   />
                 </Col>
                 <Col md={2}>
-                  <Button className="account-primary-btn w-100" disabled={busyId === "refund"} onClick={runRefund}>
+                  <Button
+                    className="account-primary-btn w-100"
+                    disabled={busyId === "refund" || refundPolicy?.policy === "NONE"}
+                    onClick={runRefund}
+                  >
                     Save refund
                   </Button>
                 </Col>
               </Row>
+              {refundPolicy ? (
+                <Alert
+                  color={refundPolicy.policy === "NONE" ? "warning" : "info"}
+                  className="mt-3 mb-0 py-2"
+                  data-testid="refund-policy"
+                >
+                  <strong>
+                    {refundPolicy.policy === "FULL"
+                      ? "Full refund"
+                      : refundPolicy.policy === "PARTIAL"
+                        ? "Partial refund"
+                        : "No refund"}
+                  </strong>
+                  {refundPolicy.policy !== "NONE" ? ` up to ₹${refundPolicy.amount}` : ""}. {refundPolicy.reason}
+                </Alert>
+              ) : null}
             </CardBody>
           </Card>
         ) : null}
@@ -1025,43 +1216,91 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                     <tr>
                       <th>Payout</th>
                       <th>Payee</th>
-                      <th>Payee id</th>
                       <th>Amount</th>
                       <th>Status</th>
                       <th>Settlement</th>
+                      <th>Created</th>
+                      <th>Decision</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row, index) => {
                       const id = pick(row, "payoutId", "PayoutId") || index;
+                      const status = String(pick(row, "status", "Status") || "").toUpperCase();
+                      const isPending = status === "PENDING";
+                      const busy = busyId === id;
+                      const otpMeta = otpMetaById[id];
+                      const resendIn = otpMeta ? Math.max(0, Math.ceil((otpMeta.resendAt - nowTick) / 1000)) : 0;
+                      const otpLive = Boolean(otpMeta && otpMeta.expiresAt > nowTick);
+                      const otpValue = String(otpById[id] || "");
+                      const canApprove = isPending && otpLive && /^\d{6}$/.test(otpValue) && !busy;
+                      const payeeType = pick(row, "payeeType", "PayeeType") || "—";
+                      const payeeName = pick(row, "payeeName", "PayeeName");
+                      const decidedAt = pick(row, "decidedAt", "DecidedAt");
+                      const decidedBy = pick(row, "decidedByName", "DecidedByName", "decidedBy", "DecidedBy");
+                      const rejectReason = pick(row, "rejectReason", "RejectReason");
+                      const statusTone = status === "APPROVED" ? "success" : status === "REJECTED" ? "danger" : "warning";
                       return (
                         <tr key={`${id}-${index}`}>
-                          <td>{id}</td>
-                          <td>{pick(row, "payeeType", "PayeeType") || "—"}</td>
-                          <td>{pick(row, "payeeId", "PayeeId") || "—"}</td>
+                          <td>#{id}</td>
+                          <td>
+                            <div>{payeeName || `${payeeType} ${pick(row, "payeeId", "PayeeId") || ""}`}</div>
+                            <div className="small text-muted">{payeeType} · id {pick(row, "payeeId", "PayeeId") || "—"}</div>
+                          </td>
                           <td>{money(pick(row, "amount", "Amount"))}</td>
-                          <td>{pick(row, "status", "Status") || "—"}</td>
+                          <td>
+                            <span className={`badge bg-${statusTone}-subtle text-${statusTone}`}>{status || "—"}</span>
+                          </td>
                           <td>{pick(row, "settlementRunId", "SettlementRunId") || "—"}</td>
-                          <td style={{ minWidth: 220 }}>
-                            <div className="d-flex flex-wrap gap-1 align-items-center">
-                              <Button size="sm" color="soft-secondary" disabled={busyId === id} onClick={() => runPayoutOtp(id)}>
-                                Send OTP
-                              </Button>
-                              <Input
-                                bsSize="sm"
-                                style={{ width: 90 }}
-                                placeholder="OTP"
-                                value={otpById[id] || ""}
-                                onChange={(e) => setOtpById({ ...otpById, [id]: e.target.value })}
-                              />
-                              <Button size="sm" color="soft-success" disabled={busyId === id} onClick={() => runApprove(id)}>
-                                Approve
-                              </Button>
-                              <Button size="sm" color="soft-danger" disabled={busyId === id} onClick={() => runReject(id)}>
-                                Reject
-                              </Button>
-                            </div>
+                          <td>{formatWhen(pick(row, "createdAt", "CreatedAt"))}</td>
+                          <td className="small">
+                            {decidedAt ? (
+                              <>
+                                <div>{formatWhen(decidedAt)}</div>
+                                {decidedBy ? <div className="text-muted">by {decidedBy}</div> : null}
+                                {rejectReason ? <div className="text-danger">{rejectReason}</div> : null}
+                              </>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td style={{ minWidth: 300 }}>
+                            {isPending ? (
+                              <div className="d-flex flex-wrap gap-1 align-items-center">
+                                <Button
+                                  size="sm"
+                                  color="soft-secondary"
+                                  disabled={busy || resendIn > 0}
+                                  onClick={() => runPayoutOtp(id)}
+                                >
+                                  {busy && !otpLive ? "Sending…" : resendIn > 0 ? `Resend in ${resendIn}s` : otpMeta ? "Resend OTP" : "Send OTP"}
+                                </Button>
+                                <Input
+                                  bsSize="sm"
+                                  style={{ width: 90 }}
+                                  placeholder="OTP"
+                                  inputMode="numeric"
+                                  maxLength={6}
+                                  disabled={!otpLive || busy}
+                                  value={otpValue}
+                                  onChange={(e) =>
+                                    setOtpById({ ...otpById, [id]: e.target.value.replace(/\D/g, "").slice(0, 6) })
+                                  }
+                                />
+                                <Button size="sm" color="soft-success" disabled={!canApprove} onClick={() => runApprove(id)}>
+                                  Approve
+                                </Button>
+                                <Button size="sm" color="soft-danger" disabled={busy} onClick={() => runReject(id)}>
+                                  Reject
+                                </Button>
+                                {otpMeta && !otpLive ? (
+                                  <span className="small text-danger w-100">OTP expired. Send a new one.</span>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <span className="small text-muted">No action. Payout is {status.toLowerCase() || "closed"}.</span>
+                            )}
                           </td>
                         </tr>
                       );

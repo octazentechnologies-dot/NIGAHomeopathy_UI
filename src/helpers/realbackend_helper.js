@@ -535,6 +535,36 @@ export const issueTeleSessionRejoinToken = async (sessionId) => {
   const raw = await rejoinTeleSession(sessionId);
   return mapTeleSessionTokenPayload(raw);
 };
+
+/** TEL-09.01 — pick the join-failure code the API understands from a failed token/rejoin call. */
+export const teleJoinFailureCode = (err) => {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return "NETWORK_ERROR";
+  const name = String(err?.name || "");
+  if (name === "NotAllowedError" || name === "SecurityError") return "DEVICE_DENIED";
+  if (name === "NotSupportedError") return "BROWSER_UNSUPPORTED";
+  const text = typeof err === "string" ? err : String(err?.message || "");
+  if (/network|timeout|failed to fetch/i.test(text)) return "NETWORK_ERROR";
+  return "TOKEN_FAILED";
+};
+
+/**
+ * TEL-09.01 — log a failed join and return the fallback the screen should offer.
+ * Logging failure must not hide the original join error, so this never throws.
+ */
+export const reportTeleJoinFailure = async (sessionId, code) => {
+  try {
+    const root = (await nigahomeoAPI.post(url.TELE_SESSION_JOIN_FAILURE(sessionId), { code })) || {};
+    return {
+      code: root?.code ?? code,
+      message: root?.message ?? "",
+      retry: root?.retry !== false,
+      rejoin: Boolean(root?.rejoin),
+      supportPath: root?.supportPath === "/support" ? "/patient/support" : root?.supportPath || "",
+    };
+  } catch (_) {
+    return { code, message: "", retry: true, rejoin: false, supportPath: "" };
+  }
+};
 /** TEL-10.02 — post/list tele chat (doctor and mapped patient only). */
 export const postTeleChat = (data) => nigahomeoAPI.post(url.TELE_CHAT, data);
 export const listTeleChat = (sessionId) => nigahomeoAPI.get(url.TELE_CHAT_LIST(sessionId), null);
@@ -573,7 +603,9 @@ export const getDoctorMobileContext = (patientAppId) =>
  * DMO-09.02 — refill inbox + approve/reject. Doctor JWT only.
  * Empty list until prescriptions exist. Reject requires reason. Snapshot not editable here.
  */
-export const listDoctorRefills = () => nigahomeoAPI.get(url.REFILL_LIST, null);
+export const listDoctorRefills = (status) =>
+  nigahomeoAPI.get(url.REFILL_LIST, status ? { status } : null);
+export const getDoctorRefill = (refillId) => nigahomeoAPI.get(url.REFILL_DETAIL(refillId), null);
 export const approveDoctorRefill = (refillId) =>
   nigahomeoAPI.post(url.REFILL_APPROVE(refillId), null, { returnErrorBody: true });
 export const rejectDoctorRefill = (refillId, reason) =>
@@ -857,6 +889,13 @@ export const uploadDoctorProfilePhoto = (formData) =>
 export const getDoctorCredentialsMe = () => nigahomeoAPI.get("/Profile/Me/Credentials", null);
 export const uploadDoctorCredentialDocument = (formData) =>
   nigahomeoMultipart.post("/Profile/Me/CredentialDocuments", formData);
+export const updateDoctorCredentialDocument = (id, formData) =>
+  nigahomeoMultipart.put(`/Profile/Me/CredentialDocuments/${id}`, formData);
+export const deleteDoctorCredentialDocument = (id) =>
+  nigahomeoAPI.delete(`/Profile/Me/CredentialDocuments/${id}`);
+export const removeDoctorProfilePhoto = () => nigahomeoAPI.delete("/Profile/Me/Photo");
+export const getDoctorPhotoBlob = (doctorId) =>
+  nigahomeoAPI.get(`/Profile/Photo/${doctorId}`, { responseType: "blob" });
 export const downloadDoctorCredentialDocument = (id) =>
   nigahomeoAPI.get(`/Profile/CredentialDocuments/${id}/File`, { responseType: "blob" });
 export const getAvailabilityMe = () => nigahomeoAPI.get("/Availability/Me", null);

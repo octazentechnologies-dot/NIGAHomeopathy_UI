@@ -490,6 +490,8 @@ export const TELE_QUEUE = "/Tele/Queue";
 /** TEL-04.01 — client-agnostic session join token (web + mobile same URL/JSON). */
 export const TELE_SESSION_TOKEN = (sessionId) => `/Tele/Sessions/${sessionId}/Token`;
 export const TELE_SESSION_REJOIN = (sessionId) => `/Tele/Sessions/${sessionId}/Rejoin`;
+/** TEL-09.01 — log a failed join; response says whether to retry / rejoin / contact support. */
+export const TELE_SESSION_JOIN_FAILURE = (sessionId) => `/Tele/Sessions/${sessionId}/JoinFailure`;
 /** TEL-04.01 — waiting-room status poll (patient or doctor JWT). */
 export const TELE_SESSION_STATUS = (sessionId) => `/Tele/Sessions/${sessionId}`;
 /** TEL-03.02 — doctor create / start / end tele room. */
@@ -517,6 +519,7 @@ export const DOCTOR_MOBILE_CONTEXT = (patientAppId) =>
   `/DoctorMobile/Context/${patientAppId}`;
 /** DMO-09.02 — doctor refill inbox + approve/reject (snapshot not editable). */
 export const REFILL_LIST = "/Refill";
+export const REFILL_DETAIL = (refillId) => `/Refill/${refillId}`;
 export const REFILL_APPROVE = (refillId) => `/Refill/${refillId}/Approve`;
 export const REFILL_REJECT = (refillId) => `/Refill/${refillId}/Reject`;
 /** SUP-01.02 — patient create / list-mine support tickets. */

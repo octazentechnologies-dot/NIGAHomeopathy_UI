@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import classnames from "classnames";
 import {
   Card,
@@ -224,7 +224,24 @@ const unwrapQueue = (response) => {
   return Array.isArray(rows) ? rows : [];
 };
 
-const TodaysAppointments = ({ onEditAppointment }) => {
+const applyPaymentPatch = (row, patch) => {
+  if (!patch || String(row.patientAppId) !== String(patch.patientAppId)) return row;
+  const pay = paymentStatusMeta(patch.paymentStatus);
+  return {
+    ...row,
+    status: pay.label,
+    statusTone: pay.tone,
+    paymentStatusRaw: patch.paymentStatus,
+    paymentDetails: {
+      ...row.paymentDetails,
+      amount: pay.label === "Paid" ? row.payment : row.paymentDetails?.amount,
+      method: patch.paymentMethod || row.paymentDetails?.method,
+      notes: pay.label === "Paid" ? "" : row.paymentDetails?.notes,
+    },
+  };
+};
+
+const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, paymentPatch = null }) => {
   const doctorId = readReceptionDoctorId();
   const [activeTab, setActiveTab] = useState("1");
   const [searchTerm, setSearchTerm] = useState("");
@@ -235,9 +252,19 @@ const TodaysAppointments = ({ onEditAppointment }) => {
   const [allSource, setAllSource] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const lastLoadKeyRef = useRef("");
+
+  useEffect(() => {
+    if (!paymentPatch?.patientAppId) return;
+    setTodaySource((rows) => rows.map((row) => applyPaymentPatch(row, paymentPatch)));
+    setAllSource((rows) => rows.map((row) => applyPaymentPatch(row, paymentPatch)));
+  }, [paymentPatch]);
 
   useEffect(() => {
     let cancelled = false;
+    const loadKey = `${doctorId}|${selectedDate}`;
+    const silent = lastLoadKeyRef.current === loadKey;
+    lastLoadKeyRef.current = loadKey;
     const load = async () => {
       if (!doctorId) {
         setTodaySource([]);
@@ -245,7 +272,7 @@ const TodaysAppointments = ({ onEditAppointment }) => {
         setLoadError("Reception doctor context is missing.");
         return;
       }
-      setLoading(true);
+      if (!silent) setLoading(true);
       setLoadError("");
       const isoDate = moment(selectedDate, DOB_DISPLAY_FORMAT, true).isValid()
         ? moment(selectedDate, DOB_DISPLAY_FORMAT).format("YYYY-MM-DD")
@@ -278,7 +305,7 @@ const TodaysAppointments = ({ onEditAppointment }) => {
     return () => {
       cancelled = true;
     };
-  }, [doctorId, selectedDate]);
+  }, [doctorId, selectedDate, refreshKey]);
 
   const needle = searchTerm.trim().toLowerCase();
   const todayRows = useMemo(
