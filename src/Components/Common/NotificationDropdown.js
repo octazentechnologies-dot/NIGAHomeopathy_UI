@@ -13,6 +13,7 @@ import avatar6 from "../../assets/images/users/avatar-6.jpg";
 import SimpleBar from "simplebar-react";
 import { UserRole } from '../constants/roles';
 import { readPlanActive } from '../../helpers/client_error_reporter';
+import { listNotifications, patchNotification } from '../../helpers/s5Week5Api';
 
 const MESSAGE_NOTIFICATIONS = [
     {
@@ -227,6 +228,7 @@ const NotificationDropdown = () => {
         isPlanActive: true
     });
     const [isDoctorRole, setIsDoctorRole] = useState(false);
+    const [clinicNotes, setClinicNotes] = useState([]);
     const loginUser = useSelector((state) => state?.Login?.user);
 
     useEffect(() => {
@@ -276,9 +278,37 @@ const NotificationDropdown = () => {
         }
     }, [loginUser]);
 
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const response = await listNotifications();
+                const rows = Array.isArray(response?.data) ? response.data : [];
+                if (!cancelled) setClinicNotes(rows);
+            } catch {
+                if (!cancelled) setClinicNotes([]);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [loginUser]);
+
+    const markClinicNote = async (id) => {
+        try {
+            await patchNotification(id, true);
+            setClinicNotes((current) => current.map((row) => (
+                (row.appNotificationId || row.AppNotificationId) === id ? { ...row, isRead: true } : row
+            )));
+        } catch {
+            /* keep the row visible if the mark fails */
+        }
+    };
+
+    const unreadClinic = clinicNotes.filter((row) => !(row.isRead ?? row.IsRead)).length;
     const messageCount = MESSAGE_NOTIFICATIONS.length;
     const alertCount = ALERT_NOTIFICATIONS.length + (subscriptionExpiration.show && isDoctorRole ? 1 : 0);
-    const totalNotificationCount = messageCount + alertCount;
+    const totalNotificationCount = messageCount + alertCount + unreadClinic;
 
     // Combined All feed ordered by recency (alerts/messages interleaved by time)
     const allItems = [
@@ -362,6 +392,23 @@ const NotificationDropdown = () => {
                     <TabContent activeTab={activeTab}>
                         <TabPane tabId="1" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
+                                {clinicNotes.map((row) => {
+                                    const id = row.appNotificationId || row.AppNotificationId;
+                                    const read = row.isRead ?? row.IsRead;
+                                    return (
+                                        <div key={id} className="text-reset notification-item d-block dropdown-item position-relative">
+                                            <div className="d-flex">
+                                                <div className="flex-grow-1">
+                                                    <h6 className="mt-0 mb-1 fs-13 fw-semibold">{row.title || row.Title}</h6>
+                                                    <div className="fs-13 text-muted">{row.body || row.Body}</div>
+                                                </div>
+                                                {!read ? (
+                                                    <button type="button" className="btn btn-sm btn-link" onClick={() => markClinicNote(id)}>Read</button>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                                 {subscriptionExpiration.show && isDoctorRole && (
                                     <SubscriptionItem
                                         subscriptionExpiration={subscriptionExpiration}

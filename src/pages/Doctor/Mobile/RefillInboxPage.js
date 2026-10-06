@@ -1,26 +1,40 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Container } from "reactstrap";
+import { Badge, ButtonGroup, Button, Container } from "reactstrap";
 
 import { listDoctorRefills } from "../../../helpers/realbackend_helper";
 
+const STATUS_FILTERS = ["PENDING", "APPROVED", "REJECTED", "ALL"];
+
+const STATUS_COLOR = { PENDING: "warning", APPROVED: "success", REJECTED: "danger" };
+
 const unwrapList = (payload) => {
-  const root = payload?.data !== undefined ? payload.data : payload;
-  const rows = root?.data ?? root?.Data ?? [];
-  const message = root?.message ?? root?.Message ?? payload?.message ?? "";
-  return {
-    rows: Array.isArray(rows) ? rows : [],
-    message: typeof message === "string" ? message : "",
-  };
+  const body = payload?.data !== undefined && !Array.isArray(payload) && payload?.success === undefined
+    ? payload.data
+    : payload;
+  const rows = Array.isArray(body) ? body : body?.data ?? body?.Data ?? [];
+  return Array.isArray(rows) ? rows : [];
+};
+
+const pick = (row, ...keys) => {
+  for (const key of keys) {
+    if (row?.[key] !== undefined && row?.[key] !== null) return row[key];
+  }
+  return undefined;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 };
 
 /**
  * DMO-09.02 — RefillInbox from GET /api/Refill (treating doctor).
- * Empty until prescriptions exist — do not invent requests locally.
  */
 const RefillInboxPage = () => {
   const [rows, setRows] = useState([]);
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState("PENDING");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [offline, setOffline] = useState(false);
@@ -35,36 +49,54 @@ const RefillInboxPage = () => {
       setLoading(false);
       return;
     }
-    listDoctorRefills()
-      .then((payload) => {
-        const { rows: list, message: msg } = unwrapList(payload);
-        setRows(list);
-        setMessage(msg);
-      })
+    listDoctorRefills(status)
+      .then((payload) => setRows(unwrapList(payload)))
       .catch((err) => {
-        const status = err?.response?.status ?? err?.status;
-        if (status === 403) {
-          setError("Refill approval is for the treating doctor.");
-        } else {
-          setError(err?.message || "Could not load refill inbox.");
-        }
+        setError(typeof err === "string" && err ? err : err?.message || "Could not load refill inbox.");
         setRows([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [status]);
 
   useEffect(() => {
     document.title = "Refill inbox | Homeocentrum";
     load();
   }, [load]);
 
+  const emptyText =
+    status === "PENDING"
+      ? "No pending refill requests. Patients request refills from a signed prescription."
+      : "No refill requests for this filter.";
+
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page" data-testid="refill-inbox">
       <Container fluid>
         <h2 className="clinic-page-title mb-2">Refill inbox</h2>
         <p className="clinic-page-subtitle small mb-3">
-          Approve or reject repeat prescription requests. Snapshot is read-only — no local edits.
+          Approve or reject repeat prescription requests. The signed prescription stays read-only.
         </p>
+
+        <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <ButtonGroup size="sm" aria-label="Filter by status">
+            {STATUS_FILTERS.map((value) => (
+              <Button
+                key={value}
+                color="primary"
+                outline={status !== value}
+                onClick={() => setStatus(value)}
+                disabled={loading}
+              >
+                {value.charAt(0) + value.slice(1).toLowerCase()}
+              </Button>
+            ))}
+          </ButtonGroup>
+          <Button size="sm" color="secondary" outline onClick={load} disabled={loading}>
+            {loading ? "Loading…" : "Refresh"}
+          </Button>
+          <Link className="btn btn-sm btn-link" to="/doctor/mobile/context">
+            Patient context
+          </Link>
+        </div>
 
         {loading ? (
           <p className="text-muted" data-testid="refill-inbox-loading">
@@ -85,51 +117,48 @@ const RefillInboxPage = () => {
         ) : null}
 
         {!loading && !error && rows.length === 0 ? (
-          <div
-            className="border rounded p-4 text-muted"
-            data-testid="refill-inbox-empty"
-          >
-            {message || "No refill requests until prescriptions are in place."}
+          <div className="border rounded p-4 text-muted" data-testid="refill-inbox-empty">
+            {emptyText}
           </div>
         ) : null}
 
-        {rows.length > 0 ? (
+        {!loading && rows.length > 0 ? (
           <ul className="list-unstyled" data-testid="refill-inbox-list">
             {rows.map((row) => {
-              const id = row.refillRequestId ?? row.RefillRequestId ?? row.id;
-              const status = row.status ?? row.Status ?? "—";
-              const patientId = row.patientId ?? row.PatientId;
+              const id = pick(row, "refillRequestId", "RefillRequestId", "id");
+              const rowStatus = String(pick(row, "status", "Status") || "—").toUpperCase();
+              const patientName = pick(row, "patientName", "PatientName");
+              const patientId = pick(row, "patientId", "PatientId");
+              const erxId = pick(row, "erxSnapshotId", "ErxSnapshotId");
+              const appId = pick(row, "patientAppId", "PatientAppId");
+              const reason = pick(row, "reason", "Reason");
               return (
-                <li key={id} className="border rounded p-3 mb-2 d-flex justify-content-between gap-2">
+                <li key={id} className="border rounded p-3 mb-2 d-flex justify-content-between align-items-start gap-2">
                   <div>
-                    <strong>{id}</strong>
-                    <div className="small text-muted">
-                      Patient {patientId ?? "—"} · {status}
+                    <div className="d-flex align-items-center gap-2">
+                      <strong>{patientName || `Patient ${patientId ?? "—"}`}</strong>
+                      <Badge color={STATUS_COLOR[rowStatus] || "secondary"}>{rowStatus}</Badge>
                     </div>
+                    <div className="small text-muted">
+                      Refill #{id} · eRx #{erxId ?? "—"}
+                      {appId ? ` · Appointment #${appId}` : ""}
+                    </div>
+                    <div className="small text-muted">
+                      Requested {formatDateTime(pick(row, "createdAt", "CreatedAt"))}
+                      {pick(row, "decidedAt", "DecidedAt")
+                        ? ` · Decided ${formatDateTime(pick(row, "decidedAt", "DecidedAt"))}`
+                        : ""}
+                    </div>
+                    {reason ? <div className="small text-danger">Reason: {reason}</div> : null}
                   </div>
-                  <Link
-                    className="btn btn-sm btn-primary"
-                    to={`/doctor/mobile/refill/${id}`}
-                  >
-                    Open
+                  <Link className="btn btn-sm btn-primary" to={`/doctor/mobile/refill/${id}`}>
+                    {rowStatus === "PENDING" ? "Review" : "Open"}
                   </Link>
                 </li>
               );
             })}
           </ul>
         ) : null}
-
-        <button
-          type="button"
-          className="btn btn-outline-secondary me-2"
-          onClick={load}
-          disabled={loading}
-        >
-          Refresh
-        </button>
-        <Link className="btn btn-link" to="/doctor/mobile/context">
-          Patient context
-        </Link>
       </Container>
     </div>
   );

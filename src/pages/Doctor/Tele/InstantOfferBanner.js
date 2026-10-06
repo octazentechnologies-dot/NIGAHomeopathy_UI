@@ -29,16 +29,20 @@ const InstantOfferBanner = () => {
     return () => clearInterval(timer);
   }, []);
 
-  if (!SHOW_INSTANT_OFFERS) return null;
+  const visible = offers.filter((row) =>
+    row.instantConsultRequestId ||
+    row.InstantConsultRequestId ||
+    row.requestId ||
+    row.RequestId ||
+    row.id
+  );
+  if (!SHOW_INSTANT_OFFERS || visible.length === 0) return null;
 
   return (
     <Alert color="warning" className="mb-3">
       <div className="fw-medium mb-2">Instant consult offers</div>
-      {!offers.length ? (
-        <div className="text-muted small">No patient is waiting for an instant consult right now.</div>
-      ) : null}
       {error ? <div className="text-danger small mb-2">{error}</div> : null}
-      {offers.map((row) => {
+      {visible.map((row) => {
         const id =
           row.instantConsultRequestId ||
           row.InstantConsultRequestId ||

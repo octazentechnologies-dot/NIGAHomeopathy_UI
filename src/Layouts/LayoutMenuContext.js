@@ -110,16 +110,8 @@ export const LayoutMenuProvider = ({ children }) => {
         };
       }
       if (role === UserRole.DOCTOR) {
-        const hasTelemedicine = DOCTOR_FALLBACK_MENU.some((item) => item.link === "/doctor/telemedicine");
-        const doctorItems = hasTelemedicine
-          ? DOCTOR_FALLBACK_MENU
-          : [
-              ...DOCTOR_FALLBACK_MENU.slice(0, 3),
-              { id: "doctor-telemedicine", label: "Telemedicine", icon: "ri-vidicon-line", link: "/doctor/telemedicine" },
-              ...DOCTOR_FALLBACK_MENU.slice(3),
-            ];
         return {
-          menuItems: doctorItems,
+          menuItems: DOCTOR_FALLBACK_MENU,
           moreMenuItems: [],
         };
       }

@@ -9,10 +9,8 @@ import {
   Col,
   Card,
   CardBody,
-  Alert,
   Label,
   Input,
-  FormFeedback,
   Form,
   Nav,
   NavItem,
@@ -22,14 +20,12 @@ import {
   UncontrolledTooltip,
 } from "reactstrap";
 
-import * as Yup from "yup";
-import { useFormik } from "formik";
 import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from "reselect";
 import Swal from "sweetalert2";
 
 import ModalActionButton from "../../Components/Common/ModalActionButton";
-import { editProfile, resetProfileFlag } from "../../slices/thunks";
+import { resetProfileFlag } from "../../slices/thunks";
 import { navigateToRoleDashboard } from "../../helpers/navigateToRoleDashboard";
 import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
@@ -42,7 +38,11 @@ import {
   uploadDoctorProfilePhoto,
   getDoctorCredentialsMe,
   uploadDoctorCredentialDocument,
+  updateDoctorCredentialDocument,
+  deleteDoctorCredentialDocument,
   downloadDoctorCredentialDocument,
+  removeDoctorProfilePhoto,
+  getDoctorPhotoBlob,
   getAvailabilityMe,
   updateAvailabilityMe,
   confirmMobileAgainstProfile,
@@ -61,8 +61,8 @@ const PROFILE_TABS = [
 ];
 
 const getProfileTabsForRole = (role) => {
-  if (role === UserRole.RECEPTION) {
-    return PROFILE_TABS.filter((tab) => !tab.doctorOnly);
+  if (role && role !== UserRole.DOCTOR) {
+    return PROFILE_TABS.filter((tab) => tab.id === "profile");
   }
   return PROFILE_TABS;
 };
@@ -280,31 +280,39 @@ const INDIAN_STATES = [
 ];
 
 const DEFAULT_CLINIC_FORM = {
-  clinicName: "Homeocentrum Clinic",
-  addressLine1: "123 MG Road",
-  addressLine2: "Near City Hospital",
-  city: "Bangalore",
-  state: "Karnataka",
-  pincode: "560001",
-  contactNumber: "9876543210",
-  email: "clinic@drnikhiljamdar.com",
-  googleMapsLink: "https://maps.google.com/...",
+  clinicName: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  pincode: "",
+  contactNumber: "",
+  email: "",
+  googleMapsLink: "",
 };
 
 const DEFAULT_FEES_FORM = {
   inClinic: {
-    consultationFee: "800",
-    followUpFee: "500",
+    consultationFee: "",
+    followUpFee: "",
     currency: "INR",
-    freeFollowUpDays: "15",
+    freeFollowUpDays: "",
   },
   tele: {
-    enabled: true,
-    consultationFee: "600",
-    followUpFee: "400",
+    enabled: false,
+    consultationFee: "",
+    followUpFee: "",
     currency: "INR",
-    freeFollowUpDays: "10",
+    freeFollowUpDays: "",
   },
+};
+
+const toFieldText = (value) => (value === null || value === undefined ? "" : String(value));
+const toOptionalNumber = (value) => {
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : undefined;
 };
 
 const CURRENCY_OPTIONS = [
@@ -329,13 +337,13 @@ const BANK_NAME_OPTIONS = [
 const ACCOUNT_TYPE_OPTIONS = ["Savings", "Current"];
 
 const DEFAULT_BANK_FORM = {
-  accountHolderName: "Dr. Nikhil Jamdar",
-  bankName: "HDFC Bank",
-  accountNumber: "50100123456789",
-  confirmAccountNumber: "50100123456789",
-  ifscCode: "HDFC0001234",
-  branchName: "MG Road, Bangalore",
-  accountType: "Savings",
+  accountHolderName: "",
+  bankName: "",
+  accountNumber: "",
+  confirmAccountNumber: "",
+  ifscCode: "",
+  branchName: "",
+  accountType: "",
 };
 
 const DEGREE_OPTIONS = ["BHMS", "MD", "BAMS", "DHMS", "MBBS", "PhD", "Other"];
@@ -346,30 +354,18 @@ const EMPTY_QUALIFICATION_FORM = {
   institution: "",
   year: "",
   documentName: "",
-  documentUrl: "",
   documentFile: null,
 };
 
-const INITIAL_QUALIFICATIONS = [
-  {
-    id: 1,
-    degree: "BHMS",
-    specialization: "Homoeopathy",
-    institution: "ABC College",
-    year: "2010",
-    documentName: "bhms-certificate.pdf",
-    documentUrl: "#",
-  },
-  {
-    id: 2,
-    degree: "MD",
-    specialization: "Homoeopathy",
-    institution: "XYZ University",
-    year: "2014",
-    documentName: "md-certificate.pdf",
-    documentUrl: "#",
-  },
-];
+const mapQualificationDoc = (doc) => ({
+  id: doc.doctorCredentialDocumentId ?? doc.DoctorCredentialDocumentId,
+  degree: doc.degree || doc.Degree || "",
+  specialization: doc.specialization || doc.Specialization || "—",
+  institution: doc.institution || doc.Institution || "",
+  year: toFieldText(doc.passingYear ?? doc.PassingYear),
+  documentName: doc.fileName || doc.FileName || "",
+  hasFile: Boolean(doc.filePath || doc.FilePath),
+});
 
 const QUALIFICATION_YEAR_OPTIONS = Array.from(
   { length: new Date().getFullYear() - 1979 },
@@ -424,32 +420,23 @@ const createDefaultHoursDay = (overrides = {}) => ({
   ...overrides,
 });
 
-const INITIAL_HOURS_SCHEDULE = {
-  monday: createDefaultHoursDay(),
-  tuesday: createDefaultHoursDay(),
-  wednesday: createDefaultHoursDay({ breakEnabled: true, breakFrom: "01:00 PM", breakTo: "02:00 PM" }),
-  thursday: createDefaultHoursDay(),
-  friday: createDefaultHoursDay(),
-  saturday: createDefaultHoursDay({
-    startTime: "10:00 AM",
-    endTime: "02:00 PM",
-    breakEnabled: true,
-    breakFrom: "01:00 PM",
-    breakTo: "01:30 PM",
-  }),
-  sunday: createDefaultHoursDay({
-    available: false,
-    startTime: "",
-    endTime: "",
-    breakEnabled: false,
-    breakFrom: "",
-    breakTo: "",
-  }),
+const UNAVAILABLE_DAY = {
+  available: false,
+  startTime: "",
+  endTime: "",
+  breakEnabled: false,
+  breakFrom: "",
+  breakTo: "",
 };
+
+const INITIAL_HOURS_SCHEDULE = WEEK_DAYS.reduce(
+  (acc, day) => ({ ...acc, [day.id]: { ...UNAVAILABLE_DAY } }),
+  {}
+);
 
 const INITIAL_CONSULTATION_MODE = {
   inClinic: true,
-  teleconsultation: true,
+  teleconsultation: false,
   both: false,
 };
 
@@ -533,9 +520,12 @@ const UserProfile = () => {
   const navigate = useNavigate();
 
   const [userData, setUserData] = useState(null);
-  const [email, setemail] = useState("admin@gmail.com");
-  const [idx, setidx] = useState("1");
-  const [userName, setUserName] = useState("Admin");
+  const [email, setemail] = useState("");
+  const [idx, setidx] = useState("");
+  const [userName, setUserName] = useState("");
+  const [doctorMobile, setDoctorMobile] = useState("");
+  const [personalForm, setPersonalForm] = useState({ firstName: "", lastName: "", email: "", mobileNo: "" });
+  const [personalSaving, setPersonalSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("clinic");
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
   const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
@@ -545,7 +535,8 @@ const UserProfile = () => {
   const [photoFileInputKey, setPhotoFileInputKey] = useState(0);
   const [photoFile, setPhotoFile] = useState(null);
   const photoInputRef = useRef(null);
-  const [qualifications, setQualifications] = useState(INITIAL_QUALIFICATIONS);
+  const [qualifications, setQualifications] = useState([]);
+  const [qualificationBusy, setQualificationBusy] = useState(false);
   const [qualificationForm, setQualificationForm] = useState(EMPTY_QUALIFICATION_FORM);
   const [editingQualificationId, setEditingQualificationId] = useState(null);
   const [qualificationFileKey, setQualificationFileKey] = useState(0);
@@ -560,20 +551,19 @@ const UserProfile = () => {
   const selectLayoutState = (state) => state.Profile;
   const userprofileData = createSelector(selectLayoutState, (state) => ({
     user: state.user,
-    success: state.success,
-    error: state.error,
   }));
 
-  const { user, success, error } = useSelector(userprofileData);
+  const { user } = useSelector(userprofileData);
 
   const isReceptionUser = userData?.role === UserRole.RECEPTION;
   const roleLabel = getRoleDisplayLabel(userData?.role);
+  const doctorDisplayName = String(userName || "").replace(/^dr\.?\s*/i, "").trim();
   const profileSubjectName =
     userData?.role === UserRole.DOCTOR
-      ? `Dr. ${String(userName || "Nikhil Jamdar")
-          .replace(/^dr\.?\s*/i, "")
-          .trim()}`
-      : userData?.displayName || userName || "Admin";
+      ? doctorDisplayName
+        ? `Dr. ${doctorDisplayName}`
+        : "Doctor"
+      : userData?.displayName || userName || "";
 
   useEffect(() => {
     const authUserStr = sessionStorage.getItem("authUser");
@@ -584,17 +574,9 @@ const UserProfile = () => {
 
         if (userInfo) {
           setUserData(userInfo);
-          setUserName(userInfo.userName || "Admin");
-          setemail(userInfo.email || "N/A");
-          setidx(userInfo.userId || userInfo._id || "1");
-
-          if (userInfo.role === UserRole.RECEPTION) {
-            const receptionName = userInfo.displayName || userInfo.userName || "Pooja";
-            setBankForm((prev) => ({
-              ...prev,
-              accountHolderName: receptionName,
-            }));
-          }
+          setUserName(userInfo.displayName || userInfo.userName || "");
+          setemail(userInfo.email || userInfo.emailId || userInfo.EmailId || "");
+          setidx(userInfo.userId || userInfo._id || "");
 
           if (!isEmpty(user)) {
             const updatedObj = { ...obj };
@@ -623,6 +605,19 @@ const UserProfile = () => {
     }
   }, [userData?.role, activeTab]);
 
+  const loadQualifications = (isCancelled = () => false) =>
+    getDoctorCredentialsMe()
+      .then((payload) => {
+        if (isCancelled()) return;
+        const me = payload?.data ?? payload?.Data ?? payload;
+        const docs = me?.documents ?? me?.Documents ?? [];
+        const rows = (Array.isArray(docs) ? docs : [])
+          .filter((doc) => /^qualification$/i.test(doc.documentType || doc.DocumentType || ""))
+          .map(mapQualificationDoc);
+        setQualifications(rows);
+      })
+      .catch(() => {});
+
   useEffect(() => {
     let cancelled = false;
     let role = "";
@@ -633,72 +628,87 @@ const UserProfile = () => {
     } catch {
       role = "";
     }
-    if (role === UserRole.RECEPTION || isReceptionProfile || role === UserRole.PATIENT || isPatientProfile) return undefined;
+    if (role && role !== UserRole.DOCTOR) return undefined;
     getDoctorProfileMe()
       .then((payload) => {
         if (cancelled) return;
         const me = payload?.data ?? payload?.Data ?? payload;
         if (!me) return;
-        setClinicForm((prev) => ({
-          ...prev,
-          clinicName: me.clinicName || prev.clinicName,
-          addressLine1: me.addressLine1 || prev.addressLine1,
-          addressLine2: me.addressLine2 || prev.addressLine2,
-          city: me.city || prev.city,
-          state: me.state || prev.state,
-          pincode: me.pincode || prev.pincode,
-          contactNumber: me.mobileNo || prev.contactNumber,
-          email: me.emailId || prev.email,
-        }));
+        const fullName = [me.firstName, me.lastName].filter(Boolean).join(" ").trim();
+        if (fullName) setUserName(fullName);
+        setemail(me.emailId || "");
+        setDoctorMobile(me.mobileNo || "");
+        setPersonalForm({
+          firstName: me.firstName || "",
+          lastName: me.lastName || "",
+          email: me.emailId || "",
+          mobileNo: me.mobileNo || "",
+        });
+        setClinicForm({
+          clinicName: me.clinicName || "",
+          addressLine1: me.addressLine1 || "",
+          addressLine2: me.addressLine2 || "",
+          city: me.city || "",
+          state: me.state || "",
+          pincode: me.pincode || "",
+          contactNumber: me.mobileNo || "",
+          email: me.emailId || "",
+          googleMapsLink: me.googleMapsLink || "",
+        });
         setUserData((prev) => ({
           ...prev,
-          firstName: me.firstName || prev.firstName,
-          lastName: me.lastName || prev.lastName,
-          email: me.emailId || prev.email,
-          userName: [me.firstName, me.lastName].filter(Boolean).join(" ").trim() || prev.userName,
+          firstName: me.firstName || "",
+          lastName: me.lastName || "",
+          email: me.emailId || "",
+          mobileNo: me.mobileNo || "",
+          doctorId: me.doctorId,
+          verificationStatus: me.verificationStatus || "",
+          userName: fullName || prev?.userName,
         }));
-        setFeesForm((prev) => ({
-          ...prev,
+        const currency = me.feeCurrency || "INR";
+        const teleOn = me.consultFeeTele != null;
+        setFeesForm({
           inClinic: {
-            ...prev.inClinic,
-            consultationFee: me.consultFeeInClinic != null ? String(me.consultFeeInClinic) : prev.inClinic.consultationFee,
+            consultationFee: toFieldText(me.consultFeeInClinic),
+            followUpFee: toFieldText(me.followUpFeeInClinic),
+            currency,
+            freeFollowUpDays: toFieldText(me.freeFollowUpDaysInClinic),
           },
           tele: {
-            ...prev.tele,
-            enabled: me.consultFeeTele != null,
-            consultationFee: me.consultFeeTele != null ? String(me.consultFeeTele) : prev.tele.consultationFee,
+            enabled: teleOn,
+            consultationFee: toFieldText(me.consultFeeTele),
+            followUpFee: toFieldText(me.followUpFeeTele),
+            currency,
+            freeFollowUpDays: toFieldText(me.freeFollowUpDaysTele),
           },
-        }));
-        if (me.kyc) {
-          setBankForm((prev) => ({
-            ...prev,
-            accountHolderName: me.kyc.accountHolder || prev.accountHolderName,
-            bankName: me.kyc.bankName || prev.bankName,
-            accountNumber: me.kyc.accountNumber || prev.accountNumber,
-            confirmAccountNumber: me.kyc.accountNumber || prev.confirmAccountNumber,
-            ifscCode: me.kyc.ifsc || prev.ifscCode,
-          }));
+        });
+        setConsultationMode({
+          inClinic: true,
+          teleconsultation: teleOn || Boolean(me.isOnline),
+          both: teleOn || Boolean(me.isOnline),
+        });
+        const kyc = me.kyc || {};
+        setBankForm({
+          accountHolderName: kyc.accountHolder || "",
+          bankName: kyc.bankName || "",
+          accountNumber: kyc.accountNumber || "",
+          confirmAccountNumber: kyc.accountNumber || "",
+          ifscCode: kyc.ifsc || "",
+          branchName: kyc.branchName || "",
+          accountType: kyc.accountType || "",
+        });
+        if (me.photoPath && me.doctorId) {
+          getDoctorPhotoBlob(me.doctorId)
+            .then((response) => {
+              const blob = response?.data instanceof Blob ? response.data : response;
+              if (cancelled || !(blob instanceof Blob) || blob.size === 0) return;
+              setProfilePhoto(URL.createObjectURL(blob));
+            })
+            .catch(() => {});
         }
       })
       .catch(() => {});
-    getDoctorCredentialsMe()
-      .then((payload) => {
-        if (cancelled) return;
-        const docs = payload?.data?.documents ?? payload?.data?.Documents ?? [];
-        if (!Array.isArray(docs) || docs.length === 0) return;
-        setQualifications(
-          docs.map((doc, index) => ({
-            id: doc.doctorCredentialDocumentId ?? index + 1,
-            degree: doc.documentType || "Qualification",
-            specialization: "—",
-            institution: "",
-            year: "",
-            documentName: doc.fileName,
-            documentUrl: doc.filePath || "#",
-          }))
-        );
-      })
-      .catch(() => {});
+    loadQualifications(() => cancelled);
     getAvailabilityMe()
       .then((payload) => {
         if (cancelled) return;
@@ -708,7 +718,7 @@ const UserProfile = () => {
         setHoursSchedule((prev) => {
           const next = { ...prev };
           WEEK_DAYS.forEach((day) => {
-            next[day.id] = { ...next[day.id], available: false, startTime: "", endTime: "" };
+            next[day.id] = { ...UNAVAILABLE_DAY };
           });
           rows.forEach((row) => {
             const id = weekdayIdFromDate(row.scheduleDate || row.ScheduleDate);
@@ -731,19 +741,49 @@ const UserProfile = () => {
     };
   }, []);
 
-  const validation = useFormik({
-    enableReinitialize: true,
-    initialValues: {
-      first_name: userName || "Admin",
-      idx: idx || "",
-    },
-    validationSchema: Yup.object({
-      first_name: Yup.string().required("Please Enter Your UserName"),
-    }),
-    onSubmit: (values) => {
-      dispatch(editProfile(values));
-    },
-  });
+  const handleSavePersonal = async (event) => {
+    event.preventDefault();
+    const firstName = personalForm.firstName.trim();
+    const lastName = personalForm.lastName.trim();
+    const emailValue = personalForm.email.trim();
+    const mobileValue = personalForm.mobileNo.trim();
+    if (!firstName || !lastName) {
+      showSaveResult(false, "First name and last name are required.");
+      return;
+    }
+    if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      showSaveResult(false, "Enter a valid email address.");
+      return;
+    }
+    if (mobileValue && mobileValue.replace(/\D/g, "").length < 10) {
+      showSaveResult(false, "Enter a valid mobile number (at least 10 digits).");
+      return;
+    }
+    setPersonalSaving(true);
+    try {
+      await updateDoctorProfileMe({ firstName, lastName, emailId: emailValue, mobileNo: mobileValue });
+      const fullName = `${firstName} ${lastName}`.trim();
+      setUserName(fullName);
+      setemail(emailValue);
+      setDoctorMobile(mobileValue);
+      setClinicForm((prev) => ({ ...prev, email: emailValue, contactNumber: mobileValue }));
+      setUserData((prev) => ({ ...prev, firstName, lastName, email: emailValue, mobileNo: mobileValue }));
+      try {
+        const stored = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+        const target = stored.data || stored;
+        target.email = emailValue;
+        target.displayName = fullName;
+        sessionStorage.setItem("authUser", JSON.stringify(stored));
+      } catch (_) {
+        /* session copy is display-only */
+      }
+      showSaveResult(true, "Personal details have been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Save failed.");
+    } finally {
+      setPersonalSaving(false);
+    }
+  };
 
   const handleBackToDashboard = () => {
     navigateToRoleDashboard(navigate);
@@ -760,6 +800,14 @@ const UserProfile = () => {
   };
 
   const updateFeesSection = (section, field, value) => {
+    if (field === "currency") {
+      setFeesForm((prev) => ({
+        ...prev,
+        inClinic: { ...prev.inClinic, currency: value },
+        tele: { ...prev.tele, currency: value },
+      }));
+      return;
+    }
     setFeesForm((prev) => ({
       ...prev,
       [section]: {
@@ -800,7 +848,11 @@ const UserProfile = () => {
         pincode: clinicForm.pincode.trim(),
         emailId: clinicForm.email.trim(),
         mobileNo: clinicForm.contactNumber.trim(),
+        googleMapsLink: (clinicForm.googleMapsLink || "").trim(),
       });
+      setemail(clinicForm.email.trim());
+      setDoctorMobile(clinicForm.contactNumber.trim());
+      setPersonalForm((prev) => ({ ...prev, email: clinicForm.email.trim(), mobileNo: clinicForm.contactNumber.trim() }));
       if (clinicForm.contactNumber.trim()) {
         try {
           const check = await confirmMobileAgainstProfile({ mobileNo: clinicForm.contactNumber.trim() });
@@ -843,9 +895,16 @@ const UserProfile = () => {
     }
 
     try {
+      const teleOn = Boolean(feesForm.tele.enabled);
       await updateDoctorProfileMe({
         consultFeeInClinic: Number(feesForm.inClinic.consultationFee),
-        consultFeeTele: feesForm.tele.enabled ? Number(feesForm.tele.consultationFee) : null,
+        consultFeeTele: teleOn ? Number(feesForm.tele.consultationFee) : null,
+        followUpFeeInClinic: toOptionalNumber(feesForm.inClinic.followUpFee),
+        followUpFeeTele: teleOn ? toOptionalNumber(feesForm.tele.followUpFee) : null,
+        freeFollowUpDaysInClinic: toOptionalNumber(feesForm.inClinic.freeFollowUpDays),
+        freeFollowUpDaysTele: teleOn ? toOptionalNumber(feesForm.tele.freeFollowUpDays) : null,
+        feeCurrency: feesForm.inClinic.currency || "INR",
+        teleDisabled: !teleOn,
       });
       showSaveResult(true, "Consultation fees have been updated.");
     } catch (err) {
@@ -897,7 +956,17 @@ const UserProfile = () => {
     });
   };
 
-  const handleRemovePhoto = () => {
+  const handleRemovePhoto = async () => {
+    if (photoFile) {
+      setPhotoFile(null);
+    } else {
+      try {
+        await removeDoctorProfilePhoto();
+      } catch (err) {
+        showSaveResult(false, typeof err === "string" ? err : err?.message || "Could not remove photo.");
+        return;
+      }
+    }
     setProfilePhoto((prev) => {
       if (prev && prev !== avatar1 && typeof prev === "string" && prev.startsWith("blob:")) {
         URL.revokeObjectURL(prev);
@@ -924,6 +993,7 @@ const UserProfile = () => {
       const formData = new FormData();
       formData.append("file", photoFile);
       await uploadDoctorProfilePhoto(formData);
+      setPhotoFile(null);
       showSaveResult(true, "Doctor profile photo has been updated.");
     } catch (err) {
       showSaveResult(false, typeof err === "string" ? err : err?.message || "Photo upload failed.");
@@ -970,36 +1040,31 @@ const UserProfile = () => {
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
-    setQualificationForm((prev) => {
-      if (prev.documentUrl && prev.documentUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(prev.documentUrl);
-      }
-      return {
-        ...prev,
-        documentName: file.name,
-        documentUrl: objectUrl,
-        documentFile: file,
-      };
-    });
+    setQualificationForm((prev) => ({
+      ...prev,
+      documentName: file.name,
+      documentFile: file,
+    }));
   };
 
   const handleSaveQualifications = async (event) => {
     event.preventDefault();
-    try {
-      if (qualificationForm.documentFile) {
-        const formData = new FormData();
-        formData.append("file", qualificationForm.documentFile);
-        formData.append("documentType", "Qualification");
-        await uploadDoctorCredentialDocument(formData);
-      }
-      showSaveResult(true, "Qualifications have been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Qualification save failed.");
-    }
+    await loadQualifications();
+    showSaveResult(true, "Qualifications are saved. Each row is stored as soon as you add or update it.");
   };
 
-  const handleAddOrUpdateQualification = (event) => {
+  const buildQualificationFormData = () => {
+    const formData = new FormData();
+    if (qualificationForm.documentFile) formData.append("file", qualificationForm.documentFile);
+    formData.append("documentType", "Qualification");
+    formData.append("degree", qualificationForm.degree.trim());
+    formData.append("specialization", qualificationForm.specialization.trim());
+    formData.append("institution", qualificationForm.institution.trim());
+    formData.append("passingYear", qualificationForm.year.trim());
+    return formData;
+  };
+
+  const handleAddOrUpdateQualification = async (event) => {
     event.preventDefault();
     if (
       !qualificationForm.degree.trim() ||
@@ -1016,60 +1081,41 @@ const UserProfile = () => {
       return;
     }
 
-    if (editingQualificationId != null) {
-      setQualifications((prev) =>
-        prev.map((item) =>
-          item.id === editingQualificationId
-            ? {
-                ...item,
-                degree: qualificationForm.degree.trim(),
-                specialization: qualificationForm.specialization.trim() || "—",
-                institution: qualificationForm.institution.trim(),
-                year: qualificationForm.year.trim(),
-                documentName: qualificationForm.documentName || item.documentName,
-                documentUrl: qualificationForm.documentUrl || item.documentUrl,
-              }
-            : item
-        )
-      );
-      resetQualificationForm();
+    const isEdit = editingQualificationId != null;
+    if (!isEdit && !qualificationForm.documentFile) {
       Swal.fire({
-        title: "Updated!",
-        text: "Qualification has been updated.",
-        icon: "success",
-        timer: 1400,
+        title: "Certificate required",
+        text: "Attach the certificate (PDF, JPG or PNG) before adding the qualification.",
+        icon: "warning",
+        timer: 2000,
         showConfirmButton: false,
       });
       return;
     }
 
-    const nextId = qualifications.reduce((max, item) => Math.max(max, item.id), 0) + 1;
-    if (qualificationForm.documentFile) {
-      const formData = new FormData();
-      formData.append("file", qualificationForm.documentFile);
-      formData.append("documentType", "Qualification");
-      uploadDoctorCredentialDocument(formData).catch(() => {});
+    setQualificationBusy(true);
+    try {
+      if (isEdit) {
+        await updateDoctorCredentialDocument(editingQualificationId, buildQualificationFormData());
+      } else {
+        await uploadDoctorCredentialDocument(buildQualificationFormData());
+      }
+      resetQualificationForm();
+      await loadQualifications();
+      Swal.fire({
+        title: isEdit ? "Updated!" : "Added!",
+        text: isEdit
+          ? "Qualification has been updated."
+          : "Qualification has been added. It stays Pending until Admin reviews it.",
+        icon: "success",
+        timer: 1600,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Qualification save failed.");
+    } finally {
+      setQualificationBusy(false);
     }
-    setQualifications((prev) => [
-      ...prev,
-      {
-        id: nextId,
-        degree: qualificationForm.degree.trim(),
-        specialization: qualificationForm.specialization.trim() || "—",
-        institution: qualificationForm.institution.trim(),
-        year: qualificationForm.year.trim(),
-        documentName: qualificationForm.documentName || "",
-        documentUrl: qualificationForm.documentUrl || "#",
-      },
-    ]);
-    resetQualificationForm();
-    Swal.fire({
-      title: "Added!",
-      text: "Qualification has been added.",
-      icon: "success",
-      timer: 1400,
-      showConfirmButton: false,
-    });
   };
 
   const handleEditQualification = (item) => {
@@ -1080,7 +1126,7 @@ const UserProfile = () => {
       institution: item.institution || "",
       year: item.year || "",
       documentName: item.documentName || "",
-      documentUrl: item.documentUrl || "",
+      documentFile: null,
     });
     setQualificationFileKey((key) => key + 1);
   };
@@ -1094,8 +1140,14 @@ const UserProfile = () => {
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
       cancelButtonText: "Cancel",
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.isConfirmed) return;
+      try {
+        await deleteDoctorCredentialDocument(item.id);
+      } catch (err) {
+        showSaveResult(false, typeof err === "string" ? err : err?.message || "Delete failed.");
+        return;
+      }
       setQualifications((prev) => prev.filter((row) => row.id !== item.id));
       if (editingQualificationId === item.id) {
         resetQualificationForm();
@@ -1111,7 +1163,7 @@ const UserProfile = () => {
   };
 
   const handleViewQualificationDocument = (item) => {
-    if (!item.documentUrl || item.documentUrl === "#") {
+    if (!item.hasFile) {
       Swal.fire({
         title: "No document",
         text: "No certificate file is attached for this qualification.",
@@ -1121,7 +1173,7 @@ const UserProfile = () => {
       });
       return;
     }
-    window.open(item.documentUrl, "_blank", "noopener,noreferrer");
+    openCredentialDocument(item.id);
   };
 
   const updateHoursDay = (dayId, field, value) => {
@@ -1307,7 +1359,9 @@ const UserProfile = () => {
           accountHolder: bankForm.accountHolderName.trim(),
           bankName: bankForm.bankName.trim(),
           accountNumber: bankForm.accountNumber.trim(),
-          ifsc: bankForm.ifscCode.trim(),
+          ifsc: bankForm.ifscCode.trim().toUpperCase(),
+          branchName: (bankForm.branchName || "").trim(),
+          accountType: bankForm.accountType.trim(),
         },
       });
       showSaveResult(true, "Bank details have been updated.");
@@ -1353,7 +1407,7 @@ const UserProfile = () => {
                 <CardBody>
                   <h5 className="mb-1">Patient profile</h5>
                   <p className="text-muted">
-                    Update your name and contact, and grant privacy consent. Clinic hours and fees are not on this page.
+                    Update your personal and medical details, and manage privacy consent.
                   </p>
                   <PatientProfileFields />
                 </CardBody>
@@ -1394,16 +1448,13 @@ const UserProfile = () => {
           <Col xs={12}>
             <Card className="user-profile-card doctor-stats-card">
               <CardBody className="user-profile-card__body">
-                {error ? <Alert color="danger" className="mb-3">{error}</Alert> : null}
-                {success ? (
-                  <Alert color="success" className="mb-3">
-                    Username updated to {userName}
-                  </Alert>
-                ) : null}
-
                 <div className="user-profile-page__summary">
                   <span className="user-profile-page__avatar" aria-hidden="true">
-                    <i className="ri-user-heart-line" />
+                    {profilePhoto && profilePhoto !== avatar1 ? (
+                      <img src={profilePhoto} alt="" className="rounded-circle w-100 h-100" style={{ objectFit: "cover" }} />
+                    ) : (
+                      <i className="ri-user-heart-line" />
+                    )}
                   </span>
                   <div className="min-w-0">
                     <h5 className="user-profile-page__summary-name text-truncate">
@@ -1415,11 +1466,17 @@ const UserProfile = () => {
                     </p>
                     <p className="user-profile-page__summary-meta">
                       <i className="ri-mail-line" aria-hidden="true" />
-                      <span>Email: {email}</span>
+                      <span>Email: {email || "Not set"}</span>
                     </p>
+                    {doctorMobile ? (
+                      <p className="user-profile-page__summary-meta">
+                        <i className="ri-phone-line" aria-hidden="true" />
+                        <span>Mobile: {doctorMobile}</span>
+                      </p>
+                    ) : null}
                     <p className="user-profile-page__summary-meta mb-0">
                       <i className="ri-hashtag" aria-hidden="true" />
-                      <span>User ID: {idx}</span>
+                      <span>User ID: {idx || "—"}</span>
                     </p>
                   </div>
                 </div>
@@ -1455,23 +1512,39 @@ const UserProfile = () => {
                         </h5>
                         <Row className="g-3 new-patient-modal__fields user-profile-page__info-grid">
                           <ProfileInfoField icon="ri-user-line" label="Full Name">
-                            {userData.userName || "N/A"}
+                            {[userData.firstName, userData.lastName].filter(Boolean).join(" ") || userData.displayName || userData.userName || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-user-3-line" label="First Name">
-                            {userData.firstName || "N/A"}
+                            {userData.firstName || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-user-4-line" label="Last Name">
-                            {userData.lastName || "N/A"}
+                            {userData.lastName || "—"}
+                          </ProfileInfoField>
+                          <ProfileInfoField icon="ri-mail-line" label="Email">
+                            {email || "Not set"}
+                          </ProfileInfoField>
+                          <ProfileInfoField icon="ri-phone-line" label="Mobile">
+                            {doctorMobile || userData.mobileNo || userData.mobile || "—"}
+                          </ProfileInfoField>
+                          <ProfileInfoField icon="ri-user-settings-line" label="Login ID">
+                            {userData.userName || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-shield-user-line" label="Role">
                             <ProfileBadge tone="info">{roleLabel}</ProfileBadge>
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-key-line" label="Role ID">
-                            {userData.roleId || "N/A"}
+                            {userData.roleId || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
-                            {userData.userId || "N/A"}
+                            {userData.userId || "—"}
                           </ProfileInfoField>
+                          {userData.verificationStatus ? (
+                            <ProfileInfoField icon="ri-shield-check-line" label="Verification">
+                              <ProfileBadge tone={/approved/i.test(userData.verificationStatus) ? "success" : "warning"}>
+                                {userData.verificationStatus}
+                              </ProfileBadge>
+                            </ProfileInfoField>
+                          ) : null}
                           <ProfileInfoField icon="ri-vip-crown-line" label="Super User">
                             <ProfileBadge tone={userData.isSuperUser ? "success" : "neutral"}>
                               {userData.isSuperUser ? "Yes" : "No"}
@@ -1498,54 +1571,79 @@ const UserProfile = () => {
                       </>
                     ) : null}
 
-                    <div className="user-profile-page__divider" />
-
-                    <Form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        validation.handleSubmit();
-                        return false;
-                      }}
-                    >
-                      <div className="user-profile-page__row-section">
-                        <h5 className="user-profile-page__section-title">
-                          <i className="ri-edit-line" aria-hidden="true" />
-                          Change User Name
-                        </h5>
-                        <Row className="g-3 new-patient-modal__fields">
-                          <Col xs={12}>
-                            <Label htmlFor="profileUserName" className="form-label new-patient-modal__label">
-                              <i className="ri-user-line" aria-hidden="true" />
-                              User Name
-                            </Label>
-                            <Input
-                              id="profileUserName"
-                              name="first_name"
-                              className="form-control"
-                              placeholder="Enter user name"
-                              type="text"
-                              onChange={validation.handleChange}
-                              onBlur={validation.handleBlur}
-                              value={validation.values.first_name || ""}
-                              invalid={Boolean(validation.touched.first_name && validation.errors.first_name)}
-                            />
-                            {validation.touched.first_name && validation.errors.first_name ? (
-                              <FormFeedback type="invalid">{validation.errors.first_name}</FormFeedback>
-                            ) : null}
-                            <Input name="idx" value={idx} type="hidden" />
-                          </Col>
-                        </Row>
-                      </div>
-
-                      <div className="user-profile-page__form-footer">
-                        <ModalActionButton action="cancel" type="button" onClick={handleBackToDashboard}>
-                          Cancel
-                        </ModalActionButton>
-                        <ModalActionButton action="update" type="submit">
-                          Update
-                        </ModalActionButton>
-                      </div>
-                    </Form>
+                    {userData?.role === UserRole.DOCTOR ? (
+                      <>
+                        <div className="user-profile-page__divider" />
+                        <Form onSubmit={handleSavePersonal}>
+                          <div className="user-profile-page__row-section">
+                            <h5 className="user-profile-page__section-title">
+                              <i className="ri-edit-line" aria-hidden="true" />
+                              Personal Details
+                            </h5>
+                            <Row className="g-3 new-patient-modal__fields">
+                              <Col md={6} xs={12}>
+                                <Label htmlFor="profileFirstName" className="form-label new-patient-modal__label">
+                                  First Name
+                                  <RequiredMark />
+                                </Label>
+                                <Input
+                                  id="profileFirstName"
+                                  type="text"
+                                  value={personalForm.firstName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label htmlFor="profileLastName" className="form-label new-patient-modal__label">
+                                  Last Name
+                                  <RequiredMark />
+                                </Label>
+                                <Input
+                                  id="profileLastName"
+                                  type="text"
+                                  value={personalForm.lastName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label htmlFor="profileEmail" className="form-label new-patient-modal__label">
+                                  Email
+                                </Label>
+                                <Input
+                                  id="profileEmail"
+                                  type="email"
+                                  value={personalForm.email}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, email: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label htmlFor="profileMobile" className="form-label new-patient-modal__label">
+                                  Mobile
+                                </Label>
+                                <Input
+                                  id="profileMobile"
+                                  type="tel"
+                                  inputMode="numeric"
+                                  maxLength={15}
+                                  value={personalForm.mobileNo}
+                                  onChange={(e) =>
+                                    setPersonalForm((prev) => ({ ...prev, mobileNo: e.target.value.replace(/[^\d+]/g, "") }))
+                                  }
+                                />
+                              </Col>
+                            </Row>
+                          </div>
+                          <div className="user-profile-page__form-footer">
+                            <ModalActionButton action="cancel" type="button" onClick={handleBackToDashboard}>
+                              Cancel
+                            </ModalActionButton>
+                            <ModalActionButton action="update" type="submit" disabled={personalSaving}>
+                              {personalSaving ? "Saving..." : "Update"}
+                            </ModalActionButton>
+                          </div>
+                        </Form>
+                      </>
+                    ) : null}
                   </TabPane>
 
                   <TabPane tabId="clinic">
@@ -1619,6 +1717,10 @@ const UserProfile = () => {
                             value={clinicForm.state}
                             onChange={(e) => updateClinicField("state", e.target.value)}
                           >
+                            <option value="">Select state</option>
+                            {clinicForm.state && !INDIAN_STATES.includes(clinicForm.state) ? (
+                              <option value={clinicForm.state}>{clinicForm.state}</option>
+                            ) : null}
                             {INDIAN_STATES.map((state) => (
                               <option key={state} value={state}>
                                 {state}
@@ -2027,8 +2129,9 @@ const UserProfile = () => {
                             action={editingQualificationId != null ? "update" : "add"}
                             type="button"
                             onClick={handleAddOrUpdateQualification}
+                            disabled={qualificationBusy}
                           >
-                            {editingQualificationId != null ? "Update" : "Add Qualification"}
+                            {qualificationBusy ? "Saving..." : editingQualificationId != null ? "Update" : "Add Qualification"}
                           </ModalActionButton>
                         </div>
                       </div>
@@ -2055,13 +2158,18 @@ const UserProfile = () => {
                                 <td>{item.institution}</td>
                                 <td>{item.year}</td>
                                 <td>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-soft-info user-profile-page__qualification-view-btn"
-                                    onClick={() => handleViewQualificationDocument(item)}
-                                  >
-                                    View
-                                  </button>
+                                  {item.hasFile ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-soft-info user-profile-page__qualification-view-btn"
+                                      title={item.documentName}
+                                      onClick={() => handleViewQualificationDocument(item)}
+                                    >
+                                      View
+                                    </button>
+                                  ) : (
+                                    <span className="text-muted">—</span>
+                                  )}
                                 </td>
                                 <td className="text-center">
                                   <div className="d-inline-flex gap-2">

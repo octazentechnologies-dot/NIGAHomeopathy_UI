@@ -60,7 +60,7 @@ export const getHomeDashboardPath = (role) => {
     return "/family";
   }
   if (userRole === UserRole.ADMIN) {
-    return "/dashboard";
+    return "/admin/dashboard";
   }
   return "/dashboard";
 };

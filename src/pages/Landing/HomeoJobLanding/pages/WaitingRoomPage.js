@@ -5,6 +5,7 @@ import { Container } from "reactstrap";
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
 import {
+    resolvePublicAccessToken,
     startWaitingRoomPoll,
     WAITING_ROOM_POLL_MS,
 } from "../../../../helpers/publicBookingApi";
@@ -17,7 +18,7 @@ const WaitingRoomPage = () => {
     const { sessionId: sessionParam } = useParams();
     const [searchParams] = useSearchParams();
     const sessionId = sessionParam || searchParams.get("sessionId") || "";
-    const accessToken = searchParams.get("accessToken") || "";
+    const accessToken = resolvePublicAccessToken(searchParams.get("accessToken"));
 
     const [session, setSession] = useState(null);
     const [phase, setPhase] = useState("loading"); // empty | loading | error | offline | ready | auth
@@ -81,8 +82,8 @@ const WaitingRoomPage = () => {
 
                 {phase === "auth" ? (
                     <p className="text-warning" data-testid="waiting-room-auth" role="status">
-                        Sign in as the patient on this visit (or treating doctor), then open with{" "}
-                        <code>accessToken</code>.
+                        <Link to="/login">Sign in</Link> as the patient on this visit (or the treating
+                        doctor) to see the waiting room.
                     </p>
                 ) : null}
 
@@ -143,8 +144,8 @@ const WaitingRoomPage = () => {
                         ) : null}
                         {kind === "active" ? (
                             <p className="mt-3 mb-0 text-success" data-testid="waiting-room-ready">
-                                Doctor has joined. Next step is Token (PAT-28) — not invented on this
-                                device.
+                                Doctor has joined. If your call drops, use{" "}
+                                <Link to="/patient/rejoin">Rejoin call</Link>.
                             </p>
                         ) : null}
                         {kind === "waiting" ? (

@@ -162,7 +162,7 @@ const DoctorErxPage = () => {
 
   const loadRefills = () => {
     setRefillsLoading(true);
-    listErxRefills()
+    listErxRefills("ALL")
       .then((response) => setRefills(asList(response)))
       .catch(() => setRefills([]))
       .finally(() => setRefillsLoading(false));
@@ -360,7 +360,7 @@ const DoctorErxPage = () => {
   };
 
   const decideRefill = async (row, approve) => {
-    const id = pick(row, "erxRefillId", "ErxRefillId", "refillId", "RefillId", "id", "Id");
+    const id = pick(row, "refillRequestId", "RefillRequestId", "erxRefillId", "ErxRefillId", "refillId", "RefillId", "id", "Id");
     if (!id) return;
     let note = "";
     if (!approve) {
@@ -379,8 +379,8 @@ const DoctorErxPage = () => {
     setBusyRefillId(id);
     setError("");
     try {
-      if (approve) await approveErxRefill(id, { note });
-      else await rejectErxRefill(id, { note, reason: note });
+      if (approve) await approveErxRefill(id);
+      else await rejectErxRefill(id, { reason: note });
       Swal.fire({ title: approve ? "Refill approved" : "Refill rejected", icon: "success", timer: 1200, showConfirmButton: false });
       loadRefills();
     } catch (err) {
@@ -757,7 +757,7 @@ const DoctorErxPage = () => {
               ) : (
                 <ul className="erx-list">
                   {refills.slice(0, 8).map((row, index) => {
-                    const id = pick(row, "erxRefillId", "ErxRefillId", "refillId", "RefillId", "id", "Id") || index;
+                    const id = pick(row, "refillRequestId", "RefillRequestId", "erxRefillId", "ErxRefillId", "refillId", "RefillId", "id", "Id") || index;
                     const rowStatus = pick(row, "status", "Status") || "Pending";
                     const decided = /approved|rejected/i.test(rowStatus);
                     return (

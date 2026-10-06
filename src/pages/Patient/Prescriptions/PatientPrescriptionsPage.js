@@ -4,7 +4,7 @@ import { Alert, Container, Input, Spinner } from "reactstrap";
 import Swal from "sweetalert2";
 import moment from "moment";
 
-import { erxHistory, erxPatient, erxPdf, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
+import { createErxRefill, erxHistory, erxPatient, erxPdf, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
 import { formatDosage } from "../../Doctor/Erx/erxOptions";
 import OrderMedicinesModal from "../Medicine/OrderMedicinesModal";
 import "./patientPrescriptions.css";
@@ -23,102 +23,6 @@ const asList = (payload) => {
   if (Array.isArray(data?.Items)) return data.Items;
   return [];
 };
-
-const daysAgo = (days) => moment().subtract(days, "days").toISOString();
-
-const SAMPLE_PRESCRIPTIONS = [
-  {
-    id: "sample-1",
-    erxNo: "ERX-26-0142",
-    doctorName: "Dr. Rohit Mehta",
-    qualification: "BHMS, MD (Hom)",
-    clinic: "Mehta Homeopathy Clinic, Pune",
-    mode: "In-Clinic",
-    date: daysAgo(2),
-    signed: false,
-    symptoms: ["Cold", "Sneezing", "Mild fever"],
-    diagnosis: "Acute coryza",
-    remedies: [
-      { name: "Arsenicum Album", potency: "30C", frequency: "3 times a day", duration: "5 days", instructions: "After food" },
-      { name: "Allium Cepa", potency: "6C", frequency: "SOS (when needed)", duration: "5 days", instructions: "Dissolve in water" },
-    ],
-    advice: ["Drink warm water", "Steam inhalation twice a day", "Avoid cold drinks"],
-    followUp: daysAgo(-5),
-  },
-  {
-    id: "sample-2",
-    erxNo: "ERX-26-0128",
-    doctorName: "Dr. Rohit Mehta",
-    qualification: "BHMS, MD (Hom)",
-    clinic: "Mehta Homeopathy Clinic, Pune",
-    mode: "In-Clinic",
-    date: daysAgo(9),
-    signed: true,
-    symptoms: ["Acidity", "Bloating", "Headache"],
-    diagnosis: "Chronic gastritis",
-    remedies: [
-      { name: "Nux Vomica", potency: "30C", frequency: "3 times a day", duration: "2 weeks", instructions: "After food" },
-      { name: "Carbo Vegetabilis", potency: "6X", frequency: "2 times a day", duration: "1 week", instructions: "Before food" },
-    ],
-    advice: ["Avoid spicy and oily food", "Limit tea and coffee", "Eat meals on time"],
-    followUp: daysAgo(-14),
-  },
-  {
-    id: "sample-3",
-    erxNo: "ERX-26-0097",
-    doctorName: "Dr. Anjali Deshmukh",
-    qualification: "BHMS",
-    clinic: "Tele Consultation",
-    mode: "Tele Consultation",
-    date: daysAgo(22),
-    signed: true,
-    symptoms: ["Skin rash", "Itching"],
-    diagnosis: "Allergic dermatitis",
-    remedies: [
-      { name: "Sulphur", potency: "200C", frequency: "Once a week", duration: "1 month", instructions: "Empty stomach" },
-      { name: "Graphites", potency: "30C", frequency: "2 times a day", duration: "2 weeks", instructions: "Avoid coffee & mint" },
-    ],
-    advice: ["Use mild, fragrance-free soap", "Wear loose cotton clothes"],
-    followUp: daysAgo(8),
-  },
-  {
-    id: "sample-4",
-    erxNo: "ERX-26-0061",
-    doctorName: "Dr. Sameer Kulkarni",
-    qualification: "BHMS, MD (Hom)",
-    clinic: "Kulkarni Wellness Centre, Mumbai",
-    mode: "In-Clinic",
-    date: daysAgo(45),
-    signed: true,
-    symptoms: ["Joint pain", "Morning stiffness"],
-    diagnosis: "Osteoarthritis (knee)",
-    remedies: [
-      { name: "Rhus Toxicodendron", potency: "200C", frequency: "Once a day", duration: "1 month", instructions: "Empty stomach" },
-      { name: "Bryonia Alba", potency: "30C", frequency: "2 times a day", duration: "2 weeks", instructions: "After food" },
-      { name: "Calcarea Fluorica", potency: "6X", frequency: "3 times a day", duration: "1 month", instructions: "After food" },
-    ],
-    advice: ["Gentle knee exercises daily", "Warm compress in the morning"],
-    followUp: daysAgo(15),
-  },
-  {
-    id: "sample-5",
-    erxNo: "ERX-26-0034",
-    doctorName: "Dr. Neha Joshi",
-    qualification: "BHMS, PGDHHM",
-    clinic: "Tele Consultation",
-    mode: "Tele Consultation",
-    date: daysAgo(61),
-    signed: false,
-    symptoms: ["Anxiety", "Insomnia"],
-    diagnosis: "Stress-related sleep disturbance",
-    remedies: [
-      { name: "Kali Phosphoricum", potency: "6X", frequency: "3 times a day", duration: "1 month", instructions: "After food" },
-      { name: "Coffea Cruda", potency: "30C", frequency: "Once a day", duration: "2 weeks", instructions: "At bedtime" },
-    ],
-    advice: ["Keep a fixed sleep time", "No screens an hour before bed"],
-    followUp: null,
-  },
-];
 
 const STATUS_TABS = [
   { id: "all", label: "All" },
@@ -225,10 +129,30 @@ const PatientPrescriptionsPage = () => {
   const [doctorFilter, setDoctorFilter] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [downloadingId, setDownloadingId] = useState("");
+  const [refillBusyId, setRefillBusyId] = useState("");
   const [orderFor, setOrderFor] = useState(null);
   const navigate = useNavigate();
 
   const patientName = useMemo(readPatientName, []);
+
+  const onRequestRefill = async (row) => {
+    const erxId = Number(row?.erxId);
+    if (!erxId) return;
+    setRefillBusyId(row.id);
+    setError("");
+    try {
+      await createErxRefill({ erxSnapshotId: erxId });
+      Swal.fire({
+        title: "Refill requested",
+        text: "Your doctor must approve it. After that, start the order from Medicine orders.",
+        icon: "success",
+      });
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setRefillBusyId("");
+    }
+  };
 
   const onOrderPlaced = async (order) => {
     setOrderFor(null);
@@ -249,10 +173,13 @@ const PatientPrescriptionsPage = () => {
     erxHistory()
       .then((response) => {
         const rows = asList(response).map(normalizeErx);
-        if (!cancelled) setPrescriptions(rows.length ? rows : SAMPLE_PRESCRIPTIONS);
+        if (!cancelled) setPrescriptions(rows);
       })
-      .catch(() => {
-        if (!cancelled) setPrescriptions(SAMPLE_PRESCRIPTIONS);
+      .catch((err) => {
+        if (!cancelled) {
+          setPrescriptions([]);
+          setError(s4Message(err));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -552,6 +479,16 @@ const PatientPrescriptionsPage = () => {
                     >
                       <i className="ri-shopping-bag-3-line" aria-hidden="true" />
                       Order Medicines
+                    </button>
+                    <button
+                      type="button"
+                      className="prx-btn"
+                      disabled={!selected.signed || refillBusyId === selected.id}
+                      title={selected.signed ? "Ask the doctor to approve a refill" : "Available after the doctor signs"}
+                      onClick={() => onRequestRefill(selected)}
+                    >
+                      {refillBusyId === selected.id ? <Spinner size="sm" /> : <i className="ri-refresh-line" aria-hidden="true" />}
+                      Request refill
                     </button>
                     <button
                       type="button"

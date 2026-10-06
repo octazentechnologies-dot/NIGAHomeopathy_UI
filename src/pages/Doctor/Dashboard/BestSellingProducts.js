@@ -383,10 +383,12 @@ const AppointmentTimeCell = ({
         || patient?.DoctorName
         || (typeof patient?.doctor === 'string' ? patient.doctor : '')
         || loggedInDoctorName
-        || 'Nikhil Jamdar';
-    const doctorName = /^dr\.?\s/i.test(String(rawDoctorName).trim())
-        ? String(rawDoctorName).trim()
-        : `Dr. ${String(rawDoctorName).trim()}`;
+        || '';
+    const doctorName = !String(rawDoctorName).trim()
+        ? '—'
+        : /^dr\.?\s/i.test(String(rawDoctorName).trim())
+            ? String(rawDoctorName).trim()
+            : `Dr. ${String(rawDoctorName).trim()}`;
     const appointmentTypeLabel = patient?.appointmentType
         || patient?.consultType
         || (String(appStatus || '').toUpperCase() === 'E-CONSULT' ? 'Telemedicine' : 'In-Clinic');

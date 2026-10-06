@@ -1,148 +1,243 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Container } from "reactstrap";
+import { Badge, Container, Table } from "reactstrap";
 
 import {
   approveDoctorRefill,
+  getDoctorRefill,
   rejectDoctorRefill,
 } from "../../../helpers/realbackend_helper";
 
+const STATUS_COLOR = { PENDING: "warning", APPROVED: "success", REJECTED: "danger" };
+
+const pick = (row, ...keys) => {
+  for (const key of keys) {
+    if (row?.[key] !== undefined && row?.[key] !== null) return row[key];
+  }
+  return undefined;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+};
+
+const errorText = (err, fallback) => {
+  if (typeof err === "string" && err) return err;
+  return err?.data?.message || err?.data?.Message || err?.message || fallback;
+};
+
 /**
- * DMO-09.02 — RefillDetail approve/reject via Phase 8–15 APIs.
- * Reject requires reason. Cannot edit prescription snapshot here.
+ * DMO-09.02 — RefillDetail: read the signed prescription, then approve or reject.
+ * Reject requires a reason. The prescription snapshot cannot be edited here.
  */
 const RefillDetailPage = () => {
   const { refillId } = useParams();
   const id = Number(refillId);
 
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [reason, setReason] = useState("");
-  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [offline, setOffline] = useState(false);
+  const [notice, setNotice] = useState("");
 
-  const apiMessage = (err) => {
-    const d = err?.response?.data ?? err?.data ?? err;
-    if (typeof d === "string" && d.trim()) return d;
-    const fromBody = d?.message || d?.Message;
-    if (fromBody) return fromBody;
-    return err?.message || "Request failed.";
-  };
-
-  const run = async (fn) => {
-    setError("");
-    setResult(null);
-    setOffline(false);
+  const load = useCallback(() => {
     if (!id) {
-      setError("Refill id is required.");
-      return;
-    }
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      setOffline(true);
-      setError("You appear to be offline. Check your connection and try again.");
+      setLoading(false);
       return;
     }
     setLoading(true);
+    setLoadError("");
+    getDoctorRefill(id)
+      .then((payload) => setDetail(payload?.data ?? payload?.Data ?? null))
+      .catch((err) => {
+        setDetail(null);
+        setLoadError(errorText(err, "Could not load this refill."));
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    document.title = "Refill review | Homeocentrum";
+    load();
+  }, [load]);
+
+  const refill = detail?.refill ?? detail?.Refill ?? null;
+  const items = detail?.items ?? detail?.Items ?? [];
+  const status = String(pick(refill, "status", "Status") || "").toUpperCase();
+  const isPending = status === "PENDING";
+
+  const decide = async (fn, successText) => {
+    setError("");
+    setNotice("");
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setError("You appear to be offline. Check your connection and try again.");
+      return;
+    }
+    setBusy(true);
     try {
-      const payload = await fn();
-      const root = payload?.data !== undefined ? payload.data : payload;
-      setResult({
-        status: root?.status ?? root?.Status ?? payload?.status,
-        message: root?.message ?? root?.Message ?? "OK",
-        success: root?.success ?? root?.Success ?? true,
-        raw: root,
-      });
+      await fn();
+      setNotice(successText);
+      setReason("");
+      load();
     } catch (err) {
-      setError(apiMessage(err));
+      setError(errorText(err, "Request failed."));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
-  const handleApprove = () => run(() => approveDoctorRefill(id));
+  const handleApprove = () => decide(() => approveDoctorRefill(id), "Refill approved.");
 
   const handleReject = () => {
-    if (!String(reason || "").trim()) {
+    if (!reason.trim()) {
       setError("Reject reason is required.");
       return;
     }
-    run(() => rejectDoctorRefill(id, reason.trim()));
+    decide(() => rejectDoctorRefill(id, reason.trim()), "Refill rejected.");
   };
 
   return (
     <div className="page-content" data-testid="refill-detail">
-      <Container fluid className="py-4" style={{ maxWidth: 640 }}>
-        <h4 className="mb-2">Refill {id || "—"}</h4>
+      <Container fluid className="py-4" style={{ maxWidth: 760 }}>
+        <h4 className="mb-2">Refill {id ? `#${id}` : "—"}</h4>
         <p className="text-muted small mb-3">
-          Approve or reject from the API. Prescription snapshot is not editable on this screen.
+          Review the signed prescription, then approve or reject. The prescription is not editable here.
         </p>
 
         {!id ? (
           <p className="text-muted" data-testid="refill-detail-empty">
             No refill selected. Open one from the inbox.
           </p>
-        ) : (
-          <div className="border rounded p-4 mb-3" data-testid="refill-detail-body">
-            <p className="small text-muted mb-3">
-              Until prescriptions exist, unknown ids return 404 from the server — that is expected.
-            </p>
-            <div className="d-flex flex-wrap gap-2 mb-3">
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={loading}
-                onClick={handleApprove}
-                aria-label="Approve refill"
-              >
-                {loading ? "Working…" : "Approve"}
-              </button>
-            </div>
-            <label className="form-label" htmlFor="refill-reject-reason">
-              Reject reason
-            </label>
-            <textarea
-              id="refill-reject-reason"
-              className="form-control mb-2"
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              aria-label="Reject reason"
-              placeholder="Required to reject"
-            />
-            <button
-              type="button"
-              className="btn btn-outline-danger"
-              disabled={loading}
-              onClick={handleReject}
-              aria-label="Reject refill"
-            >
-              Reject
-            </button>
-          </div>
-        )}
+        ) : null}
 
         {loading ? (
           <p className="text-muted" data-testid="refill-detail-loading">
-            Submitting…
+            Loading refill…
           </p>
         ) : null}
 
-        {offline ? (
-          <p className="text-warning" data-testid="refill-detail-offline">
-            {error}
-          </p>
-        ) : null}
-
-        {!loading && error && !offline ? (
+        {!loading && loadError ? (
           <p className="text-danger" data-testid="refill-detail-error">
+            {loadError}
+          </p>
+        ) : null}
+
+        {!loading && refill ? (
+          <div className="border rounded p-4 mb-3" data-testid="refill-detail-body">
+            <div className="d-flex flex-wrap justify-content-between gap-2 mb-3">
+              <div>
+                <div className="fw-semibold">
+                  {pick(refill, "patientName", "PatientName") || `Patient ${pick(refill, "patientId", "PatientId")}`}
+                </div>
+                <div className="small text-muted">
+                  eRx #{pick(refill, "erxSnapshotId", "ErxSnapshotId")}
+                  {pick(refill, "patientAppId", "PatientAppId")
+                    ? ` · Appointment #${pick(refill, "patientAppId", "PatientAppId")}`
+                    : ""}
+                  {` · Signed ${formatDateTime(detail?.signedAt ?? detail?.SignedAt)}`}
+                </div>
+                <div className="small text-muted">
+                  Requested {formatDateTime(pick(refill, "createdAt", "CreatedAt"))}
+                  {pick(refill, "decidedAt", "DecidedAt")
+                    ? ` · Decided ${formatDateTime(pick(refill, "decidedAt", "DecidedAt"))}`
+                    : ""}
+                </div>
+              </div>
+              <div>
+                <Badge color={STATUS_COLOR[status] || "secondary"} className="fs-6">
+                  {status || "—"}
+                </Badge>
+              </div>
+            </div>
+
+            <h6 className="mb-2">Prescription</h6>
+            {items.length === 0 ? (
+              <p className="small text-muted">No medicines on this prescription.</p>
+            ) : (
+              <Table size="sm" bordered responsive className="mb-3">
+                <thead className="table-light">
+                  <tr>
+                    <th>Remedy</th>
+                    <th>Potency</th>
+                    <th>Dose</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                    <th>Instructions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => (
+                    <tr key={`${pick(item, "remedyCode", "RemedyCode")}-${index}`}>
+                      <td>{pick(item, "remedyName", "RemedyName") || pick(item, "remedyCode", "RemedyCode") || "—"}</td>
+                      <td>{pick(item, "potencyCode", "PotencyCode") || "—"}</td>
+                      <td>{pick(item, "dose", "Dose") || "—"}</td>
+                      <td>{pick(item, "frequency", "Frequency") || "—"}</td>
+                      <td>{pick(item, "duration", "Duration") || "—"}</td>
+                      <td>{pick(item, "instructions", "Instructions") || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+
+            {isPending ? (
+              <>
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={busy}
+                    onClick={handleApprove}
+                    aria-label="Approve refill"
+                  >
+                    {busy ? "Working…" : "Approve"}
+                  </button>
+                </div>
+                <label className="form-label" htmlFor="refill-reject-reason">
+                  Reject reason
+                </label>
+                <textarea
+                  id="refill-reject-reason"
+                  className="form-control mb-2"
+                  rows={3}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  aria-label="Reject reason"
+                  placeholder="Required to reject"
+                  disabled={busy}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  disabled={busy || !reason.trim()}
+                  onClick={handleReject}
+                  aria-label="Reject refill"
+                >
+                  Reject
+                </button>
+              </>
+            ) : (
+              <p className="small text-muted mb-0">
+                This refill is {status.toLowerCase() || "closed"}. No further action.
+                {pick(refill, "reason", "Reason") ? ` Reason: ${pick(refill, "reason", "Reason")}` : ""}
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {error ? (
+          <p className="text-danger" data-testid="refill-detail-action-error">
             {error}
           </p>
         ) : null}
 
-        {result ? (
-          <div className="border rounded p-3 mb-3" data-testid="refill-detail-result">
-            <strong>{result.success === false ? "Not applied" : "Saved"}</strong>
-            <div className="small">{result.message}</div>
+        {notice ? (
+          <div className="alert alert-success py-2" data-testid="refill-detail-result">
+            {notice}
           </div>
         ) : null}
 
