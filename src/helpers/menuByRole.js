@@ -154,6 +154,8 @@ export const mergeMissingMenuItems = (existing, extras) => {
 };
 
 export const ADMIN_WEEK4_MENU = [
+  { id: "platform-users", label: "Platform users", icon: "ri-team-line", link: "/admin/platform-users" },
+  { id: "whatsapp-campaigns", label: "WhatsApp campaigns", icon: "ri-whatsapp-line", link: "/admin/whatsapp-campaigns" },
   { id: "trust-queue", label: "Trust & Verification", icon: "ri-shield-check-line", link: "/admin/trust-queue" },
   { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
   { id: "pharmacy-partners", label: "Pharmacy configuration", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },

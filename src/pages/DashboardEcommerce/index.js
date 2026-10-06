@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Col, Container, Row } from "reactstrap";
 import Widget from "./Widgets";
 import AdminPeopleLists from "./AdminPeopleLists";
+import AdminOverviewHeader from "./AdminOverviewHeader";
 import BestSellingProducts from "./BestSellingProducts";
 import RecentActivity from "./RecentActivity";
 import RecentOrders from "./RecentOrders";
@@ -25,6 +26,7 @@ const DashboardEcommerce = () => {
           <Row>
             <Col>
               <div className="h-100">
+                <AdminOverviewHeader />
                 <Row className="g-2">
                   <Widget />
                 </Row>

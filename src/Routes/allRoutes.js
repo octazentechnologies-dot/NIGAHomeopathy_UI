@@ -176,6 +176,13 @@ import PatientPrescriptionsPage from "../pages/Patient/Prescriptions/PatientPres
 import PatientMedicineOrdersPage from "../pages/Patient/Medicine/PatientMedicineOrdersPage";
 import PharmacyWorkspacePage from "../pages/Pharmacy/PharmacyWorkspacePage";
 import TrustQueuePage from "../pages/Admin/Trust/TrustQueuePage";
+import NotificationsPage from "../pages/Notifications/NotificationsPage";
+import PlatformUsersPage from "../pages/Admin/PlatformUsers/PlatformUsersPage";
+import WhatsAppCampaignsPage from "../pages/Admin/WhatsAppCampaigns/WhatsAppCampaignsPage";
+import PracticeAnalysisPage from "../pages/Doctor/Reports/PracticeAnalysisPage";
+import FollowUpAnalysisPage from "../pages/Doctor/Reports/FollowUpAnalysisPage";
+import ClinicPerformancePage from "../pages/Doctor/Reports/ClinicPerformancePage";
+import EarningsAnalysisPage from "../pages/Doctor/Reports/EarningsAnalysisPage";
 import HomemedsExceptionsPage from "../pages/Admin/Homemeds/HomemedsExceptionsPage";
 import AdminPharmacyPartnersPage from "../pages/Admin/Pharmacy/AdminPharmacyPartnersPage";
 import SupportWorkspacePage from "../pages/Support/SupportWorkspacePage";
@@ -581,6 +588,8 @@ const authProtectedRoutes = [
   { path: "admin/listrubricaliases", component: <ListRubricAliases /> },
   { path: "admin/rubric-intelligence-benchmark", component: <ListRubricBenchmarkDashboard /> },
   { path: "admin/trust-queue", component: <TrustQueuePage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/platform-users", component: <PlatformUsersPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/whatsapp-campaigns", component: <WhatsAppCampaignsPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/homemeds-exceptions", component: <HomemedsExceptionsPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/pharmacy-partners", component: <AdminPharmacyPartnersPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/support-tickets", component: <SupportWorkspacePage mode="admin" />, allowedRoles: ADMIN_PORTAL_ROLES },
@@ -603,6 +612,10 @@ const authProtectedRoutes = [
   // DMO-09.02 — refill inbox + approve/reject APIs (snapshot not editable).
   { path: "doctor/mobile/refill/:refillId", component: <RefillDetailPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/mobile/refill", component: <RefillInboxPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/reports/practice", component: <PracticeAnalysisPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/reports/follow-up", component: <FollowUpAnalysisPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/reports/clinic-performance", component: <ClinicPerformancePage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/reports/earnings", component: <EarningsAnalysisPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   // CLN-01.02 — one Patient Board. These two paths are aliases, not a second app. No doctor-mobile case-taking.
   { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
@@ -664,6 +677,8 @@ const authProtectedRoutes = [
   { path: "reception/patients", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
   { path: "reception/payments", component: <ReceptionHome />, allowedRoles: RECEPTION_ROUTE_ROLES },
   // Reception Side End //
+
+  { path: "notifications", component: <NotificationsPage /> },
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
   { path: "/dashboard-crm", component: <DashboardCrm /> },

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { UserRole } from '../constants/roles';
+import DoctorReportsDropdown from '../../pages/Doctor/Reports/DoctorReportsDropdown';
 
 const DoctorMobileHeaderButtons = ({ userRole }) => {
   if (userRole !== UserRole.DOCTOR) return null;
@@ -67,6 +68,7 @@ const DoctorMobileHeaderButtons = ({ userRole }) => {
           <i className="ri-medicine-bottle-line fs-20" />
         </Link>
       </div>
+      <DoctorReportsDropdown />
     </>
   );
 };

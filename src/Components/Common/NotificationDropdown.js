@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Col, Dropdown, DropdownMenu, DropdownToggle, Nav, NavItem, NavLink, Row, TabContent, TabPane } from 'reactstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import classnames from 'classnames';
 import { useSelector } from 'react-redux';
 
@@ -208,6 +208,11 @@ const NotificationDropdown = () => {
     const toggleNotificationDropdown = () => {
         setIsNotificationDropdown(!isNotificationDropdown);
     };
+    const navigate = useNavigate();
+    const openNotificationsPage = () => {
+        setIsNotificationDropdown(false);
+        navigate('/notifications');
+    };
 
     const [activeTab, setActiveTab] = useState('1');
     const toggleTab = (tab) => {
@@ -310,7 +315,13 @@ const NotificationDropdown = () => {
                                     <h6 className="m-0 fs-16 fw-semibold text-body"> Notifications </h6>
                                 </Col>
                                 <div className="col-auto dropdown-tabs">
-                                    <span className="badge bg-light-subtle text-body fs-13"> {totalNotificationCount} New</span>
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm btn-soft-primary notification-view-all-btn"
+                                        onClick={openNotificationsPage}
+                                    >
+                                        View all <i className="ri-arrow-right-line align-middle"></i>
+                                    </button>
                                 </div>
                             </Row>
                         </div>
@@ -373,7 +384,7 @@ const NotificationDropdown = () => {
                                     )
                                 ))}
                                 <div className="my-3 text-center">
-                                    <button type="button" className="btn btn-soft-success waves-effect waves-light">
+                                    <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={openNotificationsPage}>
                                         View All Notifications <i className="ri-arrow-right-line align-middle"></i>
                                     </button>
                                 </div>
@@ -390,7 +401,7 @@ const NotificationDropdown = () => {
                                     />
                                 ))}
                                 <div className="my-3 text-center">
-                                    <button type="button" className="btn btn-soft-success waves-effect waves-light">
+                                    <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={openNotificationsPage}>
                                         View All Messages <i className="ri-arrow-right-line align-middle"></i>
                                     </button>
                                 </div>
@@ -413,7 +424,7 @@ const NotificationDropdown = () => {
                                     />
                                 ))}
                                 <div className="my-3 text-center">
-                                    <button type="button" className="btn btn-soft-success waves-effect waves-light">
+                                    <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={openNotificationsPage}>
                                         View All Alerts <i className="ri-arrow-right-line align-middle"></i>
                                     </button>
                                 </div>
