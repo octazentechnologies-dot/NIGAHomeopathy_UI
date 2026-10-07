@@ -1,6 +1,6 @@
 import axios from "axios";
 import { api } from "../config";
-import Avatar1 from "../assets/images/users/avatar-1.jpg";
+import NoPhotoAvatar from "../assets/images/users/user-dummy-img.jpg";
 
 /** Anonymous New-API client for public find-doctor / booking / policies / articles. */
 const publicClient = axios.create({
@@ -81,7 +81,7 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
     inClinic,
     tele,
     available: isOnline ? "today" : "tomorrow",
-    image: photoPath || fallback.image || Avatar1,
+    image: photoPath && id ? `${api.New_API_Base_URL}/Profile/Photo/${id}` : fallback.image || NoPhotoAvatar,
     verified,
     verificationStatus: row?.verificationStatus ?? row?.VerificationStatus ?? (verified ? "Verified" : "Pending"),
     rankingSummary,
@@ -108,6 +108,27 @@ export const listPublicDoctors = async (params = {}) => {
     totalRecords: payload.totalRecords ?? payload.TotalRecords ?? 0,
     data: payload.data ?? payload.Data ?? [],
   };
+};
+
+const HIGHLIGHTS_TTL_MS = 60 * 1000;
+let highlightsCache = { at: 0, promise: null };
+
+/** Live home-page numbers + approved reviews. Shared by sections rendered on the same page. */
+export const getPublicHighlights = () => {
+  const now = Date.now();
+  if (highlightsCache.promise && now - highlightsCache.at < HIGHLIGHTS_TTL_MS) return highlightsCache.promise;
+  const promise = publicClient
+    .get("/Public/Highlights")
+    .then((res) => {
+      const payload = unwrap(res);
+      return payload.data ?? payload.Data ?? payload;
+    })
+    .catch((err) => {
+      highlightsCache = { at: 0, promise: null };
+      throw err;
+    });
+  highlightsCache = { at: now, promise };
+  return promise;
 };
 
 export const getPublicDoctor = async (id) => {

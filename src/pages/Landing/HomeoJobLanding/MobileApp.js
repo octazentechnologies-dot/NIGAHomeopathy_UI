@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { Col, Container, Row } from "reactstrap";
 import PhoneVisual from "../../../assets/images/landing/mobile-app-phone.png";
-import { SITE } from "../Minimaltheme/constants/siteContent";
+import { SITE, APP_STORE_LINKS } from "../Minimaltheme/constants/siteContent";
+import { submitEnquiry } from "../Minimaltheme/helpers/marketingApi";
+
+const INDIAN_MOBILE = /^[6-9]\d{9}$/;
 
 const FEATURES = [
     {
@@ -10,8 +13,8 @@ const FEATURES = [
         theme: "blue",
     },
     {
-        icon: "ri-time-fill",
-        label: "Available 24/7",
+        icon: "ri-calendar-check-fill",
+        label: "Book a Slot Online",
         theme: "green",
     },
     {
@@ -21,11 +24,59 @@ const FEATURES = [
     },
 ];
 
+const StoreBadge = ({ icon, caption, label, url }) => {
+    const inner = (
+        <>
+            <i className={icon} aria-hidden="true" />
+            <span>
+                <small>{url ? caption : "Coming soon on"}</small>
+                {label}
+            </span>
+        </>
+    );
+
+    if (url) {
+        return (
+            <a href={url} className="homeojob-mobile__store" target="_blank" rel="noopener noreferrer">
+                {inner}
+            </a>
+        );
+    }
+
+    return (
+        <span className="homeojob-mobile__store" aria-disabled="true">
+            {inner}
+        </span>
+    );
+};
+
 const MobileApp = () => {
     const [phone, setPhone] = useState("");
+    const [sending, setSending] = useState(false);
+    const [status, setStatus] = useState(null);
 
-    const handleSendSms = (event) => {
+    const handleSendSms = async (event) => {
         event.preventDefault();
+        const mobile = phone.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "");
+        if (!INDIAN_MOBILE.test(mobile)) {
+            setStatus({ ok: false, text: "Enter a valid 10-digit Indian mobile number." });
+            return;
+        }
+        setSending(true);
+        setStatus(null);
+        try {
+            await submitEnquiry({
+                enquiryName: "Mobile app link request",
+                mobileNo: mobile,
+                enquiryDetails: "Asked for the mobile app download link by SMS from the website Mobile App section.",
+            });
+            setPhone("");
+            setStatus({ ok: true, text: "Thanks. We will text you the download link as soon as the app is live." });
+        } catch {
+            setStatus({ ok: false, text: "Could not save your request. Please try again." });
+        } finally {
+            setSending(false);
+        }
     };
 
     return (
@@ -61,8 +112,8 @@ const MobileApp = () => {
 
                             <p className="homeojob-mobile__subtitle">
                                 Access video consultation with India&apos;s top homeopathic doctors
-                                on the {SITE.name} app. Connect with doctors online, available 24/7,
-                                from the comfort of your home.
+                                on the {SITE.name} app. Connect with doctors online and book a slot
+                                that suits you, from the comfort of your home.
                             </p>
 
                             <form className="homeojob-mobile__sms" onSubmit={handleSendSms}>
@@ -78,41 +129,28 @@ const MobileApp = () => {
                                     onChange={(e) => setPhone(e.target.value)}
                                     aria-label="Phone number"
                                 />
-                                <button type="submit" className="homeojob-mobile__sms-btn">
-                                    Send SMS
+                                <button type="submit" className="homeojob-mobile__sms-btn" disabled={sending}>
+                                    {sending ? "Sending..." : "Send SMS"}
                                     <i className="ri-arrow-right-line" aria-hidden="true" />
                                 </button>
                             </form>
+                            {status && (
+                                <p
+                                    className={`small mb-3 ${status.ok ? "text-success" : "text-danger"}`}
+                                    role={status.ok ? "status" : "alert"}
+                                >
+                                    {status.text}
+                                </p>
+                            )}
 
                             <p className="homeojob-mobile__stores-label">
                                 Get the link to download the app
                             </p>
 
                             <div className="homeojob-mobile__stores">
-                                <a
-                                    href="https://play.google.com/store"
-                                    className="homeojob-mobile__store"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <i className="ri-google-play-fill" aria-hidden="true" />
-                                    <span>
-                                        <small>GET IT ON</small>
-                                        Google Play
-                                    </span>
-                                </a>
-                                <a
-                                    href="https://www.apple.com/app-store/"
-                                    className="homeojob-mobile__store"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <i className="ri-apple-fill" aria-hidden="true" />
-                                    <span>
-                                        <small>Download on the</small>
-                                        App Store
-                                    </span>
-                                </a>
+                                {APP_STORE_LINKS.map((store) => (
+                                    <StoreBadge key={store.id} {...store} />
+                                ))}
                             </div>
 
                             <div className="homeojob-mobile__features">

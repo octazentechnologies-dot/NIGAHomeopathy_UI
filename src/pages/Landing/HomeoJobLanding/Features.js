@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
 import PlatformDoctor from "../../../assets/images/landing/platform-doctor.png";
-import DoctorAvatar from "../../../assets/images/users/avatar-2.jpg";
+import usePublicHighlights, { formatCount } from "./usePublicHighlights";
 
 const PLATFORM_PILLARS = [
     {
@@ -26,13 +26,22 @@ const PLATFORM_PILLARS = [
     },
 ];
 
-const PLATFORM_STATS = [
-    { value: "100+", label: "Trusted Practitioners" },
-    { value: "50K+", label: "Cases Managed" },
-    { value: "99%", label: "Practitioner Satisfaction" },
-];
+const Features = () => {
+    const highlights = usePublicHighlights();
+    const doctors = Number(highlights?.verifiedDoctors || 0);
+    const latestReview = Array.isArray(highlights?.reviews) ? highlights.reviews[0] : null;
+    const latestRating = Math.max(0, Math.min(5, Number(latestReview?.rating) || 0));
+    const platformStats = highlights
+        ? [
+              { value: formatCount(doctors), label: "Verified Practitioners" },
+              { value: formatCount(highlights.completedConsultations), label: "Consultations Completed" },
+              highlights.averageRating != null && Number(highlights.reviewCount) > 0
+                  ? { value: `${Number(highlights.averageRating).toFixed(1)}/5`, label: "Average Patient Rating" }
+                  : null,
+          ].filter(Boolean)
+        : [];
 
-const Features = () => (
+    return (
     <section className="section homeojob-platform" id="platform">
         <Container>
             <Row className="align-items-center gy-5">
@@ -47,14 +56,16 @@ const Features = () => (
                             className="homeojob-platform__image"
                         />
 
-                        <div className="homeojob-platform-float homeojob-platform-float--trust">
-                            <span className="homeojob-platform-float__icon homeojob-platform-float__icon--blue">
-                                <i className="ri-group-line" />
-                            </span>
-                            <span>
-                                Trusted by <strong>100+</strong> practitioners
-                            </span>
-                        </div>
+                        {doctors > 0 ? (
+                            <div className="homeojob-platform-float homeojob-platform-float--trust">
+                                <span className="homeojob-platform-float__icon homeojob-platform-float__icon--blue">
+                                    <i className="ri-group-line" />
+                                </span>
+                                <span>
+                                    <strong>{formatCount(doctors)}</strong> verified practitioner{doctors === 1 ? "" : "s"}
+                                </span>
+                            </div>
+                        ) : null}
 
                         <div className="homeojob-platform-float homeojob-platform-float--natural">
                             <span className="homeojob-platform-float__icon homeojob-platform-float__icon--green">
@@ -96,25 +107,29 @@ const Features = () => (
                             </ul>
                         </div>
 
-                        <div className="homeojob-platform-float homeojob-platform-float--quote">
-                            <img src={DoctorAvatar} alt="" className="homeojob-platform-float__avatar" />
-                            <div>
-                                <p>
-                                    &ldquo;Homeocentrum has made my practice faster and more
-                                    effective!&rdquo;
-                                </p>
-                                <div className="homeojob-platform-float__meta">
-                                    <strong>Dr. Priya Shah</strong>
-                                    <span className="homeojob-platform-float__stars" aria-hidden="true">
-                                        <i className="ri-star-fill" />
-                                        <i className="ri-star-fill" />
-                                        <i className="ri-star-fill" />
-                                        <i className="ri-star-fill" />
-                                        <i className="ri-star-fill" />
-                                    </span>
+                        {latestReview ? (
+                            <div className="homeojob-platform-float homeojob-platform-float--quote">
+                                <span
+                                    className="homeojob-platform-float__avatar d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary"
+                                    aria-hidden="true"
+                                >
+                                    <i className="ri-user-heart-line" />
+                                </span>
+                                <div>
+                                    <p className="text-truncate" style={{ maxWidth: 220 }} title={latestReview.text}>
+                                        &ldquo;{latestReview.text}&rdquo;
+                                    </p>
+                                    <div className="homeojob-platform-float__meta">
+                                        <strong>Verified patient</strong>
+                                        <span className="homeojob-platform-float__stars" aria-label={`${latestRating} star rating`}>
+                                            {Array.from({ length: 5 }, (_, i) => (
+                                                <i key={i} className={i < latestRating ? "ri-star-fill" : "ri-star-line"} />
+                                            ))}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : null}
                     </div>
                 </Col>
 
@@ -163,7 +178,7 @@ const Features = () => (
                         </div>
 
                         <div className="homeojob-platform__stats">
-                            {PLATFORM_STATS.map((stat) => (
+                            {platformStats.map((stat) => (
                                 <div className="homeojob-platform__stat" key={stat.label}>
                                     <strong>{stat.value}</strong>
                                     <span>{stat.label}</span>
@@ -175,6 +190,7 @@ const Features = () => (
             </Row>
         </Container>
     </section>
-);
+    );
+};
 
 export default Features;

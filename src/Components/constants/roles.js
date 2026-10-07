@@ -181,6 +181,14 @@ const isVelzonTemplatePath = (path) => {
     );
 };
 
+/** Velzon demo pages in the public route list (sign-in variants, one-page/NFT landings, maintenance). */
+const isVelzonPublicDemoPath = (path) => {
+    if (!path || typeof path !== "string") return false;
+    const normalized = path.replace(/^\//, "").toLowerCase();
+    if (normalized === "landing" || normalized === "nft-landing") return true;
+    return normalized.startsWith("auth-") || normalized.startsWith("pages-");
+};
+
 export {
     UserRole,
     ADMIN_PORTAL_ROLES,
@@ -205,4 +213,5 @@ export {
     DOCTOR_CASE_ROUTE_ROLES,
     DOCTOR_STAFF_ROUTE_ROLES,
     isVelzonTemplatePath,
+    isVelzonPublicDemoPath,
 };

@@ -3,16 +3,7 @@ import { Link } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
 import { landingPath } from "../../../constants/landingRoutes";
-
-import Avatar1 from "../../../assets/images/users/avatar-1.jpg";
-import Avatar2 from "../../../assets/images/users/avatar-2.jpg";
-import Avatar3 from "../../../assets/images/users/avatar-3.jpg";
-import Avatar4 from "../../../assets/images/users/avatar-4.jpg";
-
-const AVAILABILITY = [
-    { id: "online", icon: "ri-add-circle-line", label: "3 Doctors Online" },
-    { id: "wait", icon: "ri-time-line", label: "Average wait time: 5 mins" },
-];
+import usePublicHighlights, { formatCount } from "./usePublicHighlights";
 
 const TRUST_POINTS = [
     { id: "verified", icon: "ri-shield-check-line", label: "Verified Doctors" },
@@ -26,15 +17,35 @@ const STEPS = [
     { id: "consult", icon: "ri-vidicon-line", title: "Consult on video", text: "Talk face-to-face and get your e-prescription." },
 ];
 
-const STATS = [
-    { id: "available", icon: "ri-24-hours-line", value: "24/7", label: "Doctors available" },
-    { id: "doctors", icon: "ri-stethoscope-line", value: "500+", label: "Verified homeopaths" },
-    { id: "rating", icon: "ri-star-smile-line", value: "4.8/5", label: "Patient rating" },
-];
+const InstantConsultation = () => {
+    const highlights = usePublicHighlights();
+    const online = Number(highlights?.onlineDoctors || 0);
+    const availability = highlights
+        ? [
+              online > 0
+                  ? { id: "online", icon: "ri-add-circle-line", label: `${formatCount(online)} Doctor${online === 1 ? "" : "s"} Online` }
+                  : { id: "online", icon: "ri-time-line", label: "No doctor online right now. Book a slot instead." },
+          ]
+        : [];
 
-const PATIENT_AVATARS = [Avatar1, Avatar2, Avatar3, Avatar4];
+    const stats = highlights
+        ? [
+              { id: "doctors", icon: "ri-stethoscope-line", value: formatCount(highlights.verifiedDoctors), label: "Verified homeopaths" },
+              { id: "tele", icon: "ri-vidicon-line", value: formatCount(highlights.teleDoctors), label: "Offer tele consults" },
+              highlights.averageRating != null && Number(highlights.reviewCount) > 0
+                  ? {
+                        id: "rating",
+                        icon: "ri-star-smile-line",
+                        value: `${Number(highlights.averageRating).toFixed(1)}/5`,
+                        label: `Patient rating (${formatCount(highlights.reviewCount)})`,
+                    }
+                  : null,
+          ].filter(Boolean)
+        : [];
 
-const InstantConsultation = () => (
+    const patientsConsulted = Number(highlights?.patientsConsulted || 0);
+
+    return (
     <section className="section homeojob-instant-consult" id="instant-consultation">
         <span className="homeojob-instant-consult__blob homeojob-instant-consult__blob--left" aria-hidden="true" />
         <span className="homeojob-instant-consult__blob homeojob-instant-consult__blob--right" aria-hidden="true" />
@@ -73,10 +84,12 @@ const InstantConsultation = () => (
 
                 <Col lg={6} className="order-1 order-lg-2">
                     <div className="homeojob-instant-consult__card">
-                        <span className="homeojob-instant-consult__live">
-                            <span className="homeojob-instant-consult__live-dot" aria-hidden="true" />
-                            Live now
-                        </span>
+                        {online > 0 ? (
+                            <span className="homeojob-instant-consult__live">
+                                <span className="homeojob-instant-consult__live-dot" aria-hidden="true" />
+                                Live now
+                            </span>
+                        ) : null}
                         <div className="homeojob-instant-consult__head">
                             <span className="homeojob-instant-consult__bolt" aria-hidden="true">
                                 <i className="ri-flashlight-fill" />
@@ -88,7 +101,7 @@ const InstantConsultation = () => (
                         </p>
 
                         <div className="homeojob-instant-consult__chips">
-                            {AVAILABILITY.map((item) => (
+                            {availability.map((item) => (
                                 <span className="homeojob-instant-consult__chip" key={item.id}>
                                     <i className={item.icon} aria-hidden="true" />
                                     {item.label}
@@ -120,7 +133,7 @@ const InstantConsultation = () => (
                 <Col lg={3} md={6} className="order-3">
                     <div className="homeojob-instant-consult__side">
                         <div className="homeojob-instant-consult__stats">
-                            {STATS.map((stat) => (
+                            {stats.map((stat) => (
                                 <div className="homeojob-instant-consult__stat" key={stat.id}>
                                     <span className="homeojob-instant-consult__stat-icon" aria-hidden="true">
                                         <i className={stat.icon} />
@@ -132,22 +145,24 @@ const InstantConsultation = () => (
                                 </div>
                             ))}
                         </div>
-                        <div className="homeojob-instant-consult__patients">
-                            <div className="homeojob-instant-consult__avatars">
-                                {PATIENT_AVATARS.map((src) => (
-                                    <img src={src} alt="" key={src} />
-                                ))}
-                                <span className="homeojob-instant-consult__avatars-more">+10k</span>
+                        {patientsConsulted > 0 ? (
+                            <div className="homeojob-instant-consult__patients">
+                                <div className="homeojob-instant-consult__avatars">
+                                    <span className="homeojob-instant-consult__avatars-more">
+                                        {formatCount(patientsConsulted)}
+                                    </span>
+                                </div>
+                                <p className="homeojob-instant-consult__patients-text">
+                                    Patients with a completed consultation
+                                </p>
                             </div>
-                            <p className="homeojob-instant-consult__patients-text">
-                                Happy patients consulted online
-                            </p>
-                        </div>
+                        ) : null}
                     </div>
                 </Col>
             </Row>
         </Container>
     </section>
-);
+    );
+};
 
 export default InstantConsultation;

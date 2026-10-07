@@ -9,6 +9,7 @@ import TodaysAppointments from "./components/TodaysAppointments";
 import ReceptionNewPatientForm from "./components/ReceptionNewPatientForm";
 import RescheduleModal from "../../Components/Common/RescheduleModal";
 import CancelAppointmentModal from "../../Components/Common/CancelAppointmentModal";
+import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from "../../helpers/appointmentStatus";
 import AssistedBookWizard from "../../Components/Common/AssistedBookWizard";
 import { apiMessage, readReceptionDoctorId, unwrap } from "./receptionSession";
 import "./components/receptionDashboard.css";
@@ -332,20 +333,27 @@ const ReceptionHome = () => {
                           >
                             Collect
                           </Button>
-                          <Button
-                            size="sm"
-                            color="soft-info"
-                            onClick={() => setRescheduleRow(row)}
+                          <span
+                            className="d-flex gap-1"
+                            title={isAppointmentCompleted(row.status || row.Status) ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : undefined}
                           >
-                            Reschedule
-                          </Button>
-                          <Button
-                            size="sm"
-                            color="soft-danger"
-                            onClick={() => setCancelRow(row)}
-                          >
-                            Cancel
-                          </Button>
+                            <Button
+                              size="sm"
+                              color="soft-info"
+                              disabled={isAppointmentCompleted(row.status || row.Status)}
+                              onClick={() => setRescheduleRow(row)}
+                            >
+                              Reschedule
+                            </Button>
+                            <Button
+                              size="sm"
+                              color="soft-danger"
+                              disabled={isAppointmentCompleted(row.status || row.Status)}
+                              onClick={() => setCancelRow(row)}
+                            >
+                              Cancel
+                            </Button>
+                          </span>
                         </div>
                       </li>
                     );

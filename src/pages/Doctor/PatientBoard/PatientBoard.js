@@ -4274,32 +4274,6 @@ const PatientBoard = () => {
     return [];
   }, [subSectionList]);
 
-  // Old dummy data - keeping for reference
-  const _oldSubSectionOptions = useMemo(() => {
-    return [
-      'Sub-section 1',
-      'Sub-section 2',
-      'Sub-section 3',
-      'Sub-section 4',
-      'Sub-section 5',
-      'Sub-section 6',
-      'Sub-section 7',
-      'Sub-section 8',
-      'Sub-section 9',
-      'Sub-section 10',
-      'Sub-section 11',
-      'Sub-section 12',
-      'Sub-section 13',
-      'Sub-section 14',
-      'Sub-section 15',
-      'Sub-section 16',
-      'Sub-section 17',
-      'Sub-section 18',
-      'Sub-section 19',
-      'Sub-section 20'
-    ];
-  }, []);
-
   // No frontend filtering or pagination - API handles both
   const filteredSubSections = subSectionOptions;
   const paginatedSubSectionOptions = subSectionOptions;

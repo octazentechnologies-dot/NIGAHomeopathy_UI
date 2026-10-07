@@ -26,6 +26,12 @@ export const SOCIAL_LINKS = [
     { id: "google", icon: "ri-google-fill", label: "Google", url: "" },
 ];
 
+/** Set `url` once the apps are published; until then the badges show "Coming soon" and do not link. */
+export const APP_STORE_LINKS = [
+    { id: "android", icon: "ri-google-play-fill", caption: "GET IT ON", label: "Google Play", url: "" },
+    { id: "ios", icon: "ri-apple-fill", caption: "Download on the", label: "App Store", url: "" },
+];
+
 export const HERO = {
     title: "The better way to practice homeopathy with",
     highlight: "Homeocentrum",

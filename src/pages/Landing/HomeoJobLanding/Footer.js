@@ -10,6 +10,9 @@ import {
     SOCIAL_LINKS,
 } from "../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../constants/landingRoutes";
+import { submitEnquiry } from "../Minimaltheme/helpers/marketingApi";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const MODULE_LINKS = FOOTER_SERVICES.map((label) => ({
     label,
@@ -85,9 +88,31 @@ const SocialIcon = ({ icon, label, url }) => {
 
 const Footer = () => {
     const [email, setEmail] = useState("");
+    const [subscribing, setSubscribing] = useState(false);
+    const [status, setStatus] = useState(null);
 
-    const handleSubscribe = (event) => {
+    const handleSubscribe = async (event) => {
         event.preventDefault();
+        const address = email.trim();
+        if (!EMAIL_PATTERN.test(address)) {
+            setStatus({ ok: false, text: "Enter a valid email address." });
+            return;
+        }
+        setSubscribing(true);
+        setStatus(null);
+        try {
+            await submitEnquiry({
+                enquiryName: "Newsletter subscriber",
+                emailId: address,
+                enquiryDetails: "Newsletter subscription from the website footer.",
+            });
+            setEmail("");
+            setStatus({ ok: true, text: "Thanks for subscribing." });
+        } catch {
+            setStatus({ ok: false, text: "Could not subscribe right now. Please try again." });
+        } finally {
+            setSubscribing(false);
+        }
     };
 
     return (
@@ -171,10 +196,18 @@ const Footer = () => {
                                         onChange={(e) => setEmail(e.target.value)}
                                         aria-label="Email address"
                                     />
-                                    <button type="submit" aria-label="Subscribe">
+                                    <button type="submit" aria-label="Subscribe" disabled={subscribing}>
                                         <i className="ri-send-plane-fill" aria-hidden="true" />
                                     </button>
                                 </form>
+                                {status && (
+                                    <p
+                                        className={`small mt-2 mb-0 ${status.ok ? "text-success" : "text-warning"}`}
+                                        role={status.ok ? "status" : "alert"}
+                                    >
+                                        {status.text}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="homeojob-footer__follow">

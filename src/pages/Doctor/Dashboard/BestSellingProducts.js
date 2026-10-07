@@ -36,6 +36,7 @@ import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Commo
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
 import AppointmentChangeActions from './AppointmentChangeActions';
+import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from '../../../helpers/appointmentStatus';
 import {
   normalizeAppointmentSlotsResponse,
   formatSlotIntervalLabel,
@@ -174,6 +175,7 @@ const AppointmentTimeCell = ({
 }) => {
     const dispatch = useDispatch();
     const { userProfile } = useProfile();
+    const isLocked = isAppointmentCompleted(appStatus);
     const patientAppId = getPatientAppIdFromRow(patient);
     const doctorId = patient?.doctorId || patient?.doctorID;
     const rawTime = patient?.appointmentTime;
@@ -398,22 +400,25 @@ const AppointmentTimeCell = ({
         <>
             <div className="appointment-time-cell">
                 <span className="appointment-time-value">{displayTime}</span>
-                <button
-                    type="button"
-                    id={editButtonId}
-                    className="btn btn-sm btn-soft-success edit-item-btn appointment-time-edit-btn"
-                    onClick={onStartEdit}
-                    aria-label="Edit appointment time"
-                >
-                    <i className="ri-pencil-fill" aria-hidden="true" />
-                </button>
+                <span id={editButtonId} className="d-inline-block" tabIndex={isLocked ? 0 : undefined}>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-soft-success edit-item-btn appointment-time-edit-btn"
+                        onClick={onStartEdit}
+                        disabled={isLocked}
+                        style={isLocked ? { pointerEvents: 'none' } : undefined}
+                        aria-label="Edit appointment time"
+                    >
+                        <i className="ri-pencil-fill" aria-hidden="true" />
+                    </button>
+                </span>
                 <UncontrolledTooltip placement="top" target={editButtonId}>
-                    Edit appointment time
+                    {isLocked ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : 'Edit appointment time'}
                 </UncontrolledTooltip>
             </div>
 
             <Modal
-                isOpen={isEditing}
+                isOpen={isEditing && !isLocked}
                 toggle={onCancelEdit}
                 centered
                 size="lg"

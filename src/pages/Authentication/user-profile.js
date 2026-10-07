@@ -32,6 +32,7 @@ import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import PatientProfileFields from "./PatientProfileFields";
 import DoctorReviewsPanel from "./DoctorReviewsPanel";
 import avatar1 from "../../assets/images/users/avatar-1.jpg";
+import { notifyProfilePhotoChanged } from "../../helpers/profilePhotoEvents";
 import {
   getDoctorProfileMe,
   updateDoctorProfileMe,
@@ -963,6 +964,7 @@ const UserProfile = () => {
     } else {
       try {
         await removeDoctorProfilePhoto();
+        notifyProfilePhotoChanged();
       } catch (err) {
         showSaveResult(false, typeof err === "string" ? err : err?.message || "Could not remove photo.");
         return;
@@ -995,6 +997,7 @@ const UserProfile = () => {
       formData.append("file", photoFile);
       await uploadDoctorProfilePhoto(formData);
       setPhotoFile(null);
+      notifyProfilePhotoChanged();
       showSaveResult(true, "Doctor profile photo has been updated.");
     } catch (err) {
       showSaveResult(false, typeof err === "string" ? err : err?.message || "Photo upload failed.");
