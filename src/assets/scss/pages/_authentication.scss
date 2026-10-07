@@ -159,7 +159,14 @@
     }
 
     &__control:has(.is-invalid) .auth-pass-inputgroup__toggle {
-        right: 2.15rem;
+        right: 2.5rem;
+    }
+
+    // Fallback where :has() is unsupported — sibling selector keeps the eye
+    // clear of the Bootstrap invalid icon for both password fields.
+    &__control .form-control.is-invalid ~ .auth-pass-inputgroup__toggle,
+    &__control .auth-login-input.is-invalid ~ .auth-pass-inputgroup__toggle {
+        right: 2.5rem;
     }
 
     // Show eye-off glyph when input type is text (legacy Register markup)
@@ -454,6 +461,7 @@
 // Shared login polish (aligned with Register)
 .auth-login-card {
     .form-label {
+        font-size: 0.75rem;
         font-weight: 600;
         color: #334155;
         margin-bottom: 0.45rem;
@@ -507,6 +515,14 @@
     .auth-login-alert {
         border-radius: 12px;
         border: 0;
+        font-size: 0.6875rem;
+        line-height: 1.4;
+    }
+
+    // Sign In only: validation text stays smaller than the 0.75rem labels.
+    .invalid-feedback {
+        font-size: 0.6875rem !important;
+        line-height: 1.35;
     }
 
     .form-check-input {
@@ -529,7 +545,7 @@
     }
 
     .auth-register-note {
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         font-weight: 500;
         line-height: 1.4;
         color: #1e40af;

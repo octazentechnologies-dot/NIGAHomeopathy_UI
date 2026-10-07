@@ -436,3 +436,9 @@ build/
 
 # Local documentation (kept on this machine only)
 docs/
+*.md
+*.mdc
+
+# NIGA UI: un-ignore app source dirs named packages/Packages (NuGet **[Pp]ackages/* rule above would swallow src slices/pages)
+!src/**/packages/**
+!src/**/Packages/**
