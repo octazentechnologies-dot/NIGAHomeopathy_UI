@@ -44,7 +44,13 @@ const ForgetPasswordPage = props => {
       email: '',
     },
     validationSchema: Yup.object({
-      email: Yup.string().required("Please Enter Your Email"),
+      email: Yup.string()
+        .trim()
+        .required("Please Enter Your Email or username")
+        .test("email-format", "Please enter a valid email address", (value) => {
+          if (!value || !String(value).includes("@")) return true;
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
+        }),
     }),
     onSubmit: async (values) => {
       if (!accounts) {
@@ -56,7 +62,7 @@ const ForgetPasswordPage = props => {
           const list = Array.isArray(body?.accounts) ? body.accounts : [];
           if (list.length === 0) {
             setAccounts(null);
-            setLookupError("No account uses that email or username.");
+            setLookupError("If an account exists for those details, a password reset link has been sent.");
             return;
           }
           if (list.length === 1) {
@@ -71,7 +77,11 @@ const ForgetPasswordPage = props => {
           setSelectedUserId("");
         } catch (err) {
           setAccounts(null);
-          setLookupError(err?.response?.data?.message || err?.message || "Could not look up roles for that email.");
+          if (err?.response?.status === 404) {
+            setLookupError("If an account exists for those details, a password reset link has been sent.");
+          } else {
+            setLookupError(err?.response?.data?.message || err?.message || "Could not look up roles for that email.");
+          }
         } finally {
           setLookingUp(false);
         }

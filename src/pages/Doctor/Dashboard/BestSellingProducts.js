@@ -5,7 +5,6 @@ import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import Swal from 'sweetalert2';
-import { bestSellingProducts } from "../../../common/data";
 import classnames from "classnames";
 import moment from 'moment';
 import { UserRole, resolveUserRole } from '../../../Components/constants/roles';
@@ -71,12 +70,6 @@ import {
     setPatientLoading, setPatient, setPatientError, setPatientSuccess
 } from "../../../slices/doctor/dashboard/reducer";
 import { useDispatch, useSelector } from 'react-redux';
-import img4 from "../../../assets/images/small/img-4.jpg";
-import img5 from "../../../assets/images/small/img-5.jpg";
-import img6 from "../../../assets/images/small/img-6.jpg";
-import img7 from "../../../assets/images/small/img-7.jpg";
-import img8 from "../../../assets/images/small/img-8.jpg";
-
 const IS_ADD_CASE_NOTES_ENABLED = true;
 
 const PatientDashboardActionButton = ({
@@ -383,10 +376,12 @@ const AppointmentTimeCell = ({
         || patient?.DoctorName
         || (typeof patient?.doctor === 'string' ? patient.doctor : '')
         || loggedInDoctorName
-        || 'Nikhil Jamdar';
-    const doctorName = /^dr\.?\s/i.test(String(rawDoctorName).trim())
-        ? String(rawDoctorName).trim()
-        : `Dr. ${String(rawDoctorName).trim()}`;
+        || '';
+    const doctorName = !String(rawDoctorName).trim()
+        ? '—'
+        : /^dr\.?\s/i.test(String(rawDoctorName).trim())
+            ? String(rawDoctorName).trim()
+            : `Dr. ${String(rawDoctorName).trim()}`;
     const appointmentTypeLabel = patient?.appointmentType
         || patient?.consultType
         || (String(appStatus || '').toUpperCase() === 'E-CONSULT' ? 'Telemedicine' : 'In-Clinic');

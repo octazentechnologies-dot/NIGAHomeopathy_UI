@@ -4,7 +4,6 @@ import { Col, Container, Row } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
-import { DOCTORS } from "../constants/doctorsData";
 import {
     getPublicDoctor,
     getPublicDoctorRanking,
@@ -14,11 +13,6 @@ import {
     mapPublicDoctorCard,
     toIsoDate,
 } from "../../../../helpers/publicBookingApi";
-import {
-    REVIEWS_CHANGED_EVENT,
-    listApprovedReviewsForDoctor,
-    submitVisitorReview,
-} from "../../../../helpers/reviewModerationStore";
 import WaitlistJoinPanel from "../components/WaitlistJoinPanel";
 
 const TABS = [
@@ -26,44 +20,6 @@ const TABS = [
     { id: "clinic", label: "Clinic Details", icon: "ri-map-pin-line" },
     { id: "reviews", label: "Reviews", icon: "ri-star-line" },
     { id: "articles", label: "Articles", icon: "ri-article-line" },
-];
-
-const SAMPLE_REVIEWS = [
-    {
-        name: "Amit Sharma",
-        rating: 5,
-        daysAgo: 4,
-        mode: "In-Clinic",
-        text: "Very patient listener. Explained the remedy and diet clearly. My chronic acidity is much better within a month.",
-    },
-    {
-        name: "Priya Nair",
-        rating: 5,
-        daysAgo: 11,
-        mode: "Tele Consultation",
-        text: "Video consultation was smooth and on time. Got my e-prescription right after the call.",
-    },
-    {
-        name: "Rahul Verma",
-        rating: 4,
-        daysAgo: 19,
-        mode: "In-Clinic",
-        text: "Good experience overall. Clinic is clean and staff is helpful. Waiting time was a little long.",
-    },
-    {
-        name: "Sneha Patil",
-        rating: 5,
-        daysAgo: 33,
-        mode: "In-Clinic",
-        text: "Gentle treatment for my child's recurring cold. Highly recommended for kids.",
-    },
-    {
-        name: "Kiran Joshi",
-        rating: 4,
-        daysAgo: 48,
-        mode: "Tele Consultation",
-        text: "Helpful follow-up and clear instructions. Skin allergy has reduced noticeably.",
-    },
 ];
 
 const getInitials = (name) =>
@@ -80,21 +36,6 @@ const formatReviewDate = (value) => {
     return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
 
-const buildSampleReviews = () =>
-    SAMPLE_REVIEWS.map((review, index) => {
-        const date = new Date();
-        date.setDate(date.getDate() - review.daysAgo);
-        return {
-            id: `sample-${index}`,
-            name: review.name,
-            initials: getInitials(review.name),
-            rating: review.rating,
-            mode: review.mode,
-            text: review.text,
-            date: formatReviewDate(date),
-        };
-    });
-
 const normalizeReview = (row, index) => {
     const name = row.patientName || row.PatientName || row.reviewerName || row.ReviewerName || row.name || "Patient";
     return {
@@ -107,11 +48,6 @@ const normalizeReview = (row, index) => {
         date: formatReviewDate(row.at || row.At || row.createdAt || row.CreatedAt),
     };
 };
-
-const REVIEW_MODES = ["In-Clinic", "Tele Consultation"];
-const REVIEW_MIN_LENGTH = 10;
-const REVIEW_MAX_LENGTH = 500;
-const EMPTY_REVIEW_FORM = { name: "", rating: 0, mode: REVIEW_MODES[0], text: "" };
 
 const summarizeReviews = (list) => {
     const count = list.length;
@@ -156,7 +92,6 @@ const formatBookingDate = (date) => {
 const DoctorDetailPage = () => {
     const { doctorId } = useParams();
     const navigate = useNavigate();
-    const mockDoctor = DOCTORS.find((doc) => String(doc.id) === String(doctorId)) || null;
     const [doctor, setDoctor] = useState(null);
     const [activeTab, setActiveTab] = useState("overview");
     const [favorite, setFavorite] = useState(false);
@@ -171,24 +106,7 @@ const DoctorDetailPage = () => {
     const [loadError, setLoadError] = useState("");
     const [articles, setArticles] = useState([]);
     const [reviews, setReviews] = useState([]);
-    const [approvedLocalReviews, setApprovedLocalReviews] = useState([]);
-    const [reviewFormOpen, setReviewFormOpen] = useState(false);
-    const [reviewForm, setReviewForm] = useState(EMPTY_REVIEW_FORM);
-    const [reviewHover, setReviewHover] = useState(0);
-    const [reviewError, setReviewError] = useState("");
-    const [reviewSubmitted, setReviewSubmitted] = useState(false);
     const [rankingReasons, setRankingReasons] = useState([]);
-
-    useEffect(() => {
-        const refresh = () => setApprovedLocalReviews(listApprovedReviewsForDoctor(doctorId));
-        refresh();
-        window.addEventListener(REVIEWS_CHANGED_EVENT, refresh);
-        window.addEventListener("storage", refresh);
-        return () => {
-            window.removeEventListener(REVIEWS_CHANGED_EVENT, refresh);
-            window.removeEventListener("storage", refresh);
-        };
-    }, [doctorId]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -197,7 +115,7 @@ const DoctorDetailPage = () => {
         getPublicDoctor(doctorId)
             .then(async (row) => {
                 if (cancelled) return;
-                const mapped = mapPublicDoctorCard(row, mockDoctor || {});
+                const mapped = mapPublicDoctorCard(row);
                 try {
                     const ranking = await getPublicDoctorRanking(doctorId);
                     mapped.rankingSummary = ranking.summary || ranking.rankingSummary || mapped.rankingSummary;
@@ -217,8 +135,7 @@ const DoctorDetailPage = () => {
             })
             .catch(() => {
                 if (cancelled) return;
-                if (mockDoctor) setDoctor(mockDoctor);
-                else setLoadError("Doctor not found or not verified for directory.");
+                setLoadError("Doctor not found or not verified for directory.");
             });
         listPublicArticles({ pageNumber: 1, pageSize: 6 })
             .then((list) => {
@@ -262,35 +179,6 @@ const DoctorDetailPage = () => {
         };
     }, [doctor?.id, bookingDate]);
 
-    const handleReviewSubmit = (event) => {
-        event.preventDefault();
-        const text = reviewForm.text.trim();
-        if (!reviewForm.name.trim()) {
-            setReviewError("Please enter your name.");
-            return;
-        }
-        if (!reviewForm.rating) {
-            setReviewError("Please select a star rating.");
-            return;
-        }
-        if (text.length < REVIEW_MIN_LENGTH) {
-            setReviewError(`Please write at least ${REVIEW_MIN_LENGTH} characters about your experience.`);
-            return;
-        }
-        submitVisitorReview({
-            doctorId,
-            doctorName: doctor?.name,
-            name: reviewForm.name,
-            rating: reviewForm.rating,
-            mode: reviewForm.mode,
-            text,
-        });
-        setReviewError("");
-        setReviewForm(EMPTY_REVIEW_FORM);
-        setReviewFormOpen(false);
-        setReviewSubmitted(true);
-    };
-
     const handleBook = () => {
         if (!selectedSlot || !doctor?.id) return;
         const params = new URLSearchParams({
@@ -322,10 +210,9 @@ const DoctorDetailPage = () => {
         );
     }
 
-    const phone = doctor.phone || "+91 98765 43210";
+    const phone = doctor.phone || "";
     const dateValue = toIsoDate(bookingDate);
-    const verifiedReviews = [...approvedLocalReviews, ...reviews].map(normalizeReview);
-    const displayReviews = verifiedReviews.length ? verifiedReviews : buildSampleReviews();
+    const displayReviews = reviews.map(normalizeReview);
     const reviewSummary = summarizeReviews(displayReviews);
 
     return (
@@ -450,10 +337,12 @@ const DoctorDetailPage = () => {
                                             <i className="ri-checkbox-circle-fill" aria-hidden="true" />
                                             {doctor.specialtyLine}
                                         </span>
-                                        <span>
-                                            <i className="ri-checkbox-circle-fill" aria-hidden="true" />
-                                            {doctor.languages}
-                                        </span>
+                                        {doctor.languages ? (
+                                            <span>
+                                                <i className="ri-checkbox-circle-fill" aria-hidden="true" />
+                                                {doctor.languages}
+                                            </span>
+                                        ) : null}
                                     </div>
 
                                     <h2 className="homeojob-doctor-detail__section-title">
@@ -478,9 +367,7 @@ const DoctorDetailPage = () => {
                                         {doctor.clinicAddress}
                                     </p>
                                     <p className="homeojob-doctor-detail__about mb-0">
-                                        <strong>Hours:</strong> Mon - Sat, {doctor.timings.weekdays}
-                                        <br />
-                                        <strong>Sunday:</strong> {doctor.timings.sunday}
+                                        <strong>Hours:</strong> {doctor.timings.weekdays || "See available slots on the right"}
                                     </p>
                                 </div>
                             )}
@@ -491,133 +378,12 @@ const DoctorDetailPage = () => {
                                         <h2 className="homeojob-doctor-detail__section-title mb-0">
                                             Patient Reviews
                                         </h2>
-                                        {!reviewFormOpen ? (
-                                            <button
-                                                type="button"
-                                                className="homeojob-doctor-detail__write-review"
-                                                onClick={() => {
-                                                    setReviewFormOpen(true);
-                                                    setReviewSubmitted(false);
-                                                    setReviewError("");
-                                                }}
-                                            >
-                                                <i className="ri-edit-2-line" aria-hidden="true" />
-                                                Write a review
-                                            </button>
-                                        ) : null}
                                     </div>
+                                    <p className="text-muted small mb-3">
+                                        <i className="ri-shield-check-line me-1" aria-hidden="true" />
+                                        Reviews come from patients after a completed consultation and are published after admin verification.
+                                    </p>
 
-                                    {reviewSubmitted ? (
-                                        <div className="homeojob-doctor-detail__review-notice" role="status">
-                                            <i className="ri-time-line" aria-hidden="true" />
-                                            <div>
-                                                <strong>Thank you! Your review has been submitted.</strong>
-                                                <span>
-                                                    Our team verifies every review before publishing. It will appear here
-                                                    once approved.
-                                                </span>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                aria-label="Dismiss"
-                                                onClick={() => setReviewSubmitted(false)}
-                                            >
-                                                <i className="ri-close-line" aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                    ) : null}
-
-                                    {reviewFormOpen ? (
-                                        <form className="homeojob-doctor-detail__review-form" onSubmit={handleReviewSubmit} noValidate>
-                                            <h3>Share your experience with {doctor.name}</h3>
-                                            <div className="homeojob-doctor-detail__review-form-row">
-                                                <label>
-                                                    <span>Your name</span>
-                                                    <input
-                                                        type="text"
-                                                        maxLength={60}
-                                                        value={reviewForm.name}
-                                                        onChange={(e) => setReviewForm((f) => ({ ...f, name: e.target.value }))}
-                                                        placeholder="e.g. Amit Sharma"
-                                                    />
-                                                </label>
-                                                <label>
-                                                    <span>Consultation type</span>
-                                                    <select
-                                                        value={reviewForm.mode}
-                                                        onChange={(e) => setReviewForm((f) => ({ ...f, mode: e.target.value }))}
-                                                    >
-                                                        {REVIEW_MODES.map((mode) => (
-                                                            <option key={mode} value={mode}>
-                                                                {mode}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-                                            </div>
-                                            <div className="homeojob-doctor-detail__review-form-rating">
-                                                <span>Your rating</span>
-                                                <div
-                                                    className="homeojob-doctor-detail__star-picker"
-                                                    onMouseLeave={() => setReviewHover(0)}
-                                                >
-                                                    {[1, 2, 3, 4, 5].map((n) => (
-                                                        <button
-                                                            key={n}
-                                                            type="button"
-                                                            aria-label={`${n} star${n > 1 ? "s" : ""}`}
-                                                            className={(reviewHover || reviewForm.rating) >= n ? "is-on" : undefined}
-                                                            onMouseEnter={() => setReviewHover(n)}
-                                                            onClick={() => setReviewForm((f) => ({ ...f, rating: n }))}
-                                                        >
-                                                            <i
-                                                                className={(reviewHover || reviewForm.rating) >= n ? "ri-star-fill" : "ri-star-line"}
-                                                                aria-hidden="true"
-                                                            />
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <label className="homeojob-doctor-detail__review-form-text">
-                                                <span>Your review</span>
-                                                <textarea
-                                                    rows={3}
-                                                    maxLength={REVIEW_MAX_LENGTH}
-                                                    value={reviewForm.text}
-                                                    onChange={(e) => setReviewForm((f) => ({ ...f, text: e.target.value }))}
-                                                    placeholder="How was the consultation, treatment and clinic experience?"
-                                                />
-                                                <small>
-                                                    {reviewForm.text.length}/{REVIEW_MAX_LENGTH}
-                                                </small>
-                                            </label>
-                                            {reviewError ? (
-                                                <p className="homeojob-doctor-detail__review-error">{reviewError}</p>
-                                            ) : null}
-                                            <div className="homeojob-doctor-detail__review-form-actions">
-                                                <span>
-                                                    <i className="ri-shield-check-line" aria-hidden="true" />
-                                                    Reviews are published after admin verification.
-                                                </span>
-                                                <div>
-                                                    <button
-                                                        type="button"
-                                                        className="is-secondary"
-                                                        onClick={() => {
-                                                            setReviewFormOpen(false);
-                                                            setReviewError("");
-                                                        }}
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <button type="submit">
-                                                        <i className="ri-send-plane-line" aria-hidden="true" />
-                                                        Submit review
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    ) : null}
 
                                     {rankingReasons.length > 0 ? (
                                         <div className="homeojob-doctor-detail__why">
@@ -660,6 +426,9 @@ const DoctorDetailPage = () => {
                                         </div>
                                     </div>
 
+                                    {displayReviews.length === 0 ? (
+                                        <p className="text-muted">No published reviews yet.</p>
+                                    ) : null}
                                     <ul className="homeojob-doctor-detail__review-list">
                                         {displayReviews.map((review) => (
                                             <li className="homeojob-doctor-detail__review" key={review.id}>
@@ -859,19 +628,21 @@ const DoctorDetailPage = () => {
                                         <p>
                                             <i className="ri-time-line" aria-hidden="true" />
                                             <span>
-                                                Mon - Sat, {doctor.timings.weekdays.replace(" | ", ", ")}
+                                                {doctor.timings.weekdays ? doctor.timings.weekdays.replace(" | ", ", ") : "See available slots"}
                                             </span>
                                         </p>
-                                        <p>
-                                            <i className="ri-phone-line" aria-hidden="true" />
-                                            <span>{phone}</span>
-                                        </p>
+                                        {phone ? (
+                                            <p>
+                                                <i className="ri-phone-line" aria-hidden="true" />
+                                                <span>{phone}</span>
+                                            </p>
+                                        ) : null}
                                     </div>
                                 </div>
 
                                 <div className="homeojob-doctor-detail__badges">
-                                    <span>In-Clinic Available</span>
-                                    <span>Online Consultation Available</span>
+                                    {doctor.inClinic > 0 ? <span>In-Clinic Available</span> : null}
+                                    {doctor.tele > 0 ? <span>Online Consultation Available</span> : null}
                                 </div>
                             </div>
                         </aside>

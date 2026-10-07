@@ -9,6 +9,8 @@ import {
     listPublicDoctors,
     mapPublicDoctorCard,
     requestInstantConsult,
+    resolvePublicAccessToken,
+    sessionContactDefaults,
 } from "../../../../helpers/publicBookingApi";
 
 /**
@@ -19,10 +21,11 @@ import {
 const InstantConsultPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const accessToken = searchParams.get("accessToken") || "";
+    const tokenParam = searchParams.get("accessToken") || "";
+    const accessToken = resolvePublicAccessToken(tokenParam);
 
-    const [contactName, setContactName] = useState("Sanjay Patil");
-    const [contactMobile, setContactMobile] = useState("7768046064");
+    const [contactName, setContactName] = useState(() => sessionContactDefaults().name);
+    const [contactMobile, setContactMobile] = useState(() => sessionContactDefaults().mobile);
     const [doctorHintId, setDoctorHintId] = useState("");
     const [doctorSearch, setDoctorSearch] = useState("");
     const [doctors, setDoctors] = useState([]);
@@ -120,7 +123,7 @@ const InstantConsultPage = () => {
         setError("");
         setOffline(false);
         if (!accessToken) {
-            setError("Sign in as the patient and pass accessToken to request an instant consult.");
+            setError("Sign in as the patient to request an instant consult.");
             return;
         }
         setLoading(true);
@@ -131,7 +134,11 @@ const InstantConsultPage = () => {
                 contactMobile,
                 accessToken,
             });
-            navigate(landingPath("instant-consult/queue"), {
+            const query = new URLSearchParams();
+            if (row?.instantConsultRequestId) query.set("requestId", String(row.instantConsultRequestId));
+            if (tokenParam) query.set("accessToken", tokenParam);
+            const qs = query.toString();
+            navigate(`${landingPath("instant-consult/queue")}${qs ? `?${qs}` : ""}`, {
                 state: { instantResult: row },
                 replace: false,
             });
@@ -156,7 +163,7 @@ const InstantConsultPage = () => {
 
                 {!accessToken ? (
                     <p className="text-muted" data-testid="instant-consult-empty">
-                        Add a patient Bearer token as <code>?accessToken=…</code> to submit a request.
+                        <Link to="/login">Sign in</Link> as a patient to submit a request.
                     </p>
                 ) : null}
 

@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner, Table } from "reactstrap";
+import Swal from "sweetalert2";
+import { Alert, Badge, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner, Table } from "reactstrap";
 import {
   acceptMedicineOrder,
+  deliverMedicine,
   dispatchMedicine,
   markMedicineReady,
   medicineAcceptOtp,
+  medicineTracking,
   onboardPharmacy,
   listPharmacyPartners,
   pharmacyQueue,
@@ -18,6 +21,34 @@ import "./components/pharmacyDashboard.css";
 const orderStatus = (row) => String(row.status || row.Status || "").toUpperCase();
 const orderIdOf = (row) => row.medicineOrderId || row.MedicineOrderId || row.id;
 const quoteAmountOf = (row) => row.quoteAmount ?? row.QuoteAmount ?? "";
+const field = (row, camel) => row?.[camel] ?? row?.[camel.charAt(0).toUpperCase() + camel.slice(1)];
+
+const STATUS_META = {
+  OFFERED: { color: "warning", label: "New offer", hint: "Confirm patient consent, send OTP, then accept or reject." },
+  ACCEPTED: { color: "info", label: "Accepted", hint: "Send a price quote to the patient." },
+  QUOTED: { color: "primary", label: "Quoted", hint: "Waiting for the patient to accept the quote." },
+  QUOTED_ACCEPTED: { color: "primary", label: "Quote accepted", hint: "Waiting for the patient to pay." },
+  PAID: { color: "success", label: "Paid", hint: "Pack the order and mark it ready." },
+  COD_PENDING: { color: "success", label: "Cash on delivery", hint: "Pack the order and mark it ready." },
+  READY: { color: "dark", label: "Ready", hint: "Hand over to delivery and mark dispatched." },
+  DISPATCHED: { color: "info", label: "Dispatched", hint: "Mark delivered when the patient receives it." },
+  DELIVERED: { color: "secondary", label: "Delivered", hint: "Completed." },
+  REJECTED: { color: "danger", label: "Rejected", hint: "Closed." },
+};
+
+const REJECT_REASONS = { OUT_OF_STOCK: "Out of stock", CLOSED: "Pharmacy closed", OTHER: "Other" };
+
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+};
+
+const formatAmount = (value) => {
+  if (value === "" || value === null || value === undefined) return "—";
+  const n = Number(value);
+  return Number.isFinite(n) ? `₹${n.toFixed(2)}` : String(value);
+};
 
 const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const [rows, setRows] = useState([]);
@@ -26,7 +57,10 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [otpById, setOtpById] = useState({});
+  const [otpSentById, setOtpSentById] = useState({});
   const [quoteById, setQuoteById] = useState({});
+  const [detailById, setDetailById] = useState({});
+  const [openId, setOpenId] = useState(null);
   const [onboard, setOnboard] = useState({
     name: "",
     mobile: "",
@@ -45,7 +79,6 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     setLoading(true);
     setError("");
     try {
-      // Pharmacy console uses patient medicine-order list until a dedicated queue endpoint is filtered by partner.
       const response = mode === "onboarding" ? { data: [] } : await pharmacyQueue();
       const data = unwrapS4(response);
       const list = Array.isArray(data) ? data : Array.isArray(data?.orders) ? data.orders : Array.isArray(data?.data) ? data.data : [];
@@ -85,6 +118,95 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
         return status === "ACCEPTED" || status === "QUOTED";
       })
     : rows;
+
+  const runAction = async (id, work, successText, reload = true) => {
+    setBusyId(id);
+    setError("");
+    setNote("");
+    try {
+      const result = await work();
+      if (successText) setNote(typeof successText === "function" ? successText(result) : successText);
+      if (reload) {
+        setDetailById((prev) => ({ ...prev, [id]: undefined }));
+        await loadOrders();
+      }
+      return result;
+    } catch (err) {
+      setError(s4Message(err));
+      return null;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const requestOtp = (id) =>
+    runAction(
+      id,
+      async () => {
+        const response = await medicineAcceptOtp(id);
+        const devCode = response?.devCode ?? response?.data?.devCode;
+        setOtpSentById((prev) => ({ ...prev, [id]: true }));
+        if (devCode) setOtpById((prev) => ({ ...prev, [id]: String(devCode) }));
+        return response;
+      },
+      `OTP created for order ${id}. Enter it to accept.`,
+      false
+    );
+
+  const acceptOrder = (id) =>
+    runAction(
+      id,
+      () => acceptMedicineOrder(id, { otp: otpById[id] || "", stockConfirmed: true }),
+      `Order ${id} accepted. Remedy names are now visible. Send a quote next.`
+    ).then((result) => {
+      if (result) {
+        setOtpById((prev) => ({ ...prev, [id]: "" }));
+        setOtpSentById((prev) => ({ ...prev, [id]: false }));
+      }
+    });
+
+  const rejectOrder = async (id) => {
+    const choice = await Swal.fire({
+      title: `Reject order ${id}?`,
+      input: "select",
+      inputOptions: REJECT_REASONS,
+      inputPlaceholder: "Select a reason",
+      showCancelButton: true,
+      confirmButtonText: "Reject order",
+      confirmButtonColor: "#dc3545",
+      inputValidator: (value) => (!value ? "Select a reason." : undefined),
+    });
+    if (!choice.isConfirmed) return;
+    await runAction(id, () => rejectMedicineOrder(id, { reason: choice.value }), `Order ${id} rejected.`);
+  };
+
+  const saveQuote = (id) => {
+    const amount = Number(quoteById[id] || 0);
+    if (!(amount > 0)) {
+      setError("Enter a quote amount greater than 0.");
+      return;
+    }
+    runAction(id, () => quoteMedicineOrder(id, { amount }), `Quote of ${formatAmount(amount)} sent for order ${id}.`).then(
+      (result) => {
+        if (result) setQuoteById((prev) => ({ ...prev, [id]: "" }));
+      }
+    );
+  };
+
+  const toggleDetail = async (id) => {
+    if (openId === id) {
+      setOpenId(null);
+      return;
+    }
+    setOpenId(id);
+    if (detailById[id]) return;
+    try {
+      const response = await medicineTracking(id);
+      setDetailById((prev) => ({ ...prev, [id]: unwrapS4(response) || {} }));
+    } catch (err) {
+      setDetailById((prev) => ({ ...prev, [id]: { error: s4Message(err) } }));
+    }
+  };
 
   const saveOnboard = async () => {
     setBusyId("onboard");
@@ -306,6 +428,156 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     );
   }
 
+  const renderActions = (row) => {
+    const id = orderIdOf(row);
+    const status = orderStatus(row);
+    const busy = busyId === id;
+    const consent = Boolean(field(row, "consentGranted"));
+
+    if (status === "OFFERED") {
+      if (!consent) {
+        return <span className="small text-muted">Waiting for patient consent.</span>;
+      }
+      const otp = String(otpById[id] || "");
+      return (
+        <div className="d-flex flex-wrap gap-1 align-items-center">
+          <Button size="sm" color="soft-secondary" disabled={busy} onClick={() => requestOtp(id)}>
+            {otpSentById[id] ? "Resend OTP" : "Send OTP"}
+          </Button>
+          <Input
+            bsSize="sm"
+            style={{ width: 90 }}
+            placeholder="OTP"
+            inputMode="numeric"
+            maxLength={6}
+            value={otp}
+            disabled={busy || !otpSentById[id]}
+            onChange={(e) => setOtpById({ ...otpById, [id]: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+          />
+          <Button size="sm" color="soft-success" disabled={busy || otp.length !== 6} onClick={() => acceptOrder(id)}>
+            Accept
+          </Button>
+          <Button size="sm" color="soft-danger" disabled={busy} onClick={() => rejectOrder(id)}>
+            Reject
+          </Button>
+        </div>
+      );
+    }
+
+    if (status === "ACCEPTED") {
+      return (
+        <div className="d-flex flex-wrap gap-1 align-items-center">
+          <Input
+            bsSize="sm"
+            type="number"
+            min="1"
+            style={{ width: 110 }}
+            placeholder="Amount ₹"
+            value={quoteById[id] || ""}
+            disabled={busy}
+            onChange={(e) => setQuoteById({ ...quoteById, [id]: e.target.value })}
+          />
+          <Button size="sm" color="soft-primary" disabled={busy || !(Number(quoteById[id]) > 0)} onClick={() => saveQuote(id)}>
+            Send quote
+          </Button>
+          {!isQuotes ? (
+            <Button size="sm" color="soft-danger" disabled={busy} onClick={() => rejectOrder(id)}>
+              Reject
+            </Button>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (status === "PAID" || status === "COD_PENDING") {
+      return (
+        <Button
+          size="sm"
+          color="soft-info"
+          disabled={busy}
+          onClick={() => runAction(id, () => markMedicineReady(id), `Order ${id} marked ready.`)}
+        >
+          Mark ready
+        </Button>
+      );
+    }
+
+    if (status === "READY") {
+      return (
+        <Button
+          size="sm"
+          color="soft-dark"
+          disabled={busy}
+          onClick={() => runAction(id, () => dispatchMedicine(id), `Order ${id} dispatched.`)}
+        >
+          Dispatch
+        </Button>
+      );
+    }
+
+    if (status === "DISPATCHED") {
+      return (
+        <Button
+          size="sm"
+          color="soft-success"
+          disabled={busy}
+          onClick={() => runAction(id, () => deliverMedicine(id), `Order ${id} delivered.`)}
+        >
+          Mark delivered
+        </Button>
+      );
+    }
+
+    return <span className="small text-muted">{STATUS_META[status]?.hint || "No action."}</span>;
+  };
+
+  const renderDetail = (id) => {
+    const detail = detailById[id];
+    if (!detail) {
+      return (
+        <div className="small text-muted">
+          <Spinner size="sm" /> Loading order details…
+        </div>
+      );
+    }
+    if (detail.error) return <div className="small text-danger">{detail.error}</div>;
+    const items = detail.items || detail.Items || [];
+    const events = detail.events || detail.Events || [];
+    return (
+      <Row className="g-3">
+        <Col md={6}>
+          <h6 className="mb-2">Medicines</h6>
+          {items.length === 0 ? (
+            <p className="small text-muted mb-0">No medicines on this order.</p>
+          ) : (
+            <ul className="small mb-0 ps-3">
+              {items.map((item, index) => (
+                <li key={`${field(item, "remedyCode")}-${index}`}>
+                  {field(item, "remedyName") || `Remedy code ${field(item, "remedyCode") || "—"} (name shown after accept)`}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Col>
+        <Col md={6}>
+          <h6 className="mb-2">Timeline</h6>
+          {events.length === 0 ? (
+            <p className="small text-muted mb-0">No events yet.</p>
+          ) : (
+            <ul className="small mb-0 ps-3">
+              {events.map((event, index) => (
+                <li key={index}>
+                  <strong>{field(event, "status")}</strong> · {formatDateTime(field(event, "at"))}
+                  {field(event, "detail") ? ` · ${field(event, "detail")}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Col>
+      </Row>
+    );
+  };
+
   return (
     <div className="page-content admin-dashboard-page pharmacy-dashboard-page clinic-workspace-page">
       <Container fluid>
@@ -314,14 +586,16 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
             <h2 className="pharmacy-page-title mb-1">{isQuotes ? "Quotes" : "Medicine orders"}</h2>
             <p className="pharmacy-page-subtitle mb-0">
               {isQuotes
-                ? "Orders that are accepted and waiting for a price. Stock, ready, and dispatch stay on Medicine orders."
-                : "Confirm the OTP, accept or reject stock, then mark ready and dispatch after the patient pays."}
+                ? "Accepted orders waiting for a price, and quotes waiting for the patient."
+                : "Send the OTP and accept or reject new offers, quote a price, then mark ready and dispatch after the patient pays."}
             </p>
           </div>
-          <Button size="sm" color="soft-secondary" onClick={loadOrders} disabled={loading}>Refresh</Button>
+          <Button size="sm" color="soft-secondary" onClick={loadOrders} disabled={loading}>
+            {loading ? "Loading…" : "Refresh"}
+          </Button>
         </div>
-        {error ? <Alert color="danger">{error}</Alert> : null}
-        {note ? <Alert color="success">{note}</Alert> : null}
+        {error ? <Alert color="danger" toggle={() => setError("")}>{error}</Alert> : null}
+        {note ? <Alert color="success" toggle={() => setNote("")}>{note}</Alert> : null}
         <Card className="admin-dash-card">
           <CardBody>
             {loading ? (
@@ -330,7 +604,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               <p className="text-muted mb-0">
                 {isQuotes
                   ? "No orders are waiting for a quote. Accept the order on Medicine orders first."
-                  : "No medicine orders yet."}
+                  : "No medicine orders assigned to your pharmacy yet."}
               </p>
             ) : (
               <div className="table-responsive">
@@ -338,169 +612,71 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                   <thead>
                     <tr>
                       <th>Order</th>
+                      <th>Patient</th>
                       <th>Status</th>
-                      <th>{isQuotes ? "Amount" : "Quote"}</th>
-                      <th>{isQuotes ? "Save quote" : "Fulfilment"}</th>
+                      <th>Quote</th>
+                      <th>Received</th>
+                      <th>Action</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
                     {visibleRows.map((row) => {
                       const id = orderIdOf(row);
                       const status = orderStatus(row);
-                      const savedQuote = quoteAmountOf(row);
+                      const meta = STATUS_META[status] || { color: "secondary", label: status || "—" };
+                      const patientName = field(row, "patientName");
+                      const mobile = field(row, "patientMobile");
+                      const address = field(row, "patientAddress");
+                      const payMode = field(row, "payMode");
                       return (
-                        <tr key={id}>
-                          <td>{id}</td>
-                          <td>{status || "—"}</td>
-                          <td>
-                            {isQuotes && status === "ACCEPTED" ? (
-                              <Input
-                                bsSize="sm"
-                                type="number"
-                                style={{ width: 110 }}
-                                placeholder="Amount"
-                                value={quoteById[id] || ""}
-                                onChange={(e) => setQuoteById({ ...quoteById, [id]: e.target.value })}
-                              />
-                            ) : (
-                              savedQuote !== "" && savedQuote != null ? savedQuote : "—"
-                            )}
-                          </td>
-                          <td>
-                            {isQuotes ? (
-                              status === "ACCEPTED" ? (
-                                <Button
-                                  size="sm"
-                                  color="soft-primary"
-                                  disabled={busyId === id}
-                                  onClick={async () => {
-                                    setBusyId(id);
-                                    try {
-                                      await quoteMedicineOrder(id, { amount: Number(quoteById[id] || 0) });
-                                      setNote(`Quote saved for order ${id}.`);
-                                      await loadOrders();
-                                    } catch (err) {
-                                      setError(s4Message(err));
-                                    } finally {
-                                      setBusyId(null);
-                                    }
-                                  }}
-                                >
-                                  Save quote
-                                </Button>
+                        <React.Fragment key={id}>
+                          <tr>
+                            <td>
+                              <div className="fw-semibold">#{id}</div>
+                              <div className="small text-muted">
+                                eRx #{field(row, "erxSnapshotId") ?? "—"} · {field(row, "itemCount") ?? 0} item(s)
+                              </div>
+                              {field(row, "pharmacyName") ? (
+                                <div className="small text-muted">{field(row, "pharmacyName")}</div>
+                              ) : null}
+                            </td>
+                            <td>
+                              {patientName ? (
+                                <>
+                                  <div>{patientName}</div>
+                                  <div className="small text-muted">
+                                    {[mobile, address].filter(Boolean).join(" · ") || "—"}
+                                  </div>
+                                </>
                               ) : (
-                                <span className="text-muted">Quote saved</span>
-                              )
-                            ) : (
-                            <div className="d-flex flex-wrap gap-1 align-items-center">
-                              <Button
-                                size="sm"
-                                color="soft-secondary"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await medicineAcceptOtp(id);
-                                    setNote(`OTP requested for order ${id}.`);
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                OTP
+                                <span className="small text-muted">Shown after accept</span>
+                              )}
+                            </td>
+                            <td>
+                              <Badge color={meta.color}>{meta.label}</Badge>
+                              {status === "OFFERED" && !field(row, "consentGranted") ? (
+                                <div className="small text-muted">No consent yet</div>
+                              ) : null}
+                              {payMode ? <div className="small text-muted">Pay: {payMode}</div> : null}
+                            </td>
+                            <td>{formatAmount(quoteAmountOf(row))}</td>
+                            <td className="small">{formatDateTime(field(row, "createdAt"))}</td>
+                            <td>{renderActions(row)}</td>
+                            <td>
+                              <Button size="sm" color="link" className="p-0" onClick={() => toggleDetail(id)}>
+                                {openId === id ? "Hide" : "Details"}
                               </Button>
-                              <Input
-                                bsSize="sm"
-                                style={{ width: 80 }}
-                                placeholder="OTP"
-                                value={otpById[id] || ""}
-                                onChange={(e) => setOtpById({ ...otpById, [id]: e.target.value })}
-                              />
-                              <Button
-                                size="sm"
-                                color="soft-success"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await acceptMedicineOrder(id, {
-                                      otp: otpById[id] || "",
-                                      stockConfirmed: true,
-                                    });
-                                    setNote(`Order ${id} accepted. Remedy names are revealed after OTP.`);
-                                    await loadOrders();
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Accept
-                              </Button>
-                              <Button
-                                size="sm"
-                                color="soft-danger"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await rejectMedicineOrder(id, { reason: "OUT_OF_STOCK" });
-                                    setNote(`Order ${id} rejected.`);
-                                    await loadOrders();
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Out of stock
-                              </Button>
-                              <Button
-                                size="sm"
-                                color="soft-info"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await markMedicineReady(id);
-                                    setNote(`Order ${id} marked ready.`);
-                                    await loadOrders();
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Ready
-                              </Button>
-                              <Button
-                                size="sm"
-                                color="soft-dark"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await dispatchMedicine(id);
-                                    setNote(`Order ${id} dispatched.`);
-                                    await loadOrders();
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Dispatch
-                              </Button>
-                            </div>
-                            )}
-                          </td>
-                        </tr>
+                            </td>
+                          </tr>
+                          {openId === id ? (
+                            <tr>
+                              <td colSpan={7} className="bg-light">
+                                {renderDetail(id)}
+                              </td>
+                            </tr>
+                          ) : null}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>

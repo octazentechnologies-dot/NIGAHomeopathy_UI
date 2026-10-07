@@ -41,6 +41,8 @@ export const createInvoiceByPayment = (paymentOrderId) =>
   nigahomeoAPI.post(`/Invoices/ByPayment/${paymentOrderId}`, null);
 export const listRefunds = () => nigahomeoAPI.get("/Refunds", null);
 export const createRefund = (payload) => nigahomeoAPI.post("/Refunds", payload);
+export const previewRefundPolicy = (paymentOrderId) =>
+  nigahomeoAPI.get(`/Refunds/Policy/${paymentOrderId}`, null);
 
 /* Account finance */
 export const getLedger = (params) => nigahomeoAPI.get("/Account/Ledger", params || {});
@@ -67,6 +69,7 @@ export const getClinicCollections = (params) =>
   nigahomeoAPI.get("/Account/ClinicCollections", params || {});
 /** DMO-10.02 — doctor mobile earnings summary */
 export const earningsSummary = (params) => nigahomeoAPI.get("/Earnings/Summary", params || {});
+export const accountDoctorEarnings = (params) => nigahomeoAPI.get("/Account/DoctorEarnings", params || {});
 
 /* Pharmacy / medicine */
 export const onboardPharmacy = (payload) => nigahomeoAPI.post("/Pharmacy/Onboard", payload);
@@ -78,6 +81,7 @@ export const activatePharmacy = (id) => nigahomeoAPI.post(`/Pharmacy/${id}/Activ
 export const pharmacyQueue = () => nigahomeoAPI.get("/Pharmacy/Orders", null);
 export const markMedicineReady = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Ready`, null);
 export const dispatchMedicine = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Dispatch`, null);
+export const deliverMedicine = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Deliver`, null);
 export const grantMedicineConsent = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Consent`, null);
 export const acceptMedicineQuote = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/AcceptQuote`, null);
 export const createMedicineOrder = (payload) => nigahomeoAPI.post("/MedicineOrders", payload);
@@ -122,12 +126,13 @@ export const erxPatient = (appointmentId) => nigahomeoAPI.get(`/Erx/Patient/${ap
 export const erxPdf = (id) => nigahomeoAPI.get(`/Erx/${id}/Pdf`, { responseType: "blob" });
 export const createErxRefill = (payload) => nigahomeoAPI.post("/Erx/Refills", payload);
 export const cloneMedicineRefill = (refillId) => nigahomeoAPI.post(`/MedicineOrders/Refill/${refillId}`, null);
-export const listErxRefills = () => nigahomeoAPI.get("/Erx/Refills", null);
+export const listErxRefills = (status) => nigahomeoAPI.get("/Erx/Refills", status ? { status } : null);
 export const approveErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Approve`, payload);
 export const rejectErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Reject`, payload);
 
 /* Continuity (CON) */
 export const getPatientTimeline = () => nigahomeoAPI.get("/Patient/Timeline", null);
+export const getPatientVisits = () => nigahomeoAPI.get("/Patient/Visits", null);
 export const getConsultNote = (patientAppId) =>
   nigahomeoAPI.get(`/Patient/Consultations/${patientAppId}/Note`, null);
 export const uploadPatientDocument = (payload) => {
@@ -152,6 +157,12 @@ export const updateDiaryEntry = (id, payload) => nigahomeoAPI.put(`/Patient/Diar
 export const getPatientProgress = () => nigahomeoAPI.get("/Patient/Progress", null);
 export const getPatientConsents = () => nigahomeoAPI.get("/Patient/Consents", null);
 export const withdrawConsent = (id) => nigahomeoAPI.post(`/Patient/Consents/${id}/Withdraw`, null);
+export const grantPatientConsent = (consentTypeId) =>
+  nigahomeoAPI.post(`/Patient/Consents/Types/${consentTypeId}/Grant`, null);
+export const listPatientDocuments = () => nigahomeoAPI.get("/Patient/Documents", null);
+export const openPatientDocument = (documentId) =>
+  nigahomeoAPI.get(`/Patient/Documents/${documentId}`, { responseType: "blob" });
+export const deletePatientDocument = (documentId) => nigahomeoAPI.delete(`/Patient/Documents/${documentId}`);
 export const postDataRequest = (payload) => nigahomeoAPI.post("/Patient/DataRequests", payload);
 export const getPatientProfileS4 = () => nigahomeoAPI.get("/Patient/Profile", null);
 export const putPatientProfileS4 = (payload) => nigahomeoAPI.put("/Patient/Profile", payload);

@@ -1,11 +1,61 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Input, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { Input, Modal, ModalBody, ModalFooter, ModalHeader, Spinner } from "reactstrap";
+import moment from "moment";
+import Swal from "sweetalert2";
 import ModalActionButton from "../../../Components/Common/ModalActionButton";
-import doctorAvatar from "../../../assets/images/users/avatar-2.jpg";
-import patientAvatar from "../../../assets/images/users/avatar-3.jpg";
 import doctorPreview from "../../../assets/images/landing/hero-doctor.png";
+import {
+  createTeleSession,
+  endTeleSession,
+  issueTeleSessionRejoinToken,
+  issueTeleSessionToken,
+  listTeleChat,
+  postTeleChat,
+  postTeleRecordingConsent,
+  saveTeleConsultationSummary,
+  startTeleSession,
+} from "../../../helpers/realbackend_helper";
+import { erxByAppointment, postFollowUp } from "../../../helpers/s4Week4Api";
+import { apiHelpers } from "../../../helpers/api_helper";
+import { mapChatMessage } from "./teleApi";
 import "./teleCallFlow.css";
+
+const CHAT_POLL_MS = 5000;
+
+const initialsOf = (name) =>
+  String(name || "")
+    .replace(/^dr\.?\s+/i, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("") || "?";
+
+const InitialsAvatar = ({ name, className = "" }) => (
+  <span className={`${className} tele-initials-avatar`} aria-hidden="true">
+    {initialsOf(name)}
+  </span>
+);
+
+const readDoctorName = () => {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+    const auth = raw?.data || raw;
+    const name = [auth?.firstName, auth?.lastName].filter(Boolean).join(" ").trim() || auth?.userName || "";
+    if (!name) return "Doctor";
+    return /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`;
+  } catch (_) {
+    return "Doctor";
+  }
+};
+
+const errText = (err, fallback) => (typeof err === "string" ? err : err?.message) || fallback;
+
+const getPatientVisitsFor = (patientId) =>
+  apiHelpers.nigahomeo.get("/Patient/Visits", patientId ? { patientId } : {});
+
+const FOLLOW_UP_DAYS = { "7 Days": 7, "15 Days": 15, "30 Days": 30 };
 
 const CALL_STEPS = {
   DEVICE: "device",
@@ -41,37 +91,6 @@ const stopMediaStream = (stream) => {
     }
   });
 };
-
-const INITIAL_CHAT = [
-  {
-    id: 1,
-    from: "doctor",
-    name: "Dr. Nikhil",
-    time: "10:02 AM",
-    text: "Please share your previous reports.",
-  },
-  {
-    id: 2,
-    from: "doctor",
-    name: "Dr. Nikhil",
-    time: "10:02 AM",
-    file: { name: "report.pdf", size: "2.4 MB" },
-  },
-  {
-    id: 3,
-    from: "patient",
-    name: "Rohan Mehta",
-    time: "10:04 AM",
-    text: "Here is the report.",
-  },
-  {
-    id: 4,
-    from: "doctor",
-    name: "Dr. Nikhil",
-    time: "10:05 AM",
-    text: "Thank you.",
-  },
-];
 
 const formatTimer = (seconds) => {
   const hrs = String(Math.floor(seconds / 3600)).padStart(2, "0");
@@ -237,7 +256,7 @@ const ConsentStep = ({ agreed, onAgreeChange, onCancel, onContinue }) => (
   </Modal>
 );
 
-const WaitingRoomStep = ({ onLeave }) => (
+const WaitingRoomStep = ({ onLeave, patientName, doctorName, sessionId }) => (
   <Modal
     isOpen
     toggle={onLeave}
@@ -253,19 +272,21 @@ const WaitingRoomStep = ({ onLeave }) => (
     </ModalHeader>
     <ModalBody className="tele-call-modal__body tele-waiting-body">
       <div className="tele-waiting-hero">
-        <img src={doctorAvatar} alt="Doctor" className="tele-waiting-avatar" />
-        <h4 className="tele-waiting-title">You&apos;re in the Waiting Room</h4>
-        <p className="tele-waiting-doctor">Dr. Priya Sharma</p>
-        <p className="tele-waiting-specialty">Homeopathy Specialist</p>
+        <InitialsAvatar name={patientName} className="tele-waiting-avatar" />
+        <h4 className="tele-waiting-title">Connecting to the consultation</h4>
+        <p className="tele-waiting-doctor">{patientName || "Patient"}</p>
+        <p className="tele-waiting-specialty">{doctorName}</p>
       </div>
       <div className="tele-waiting-meta">
         <div className="tele-waiting-meta__item">
-          <span>Your position:</span>
-          <strong>#2</strong>
+          <span>Session:</span>
+          <strong>{sessionId ? `#${sessionId}` : "Opening…"}</strong>
         </div>
         <div className="tele-waiting-meta__item">
-          <span>Estimated wait time:</span>
-          <strong>03 minutes</strong>
+          <span>Status:</span>
+          <strong className="d-inline-flex align-items-center gap-1">
+            <Spinner size="sm" color="primary" /> Starting room
+          </strong>
         </div>
       </div>
     </ModalBody>
@@ -402,12 +423,15 @@ const ConsultationChat = ({ messages, draft, onDraftChange, onSend, onClose }) =
       <button type="button" className="btn-close" aria-label="Close chat" onClick={onClose} />
     </div>
     <div className="tele-chat-panel__messages">
+      {messages.length === 0 ? (
+        <p className="text-muted text-center small my-3">No messages yet</p>
+      ) : null}
       {messages.map((msg) => (
         <div
           key={msg.id}
-          className={`tele-chat-msg ${msg.from === "patient" ? "tele-chat-msg--mine" : ""}`}
+          className={`tele-chat-msg ${msg.mine ? "tele-chat-msg--mine" : ""}`}
         >
-          {msg.from === "doctor" && (
+          {!msg.mine && (
             <div className="tele-chat-msg__avatar" aria-hidden="true">
               <i className="ri-user-3-fill" />
             </div>
@@ -448,9 +472,6 @@ const ConsultationChat = ({ messages, draft, onDraftChange, onSend, onClose }) =
             }
           }}
         />
-        <button type="button" className="tele-chat-attach" aria-label="Attach file">
-          <i className="ri-attachment-2" />
-        </button>
       </div>
       <button type="button" className="tele-chat-send" aria-label="Send" onClick={onSend}>
         <i className="ri-send-plane-2-fill" />
@@ -458,17 +479,6 @@ const ConsultationChat = ({ messages, draft, onDraftChange, onSend, onClose }) =
     </div>
   </div>
 );
-
-const DEFAULT_CASE_NOTES =
-  "Patient reports reduced headache frequency after last remedy.";
-
-const DEFAULT_PRESCRIPTION = {
-  remedy: "Belladonna 30C",
-  potency: "30C",
-  duration: "3 days",
-  dosage: "4 pills, thrice daily",
-  instructions: "Take after food. Avoid coffee and mint.",
-};
 
 const SidebarViewEditModal = ({
   isOpen,
@@ -507,8 +517,66 @@ const SidebarViewEditModal = ({
   </Modal>
 );
 
+
+const RxItems = ({ erx, loading, emptyText }) => {
+  const items = Array.isArray(erx?.items) ? erx.items : [];
+  if (loading) {
+    return (
+      <div className="text-center py-2">
+        <Spinner size="sm" color="primary" />
+      </div>
+    );
+  }
+  if (items.length === 0) {
+    return <p className="text-muted mb-0">{emptyText || "No signed prescription for this consultation yet."}</p>;
+  }
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm align-middle mb-0 tele-sidebar-history-table">
+        <thead>
+          <tr>
+            <th>Remedy</th>
+            <th>Potency</th>
+            <th>Dosage</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, idx) => (
+            <tr key={`${item.remedyCode || "rx"}-${idx}`}>
+              <td>{item.remedyName || item.remedyCode || "—"}</td>
+              <td>{item.potencyCode || "—"}</td>
+              <td>{[item.dose, item.frequency].filter(Boolean).join(", ") || "—"}</td>
+              <td>{item.duration || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const rxSummaryText = (erx) => {
+  const items = Array.isArray(erx?.items) ? erx.items : [];
+  if (items.length === 0) return "Not signed yet";
+  const first = items[0];
+  const label = [first.remedyName || first.remedyCode, first.potencyCode].filter(Boolean).join(" ");
+  return items.length > 1 ? `${label} +${items.length - 1} more` : `${label}${first.duration ? ` · ${first.duration}` : ""}`;
+};
+
+const openErxPage = (patientAppId) => {
+  if (!patientAppId) return;
+  window.open(`/doctor/erx?patientAppId=${patientAppId}`, "_blank", "noopener");
+};
+
 const InCallStep = ({
   patient,
+  context,
+  visits,
+  erx,
+  erxLoading,
+  caseNotes,
+  onCaseNotesChange,
   elapsed,
   muted,
   videoOff,
@@ -524,17 +592,17 @@ const InCallStep = ({
   onChatDraftChange,
   onSendChat,
   onEndCall,
-  onSimulateInterrupt,
+  onConnectionLost,
 }) => {
   const genderAge = patient?.ageSex || "—";
   const mobile = patient?.mobile ? `+91 ${patient.mobile}` : "—";
   const localVideoRef = useRef(null);
   const [popup, setPopup] = useState(null);
-  const [caseNotes, setCaseNotes] = useState(DEFAULT_CASE_NOTES);
-  const [draftCaseNotes, setDraftCaseNotes] = useState(DEFAULT_CASE_NOTES);
-  const [prescription, setPrescription] = useState(DEFAULT_PRESCRIPTION);
-  const [draftPrescription, setDraftPrescription] = useState(DEFAULT_PRESCRIPTION);
+  const [draftCaseNotes, setDraftCaseNotes] = useState(caseNotes);
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+
+  const previousVisits = visits.filter((v) => v.patientAppId !== patient?.patientAppId);
+  const lastVisit = context?.lastVisit || previousVisits[0]?.appointmentDate || null;
 
   useEffect(() => {
     const video = localVideoRef.current;
@@ -554,94 +622,60 @@ const InCallStep = ({
     setDraftCaseNotes(caseNotes);
     setPopup("case");
   };
-  const openRxEdit = () => {
-    setDraftPrescription({ ...prescription });
-    setPopup("prescription");
-  };
   const closePopup = () => setPopup(null);
 
   const saveCaseNotes = () => {
-    setCaseNotes(draftCaseNotes);
+    onCaseNotesChange(draftCaseNotes);
     closePopup();
-  };
-
-  const savePrescription = () => {
-    setPrescription({ ...draftPrescription });
-    closePopup();
-  };
-
-  const updateDraftRx = (field, value) => {
-    setDraftPrescription((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
     <div className="tele-call-stage">
       <div className="tele-call-stage__main">
         <div className="tele-call-video">
-          <img
-            src={patientAvatar}
-            alt={patient?.patient || "Patient"}
-            className="tele-call-video__main"
-          />
+          <InitialsAvatar name={patient?.patient} className="tele-call-video__main" />
           <div className="tele-call-video__top">
             <span className="tele-call-video__patient">{patient?.patient || "Patient"}</span>
             <span className="tele-call-video__timer">{formatTimer(elapsed)}</span>
-            <button type="button" className="tele-call-video__fs" aria-label="Fullscreen">
+            <button
+              type="button"
+              className="tele-call-video__fs"
+              aria-label="Fullscreen"
+              onClick={() => {
+                const el = document.querySelector(".tele-call-stage");
+                if (!document.fullscreenElement && el?.requestFullscreen) el.requestFullscreen().catch(() => {});
+                else if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+              }}
+            >
               <i className="ri-fullscreen-line" />
             </button>
           </div>
           <div className="tele-call-video__pip">
             {localStream ? (
-              <video
-                ref={localVideoRef}
-                className="tele-call-video__pip-video"
-                autoPlay
-                playsInline
-                muted
-              />
+              <video ref={localVideoRef} className="tele-call-video__pip-video" autoPlay playsInline muted />
             ) : (
               <img src={doctorPreview} alt="You" />
             )}
             {videoOff && <span className="tele-call-video__pip-off">Video Off</span>}
           </div>
           <div className="tele-call-controls">
-            <button
-              type="button"
-              className={`tele-call-ctrl ${muted ? "is-off" : ""}`}
-              onClick={onToggleMute}
-            >
+            <button type="button" className={`tele-call-ctrl ${muted ? "is-off" : ""}`} onClick={onToggleMute}>
               <i className={muted ? "ri-mic-off-fill" : "ri-mic-fill"} />
               <span>Mute</span>
             </button>
-            <button
-              type="button"
-              className={`tele-call-ctrl ${videoOff ? "is-off" : ""}`}
-              onClick={onToggleVideo}
-            >
+            <button type="button" className={`tele-call-ctrl ${videoOff ? "is-off" : ""}`} onClick={onToggleVideo}>
               <i className={videoOff ? "ri-camera-off-fill" : "ri-vidicon-fill"} />
               <span>Stop Video</span>
             </button>
-            <button type="button" className="tele-call-ctrl">
-              <i className="ri-share-box-line" />
-              <span>Share</span>
-            </button>
-            <button
-              type="button"
-              className={`tele-call-ctrl ${chatOpen ? "is-active" : ""}`}
-              onClick={onToggleChat}
-            >
+            <button type="button" className={`tele-call-ctrl ${chatOpen ? "is-active" : ""}`} onClick={onToggleChat}>
               <i className="ri-chat-smile-2-line" />
               <span>Chat</span>
             </button>
-            <button type="button" className="tele-call-ctrl" onClick={onSimulateInterrupt}>
-              <i className="ri-more-fill" />
-              <span>More</span>
+            <button type="button" className="tele-call-ctrl" onClick={onConnectionLost} title="Reconnect">
+              <i className="ri-refresh-line" />
+              <span>Reconnect</span>
             </button>
-            <button
-              type="button"
-              className="tele-call-ctrl tele-call-ctrl--end"
-              onClick={() => setEndConfirmOpen(true)}
-            >
+            <button type="button" className="tele-call-ctrl tele-call-ctrl--end" onClick={() => setEndConfirmOpen(true)}>
               <i className="ri-phone-fill" />
               <span>End Call</span>
             </button>
@@ -676,7 +710,7 @@ const InCallStep = ({
         {sidebarTab === "Patient Info" && (
           <div className="tele-call-sidebar__body">
             <div className="tele-call-patient-card">
-              <img src={patientAvatar} alt="" className="tele-call-patient-card__avatar" />
+              <InitialsAvatar name={patient?.patient} className="tele-call-patient-card__avatar" />
               <div>
                 <h5 className="mb-1">{patient?.patient || "Patient"}</h5>
                 <p className="mb-0 text-muted">{genderAge.replace(" / ", " • ")}</p>
@@ -686,22 +720,22 @@ const InCallStep = ({
             <div className="tele-call-info-list">
               <div>
                 <span>Chief Complaint</span>
-                <strong>Follow-up, Migraine</strong>
+                <strong>{context?.chiefComplaint || "Not recorded"}</strong>
               </div>
               <div>
                 <span>Previous Visits</span>
-                <strong>3</strong>
+                <strong>{previousVisits.length}</strong>
               </div>
               <div>
                 <span>Last Visit</span>
-                <strong>12 Sep 2026</strong>
+                <strong>{lastVisit ? moment(lastVisit).format("DD MMM YYYY") : "First visit"}</strong>
+              </div>
+              <div>
+                <span>Payment</span>
+                <strong>{patient?.paymentStatus || "—"}</strong>
               </div>
             </div>
-            <button
-              type="button"
-              className="btn btn-soft-primary modal-action-btn w-100"
-              onClick={openHistory}
-            >
+            <button type="button" className="btn btn-soft-primary modal-action-btn w-100" onClick={openHistory}>
               <i className="ri-history-line align-middle" aria-hidden />
               <span>View Full History</span>
             </button>
@@ -717,12 +751,10 @@ const InCallStep = ({
                 Edit
               </button>
             </div>
-            <div className="tele-call-notes-preview">{caseNotes}</div>
-            <button
-              type="button"
-              className="btn btn-soft-primary modal-action-btn w-100 mt-2"
-              onClick={openCaseEdit}
-            >
+            <div className="tele-call-notes-preview">
+              {caseNotes || <span className="text-muted">No notes yet. They are saved with the consultation summary.</span>}
+            </div>
+            <button type="button" className="btn btn-soft-primary modal-action-btn w-100 mt-2" onClick={openCaseEdit}>
               <i className="ri-file-edit-line align-middle" aria-hidden />
               <span>View / Edit Case</span>
             </button>
@@ -735,31 +767,24 @@ const InCallStep = ({
               <i className="ri-file-list-3-line" aria-hidden="true" />
               <div>
                 <strong>Current Prescription</strong>
-                <p className="mb-0 text-muted">
-                  {prescription.remedy} · {prescription.duration}
-                </p>
+                <p className="mb-0 text-muted">{erxLoading ? "Loading…" : rxSummaryText(erx)}</p>
               </div>
             </div>
             <button
               type="button"
               className="btn btn-soft-primary modal-action-btn w-100 mt-2"
-              onClick={openRxEdit}
+              onClick={() => setPopup("prescription")}
             >
               <i className="ri-file-list-3-line align-middle" aria-hidden />
-              <span>View / Edit Prescription</span>
+              <span>View Prescription</span>
             </button>
           </div>
         )}
       </aside>
 
-      <SidebarViewEditModal
-        isOpen={popup === "history"}
-        toggle={closePopup}
-        title="Patient History"
-        icon="ri-history-line"
-      >
+      <SidebarViewEditModal isOpen={popup === "history"} toggle={closePopup} title="Patient History" icon="ri-history-line">
         <div className="tele-call-patient-card mb-3">
-          <img src={patientAvatar} alt="" className="tele-call-patient-card__avatar" />
+          <InitialsAvatar name={patient?.patient} className="tele-call-patient-card__avatar" />
           <div>
             <h5 className="mb-1">{patient?.patient || "Patient"}</h5>
             <p className="mb-0 text-muted">
@@ -773,29 +798,27 @@ const InCallStep = ({
               <tr>
                 <th>Date</th>
                 <th>Type</th>
-                <th>Complaint</th>
-                <th>Outcome</th>
+                <th>Doctor</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>12 Sep 2026</td>
-                <td>Follow-up</td>
-                <td>Migraine</td>
-                <td>Improving</td>
-              </tr>
-              <tr>
-                <td>28 Aug 2026</td>
-                <td>Telemedicine</td>
-                <td>Headache</td>
-                <td>Stable</td>
-              </tr>
-              <tr>
-                <td>05 Aug 2026</td>
-                <td>In-clinic</td>
-                <td>Migraine onset</td>
-                <td>New case</td>
-              </tr>
+              {previousVisits.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="text-center text-muted">
+                    No previous visits
+                  </td>
+                </tr>
+              ) : (
+                previousVisits.map((visit) => (
+                  <tr key={visit.patientAppId}>
+                    <td>{visit.appointmentDate ? moment(visit.appointmentDate).format("DD MMM YYYY") : "—"}</td>
+                    <td>{visit.isTele ? "Telemedicine" : visit.consultMode || "In-clinic"}</td>
+                    <td>{visit.doctorName || "—"}</td>
+                    <td>{visit.status || "—"}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -812,6 +835,7 @@ const InCallStep = ({
         <textarea
           className="form-control tele-call-textarea"
           rows={8}
+          maxLength={4000}
           value={draftCaseNotes}
           onChange={(e) => setDraftCaseNotes(e.target.value)}
         />
@@ -820,49 +844,12 @@ const InCallStep = ({
       <SidebarViewEditModal
         isOpen={popup === "prescription"}
         toggle={closePopup}
-        title="View / Edit Prescription"
+        title="Prescription"
         icon="ri-file-list-3-line"
-        onSave={savePrescription}
+        onSave={() => openErxPage(patient?.patientAppId)}
+        saveLabel="Open eRx"
       >
-        <div className="row g-2">
-          <div className="col-md-6">
-            <label className="tele-complete-label">Remedy</label>
-            <Input
-              value={draftPrescription.remedy}
-              onChange={(e) => updateDraftRx("remedy", e.target.value)}
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="tele-complete-label">Potency</label>
-            <Input
-              value={draftPrescription.potency}
-              onChange={(e) => updateDraftRx("potency", e.target.value)}
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="tele-complete-label">Dosage</label>
-            <Input
-              value={draftPrescription.dosage}
-              onChange={(e) => updateDraftRx("dosage", e.target.value)}
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="tele-complete-label">Duration</label>
-            <Input
-              value={draftPrescription.duration}
-              onChange={(e) => updateDraftRx("duration", e.target.value)}
-            />
-          </div>
-          <div className="col-12">
-            <label className="tele-complete-label">Instructions</label>
-            <textarea
-              className="form-control tele-call-textarea"
-              rows={4}
-              value={draftPrescription.instructions}
-              onChange={(e) => updateDraftRx("instructions", e.target.value)}
-            />
-          </div>
-        </div>
+        <RxItems erx={erx} loading={erxLoading} />
       </SidebarViewEditModal>
 
       <Modal
@@ -873,10 +860,7 @@ const InCallStep = ({
         centered
         zIndex={21000}
       >
-        <ModalHeader
-          toggle={() => setEndConfirmOpen(false)}
-          className="patient-list-modal__header tele-call-modal__header"
-        >
+        <ModalHeader toggle={() => setEndConfirmOpen(false)} className="patient-list-modal__header tele-call-modal__header">
           <span className="patient-list-modal__title patient-list-modal__title--simple">
             <span className="tele-alert-icon tele-alert-icon--danger tele-alert-icon--inline" aria-hidden="true">
               <i className="ri-phone-fill" />
@@ -886,9 +870,8 @@ const InCallStep = ({
         </ModalHeader>
         <ModalBody className="tele-call-modal__body tele-alert-body">
           <p className="tele-alert-text mb-0">
-            Are you sure you want to end this call with{" "}
-            <strong>{patient?.patient || "the patient"}</strong>? You can complete notes and
-            prescription after ending.
+            Are you sure you want to end this call with <strong>{patient?.patient || "the patient"}</strong>? You can
+            complete notes and prescription after ending.
           </p>
         </ModalBody>
         <ModalFooter>
@@ -909,29 +892,24 @@ const InCallStep = ({
   );
 };
 
-const CompletedStep = ({ patient, durationMin, onClose, onSave }) => {
-  const [summary, setSummary] = useState("Patient reports reduced headache frequency...");
-  const [diagnosis, setDiagnosis] = useState("Migraine (improving)");
+const CompletedStep = ({ patient, durationMin, initialSummary, erx, erxLoading, onClose, onSave }) => {
+  const [summary, setSummary] = useState(initialSummary || "");
+  const [diagnosis, setDiagnosis] = useState("");
   const [followUp, setFollowUp] = useState("15 Days");
-  const [shareSummary, setShareSummary] = useState(true);
-  const [shareRx, setShareRx] = useState(true);
-  const [sendVia, setSendVia] = useState({ whatsapp: true, email: false, inApp: false });
-  const [rxEditOpen, setRxEditOpen] = useState(false);
-  const [prescription, setPrescription] = useState(DEFAULT_PRESCRIPTION);
-  const [draftPrescription, setDraftPrescription] = useState(DEFAULT_PRESCRIPTION);
+  const [saving, setSaving] = useState(false);
+  const [rxOpen, setRxOpen] = useState(false);
 
-  const openRxEdit = () => {
-    setDraftPrescription({ ...prescription });
-    setRxEditOpen(true);
-  };
-
-  const saveRxEdit = () => {
-    setPrescription({ ...draftPrescription });
-    setRxEditOpen(false);
-  };
-
-  const updateDraftRx = (field, value) => {
-    setDraftPrescription((prev) => ({ ...prev, [field]: value }));
+  const handleSave = async () => {
+    if (!summary.trim()) {
+      Swal.fire({ icon: "warning", title: "Consultation summary is required", timer: 1800, showConfirmButton: false });
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave({ summary: summary.trim(), diagnosis: diagnosis.trim(), followUp });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -958,7 +936,7 @@ const CompletedStep = ({ patient, durationMin, onClose, onSave }) => {
             <div className="tele-complete-card">
               <h6 className="tele-complete-card__title">Patient Details</h6>
               <div className="tele-call-patient-card mb-3">
-                <img src={patientAvatar} alt="" className="tele-call-patient-card__avatar" />
+                <InitialsAvatar name={patient?.patient} className="tele-call-patient-card__avatar" />
                 <div>
                   <h5 className="mb-1">{patient?.patient || "Patient"}</h5>
                   <p className="mb-0 text-muted">
@@ -973,13 +951,15 @@ const CompletedStep = ({ patient, durationMin, onClose, onSave }) => {
               <textarea
                 className="form-control tele-call-textarea mb-3"
                 rows={4}
+                maxLength={3500}
+                placeholder="Findings, advice and next steps shared with the patient"
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
               />
               <div className="row g-2">
                 <div className="col-md-6">
                   <label className="tele-complete-label">Diagnosis / Impression</label>
-                  <Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
+                  <Input value={diagnosis} maxLength={300} onChange={(e) => setDiagnosis(e.target.value)} />
                 </div>
                 <div className="col-md-6">
                   <label className="tele-complete-label">Follow-up</label>
@@ -997,120 +977,57 @@ const CompletedStep = ({ patient, durationMin, onClose, onSave }) => {
               <div className="tele-complete-card tele-complete-card--row">
                 <div>
                   <h6 className="tele-complete-card__title mb-1">Prescription</h6>
-                  <p className="tele-complete-rx-summary mb-0">
-                    {prescription.remedy} · {prescription.duration}
-                  </p>
+                  <p className="tele-complete-rx-summary mb-0">{erxLoading ? "Loading…" : rxSummaryText(erx)}</p>
                 </div>
                 <button
                   type="button"
                   className="btn btn-link btn-sm text-primary p-0 tele-complete-view-edit"
-                  onClick={openRxEdit}
+                  onClick={() => setRxOpen(true)}
                 >
-                  View / Edit
+                  View
                 </button>
               </div>
               <div className="tele-complete-card">
-                <h6 className="tele-complete-card__title">Share with Patient</h6>
-                <label className="tele-complete-toggle">
-                  <span>Consultation Summary</span>
-                  <Input
-                    type="switch"
-                    checked={shareSummary}
-                    onChange={(e) => setShareSummary(e.target.checked)}
-                  />
-                </label>
-                <label className="tele-complete-toggle">
-                  <span>Prescription</span>
-                  <Input
-                    type="switch"
-                    checked={shareRx}
-                    onChange={(e) => setShareRx(e.target.checked)}
-                  />
-                </label>
-                <p className="tele-complete-label mt-3 mb-2">Send via</p>
-                <div className="tele-send-via-options" role="group" aria-label="Send via">
-                  {[
-                    { key: "whatsapp", label: "WhatsApp" },
-                    { key: "email", label: "Email" },
-                    { key: "inApp", label: "In-app" },
-                  ].map((item) => (
-                    <label key={item.key} className="tele-send-via-option" htmlFor={`send-via-${item.key}`}>
-                      <Input
-                        id={`send-via-${item.key}`}
-                        type="checkbox"
-                        checked={sendVia[item.key]}
-                        onChange={(e) =>
-                          setSendVia((prev) => ({ ...prev, [item.key]: e.target.checked }))
-                        }
-                      />
-                      <span>{item.label}</span>
-                    </label>
-                  ))}
-                </div>
+                <h6 className="tele-complete-card__title">Shared with Patient</h6>
+                <p className="text-muted small mb-2">
+                  The summary is saved to this appointment and shows in the patient app under the visit.
+                  {FOLLOW_UP_DAYS[followUp] ? ` A follow-up reminder is created for ${followUp.toLowerCase()} from today.` : ""}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-soft-primary btn-sm w-100"
+                  onClick={() => openErxPage(patient?.patientAppId)}
+                >
+                  <i className="ri-file-list-3-line me-1" aria-hidden="true" />
+                  Open eRx to sign prescription
+                </button>
               </div>
             </div>
           </div>
         </ModalBody>
         <ModalFooter>
           <ModalActionButton action="cancel" onClick={onClose} />
-          <ModalActionButton action="save" onClick={onSave}>
+          <ModalActionButton action="save" onClick={handleSave} disabled={saving}>
             Save &amp; Complete
           </ModalActionButton>
         </ModalFooter>
       </Modal>
 
       <SidebarViewEditModal
-        isOpen={rxEditOpen}
-        toggle={() => setRxEditOpen(false)}
-        title="View / Edit Prescription"
+        isOpen={rxOpen}
+        toggle={() => setRxOpen(false)}
+        title="Prescription"
         icon="ri-file-list-3-line"
-        onSave={saveRxEdit}
+        onSave={() => openErxPage(patient?.patientAppId)}
+        saveLabel="Open eRx"
       >
-        <div className="row g-2">
-          <div className="col-md-6">
-            <label className="tele-complete-label">Remedy</label>
-            <Input
-              value={draftPrescription.remedy}
-              onChange={(e) => updateDraftRx("remedy", e.target.value)}
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="tele-complete-label">Potency</label>
-            <Input
-              value={draftPrescription.potency}
-              onChange={(e) => updateDraftRx("potency", e.target.value)}
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="tele-complete-label">Dosage</label>
-            <Input
-              value={draftPrescription.dosage}
-              onChange={(e) => updateDraftRx("dosage", e.target.value)}
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="tele-complete-label">Duration</label>
-            <Input
-              value={draftPrescription.duration}
-              onChange={(e) => updateDraftRx("duration", e.target.value)}
-            />
-          </div>
-          <div className="col-12">
-            <label className="tele-complete-label">Instructions</label>
-            <textarea
-              className="form-control tele-call-textarea"
-              rows={4}
-              value={draftPrescription.instructions}
-              onChange={(e) => updateDraftRx("instructions", e.target.value)}
-            />
-          </div>
-        </div>
+        <RxItems erx={erx} loading={erxLoading} />
       </SidebarViewEditModal>
     </>
   );
 };
 
-const TeleCallFlow = ({ isOpen, patient, onClose }) => {
+const TeleCallFlow = ({ isOpen, patient, onClose, onSessionChanged }) => {
   const [step, setStep] = useState(CALL_STEPS.DEVICE);
   const [deviceOk, setDeviceOk] = useState(INITIAL_DEVICE_STATUS);
   const [deviceChecking, setDeviceChecking] = useState(false);
@@ -1124,9 +1041,16 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
   const [videoOff, setVideoOff] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState("Patient Info");
-  const [messages, setMessages] = useState(INITIAL_CHAT);
+  const [messages, setMessages] = useState([]);
   const [chatDraft, setChatDraft] = useState("");
+  const [sessionId, setSessionId] = useState(null);
+  const [context, setContext] = useState(null);
+  const [visits, setVisits] = useState([]);
+  const [erx, setErx] = useState(null);
+  const [erxLoading, setErxLoading] = useState(false);
+  const [caseNotes, setCaseNotes] = useState("");
   const mediaStreamRef = useRef(null);
+  const doctorName = useMemo(() => readDoctorName(), []);
 
   const clearPreviewStream = () => {
     stopMediaStream(mediaStreamRef.current);
@@ -1153,8 +1077,14 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
     setVideoOff(false);
     setChatOpen(false);
     setSidebarTab("Patient Info");
-    setMessages(INITIAL_CHAT);
+    setMessages([]);
     setChatDraft("");
+    setCaseNotes("");
+    setSessionId(
+      patient?.teleSessionId && String(patient?.sessionStatus || "").toLowerCase() !== "ended"
+        ? patient.teleSessionId
+        : null
+    );
     setDeviceOk(INITIAL_DEVICE_STATUS);
     setDeviceChecking(false);
     setRetestToken((token) => token + 1);
@@ -1162,6 +1092,31 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
       clearPreviewStream();
     };
   }, [isOpen, patient?.id]);
+
+  useEffect(() => {
+    if (!isOpen || !patient?.patientAppId) return undefined;
+    let active = true;
+    setContext(null);
+    setVisits([]);
+    setErx(null);
+    setErxLoading(true);
+    apiHelpers.nigahomeo
+      .get(`/DoctorMobile/Context/${patient.patientAppId}`, null)
+      .then((res) => active && setContext(res?.data || null))
+      .catch(() => {});
+    if (patient.patientId) {
+      getPatientVisitsFor(patient.patientId)
+        .then((res) => active && setVisits(Array.isArray(res?.data) ? res.data : []))
+        .catch(() => {});
+    }
+    erxByAppointment(patient.patientAppId)
+      .then((res) => active && setErx(res?.data || null))
+      .catch(() => active && setErx(null))
+      .finally(() => active && setErxLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [isOpen, patient?.patientAppId, patient?.patientId]);
 
   useEffect(() => {
     if (!isOpen || step !== CALL_STEPS.DEVICE) return undefined;
@@ -1270,13 +1225,40 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
     return undefined;
   }, [previewStream, muted, videoOff]);
 
+  const connectSession = useCallback(async () => {
+    if (!patient?.patientAppId) {
+      setStep(CALL_STEPS.UNABLE);
+      return;
+    }
+    try {
+      let id = sessionId;
+      if (!id) {
+        const created = await createTeleSession({ patientAppId: patient.patientAppId });
+        id = created?.teleSessionId ?? created?.data?.teleSessionId;
+        if (!id) throw new Error("Session was not created.");
+        setSessionId(id);
+      }
+      if (String(patient?.sessionStatus || "").toLowerCase() !== "active") {
+        await startTeleSession(id).catch((err) => {
+          if (!/already|active/i.test(errText(err, ""))) throw err;
+        });
+      }
+      await issueTeleSessionToken(id);
+      if (consentAgreed) {
+        postTeleRecordingConsent({ teleSessionId: id, accepted: true }).catch(() => {});
+      }
+      setElapsed(0);
+      setStep(CALL_STEPS.CALL);
+      onSessionChanged?.();
+    } catch (_) {
+      setStep(CALL_STEPS.UNABLE);
+    }
+  }, [patient?.patientAppId, patient?.sessionStatus, sessionId, consentAgreed, onSessionChanged]);
+
   useEffect(() => {
     if (!isOpen || step !== CALL_STEPS.WAITING) return undefined;
-    const timer = setTimeout(() => {
-      setElapsed(18 * 60 + 24);
-      setStep(CALL_STEPS.CALL);
-    }, 2500);
-    return () => clearTimeout(timer);
+    connectSession();
+    return undefined;
   }, [isOpen, step]);
 
   useEffect(() => {
@@ -1285,7 +1267,25 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
     return () => clearInterval(timer);
   }, [isOpen, step]);
 
-  const durationMin = useMemo(() => Math.max(1, Math.round(elapsed / 60) || 18), [elapsed]);
+  const loadChat = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const res = await listTeleChat(sessionId);
+      const rows = Array.isArray(res?.data) ? res.data : [];
+      setMessages(rows.map((r) => mapChatMessage(r, patient?.patient, doctorName)));
+    } catch (_) {
+      /* keep the last loaded thread */
+    }
+  }, [sessionId, patient?.patient, doctorName]);
+
+  useEffect(() => {
+    if (!isOpen || step !== CALL_STEPS.CALL || !sessionId) return undefined;
+    loadChat();
+    const timer = setInterval(loadChat, CHAT_POLL_MS);
+    return () => clearInterval(timer);
+  }, [isOpen, step, sessionId, loadChat]);
+
+  const durationMin = useMemo(() => Math.max(1, Math.round(elapsed / 60)), [elapsed]);
 
   if (!isOpen || !patient) return null;
 
@@ -1294,20 +1294,67 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
     setRetestToken((token) => token + 1);
   };
 
-  const handleSendChat = () => {
+  const handleSendChat = async () => {
     const text = chatDraft.trim();
-    if (!text) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        from: "patient",
-        name: patient.patient,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        text,
-      },
-    ]);
+    if (!text || !sessionId) return;
     setChatDraft("");
+    try {
+      await postTeleChat({ sessionId, body: text });
+      await loadChat();
+    } catch (err) {
+      setChatDraft(text);
+      Swal.fire({ icon: "error", title: "Message not sent", text: errText(err, "Please try again.") });
+    }
+  };
+
+  const handleEndCall = async () => {
+    clearPreviewStream();
+    if (sessionId) {
+      try {
+        await endTeleSession(sessionId);
+      } catch (_) {
+        /* the summary can still be saved */
+      }
+    }
+    onSessionChanged?.();
+    setStep(CALL_STEPS.COMPLETED);
+  };
+
+  const handleRejoin = async () => {
+    setInterruptedMinimized(false);
+    if (!sessionId) {
+      setStep(CALL_STEPS.WAITING);
+      return;
+    }
+    try {
+      await issueTeleSessionRejoinToken(sessionId);
+      setStep(CALL_STEPS.CALL);
+    } catch (_) {
+      setStep(CALL_STEPS.UNABLE);
+    }
+  };
+
+  const handleSaveSummary = async ({ summary, diagnosis, followUp }) => {
+    const text = [summary, diagnosis ? `Diagnosis: ${diagnosis}` : null, followUp ? `Follow-up: ${followUp}` : null]
+      .filter(Boolean)
+      .join("\n");
+    try {
+      await saveTeleConsultationSummary({ patientAppId: patient.patientAppId, text });
+      const days = FOLLOW_UP_DAYS[followUp];
+      if (days) {
+        await postFollowUp({
+          patientAppId: patient.patientAppId,
+          title: `Tele follow-up (${followUp})`,
+          note: diagnosis || null,
+          dueDate: moment().add(days, "days").format("YYYY-MM-DD"),
+        }).catch(() => {});
+      }
+      onSessionChanged?.();
+      Swal.fire({ icon: "success", title: "Consultation saved", timer: 1500, showConfirmButton: false });
+      closeFlow();
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Summary not saved", text: errText(err, "Please try again.") });
+    }
   };
 
   if (step === CALL_STEPS.DEVICE) {
@@ -1338,7 +1385,14 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
   }
 
   if (step === CALL_STEPS.WAITING) {
-    return <WaitingRoomStep onLeave={closeFlow} />;
+    return (
+      <WaitingRoomStep
+        onLeave={closeFlow}
+        patientName={patient.patient}
+        doctorName={doctorName}
+        sessionId={sessionId}
+      />
+    );
   }
 
   if (step === CALL_STEPS.INTERRUPTED) {
@@ -1346,16 +1400,11 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
       <>
         <InterruptedStep
           isOpen={!interruptedMinimized}
-          onRejoin={() => {
-            setInterruptedMinimized(false);
-            setStep(CALL_STEPS.CALL);
-          }}
+          onRejoin={handleRejoin}
           onLeave={closeFlow}
           onMinimize={() => setInterruptedMinimized(true)}
         />
-        {interruptedMinimized && (
-          <RejoinStickyButton onClick={() => setInterruptedMinimized(false)} />
-        )}
+        {interruptedMinimized && <RejoinStickyButton onClick={() => setInterruptedMinimized(false)} />}
       </>
     );
   }
@@ -1377,6 +1426,12 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
     return createPortal(
       <InCallStep
         patient={patient}
+        context={context}
+        visits={visits}
+        erx={erx}
+        erxLoading={erxLoading}
+        caseNotes={caseNotes}
+        onCaseNotesChange={setCaseNotes}
         elapsed={elapsed}
         muted={muted}
         videoOff={videoOff}
@@ -1391,11 +1446,8 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
         onSidebarTab={setSidebarTab}
         onChatDraftChange={setChatDraft}
         onSendChat={handleSendChat}
-        onEndCall={() => {
-          clearPreviewStream();
-          setStep(CALL_STEPS.COMPLETED);
-        }}
-        onSimulateInterrupt={() => {
+        onEndCall={handleEndCall}
+        onConnectionLost={() => {
           setInterruptedMinimized(false);
           setStep(CALL_STEPS.INTERRUPTED);
         }}
@@ -1409,8 +1461,11 @@ const TeleCallFlow = ({ isOpen, patient, onClose }) => {
       <CompletedStep
         patient={patient}
         durationMin={durationMin}
+        initialSummary={caseNotes}
+        erx={erx}
+        erxLoading={erxLoading}
         onClose={closeFlow}
-        onSave={closeFlow}
+        onSave={handleSaveSummary}
       />
     );
   }

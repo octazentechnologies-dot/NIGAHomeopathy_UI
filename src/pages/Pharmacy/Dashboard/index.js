@@ -6,12 +6,10 @@ import moment from "moment";
 import { listPharmacyPartners, pharmacyQueue, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
 import SummaryWidgets from "../components/SummaryWidgets";
 import PharmacyConfigForm from "../components/PharmacyConfigForm";
-import { pharmacyConfigFor, pharmacyOpenState } from "../pharmacyConfigStore";
+import { pharmacyOpenState } from "../pharmacyConfigStore";
 import "../components/pharmacyDashboard.css";
 
 const RECENT_LIMIT = 4;
-
-const DEMO_PARTNER = { id: "my-pharmacy-demo", name: "My Pharmacy", area: "", status: "NOT_ONBOARDED", sample: true };
 
 const asList = (data) => {
   if (Array.isArray(data)) return data;
@@ -71,7 +69,7 @@ const PharmacyDashboard = () => {
   const [ordersError, setOrdersError] = useState("");
   const [notice, setNotice] = useState("");
   const [configError, setConfigError] = useState("");
-  const [configVersion, setConfigVersion] = useState(0);
+  const [config, setConfig] = useState(null);
 
   document.title = "Pharmacy Dashboard | Niga Homeocentrum";
 
@@ -102,7 +100,10 @@ const PharmacyDashboard = () => {
   }, [load]);
 
   const partner = partners.find((row) => row.id === partnerId) || null;
-  const configPartner = partner || DEMO_PARTNER;
+
+  useEffect(() => {
+    setConfig(null);
+  }, [partnerId]);
 
   const counts = useMemo(() => {
     const result = { new: 0, process: 0, delivered: 0, quotes: 0 };
@@ -143,8 +144,16 @@ const PharmacyDashboard = () => {
         text: "Orders will be routed to you once an admin activates your pharmacy.",
       };
     }
-    const config = pharmacyConfigFor(partner);
+    if (!config) return null;
     const openState = pharmacyOpenState(config);
+    if (!openState) {
+      return {
+        tone: "warn",
+        icon: "ri-settings-3-fill",
+        title: "Operating hours not set",
+        text: "Set your hours, working days and service areas so orders can be routed to you.",
+      };
+    }
     if (!openState.open) {
       return {
         tone: "info",
@@ -168,7 +177,7 @@ const PharmacyDashboard = () => {
       title: "All systems operational",
       text: "Orders are being processed normally.",
     };
-  }, [loading, ordersError, partner, counts, configVersion]);
+  }, [loading, ordersError, partner, counts, config]);
 
   const widgetValues = loading
     ? {}
@@ -324,31 +333,44 @@ const PharmacyDashboard = () => {
                 ) : null}
               </header>
               <div className="pcs-card__body">
-                <div className="pcs-partner">
-                  <span className="pcs-partner__avatar">
+                {loading ? (
+                  <div className="pcs-recent__empty">
+                    <Spinner size="sm" />
+                  </div>
+                ) : !partner ? (
+                  <div className="pcs-recent__empty">
                     <i className="ri-store-2-line" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <strong>{configPartner.name}</strong>
                     <span>
-                      {partner
-                        ? `Partner #${partner.id}${partner.area ? ` · ${partner.area}` : ""}`
-                        : "Not onboarded yet · settings are saved on this device"}
+                      Complete <Link to="/pharmacy/onboarding">pharmacy onboarding</Link> to set operating hours and service
+                      areas.
                     </span>
                   </div>
-                  <span className={`pcs-chip ${partner?.status === "ACTIVE" ? "pcs-chip--done" : "pcs-chip--process"}`}>
-                    {partner ? (partner.status === "ACTIVE" ? "Active" : prettyStatus(partner.status)) : "Demo"}
-                  </span>
-                </div>
-                <PharmacyConfigForm
-                  partner={configPartner}
-                  onSaved={() => {
-                    setConfigError("");
-                    setNotice("Operating hours and service areas saved.");
-                    setConfigVersion((v) => v + 1);
-                  }}
-                  onError={setConfigError}
-                />
+                ) : (
+                  <>
+                    <div className="pcs-partner">
+                      <span className="pcs-partner__avatar">
+                        <i className="ri-store-2-line" aria-hidden="true" />
+                      </span>
+                      <div>
+                        <strong>{partner.name}</strong>
+                        <span>{`Partner #${partner.id}${partner.area ? ` · ${partner.area}` : ""}`}</span>
+                      </div>
+                      <span className={`pcs-chip ${partner.status === "ACTIVE" ? "pcs-chip--done" : "pcs-chip--process"}`}>
+                        {partner.status === "ACTIVE" ? "Active" : prettyStatus(partner.status)}
+                      </span>
+                    </div>
+                    <PharmacyConfigForm
+                      partner={partner}
+                      onLoaded={setConfig}
+                      onSaved={(next) => {
+                        setConfigError("");
+                        setNotice("Operating hours and service areas saved.");
+                        setConfig(next);
+                      }}
+                      onError={setConfigError}
+                    />
+                  </>
+                )}
               </div>
             </section>
           </div>

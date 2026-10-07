@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Input, Modal, ModalBody, ModalHeader, Spinner } from "reactstrap";
 
-import { TRACKING_STEPS, formatDate, formatINR, orderStage } from "./medicineOrderData";
+import { TRACKING_STEPS, formatDate, formatINR, orderStage, trackingStepTime } from "./medicineOrderData";
 import "./patientMedicine.css";
 
 const PAY_OPTIONS = [
@@ -35,7 +35,7 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
 
   const stage = orderStage(order.status);
   const subtotal = order.items.reduce((sum, item) => sum + (item.price || 0) * (item.qty || 1), 0);
-  const total = order.amount || subtotal + (order.deliveryFee || 0);
+  const total = order.amount || subtotal;
   const hasQuote = total > 0 && stage.key !== "placed";
   const paid = stage.step >= 1 && stage.key !== "cancelled";
 
@@ -99,20 +99,14 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
 
               {hasQuote ? (
                 <dl className="med-totals">
-                  {subtotal > 0 ? (
+                  {order.quoteNote ? (
                     <div>
-                      <dt>Subtotal</dt>
-                      <dd>{formatINR(subtotal)}</dd>
-                    </div>
-                  ) : null}
-                  {order.deliveryFee ? (
-                    <div>
-                      <dt>Delivery</dt>
-                      <dd>{formatINR(order.deliveryFee)}</dd>
+                      <dt>Pharmacy note</dt>
+                      <dd>{order.quoteNote}</dd>
                     </div>
                   ) : null}
                   <div className="med-totals__grand">
-                    <dt>Total</dt>
+                    <dt>Quoted total</dt>
                     <dd>{formatINR(total)}</dd>
                   </div>
                 </dl>
@@ -143,7 +137,7 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
                 <i className="ri-map-pin-time-line" aria-hidden="true" />
                 Order Tracking
               </h6>
-              {!order.isDemo && stage.key !== "cancelled" ? (
+              {stage.key !== "cancelled" ? (
                 <button type="button" className="med-link-btn" disabled={busy} onClick={() => onTrack(order)}>
                   <i className="ri-refresh-line" aria-hidden="true" />
                   Refresh
@@ -160,6 +154,7 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
                 <ol className="med-track">
                   {TRACKING_STEPS.map((step, index) => {
                     const state = index < stage.step ? "done" : index === stage.step ? "current" : "todo";
+                    const reachedAt = state === "todo" ? null : trackingStepTime(order, step.id);
                     return (
                       <li key={step.id} className={`med-track__step is-${state}`}>
                         <span className="med-track__dot">
@@ -168,8 +163,8 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
                         <span className="med-track__text">
                           <strong>{step.label}</strong>
                           <span>
-                            {index === 0
-                              ? formatDate(order.date, "DD MMM YYYY, hh:mm A")
+                            {reachedAt
+                              ? formatDate(reachedAt, "DD MMM YYYY, hh:mm A")
                               : state === "current"
                                 ? "In progress"
                                 : state === "done"
@@ -245,10 +240,14 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
               </h6>
             </header>
             <div className="med-panel__body">
-              {order.reviewed ? (
+              {order.review ? (
                 <div className="med-paid">
-                  <i className="ri-checkbox-circle-fill" aria-hidden="true" />
-                  <span>Thanks! Your review has been added.</span>
+                  <i className="ri-star-fill" aria-hidden="true" />
+                  <span>
+                    You rated this order {order.review.rating}/5
+                    {order.review.createdAt ? ` on ${formatDate(order.review.createdAt)}` : ""}
+                    {order.review.comment ? ` — “${order.review.comment}”` : ""}
+                  </span>
                 </div>
               ) : (
                 <>
@@ -277,7 +276,7 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
                   <button
                     type="button"
                     className="prx-btn prx-btn--primary med-block-btn"
-                    disabled={!rating}
+                    disabled={!rating || busy || reviewText.trim().length > 1000}
                     onClick={() => onReview(order, rating, reviewText.trim())}
                   >
                     <i className="ri-send-plane-line" aria-hidden="true" />

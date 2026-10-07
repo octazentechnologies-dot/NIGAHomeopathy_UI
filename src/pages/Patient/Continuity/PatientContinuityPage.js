@@ -6,12 +6,16 @@ import moment from "moment";
 
 import {
   completeFollowUp,
+  deletePatientDocument,
   getPatientConsents,
   getPatientDiary,
   getPatientFollowUps,
   getPatientProfileS4,
   getPatientProgress,
   getPatientTimeline,
+  grantPatientConsent,
+  listPatientDocuments,
+  openPatientDocument,
   postDataRequest,
   postDiaryEntry,
   s4Message,
@@ -19,7 +23,6 @@ import {
   unwrapS4,
   withdrawConsent,
 } from "../../../helpers/s4Week4Api";
-import { grantPrivacyConsent } from "../../../helpers/realbackend_helper";
 import "../Prescriptions/patientPrescriptions.css";
 import "./patientContinuity.css";
 
@@ -107,18 +110,26 @@ const normalizeDiary = (row, index) => ({
   at: pick(row, "entryDate", "EntryDate", "createdAt", "CreatedAt"),
 });
 
-const normalizeConsent = (row, index) => {
-  const status = String(pick(row, "status", "Status") || "");
-  const withdrawn = Boolean(pick(row, "withdrawnAt", "WithdrawnAt")) || /withdraw|revok/i.test(status);
-  return {
-    id: pick(row, "patientConsentId", "PatientConsentId", "consentId", "ConsentId", "id") || `c${index}`,
-    title: pick(row, "title", "Title", "consentType", "ConsentType", "purpose", "Purpose") || "Consent",
-    purpose: pick(row, "description", "Description", "purpose", "Purpose") || "",
-    granted: !withdrawn && (row.isActive ?? row.IsActive ?? true),
-    grantedAt: pick(row, "grantedAt", "GrantedAt", "createdAt", "CreatedAt"),
-    fromApi: true,
-  };
-};
+const normalizeConsent = (row, index) => ({
+  id: pick(row, "consentTypeId", "ConsentTypeId") || `c${index}`,
+  typeId: pick(row, "consentTypeId", "ConsentTypeId"),
+  recordId: pick(row, "consentRecordId", "ConsentRecordId"),
+  title: pick(row, "title", "Title", "code", "Code") || "Consent",
+  purpose: pick(row, "description", "Description") || "",
+  granted: Boolean(row?.granted ?? row?.Granted),
+  grantedAt: pick(row, "grantedAt", "GrantedAt"),
+  withdrawnAt: pick(row, "withdrawnAt", "WithdrawnAt"),
+  manageLink: pick(row, "manageLink", "ManageLink"),
+});
+
+const normalizeDocument = (row, index) => ({
+  id: pick(row, "documentId", "DocumentId", "secureDocumentId", "SecureDocumentId", "id") || `doc${index}`,
+  fileName: pick(row, "fileName", "FileName") || "Document",
+  mime: pick(row, "mime", "Mime") || "",
+  at: pick(row, "createdAt", "CreatedAt"),
+});
+
+const SECTION_LABELS = ["timeline", "follow-ups", "diary", "progress", "consents", "profile", "documents"];
 
 const readAuthProfile = () => {
   try {
@@ -186,10 +197,14 @@ const PatientContinuityPage = () => {
   const [savingDiary, setSavingDiary] = useState(false);
   const [busyConsentId, setBusyConsentId] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [busyDocId, setBusyDocId] = useState("");
+  const [partialError, setPartialError] = useState("");
 
   const load = async () => {
     setLoading(true);
     setError("");
+    setPartialError("");
     const results = await Promise.allSettled([
       getPatientTimeline(),
       getPatientFollowUps(),
@@ -197,6 +212,7 @@ const PatientContinuityPage = () => {
       getPatientProgress(),
       getPatientConsents(),
       getPatientProfileS4(),
+      listPatientDocuments(),
     ]);
     const value = (index) => (results[index].status === "fulfilled" ? unwrapS4(results[index].value) : null);
 
@@ -219,8 +235,25 @@ const PatientContinuityPage = () => {
     setConsents(consentRows);
 
     setProfile(normalizeProfile(value(5)));
-    if (results.every((row) => row.status === "rejected")) setError(s4Message(results[0].reason));
+    setDocuments(asList(value(6)).map(normalizeDocument));
+
+    const failed = results
+      .map((row, index) => (row.status === "rejected" ? SECTION_LABELS[index] : null))
+      .filter(Boolean);
+    if (failed.length === results.length) {
+      setError(`Could not load your care records. ${s4Message(results[0].reason)}`);
+    } else if (failed.length) {
+      setPartialError(`Some sections could not load: ${failed.join(", ")}. Refresh to try again.`);
+    }
     setLoading(false);
+  };
+
+  const loadDocuments = async () => {
+    try {
+      setDocuments(asList(unwrapS4(await listPatientDocuments())).map(normalizeDocument));
+    } catch (err) {
+      setError(s4Message(err));
+    }
   };
 
   useEffect(() => {
@@ -268,16 +301,67 @@ const PatientContinuityPage = () => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File is too large. The limit is 10 MB.");
+      return;
+    }
     setUploading(true);
     setError("");
     try {
       await uploadPatientDocument(file);
       Swal.fire({ title: "Document saved", icon: "success", timer: 1200, showConfirmButton: false });
-      await load();
+      await loadDocuments();
     } catch (err) {
       setError(s4Message(err));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const onOpenDocument = async (doc) => {
+    setBusyDocId(doc.id);
+    setError("");
+    try {
+      const response = await openPatientDocument(doc.id);
+      const blob = response?.data instanceof Blob ? response.data : response;
+      if (!(blob instanceof Blob)) throw new Error("Could not open the document.");
+      const url = URL.createObjectURL(blob);
+      const opened = window.open(url, "_blank");
+      if (!opened) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = doc.fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyDocId("");
+    }
+  };
+
+  const onDeleteDocument = async (doc) => {
+    const result = await Swal.fire({
+      title: "Delete document?",
+      text: `${doc.fileName} will be removed permanently.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      confirmButtonColor: "#dc3545",
+    });
+    if (!result.isConfirmed) return;
+    setBusyDocId(doc.id);
+    setError("");
+    try {
+      await deletePatientDocument(doc.id);
+      setDocuments((prev) => prev.filter((row) => row.id !== doc.id));
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyDocId("");
     }
   };
 
@@ -305,9 +389,20 @@ const PatientContinuityPage = () => {
     setBusyConsentId(consent.id);
     setError("");
     try {
-      if (consent.privacy) await grantPrivacyConsent();
+      const response = await grantPatientConsent(consent.typeId);
+      const data = response?.data ?? {};
       setConsents((prev) =>
-        prev.map((row) => (row.id === consent.id ? { ...row, granted: true, grantedAt: new Date().toISOString() } : row))
+        prev.map((row) =>
+          row.id === consent.id
+            ? {
+                ...row,
+                granted: true,
+                recordId: data.consentRecordId ?? data.ConsentRecordId ?? row.recordId,
+                grantedAt: data.grantedAt ?? data.GrantedAt ?? new Date().toISOString(),
+                withdrawnAt: null,
+              }
+            : row
+        )
       );
     } catch (err) {
       setError(s4Message(err));
@@ -329,8 +424,13 @@ const PatientContinuityPage = () => {
     setBusyConsentId(consent.id);
     setError("");
     try {
-      if (consent.fromApi) await withdrawConsent(consent.id);
-      setConsents((prev) => prev.map((row) => (row.id === consent.id ? { ...row, granted: false } : row)));
+      if (!consent.recordId) throw new Error("Consent record not found.");
+      await withdrawConsent(consent.recordId);
+      setConsents((prev) =>
+        prev.map((row) =>
+          row.id === consent.id ? { ...row, granted: false, recordId: null, withdrawnAt: new Date().toISOString() } : row
+        )
+      );
     } catch (err) {
       setError(s4Message(err));
     } finally {
@@ -367,7 +467,8 @@ const PatientContinuityPage = () => {
         </div>
 
         {offline ? <Alert color="warning">You appear to be offline. Records will load when the connection returns.</Alert> : null}
-        {error ? <Alert color="danger">{error}</Alert> : null}
+        {error ? <Alert color="danger" toggle={() => setError("")}>{error}</Alert> : null}
+        {partialError ? <Alert color="warning" toggle={() => setPartialError("")}>{partialError}</Alert> : null}
 
         {loading ? (
           <div className="prx-empty">
@@ -455,7 +556,14 @@ const PatientContinuityPage = () => {
                         </div>
                         {consent.purpose ? <span>{consent.purpose}</span> : null}
                         <div className="pcon-consents__actions">
-                          {consent.granted ? (
+                          {consent.manageLink ? (
+                            <>
+                              {consent.granted ? <small>Since {formatDate(consent.grantedAt)}</small> : null}
+                              <Link to={consent.manageLink} className="pcon-link-btn">
+                                Manage
+                              </Link>
+                            </>
+                          ) : consent.granted ? (
                             <>
                               <small>Since {formatDate(consent.grantedAt)}</small>
                               <button
@@ -468,6 +576,8 @@ const PatientContinuityPage = () => {
                               </button>
                             </>
                           ) : (
+                            <>
+                            {consent.withdrawnAt ? <small>Withdrawn {formatDate(consent.withdrawnAt)}</small> : null}
                             <button
                               type="button"
                               className="prx-btn prx-btn--primary"
@@ -477,6 +587,7 @@ const PatientContinuityPage = () => {
                               {busyConsentId === consent.id ? <Spinner size="sm" /> : <i className="ri-check-line" aria-hidden="true" />}
                               Give Consent
                             </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -564,13 +675,51 @@ const PatientContinuityPage = () => {
                 </ul>
               </PconCard>
 
-              <PconCard icon="ri-attachment-2" title="Documents">
-                <p className="pcon-hint">Upload a report or photo for your treating doctor. PDF, JPG, or PNG.</p>
+              <PconCard
+                icon="ri-attachment-2"
+                title="Documents"
+                extra={<span className="pcon-count">{documents.length} file{documents.length === 1 ? "" : "s"}</span>}
+              >
+                <p className="pcon-hint">Upload a report or photo for your treating doctor. PDF, JPG, or PNG up to 10 MB.</p>
                 <label className="prx-btn prx-btn--primary">
                   {uploading ? <Spinner size="sm" /> : <i className="ri-upload-2-line" aria-hidden="true" />}
                   {uploading ? " Uploading…" : " Upload document"}
                   <input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={onUpload} disabled={uploading} />
                 </label>
+                {documents.length === 0 ? (
+                  <p className="pcon-hint mt-2">No documents uploaded yet.</p>
+                ) : (
+                  <ul className="list-unstyled mt-3 mb-0">
+                    {documents.map((doc) => (
+                      <li key={doc.id} className="d-flex align-items-center gap-2 py-2 border-bottom">
+                        <i
+                          className={/pdf/i.test(doc.mime) ? "ri-file-pdf-line text-danger" : "ri-image-line text-primary"}
+                          aria-hidden="true"
+                        />
+                        <div className="flex-grow-1 text-truncate">
+                          <div className="text-truncate">{doc.fileName}</div>
+                          <small className="text-muted">{formatDate(doc.at, "DD MMM YYYY, hh:mm A")}</small>
+                        </div>
+                        <button
+                          type="button"
+                          className="pcon-link-btn"
+                          disabled={busyDocId === doc.id}
+                          onClick={() => onOpenDocument(doc)}
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          className="pcon-link-btn pcon-link-btn--danger"
+                          disabled={busyDocId === doc.id}
+                          onClick={() => onDeleteDocument(doc)}
+                        >
+                          Delete
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </PconCard>
 
               <PconCard icon="ri-heart-pulse-line" title="Symptom Diary">

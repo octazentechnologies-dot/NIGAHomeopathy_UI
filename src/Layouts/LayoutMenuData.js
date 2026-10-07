@@ -262,6 +262,20 @@ const Navdata = () => {
         },
 
         {
+            id: "platform-users",
+            label: "Platform users",
+            icon: "ri-team-line",
+            link: "/admin/platform-users",
+        },
+
+        {
+            id: "whatsapp-campaigns",
+            label: "WhatsApp campaigns",
+            icon: "ri-whatsapp-line",
+            link: "/admin/whatsapp-campaigns",
+        },
+
+        {
             id: "existancequestions",
             label: "Existance Questions",
             icon: "ri-question-line",

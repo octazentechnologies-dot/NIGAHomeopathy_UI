@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardBody, CardHeader, Col, Spinner } from "reactstrap";
 import moment from "moment";
 
-import { getUserList } from "../../helpers/realbackend_helper";
+import { getRoleMaster, getUserList } from "../../helpers/realbackend_helper";
 import { listPublicDoctors } from "../../helpers/publicBookingApi";
 import "./adminPeopleLists.css";
 
@@ -16,35 +16,13 @@ const pick = (row, ...keys) => {
   return null;
 };
 
-const daysAgo = (days) => moment().subtract(days, "days").toISOString();
-
-const SAMPLE_DOCTORS = [
-  { name: "Dr. Rohit Mehta", userName: "rohit.mehta", email: "rohit.mehta@homeocentrum.com", detail: "BHMS, MD (Hom) · Pune", active: true, joined: daysAgo(120) },
-  { name: "Dr. Anjali Deshmukh", userName: "anjali.d", email: "anjali.d@homeocentrum.com", detail: "BHMS · Mumbai", active: true, joined: daysAgo(96) },
-  { name: "Dr. Sameer Kulkarni", userName: "sameer.k", email: "sameer.k@homeocentrum.com", detail: "BHMS, MD (Hom) · Mumbai", active: true, joined: daysAgo(80) },
-  { name: "Dr. Neha Joshi", userName: "neha.joshi", email: "neha.joshi@homeocentrum.com", detail: "BHMS, PGDHHM · Nashik", active: false, joined: daysAgo(41) },
-  { name: "Dr. Tufan Patil", userName: "tufan_doctor", email: "tufan@homeocentrum.com", detail: "BHMS · Pune", active: true, joined: daysAgo(30) },
-  { name: "Dr. Kavita Rao", userName: "kavita.rao", email: "kavita.rao@homeocentrum.com", detail: "BHMS · Bengaluru", active: true, joined: daysAgo(12) },
-  { name: "Dr. Imran Shaikh", userName: "imran.s", email: "imran.s@homeocentrum.com", detail: "BHMS · Goa", active: false, joined: daysAgo(5) },
-].map((row, index) => ({ ...row, id: `sample-doc-${index}`, sample: true }));
-
-const SAMPLE_PATIENTS = [
-  { name: "Digvijay Patil", userName: "digvijay.p", email: "digvijay@gmail.com", detail: "+91 98220 11223", active: true, joined: daysAgo(2) },
-  { name: "Amit Sharma", userName: "amit.sharma", email: "amit.sharma@gmail.com", detail: "+91 98765 43210", active: true, joined: daysAgo(6) },
-  { name: "Priya Nair", userName: "priya.nair", email: "priya.nair@gmail.com", detail: "+91 99200 45678", active: true, joined: daysAgo(11) },
-  { name: "Rahul Verma", userName: "rahul.v", email: "rahul.v@gmail.com", detail: "+91 90040 22110", active: false, joined: daysAgo(19) },
-  { name: "Sneha Patil", userName: "sneha.p", email: "sneha.p@gmail.com", detail: "+91 98500 77889", active: true, joined: daysAgo(27) },
-  { name: "Kiran Joshi", userName: "kiran.j", email: "kiran.j@gmail.com", detail: "+91 97300 66554", active: true, joined: daysAgo(34) },
-  { name: "Meera Iyer", userName: "meera.i", email: "meera.i@gmail.com", detail: "+91 98190 33221", active: true, joined: daysAgo(52) },
-].map((row, index) => ({ ...row, id: `sample-pat-${index}`, sample: true }));
-
 const isActiveStatus = (row) => {
   const status = String(pick(row, "userStatus", "UserStatus", "status", "Status") ?? "").toLowerCase();
   if (status) return !/inactive|block|disable|pending|reject/.test(status);
   return Boolean(row?.isActive ?? row?.IsActive ?? true);
 };
 
-const normalizeUser = (row) => {
+const normalizeUser = (row, roleNameById = {}) => {
   const name =
     [pick(row, "firstName", "FirstName"), pick(row, "lastName", "LastName")].filter(Boolean).join(" ") ||
     pick(row, "fullName", "FullName", "userName", "UserName") ||
@@ -59,7 +37,10 @@ const normalizeUser = (row) => {
     active: isActiveStatus(row),
     status: pick(row, "userStatus", "UserStatus") || "",
     joined: pick(row, "createdDate", "CreatedDate", "createdAt", "CreatedAt"),
-    role: String(pick(row, "role", "Role", "roleName", "RoleName") || "").toLowerCase(),
+    role: String(
+      pick(row, "role", "Role", "roleName", "RoleName") || roleNameById[pick(row, "roleId", "RoleId")] || ""
+    ).toLowerCase(),
+    deleted: Boolean(row?.deleteStatus ?? row?.DeleteStatus),
   };
 };
 
@@ -93,7 +74,7 @@ const STATUS_TABS = [
   { id: "inactive", label: "Inactive" },
 ];
 
-const PeopleCard = ({ kind, title, icon, rows, loading, detailLabel, isSample }) => {
+const PeopleCard = ({ kind, title, icon, rows, loading, detailLabel }) => {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
   const [page, setPage] = useState(1);
@@ -134,7 +115,6 @@ const PeopleCard = ({ kind, title, icon, rows, loading, detailLabel, isSample })
           </span>
           {title}
           <span className="apl-count">{rows.length}</span>
-          {isSample ? <span className="apl-sample">Sample data</span> : null}
         </h4>
         <Link to="/admin/listusers" className="btn btn-sm doctor-dashboard-toolbar-btn flex-shrink-0">
           View all
@@ -264,19 +244,29 @@ const AdminPeopleLists = () => {
   const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sampleFlags, setSampleFlags] = useState({ doctors: false, patients: false });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let users = [];
-      try {
-        const response = await getUserList({ queryString: "", PageNumber: 1, PageSize: 500 });
-        const list = response?.resultObject || response?.ResultObject || response?.data || [];
-        users = (Array.isArray(list) ? list : []).map(normalizeUser);
-      } catch (_) {
-        users = [];
-      }
+      const [usersResult, rolesResult] = await Promise.allSettled([
+        getUserList({ queryString: "", PageNumber: 1, PageSize: 500 }),
+        getRoleMaster(),
+      ]);
+      const roleList =
+        rolesResult.status === "fulfilled"
+          ? rolesResult.value?.resultObject || rolesResult.value?.ResultObject || rolesResult.value?.data || []
+          : [];
+      const roleNameById = (Array.isArray(roleList) ? roleList : []).reduce((acc, r) => {
+        acc[r.roleId ?? r.RoleId] = r.roleName ?? r.RoleName;
+        return acc;
+      }, {});
+      const list =
+        usersResult.status === "fulfilled"
+          ? usersResult.value?.resultObject || usersResult.value?.ResultObject || usersResult.value?.data || []
+          : [];
+      const users = (Array.isArray(list) ? list : [])
+        .map((row) => normalizeUser(row, roleNameById))
+        .filter((row) => !row.deleted);
 
       let doctorRows = users.filter((row) => row.role === "doctor");
       const patientRows = users.filter((row) => row.role === "patient");
@@ -291,9 +281,8 @@ const AdminPeopleLists = () => {
       }
 
       if (cancelled) return;
-      setDoctors(doctorRows.length ? doctorRows : SAMPLE_DOCTORS);
-      setPatients(patientRows.length ? patientRows : SAMPLE_PATIENTS);
-      setSampleFlags({ doctors: !doctorRows.length, patients: !patientRows.length });
+      setDoctors(doctorRows);
+      setPatients(patientRows);
       setLoading(false);
     })();
     return () => {
@@ -311,7 +300,6 @@ const AdminPeopleLists = () => {
           rows={doctors}
           loading={loading}
           detailLabel="Contact"
-          isSample={sampleFlags.doctors}
         />
       </Col>
       <Col xl={6}>
@@ -322,7 +310,6 @@ const AdminPeopleLists = () => {
           rows={patients}
           loading={loading}
           detailLabel="Mobile"
-          isSample={sampleFlags.patients}
         />
       </Col>
     </>
