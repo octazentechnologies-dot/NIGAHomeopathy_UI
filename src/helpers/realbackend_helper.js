@@ -860,8 +860,13 @@ export const confirmMobileAgainstProfile = (data) =>
 export const getPatientProfileMe = () => nigahomeoAPI.get(url.PATIENT_PROFILE_ME, null);
 export const savePatientProfileMe = (data) => nigahomeoAPI.put(url.PATIENT_PROFILE_ME, data);
 export const getPatientWelcome = () => nigahomeoAPI.get(url.WELCOME_PATIENT, null);
-export const getPrivacyConsentStatus = () => nigahomeoAPI.get(url.CONSENT_PRIVACY_STATUS, null);
-export const grantPrivacyConsent = () => nigahomeoAPI.post(url.CONSENT_GRANT_PRIVACY, null);
+export const getPrivacyConsentStatus = (patientId) =>
+  nigahomeoAPI.get(url.CONSENT_PRIVACY_STATUS, patientId ? { params: { patientId } } : null);
+export const grantPrivacyConsent = (data) =>
+  nigahomeoAPI.post(url.CONSENT_GRANT_PRIVACY, data || null, { returnErrorBody: true });
+export const getConsentNotice = (consentTypeCode, language) =>
+  nigahomeoAPI.get(`${url.CONSENT_NOTICE}${encodeURIComponent(consentTypeCode)}`, language ? { params: { language } } : null);
+export const grantConsent = (data) => nigahomeoAPI.post(url.CONSENT_GRANT, data, { returnErrorBody: true });
 export const registerDevicePushToken = (data) => nigahomeoAPI.post(url.DEVICE_REGISTER, data);
 export const unregisterDevicePushToken = (data) => nigahomeoAPI.post(url.DEVICE_UNREGISTER, data);
 export const listMyDevicePushTokens = () => nigahomeoAPI.get(url.DEVICE_MINE, null);

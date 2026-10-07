@@ -1,3 +1,4 @@
+import './silenceConsole';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './helpers/swalMessageIcon';
@@ -9,9 +10,6 @@ import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from "./slices";
 import ErrorBoundary from "./Components/Common/ErrorBoundary";
 import { reportClientIssue } from "./helpers/client_error_reporter";
-
-console.log("🚀 Initializing Niga Homeopathy App...");
-console.log("Environment:", process.env.NODE_ENV);
 
 window.onerror = function (message, source, lineno, colno, error) {
   reportClientIssue({
@@ -36,18 +34,12 @@ window.addEventListener("unhandledrejection", function (event) {
   });
 });
 
-const store = configureStore({ reducer: rootReducer, devTools: true });
+const store = configureStore({ reducer: rootReducer, devTools: process.env.NODE_ENV !== "production" });
 
 const rootElement = document.getElementById("root");
-if (!rootElement) {
-  console.error("❌ Root element not found!");
-} else {
-  console.log("✅ Root element found, creating React root...");
-}
 
 const root = ReactDOM.createRoot(rootElement);
 
-console.log("✅ Rendering React app...");
 root.render(
   <ErrorBoundary>
     <Provider store={store}>

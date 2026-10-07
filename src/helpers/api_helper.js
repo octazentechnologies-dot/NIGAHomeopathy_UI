@@ -59,9 +59,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
       const authUser = getCurrentAuthUser();
       if (authUser?.token) {
         config.headers.Authorization = "Bearer " + authUser.token;
-        console.log("Setting Authorization header for:", config.url, "Token:", authUser.token.substring(0, 20) + "...");
-      } else {
-        console.warn("No token found for request to:", config.url);
       }
       return config;
     },
@@ -73,7 +70,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
   // Add response interceptor
   client.interceptors.response.use(
     function (response) {
-      console.log("axios.interceptors.response :", response.data);
       if (response && response.data instanceof Blob) {
         return response;
       }
@@ -89,7 +85,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
         return client.request(error.config);
       }
       let message = readApiMessage(error, status);
-      console.error("API Error:", error);
       const reqUrl = error.config?.url || error.config?.baseURL || "";
       const statusCode = status || 0;
       if (statusCode >= 500) {
@@ -192,7 +187,6 @@ const createAPIHelpers = (client) => ({
     if (isAxiosConfig) {
       // Treat as axios config object - pass directly to axios
       const response = await client.get(url, paramsOrConfig);
-      console.log("get response:", response);
       return response;
     } else if (paramsOrConfig) {
       // Treat as query parameters - build query string (existing behavior)
@@ -211,11 +205,9 @@ const createAPIHelpers = (client) => ({
       const queryString = paramKeys && paramKeys.length ? paramKeys.join('&') : "";
       const fullUrl = queryString ? `${url}?${queryString}` : url;
       const response = await client.get(fullUrl);
-      console.log("get response:", response);
       return response;
     } else {
       const response = await client.get(`${url}`);
-      console.log("get response:", response);
       return response;
     }
   },
@@ -275,7 +267,6 @@ class APIClient {
     } else {
       response = await APIClients.default.get(`${url}`, params);
     }
-    console.log("get response:", response);
     return response;
   };
 

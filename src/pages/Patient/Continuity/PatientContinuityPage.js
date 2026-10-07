@@ -120,6 +120,11 @@ const normalizeConsent = (row, index) => ({
   grantedAt: pick(row, "grantedAt", "GrantedAt"),
   withdrawnAt: pick(row, "withdrawnAt", "WithdrawnAt"),
   manageLink: pick(row, "manageLink", "ManageLink"),
+  status: pick(row, "status", "Status") || "",
+  grantedNoticeVersion: pick(row, "grantedNoticeVersion", "GrantedNoticeVersion"),
+  currentNoticeVersion: pick(row, "currentNoticeVersion", "CurrentNoticeVersion"),
+  guardianRequired: Boolean(row?.guardianRequired ?? row?.GuardianRequired),
+  guardianName: pick(row, "guardianName", "GuardianName"),
 });
 
 const normalizeDocument = (row, index) => ({
@@ -397,6 +402,8 @@ const PatientContinuityPage = () => {
             ? {
                 ...row,
                 granted: true,
+                status: "Valid",
+                grantedNoticeVersion: row.currentNoticeVersion,
                 recordId: data.consentRecordId ?? data.ConsentRecordId ?? row.recordId,
                 grantedAt: data.grantedAt ?? data.GrantedAt ?? new Date().toISOString(),
                 withdrawnAt: null,
@@ -555,6 +562,22 @@ const PatientContinuityPage = () => {
                           )}
                         </div>
                         {consent.purpose ? <span>{consent.purpose}</span> : null}
+                        {consent.granted && consent.grantedNoticeVersion ? (
+                          <small className="text-muted">
+                            Notice version {consent.grantedNoticeVersion}
+                            {consent.guardianName ? ` · given by guardian ${consent.guardianName}` : ""}
+                          </small>
+                        ) : null}
+                        {!consent.granted && consent.status === "NoticeChanged" ? (
+                          <small className="text-warning">
+                            The notice changed to version {consent.currentNoticeVersion}. Please consent again.
+                          </small>
+                        ) : null}
+                        {consent.guardianRequired ? (
+                          <small className="text-warning">
+                            Under 18: a parent or guardian gives this consent from their Family page or at the clinic.
+                          </small>
+                        ) : null}
                         <div className="pcon-consents__actions">
                           {consent.manageLink ? (
                             <>
@@ -581,7 +604,7 @@ const PatientContinuityPage = () => {
                             <button
                               type="button"
                               className="prx-btn prx-btn--primary"
-                              disabled={busyConsentId === consent.id}
+                              disabled={busyConsentId === consent.id || consent.guardianRequired}
                               onClick={() => onGiveConsent(consent)}
                             >
                               {busyConsentId === consent.id ? <Spinner size="sm" /> : <i className="ri-check-line" aria-hidden="true" />}

@@ -41,7 +41,6 @@ import {
   getPatientBoardData,
   getQuestionSectionsBySubSectionId,
   getRubricDetails,
-  getRubricDetailsBySubSectionId,
   searchRubricsByKeyword,
   getRemedyCounts,
   getSectionList,

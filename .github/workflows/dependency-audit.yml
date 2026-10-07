@@ -1,0 +1,35 @@
+name: Dependency audit
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      # Fails on Critical issues in packages that ship to the browser. Build-time tooling (react-scripts, jest,
+      # webpack-dev-server) is reported in the next step but does not reach users.
+      - name: Production dependencies (fail on critical)
+        run: npm audit --omit=dev --audit-level=critical
+      - name: All dependencies (report only)
+        run: npm audit || true
+      - name: Production build
+        env:
+          CI: "false"
+          GENERATE_SOURCEMAP: "false"
+        run: npm run build
