@@ -43,6 +43,7 @@ const emptyForm = {
   mobileNo: "",
   email: "",
   dateOfBirth: "",
+  gender: "",
 };
 
 const ADD_NEW_VALUE = "__new__";
@@ -315,6 +316,7 @@ const FamilyMembers = () => {
         mobileNo: form.mobileNo || null,
         email: form.email || null,
         dateOfBirth: form.dateOfBirth || null,
+        gender: form.gender === "" ? null : Number(form.gender),
       };
       if (editingId) {
         await updateFamilyMember(editingId, payload);
@@ -342,6 +344,7 @@ const FamilyMembers = () => {
       mobileNo: row.mobileNo ?? row.MobileNo ?? "",
       email: row.email ?? row.Email ?? "",
       dateOfBirth: toDateInput(row.dateOfBirth ?? row.DateOfBirth),
+      gender: String(row.gender ?? row.Gender ?? ""),
     });
   };
 
@@ -476,6 +479,15 @@ const FamilyMembers = () => {
                       onChange={onChange}
                     />
                     <small className="text-muted">Needed so a parent or guardian can consent for children under 18.</small>
+                  </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="family-gender">Gender</Label>
+                    <Input id="family-gender" type="select" name="gender" value={form.gender} onChange={onChange}>
+                      <option value="">Select</option>
+                      <option value="0">Male</option>
+                      <option value="1">Female</option>
+                      <option value="2">Other</option>
+                    </Input>
                   </FormGroup>
                   <Button
                     color="primary"
