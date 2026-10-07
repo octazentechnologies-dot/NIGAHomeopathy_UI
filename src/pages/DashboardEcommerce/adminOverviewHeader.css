@@ -1,0 +1,128 @@
+.apo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.25rem 0.4rem;
+}
+
+.apo-head__title {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.apo-head__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.apo-range,
+.apo-icon-btn,
+.apo-select {
+  height: 32px;
+  border: 1px solid #d5dde6;
+  border-radius: 5px;
+  background: #fff;
+  transition: border-color 0.15s ease;
+}
+
+.apo-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0 0.6rem;
+  cursor: pointer;
+}
+
+.apo-range:hover,
+.apo-range:focus-within,
+.apo-icon-btn:hover,
+.apo-select:hover,
+.apo-select:focus-within {
+  border-color: #25a0e2;
+}
+
+.apo-range i {
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.apo-range__input {
+  width: 168px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.apo-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  padding: 0;
+  color: #475569;
+}
+
+.apo-icon-btn:hover {
+  color: #0b5cab;
+}
+
+.apo-icon-btn i {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.apo-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.apo-select select {
+  height: 100%;
+  min-width: 150px;
+  padding: 0 1.9rem 0 0.7rem;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+}
+
+.apo-select i {
+  position: absolute;
+  right: 0.5rem;
+  color: #64748b;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+@media (max-width: 575.98px) {
+  .apo-head__controls {
+    width: 100%;
+  }
+
+  .apo-range {
+    flex: 1 1 auto;
+  }
+
+  .apo-range__input {
+    width: 100%;
+  }
+}

@@ -1,67 +1,165 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import moment from 'moment';
+import Swal from 'sweetalert2';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
-import DateOfBirthPicker from '../../../Components/Common/DateOfBirthPicker';
-import { Card, CardBody, CardHeader, Col, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Label } from 'reactstrap';
+import DateOfBirthPicker, { DATE_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
+import { Card, CardBody, CardHeader, Col, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Label, Spinner } from 'reactstrap';
+import {
+    createDoctorReminder,
+    deleteDoctorReminder,
+    listDoctorReminders,
+    updateDoctorReminder,
+} from '../../../helpers/s5Week5Api';
+
+const API_DATE = 'YYYY-MM-DD';
+
+const emptyReminder = (date) => ({
+    date: moment(date).format(DATE_DISPLAY_FORMAT),
+    time: '',
+    title: '',
+    description: '',
+    contact: '',
+});
+
+const formatTimeToDisplay = (time) => {
+    if (!time) return '';
+    const m = moment(String(time), ['HH:mm:ss', 'HH:mm'], true);
+    return m.isValid() ? m.format('hh.mm A') : '';
+};
+
+const mapReminder = (row) => ({
+    id: row.doctorReminderId ?? row.DoctorReminderId,
+    date: moment(row.reminderDate ?? row.ReminderDate).format(API_DATE),
+    time: row.reminderTime ?? row.ReminderTime ?? null,
+    title: row.title ?? row.Title ?? '',
+    description: row.description ?? row.Description ?? '',
+    contact: row.contactNumber ?? row.ContactNumber ?? '',
+    isDone: Boolean(row.isDone ?? row.IsDone),
+});
+
+const toWrite = (item) => ({
+    reminderDate: item.date,
+    reminderTime: item.time ? String(item.time).slice(0, 5) : null,
+    title: item.title,
+    description: item.description || null,
+    contactNumber: item.contact || null,
+    isDone: item.isDone,
+});
 
 const TopSellers = () => {
-    // Reminders state (10 items)
-    const [reminders, setReminders] = useState([
-        { title: 'Medicine Restoration', time: '08.00 AM' },
-        { title: 'Hospital Cleanup', time: '08.30 AM' },
-        { title: 'Hospital Round', time: '09.00 AM' },
-        { title: 'Patient Checkup', time: '11.00 AM' },
-        { title: 'Staff Meeting', time: '12.00 PM' },
-        { title: 'Conference Call', time: '03.00 PM' },
-        { title: 'Dr. Sharma', time: '04.00 PM' },
-        { title: 'Hospital Round', time: '05.00 PM' },
-        { title: 'Patient Checkup', time: '06.00 PM' },
-        { title: 'Staff Meeting', time: '07.00 PM' },
-    ]);
+    const today = moment().startOf('day');
+    const [selectedDate, setSelectedDate] = useState(today.format(API_DATE));
+    const [monthReminders, setMonthReminders] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newReminder, setNewReminder] = useState({
-        date: '',
-        time: '',
-        title: '',
-        description: '',
-        contact: ''
-    });
+    const [newReminder, setNewReminder] = useState(emptyReminder(today));
 
-    const openModal = () => setIsModalOpen(true);
+    const monthStart = today.clone().startOf('month');
+    const monthEnd = today.clone().endOf('month');
+
+    const loadReminders = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await listDoctorReminders({
+                from: monthStart.format(API_DATE),
+                to: monthEnd.format(API_DATE),
+            });
+            const rows = Array.isArray(res?.data) ? res.data : [];
+            setMonthReminders(rows.map(mapReminder));
+        } catch (_) {
+            setMonthReminders([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [monthStart.format(API_DATE)]);
+
+    useEffect(() => {
+        loadReminders();
+    }, [loadReminders]);
+
+    const reminders = useMemo(
+        () => monthReminders.filter((r) => r.date === selectedDate),
+        [monthReminders, selectedDate]
+    );
+    const datesWithReminders = useMemo(
+        () => new Set(monthReminders.filter((r) => !r.isDone).map((r) => r.date)),
+        [monthReminders]
+    );
+
+    const openModal = () => {
+        setNewReminder(emptyReminder(selectedDate));
+        setIsModalOpen(true);
+    };
     const closeModal = () => setIsModalOpen(false);
 
-    const formatTimeToDisplay = (time24) => {
-        if (!time24) return '';
-        const [hhStr, mmStr] = time24.split(':');
-        const hours = parseInt(hhStr || '0', 10);
-        const minutes = parseInt(mmStr || '0', 10);
-        const isPM = hours >= 12;
-        const h12 = ((hours + 11) % 12) + 1;
-        const hourStr = String(h12).padStart(2, '0');
-        const minuteStr = String(minutes).padStart(2, '0');
-        return `${hourStr}.${minuteStr} ${isPM ? 'PM' : 'AM'}`;
+    const saveNewReminder = async () => {
+        const title = newReminder.title.trim();
+        if (!title) {
+            Swal.fire({ icon: 'warning', title: 'Title is required', timer: 1600, showConfirmButton: false });
+            return;
+        }
+        const parsedDate = moment(newReminder.date, [DATE_DISPLAY_FORMAT, 'MM/DD/YYYY', API_DATE], true);
+        setSaving(true);
+        try {
+            await createDoctorReminder({
+                reminderDate: (parsedDate.isValid() ? parsedDate : moment(selectedDate)).format(API_DATE),
+                reminderTime: newReminder.time || null,
+                title,
+                description: newReminder.description.trim() || null,
+                contactNumber: newReminder.contact.trim() || null,
+            });
+            setIsModalOpen(false);
+            if (parsedDate.isValid()) setSelectedDate(parsedDate.format(API_DATE));
+            await loadReminders();
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Reminder not saved',
+                text: err?.data?.message || err?.message || 'Please try again.',
+            });
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const saveNewReminder = () => {
-        const title = newReminder.title && newReminder.title.trim().length > 0 ? newReminder.title.trim() : 'Untitled Reminder';
-        const timeDisplay = formatTimeToDisplay(newReminder.time);
-        const newItem = timeDisplay
-            ? { title, time: timeDisplay, date: newReminder.date, description: newReminder.description, contact: newReminder.contact }
-            : { title, action: 'call', date: newReminder.date, description: newReminder.description, contact: newReminder.contact };
-        setReminders((prev) => [...prev, newItem]);
-        setNewReminder({ date: '', time: '', title: '', description: '', contact: '' });
-        setIsModalOpen(false);
+    const toggleDone = async (item) => {
+        const next = { ...item, isDone: !item.isDone };
+        setMonthReminders((prev) => prev.map((r) => (r.id === item.id ? next : r)));
+        try {
+            await updateDoctorReminder(item.id, toWrite(next));
+        } catch (_) {
+            setMonthReminders((prev) => prev.map((r) => (r.id === item.id ? item : r)));
+        }
+    };
+
+    const removeReminder = async (item) => {
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'Delete reminder?',
+            text: item.title,
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: '#f06548',
+        });
+        if (!result.isConfirmed) return;
+        try {
+            await deleteDoctorReminder(item.id);
+            setMonthReminders((prev) => prev.filter((r) => r.id !== item.id));
+        } catch (_) {
+            Swal.fire({ icon: 'error', title: 'Could not delete reminder', timer: 1600, showConfirmButton: false });
+        }
     };
 
     const remindersCountLabel = String(reminders.length).padStart(2, '0');
+    const isTodaySelected = selectedDate === today.format(API_DATE);
+    const cardTitle = isTodaySelected
+        ? `Today's Reminders (${remindersCountLabel})`
+        : `Reminders ${moment(selectedDate).format('DD MMM')} (${remindersCountLabel})`;
 
-    // Dynamic calendar for current month with today's highlight
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const startWeekday = firstDayOfMonth.getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const startWeekday = monthStart.day();
+    const daysInMonth = today.daysInMonth();
 
     const leadingEmptyCells = startWeekday;
     const totalCells = leadingEmptyCells + daysInMonth;
@@ -71,9 +169,16 @@ const TopSellers = () => {
     const calendarCells = [
         ...Array.from({ length: leadingEmptyCells }).map(() => ({ label: '', empty: true })),
         ...Array.from({ length: daysInMonth }).map((_, i) => {
-            const dayNum = i + 1;
-            const isToday = dayNum === today.getDate();
-            return { label: String(dayNum), empty: false, isToday };
+            const day = monthStart.clone().date(i + 1);
+            const key = day.format(API_DATE);
+            return {
+                label: String(i + 1),
+                key,
+                empty: false,
+                isToday: day.isSame(today, 'day'),
+                isSelected: key === selectedDate,
+                hasReminder: datesWithReminders.has(key),
+            };
         }),
         ...Array.from({ length: trailingEmptyCells }).map(() => ({ label: '', empty: true })),
     ];
@@ -213,6 +318,43 @@ const TopSellers = () => {
         .doctor-reminders-card .calendar-day.empty:hover {
             background-color: #fafbfc;
         }
+        .doctor-reminders-card .calendar-day {
+            position: relative;
+        }
+        .doctor-reminders-card .calendar-day.selected:not(.today) {
+            background-color: #25a0e2;
+            color: #fff;
+            font-weight: 700;
+            border-radius: 4px;
+            margin: 2px;
+            min-height: 1.4rem;
+        }
+        .doctor-reminders-card .calendar-day.has-reminder::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #f06548;
+        }
+        .doctor-reminders-card .reminders-list li.is-done p {
+            text-decoration: line-through;
+            color: #adb5bd;
+        }
+        .doctor-reminders-card .reminder-actions .btn {
+            padding: 0 0.3rem;
+            font-size: 0.6875rem;
+            line-height: 1.4;
+        }
+        .doctor-reminders-card .reminders-empty {
+            font-size: 0.75rem;
+            color: #868e96;
+            text-align: center;
+            padding: 1rem 0;
+        }
     `;
 
     return (
@@ -221,7 +363,7 @@ const TopSellers = () => {
             <Col xl={3} className="d-flex">
                 <Card className="card-height-100 doctor-reminders-card w-100">
                     <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header">
-                        <h4 className="card-title mb-0 flex-grow-1">Today's Reminders ({remindersCountLabel})</h4>
+                        <h4 className="card-title mb-0 flex-grow-1">{cardTitle}</h4>
                         <Button
                             type="button"
                             color="primary"
@@ -251,8 +393,10 @@ const TopSellers = () => {
                                         {week.map((cell, cIdx) => (
                                             <div
                                                 key={`cell-${wIdx}-${cIdx}`}
-                                                className={`calendar-day${cell.empty ? ' empty' : ''}${cell.isToday ? ' today' : ''}`}
+                                                className={`calendar-day${cell.empty ? ' empty' : ''}${cell.isToday ? ' today' : ''}${cell.isSelected ? ' selected' : ''}${cell.hasReminder ? ' has-reminder' : ''}`}
                                                 title={cell.label}
+                                                role={cell.empty ? undefined : 'button'}
+                                                onClick={cell.empty ? undefined : () => setSelectedDate(cell.key)}
                                             >
                                                 {cell.label}
                                             </div>
@@ -262,24 +406,44 @@ const TopSellers = () => {
                             </div>
                         </div>
 
-                        <ol className="mb-0 reminders-list flex-grow-1">
-                            {reminders.map((item, idx) => (
-                                <li key={`${item.title}-${idx}`}>
-                                    <div className="d-flex align-items-center">
-                                        <div className="flex-grow-1 overflow-hidden">
-                                            <p className="fw-medium text-truncate mb-0">{item.title}</p>
+                        {loading && monthReminders.length === 0 ? (
+                            <div className="reminders-empty"><Spinner size="sm" color="primary" /></div>
+                        ) : reminders.length === 0 ? (
+                            <div className="reminders-empty">No reminders for this day</div>
+                        ) : (
+                            <ol className="mb-0 reminders-list flex-grow-1">
+                                {reminders.map((item) => (
+                                    <li key={item.id} className={item.isDone ? 'is-done' : ''}>
+                                        <div className="d-flex align-items-center gap-1">
+                                            <div
+                                                className="flex-grow-1 overflow-hidden"
+                                                role="button"
+                                                title={item.description || (item.isDone ? 'Mark as pending' : 'Mark as done')}
+                                                onClick={() => toggleDone(item)}
+                                            >
+                                                <p className="fw-medium text-truncate mb-0">{item.title}</p>
+                                            </div>
+                                            <div className="flex-shrink-0 d-flex align-items-center gap-1 reminder-actions">
+                                                {item.time ? <span className="reminder-time">{formatTimeToDisplay(item.time)}</span> : null}
+                                                {item.contact ? (
+                                                    <a href={`tel:${item.contact}`} className="btn btn-sm btn-soft-success" title={`Call ${item.contact}`}>
+                                                        <i className="ri-phone-fill" />
+                                                    </a>
+                                                ) : null}
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-soft-danger remove-item-btn"
+                                                    title="Delete"
+                                                    onClick={() => removeReminder(item)}
+                                                >
+                                                    <i className="ri-delete-bin-5-line" />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="flex-shrink-0">
-                                            {item.action === 'call' ? (
-                                                <button type="button" className="btn btn-sm btn-soft-danger remove-item-btn"><i className="ri-phone-fill" /> </button>
-                                            ) : (
-                                                <span className="reminder-time">{item.time}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </li>
-                            ))}
-                        </ol>
+                                    </li>
+                                ))}
+                            </ol>
+                        )}
 
                         <Modal
                             isOpen={isModalOpen}
@@ -360,7 +524,7 @@ const TopSellers = () => {
                             </ModalBody>
                             <ModalFooter className="justify-content-end">
                                 <ModalActionButton action="cancel" onClick={closeModal} />
-                                <ModalActionButton action="save" onClick={saveNewReminder} />
+                                <ModalActionButton action="save" onClick={saveNewReminder} disabled={saving || !newReminder.title.trim()} />
                             </ModalFooter>
                         </Modal>
 

@@ -4,13 +4,13 @@ import { PaginationItem, PaginationLink } from "reactstrap";
 export const PAGE_SIZE = 5;
 
 export const priorityBadgeClass = (priority) => {
-  if (priority === "High") return "bg-danger";
+  if (priority === "High" || priority === "Urgent") return "bg-danger";
   if (priority === "Medium") return "bg-warning";
   return "bg-success";
 };
 
 export const priorityTextClass = (priority) => {
-  if (priority === "High") return "text-danger";
+  if (priority === "High" || priority === "Urgent") return "text-danger";
   if (priority === "Medium") return "text-warning";
   return "text-success";
 };

@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import { Alert, Badge, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner, Table } from "reactstrap";
 import {
   acceptMedicineOrder,
+  deliverMedicine,
   dispatchMedicine,
   markMedicineReady,
   medicineAcceptOtp,
@@ -30,7 +31,8 @@ const STATUS_META = {
   PAID: { color: "success", label: "Paid", hint: "Pack the order and mark it ready." },
   COD_PENDING: { color: "success", label: "Cash on delivery", hint: "Pack the order and mark it ready." },
   READY: { color: "dark", label: "Ready", hint: "Hand over to delivery and mark dispatched." },
-  DISPATCHED: { color: "secondary", label: "Dispatched", hint: "Completed." },
+  DISPATCHED: { color: "info", label: "Dispatched", hint: "Mark delivered when the patient receives it." },
+  DELIVERED: { color: "secondary", label: "Delivered", hint: "Completed." },
   REJECTED: { color: "danger", label: "Rejected", hint: "Closed." },
 };
 
@@ -509,6 +511,19 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           onClick={() => runAction(id, () => dispatchMedicine(id), `Order ${id} dispatched.`)}
         >
           Dispatch
+        </Button>
+      );
+    }
+
+    if (status === "DISPATCHED") {
+      return (
+        <Button
+          size="sm"
+          color="soft-success"
+          disabled={busy}
+          onClick={() => runAction(id, () => deliverMedicine(id), `Order ${id} delivered.`)}
+        >
+          Mark delivered
         </Button>
       );
     }

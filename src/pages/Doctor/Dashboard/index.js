@@ -1,21 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import { Col, Container, Row } from "reactstrap";
 import Widget from "./Widgets";
 import InstantOfferBanner from "../Tele/InstantOfferBanner";
 import BestSellingProducts from "./BestSellingProducts";
-import RecentActivity from "./RecentActivity";
 import RecentOrders from "./RecentOrders";
 import StoreVisits from "./StoreVisits";
 import TopSellers from "./TopSellers";
 
 const DashboardEcommerce = () => {
   document.title = "Dashboard | Niga Homeocentrum";
-
-  const [rightColumn, setRightColumn] = useState(false);
-
-  const toggleRightColumn = () => {
-    setRightColumn(!rightColumn);
-  };
 
   return (
     <React.Fragment>
@@ -37,7 +30,6 @@ const DashboardEcommerce = () => {
                 </Row>
               </div>
             </Col>
-            <RecentActivity rightColumn={rightColumn} hideRightColumn={toggleRightColumn} />
           </Row>
         </Container>
       </div>

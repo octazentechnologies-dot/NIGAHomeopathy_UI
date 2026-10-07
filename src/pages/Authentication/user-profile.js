@@ -46,6 +46,7 @@ import {
   getAvailabilityMe,
   updateAvailabilityMe,
   confirmMobileAgainstProfile,
+  getRegistrationStates,
 } from "../../helpers/realbackend_helper";
 
 const PROFILE_TABS = [
@@ -258,26 +259,7 @@ const DoctorCredentialsPanel = () => {
   );
 };
 
-const INDIAN_STATES = [
-  "Andhra Pradesh",
-  "Assam",
-  "Bihar",
-  "Delhi",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Tamil Nadu",
-  "Telangana",
-  "Uttar Pradesh",
-  "West Bengal",
-];
+const INDIA_COUNTRY_ID = 78;
 
 const DEFAULT_CLINIC_FORM = {
   clinicName: "",
@@ -530,6 +512,25 @@ const UserProfile = () => {
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
   const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
+  const [stateNames, setStateNames] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRegistrationStates(INDIA_COUNTRY_ID)
+      .then((list) => {
+        if (cancelled) return;
+        const names = (Array.isArray(list) ? list : [])
+          .map((s) => String(s.stateName ?? s.StateName ?? "").trim())
+          .filter(Boolean);
+        setStateNames([...new Set(names)].sort((a, b) => a.localeCompare(b)));
+      })
+      .catch(() => {
+        if (!cancelled) setStateNames([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(avatar1);
   const [photoFileInputKey, setPhotoFileInputKey] = useState(0);
@@ -1718,10 +1719,10 @@ const UserProfile = () => {
                             onChange={(e) => updateClinicField("state", e.target.value)}
                           >
                             <option value="">Select state</option>
-                            {clinicForm.state && !INDIAN_STATES.includes(clinicForm.state) ? (
+                            {clinicForm.state && !stateNames.includes(clinicForm.state) ? (
                               <option value={clinicForm.state}>{clinicForm.state}</option>
                             ) : null}
-                            {INDIAN_STATES.map((state) => (
+                            {stateNames.map((state) => (
                               <option key={state} value={state}>
                                 {state}
                               </option>

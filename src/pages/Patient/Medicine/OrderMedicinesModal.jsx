@@ -10,12 +10,7 @@ import {
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
 import { formatDosage } from "../../Doctor/Erx/erxOptions";
-import {
-  buildDemoOrder,
-  formatDate,
-  normalizePharmacy,
-  saveDemoOrder,
-} from "./medicineOrderData";
+import { formatDate, normalizePharmacy } from "./medicineOrderData";
 import "./patientMedicine.css";
 
 const AUTO_ROUTE = "auto";
@@ -59,22 +54,15 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
 
   const remedies = prescription?.remedies || [];
   const selectedPharmacy = pharmacies.find((row) => String(row.id) === String(pharmacyId)) || null;
+  const canOrder = Boolean(prescription?.erxId);
 
   const placeOrder = async () => {
-    if (!prescription) return;
+    if (!canOrder) return;
     setPlacing(true);
     setError("");
     try {
-      if (!prescription.erxId) {
-        const order = buildDemoOrder({ prescription, pharmacy: selectedPharmacy });
-        saveDemoOrder(order);
-        onPlaced?.(order);
-        return;
-      }
       const payload = { erxSnapshotId: prescription.erxId };
-      if (selectedPharmacy && !String(selectedPharmacy.id).startsWith("demo-")) {
-        payload.pharmacyPartnerId = Number(selectedPharmacy.id);
-      }
+      if (selectedPharmacy) payload.pharmacyPartnerId = Number(selectedPharmacy.id);
       const created = unwrapS4(await createMedicineOrder(payload));
       const orderId = created?.medicineOrderId || created?.MedicineOrderId;
       if (orderId) await grantMedicineConsent(orderId);
@@ -113,6 +101,11 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
           </div>
         ) : null}
 
+        {prescription && !canOrder ? (
+          <div className="med-alert med-alert--danger">
+            This prescription has not been signed as an eRx yet. Ask your doctor to sign it before ordering medicines.
+          </div>
+        ) : null}
         {error ? <div className="med-alert med-alert--danger">{error}</div> : null}
 
         <section className="med-section">
@@ -152,9 +145,8 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
                   </span>
                   <span className="med-pharmacy__main">
                     <strong>{row.name}</strong>
-                    <span>{[row.distance, row.area].filter(Boolean).join(" · ") || "Partner pharmacy"}</span>
+                    <span>{row.area || "Partner pharmacy"}</span>
                   </span>
-                  {row.eta ? <span className="med-pharmacy__eta">{row.eta}</span> : null}
                   <i className="med-pharmacy__radio" aria-hidden="true" />
                 </button>
               ))}
@@ -206,7 +198,7 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
           iconClassName="ri-shopping-bag-3-line"
           loading={placing}
           loadingLabel="Placing…"
-          disabled={!prescription}
+          disabled={!canOrder}
           onClick={placeOrder}
         >
           Place Order

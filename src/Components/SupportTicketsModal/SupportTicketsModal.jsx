@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import {
   FormGroup,
   Input,
@@ -10,11 +11,11 @@ import {
   Pagination,
   PaginationItem,
   PaginationLink,
+  Spinner,
   UncontrolledTooltip,
 } from "reactstrap";
 import ModalActionButton from "../Common/ModalActionButton";
-import DeleteModal from "../Common/DeleteModal";
-import TicketConversationModal, { getTicketConversation } from "./TicketConversationModal";
+import TicketConversationModal from "./TicketConversationModal";
 import {
   CompactPaginationPages,
   PAGE_SIZE,
@@ -22,90 +23,42 @@ import {
   priorityBadgeClass,
   statusBadgeClass,
 } from "./supportShared";
+import {
+  TICKET_CATEGORIES,
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+  createTicket,
+  errorText,
+  loadMyTickets,
+  sendTicketMessage,
+} from "./supportTicketApi";
 import "./SupportTicketsModal.css";
 
 const STATUS_TABS = [
-  { key: "all", label: "All" },
-  { key: "Open", label: "Open" },
-  { key: "Pending", label: "Pending" },
-  { key: "Resolved", label: "Resolved" },
-];
-
-const CATEGORIES = ["Payment", "Technical", "Prescription", "Booking", "Account"];
-const PRIORITIES = ["High", "Medium", "Low"];
-const STATUSES = ["Open", "Pending", "Resolved"];
-
-const INITIAL_TICKETS = [
-  {
-    id: "SUP1023",
-    subject: "Payment not reflecting",
-    category: "Payment",
-    priority: "High",
-    status: "Open",
-    updated: "Today",
-    description:
-      "Payment was deducted from my account but is not showing in the transaction history.",
-  },
-  {
-    id: "SUP1022",
-    subject: "Video call issue",
-    category: "Technical",
-    priority: "Medium",
-    status: "Pending",
-    updated: "Yesterday",
-    description:
-      "Unable to join the telemedicine video call. Camera preview works but connection fails.",
-  },
-  {
-    id: "SUP1021",
-    subject: "Prescription download",
-    category: "Prescription",
-    priority: "Low",
-    status: "Resolved",
-    updated: "20 Sep",
-    description:
-      "Prescription PDF download button was not responding. Issue has been resolved.",
-  },
-  {
-    id: "SUP1020",
-    subject: "Appointment booking",
-    category: "Booking",
-    priority: "Medium",
-    status: "Resolved",
-    updated: "18 Sep",
-    description:
-      "Could not book a follow-up appointment slot. Resolved after clearing cache.",
-  },
-  {
-    id: "SUP1019",
-    subject: "Account access",
-    category: "Account",
-    priority: "Low",
-    status: "Open",
-    updated: "16 Sep",
-    description: "Having trouble updating profile details and resetting password.",
-  },
+  { key: "all", label: "All", match: () => true },
+  { key: "open", label: "Open", match: (s) => s === "Open" },
+  { key: "progress", label: "In Progress", match: (s) => s === "In Progress" },
+  { key: "resolved", label: "Resolved", match: (s) => s === "Resolved" || s === "Closed" },
 ];
 
 const emptyForm = () => ({
   subject: "",
-  category: "Technical",
-  priority: "Medium",
-  status: "Open",
+  category: "technical",
   description: "",
   attachments: [],
 });
 
-const nextTicketId = (tickets) => {
-  const nums = tickets
-    .map((t) => Number(String(t.id).replace(/\D/g, "")))
-    .filter((n) => !Number.isNaN(n));
-  const max = nums.length ? Math.max(...nums) : 1000;
-  return `SUP${max + 1}`;
+const hasSession = () => {
+  try {
+    return Boolean(sessionStorage.getItem("authUser"));
+  } catch (_) {
+    return false;
+  }
 };
 
 export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChange }) {
-  const [tickets, setTickets] = useState(INITIAL_TICKETS);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [statusTab, setStatusTab] = useState("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -114,9 +67,8 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
   const [currentPage, setCurrentPage] = useState(1);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState("create");
   const [formData, setFormData] = useState(emptyForm());
-  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const [viewTicketId, setViewTicketId] = useState(null);
   const viewTicket = useMemo(
@@ -124,36 +76,52 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
     [tickets, viewTicketId]
   );
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteTicket, setDeleteTicket] = useState(null);
+  const reload = useCallback(async () => {
+    if (!hasSession()) return;
+    setLoading(true);
+    try {
+      setTickets(await loadMyTickets());
+    } catch (_) {
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  useEffect(() => {
+    if (isOpen) reload();
+  }, [isOpen, reload]);
 
   const counts = useMemo(() => {
-    const base = { all: tickets.length, Open: 0, Pending: 0, Resolved: 0 };
-    tickets.forEach((t) => {
-      if (base[t.status] !== undefined) base[t.status] += 1;
+    const result = {};
+    STATUS_TABS.forEach((tab) => {
+      result[tab.key] = tickets.filter((t) => tab.match(t.status)).length;
     });
-    return base;
+    return result;
   }, [tickets]);
 
-  const activeCount = counts.Open + counts.Pending;
+  const activeCount = counts.open + counts.progress;
 
   useEffect(() => {
     onActiveCountChange?.(activeCount);
   }, [activeCount, onActiveCountChange]);
 
+  const hasFilters = Boolean(search || categoryFilter || statusFilter || priorityFilter || statusTab !== "all");
+
   const filteredTickets = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const tab = STATUS_TABS.find((t) => t.key === statusTab) || STATUS_TABS[0];
     return tickets.filter((t) => {
-      if (statusTab !== "all" && t.status !== statusTab) return false;
-      if (categoryFilter && t.category !== categoryFilter) return false;
+      if (!tab.match(t.status)) return false;
+      if (categoryFilter && t.categoryCode !== categoryFilter) return false;
       if (statusFilter && t.status !== statusFilter) return false;
       if (priorityFilter && t.priority !== priorityFilter) return false;
       if (!q) return true;
-      return (
-        t.subject.toLowerCase().includes(q) ||
-        t.id.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q)
-      );
+      return [t.subject, t.id, t.category].some((v) => String(v || "").toLowerCase().includes(q));
     });
   }, [tickets, statusTab, search, categoryFilter, statusFilter, priorityFilter]);
 
@@ -166,45 +134,20 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
     setCurrentPage(1);
   }, [statusTab, search, categoryFilter, statusFilter, priorityFilter]);
 
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
-
-  const resetListState = () => {
+  const handleCloseMain = () => {
+    setFormOpen(false);
+    setViewTicketId(null);
     setStatusTab("all");
     setSearch("");
     setCategoryFilter("");
     setStatusFilter("");
     setPriorityFilter("");
     setCurrentPage(1);
-  };
-
-  const handleCloseMain = () => {
-    setFormOpen(false);
-    setViewTicketId(null);
-    setDeleteOpen(false);
-    resetListState();
     toggle();
   };
 
   const openCreate = () => {
-    setFormMode("create");
-    setEditingId(null);
     setFormData(emptyForm());
-    setFormOpen(true);
-  };
-
-  const openEdit = (ticket) => {
-    setFormMode("edit");
-    setEditingId(ticket.id);
-    setFormData({
-      subject: ticket.subject,
-      category: ticket.category,
-      priority: ticket.priority,
-      status: ticket.status,
-      description: ticket.description || "",
-      attachments: getTicketConversation(ticket).attachments,
-    });
     setFormOpen(true);
   };
 
@@ -218,86 +161,44 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
   };
 
   const handleRemoveFormFile = (index) => {
-    setFormData((p) => ({
-      ...p,
-      attachments: p.attachments.filter((_, i) => i !== index),
-    }));
+    setFormData((p) => ({ ...p, attachments: p.attachments.filter((_, i) => i !== index) }));
   };
 
-  const openView = (ticket) => {
-    setViewTicketId(ticket.id);
-  };
+  const canSave = formData.subject.trim() && formData.description.trim();
 
-  const handleUpdateTicket = (id, patch) => {
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
-  };
-
-  const openDelete = (ticket) => {
-    setDeleteTicket(ticket);
-    setDeleteOpen(true);
-  };
-
-  const handleSaveForm = () => {
-    if (!formData.subject.trim()) return;
-
-    if (formMode === "create") {
-      setTickets((prev) => [
-        {
-          id: nextTicketId(prev),
-          subject: formData.subject.trim(),
-          category: formData.category,
-          priority: formData.priority,
-          status: formData.status,
-          updated: "Today",
-          description: formData.description.trim(),
-          attachments: formData.attachments,
-        },
-        ...prev,
-      ]);
-    } else {
-      setTickets((prev) =>
-        prev.map((t) =>
-          t.id === editingId
-            ? {
-                ...t,
-                subject: formData.subject.trim(),
-                category: formData.category,
-                priority: formData.priority,
-                status: formData.status,
-                description: formData.description.trim(),
-                attachments: formData.attachments,
-                updated: "Today",
-              }
-            : t
-        )
-      );
+  const handleSaveForm = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      const res = await createTicket(formData);
+      const newId = res?.supportTicketId ?? res?.data?.supportTicketId;
+      if (newId) {
+        for (const file of formData.attachments) {
+          await sendTicketMessage(newId, { body: `Attached ${file.name}`, fileName: file.name });
+        }
+      }
+      setFormOpen(false);
+      await reload();
+      Swal.fire({
+        icon: "success",
+        title: "Ticket created",
+        text: newId ? `SUP${newId} has been submitted.` : "Your ticket has been submitted.",
+        timer: 1800,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Ticket not created", text: errorText(err, "Please try again.") });
+    } finally {
+      setSaving(false);
     }
-    setFormOpen(false);
-  };
-
-  const handleConfirmDelete = () => {
-    if (deleteTicket) {
-      setTickets((prev) => prev.filter((t) => t.id !== deleteTicket.id));
-    }
-    setDeleteOpen(false);
-    setDeleteTicket(null);
   };
 
   return (
     <>
-      <Modal
-        size="xl"
-        isOpen={isOpen}
-        toggle={handleCloseMain}
-        className="patient-list-modal support-tickets-modal"
-      >
+      <Modal size="xl" isOpen={isOpen} toggle={handleCloseMain} className="patient-list-modal support-tickets-modal">
         <ModalHeader className="patient-list-modal__header" toggle={handleCloseMain}>
           <span className="patient-list-modal__title patient-list-modal__title--simple">
-            <i
-              className="ri-customer-service-2-line"
-              style={{ color: "#25a0e2", fontSize: 15 }}
-              aria-hidden="true"
-            />
+            <i className="ri-customer-service-2-line" style={{ color: "#25a0e2", fontSize: 15 }} aria-hidden="true" />
             <span className="patient-list-modal__title-text">My Support Tickets</span>
           </span>
           <div className="patient-list-modal__header-actions">
@@ -330,9 +231,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                   type="button"
                   role="tab"
                   aria-selected={statusTab === tab.key}
-                  className={`support-tickets-modal__tab${
-                    statusTab === tab.key ? " is-active" : ""
-                  }`}
+                  className={`support-tickets-modal__tab${statusTab === tab.key ? " is-active" : ""}`}
                   onClick={() => setStatusTab(tab.key)}
                 >
                   {tab.label} ({counts[tab.key] ?? 0})
@@ -349,9 +248,9 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                   aria-label="Category"
                 >
                   <option value="">Category</option>
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  {TICKET_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
                     </option>
                   ))}
                 </Input>
@@ -365,7 +264,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                   aria-label="Status"
                 >
                   <option value="">Status</option>
-                  {STATUSES.map((s) => (
+                  {TICKET_STATUSES.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -381,7 +280,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                   aria-label="Priority"
                 >
                   <option value="">Priority</option>
-                  {PRIORITIES.map((p) => (
+                  {TICKET_PRIORITIES.map((p) => (
                     <option key={p} value={p}>
                       {p}
                     </option>
@@ -395,11 +294,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
             <table className="table mb-0 align-middle patient-list-modal__table">
               <thead>
                 <tr>
-                  <th
-                    scope="col"
-                    className="text-center patient-list-modal__th-index"
-                    style={{ width: "5%" }}
-                  >
+                  <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: "5%" }}>
                     #
                   </th>
                   <th scope="col">
@@ -435,7 +330,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                   <th scope="col">
                     <span className="patient-list-modal__th">
                       <i className="ri-time-line" aria-hidden="true" />
-                      Updated
+                      Created
                     </span>
                   </th>
                   <th scope="col" className="text-end">
@@ -444,96 +339,56 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                 </tr>
               </thead>
               <tbody>
+                {loading && tickets.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-4">
+                      <Spinner size="sm" color="primary" />
+                    </td>
+                  </tr>
+                ) : null}
                 {pageItems.map((ticket, index) => (
                   <tr key={ticket.id}>
-                    <td className="text-center patient-list-modal__index">
-                      {startIndex + index + 1}
-                    </td>
+                    <td className="text-center patient-list-modal__index">{startIndex + index + 1}</td>
                     <td className="fw-semibold text-nowrap">{ticket.id}</td>
                     <td>{ticket.subject}</td>
                     <td>{ticket.category}</td>
                     <td>
-                      <span
-                        className={`badge patient-list-modal__status ${priorityBadgeClass(
-                          ticket.priority
-                        )}`}
-                      >
+                      <span className={`badge patient-list-modal__status ${priorityBadgeClass(ticket.priority)}`}>
                         <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                         {ticket.priority}
                       </span>
                     </td>
                     <td>
-                      <span
-                        className={`badge patient-list-modal__status ${statusBadgeClass(
-                          ticket.status
-                        )}`}
-                      >
+                      <span className={`badge patient-list-modal__status ${statusBadgeClass(ticket.status)}`}>
                         <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                         {ticket.status}
                       </span>
                     </td>
                     <td className="text-nowrap">{ticket.updated}</td>
                     <td className="text-end">
-                      <div className="dashboard-patient-action-group d-inline-flex align-items-center justify-content-end flex-nowrap gap-1">
-                        <button
-                          type="button"
-                          id={`support-view-${ticket.id}`}
-                          className="btn btn-sm btn-soft-primary"
-                          aria-label="View"
-                          onClick={() => openView(ticket)}
-                        >
-                          <i className="ri-eye-fill" />
-                        </button>
-                        <UncontrolledTooltip
-                          placement="top"
-                          target={`support-view-${ticket.id}`}
-                        >
-                          View Conversation
-                        </UncontrolledTooltip>
-                        <button
-                          type="button"
-                          id={`support-edit-${ticket.id}`}
-                          className="btn btn-sm btn-soft-success edit-item-btn"
-                          aria-label="Edit"
-                          onClick={() => openEdit(ticket)}
-                        >
-                          <i className="ri-pencil-fill" />
-                        </button>
-                        <UncontrolledTooltip
-                          placement="top"
-                          target={`support-edit-${ticket.id}`}
-                        >
-                          Edit
-                        </UncontrolledTooltip>
-                        <button
-                          type="button"
-                          id={`support-del-${ticket.id}`}
-                          className="btn btn-sm btn-soft-danger remove-item-btn"
-                          aria-label="Delete"
-                          onClick={() => openDelete(ticket)}
-                        >
-                          <i className="ri-delete-bin-5-line" />
-                        </button>
-                        <UncontrolledTooltip
-                          placement="top"
-                          target={`support-del-${ticket.id}`}
-                        >
-                          Delete
-                        </UncontrolledTooltip>
-                      </div>
+                      <button
+                        type="button"
+                        id={`support-view-${ticket.id}`}
+                        className="btn btn-sm btn-soft-primary"
+                        aria-label="View"
+                        onClick={() => setViewTicketId(ticket.id)}
+                      >
+                        <i className="ri-eye-fill" />
+                      </button>
+                      <UncontrolledTooltip placement="top" target={`support-view-${ticket.id}`}>
+                        View Conversation
+                      </UncontrolledTooltip>
                     </td>
                   </tr>
                 ))}
-                {pageItems.length === 0 && (
+                {!loading && pageItems.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center text-muted py-4">
                       <div className="patient-list-modal__empty">
                         <span className="patient-list-modal__empty-icon" aria-hidden="true">
                           <i className="ri-ticket-2-line" />
                         </span>
-                        {search || categoryFilter || statusFilter || priorityFilter || statusTab !== "all"
-                          ? "No tickets found matching your filters"
-                          : "No support tickets yet"}
+                        {hasFilters ? "No tickets found matching your filters" : "No support tickets yet"}
                       </div>
                     </td>
                   </tr>
@@ -545,9 +400,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
           <div className="d-flex align-items-center justify-content-between patient-list-modal__footer">
             <div className="text-muted patient-list-modal__footer-text">
               {`Showing ${pageItems.length} of ${filteredTickets.length} Tickets ${
-                search || categoryFilter || statusFilter || priorityFilter || statusTab !== "all"
-                  ? `(filtered from ${tickets.length} total)`
-                  : `(from ${tickets.length} total)`
+                hasFilters ? `(filtered from ${tickets.length} total)` : `(from ${tickets.length} total)`
               }`}
             </div>
             {filteredTickets.length > 0 && (
@@ -562,11 +415,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                     }}
                   />
                 </PaginationItem>
-                <CompactPaginationPages
-                  currentPage={safePage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
+                <CompactPaginationPages currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
                 <PaginationItem disabled={safePage === totalPages}>
                   <PaginationLink
                     href="#"
@@ -583,25 +432,11 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
         </ModalBody>
       </Modal>
 
-      <Modal
-        isOpen={formOpen}
-        toggle={() => setFormOpen(false)}
-        centered
-        className="patient-list-modal"
-      >
-        <ModalHeader
-          className="patient-list-modal__header"
-          toggle={() => setFormOpen(false)}
-        >
+      <Modal isOpen={formOpen} toggle={() => setFormOpen(false)} centered className="patient-list-modal">
+        <ModalHeader className="patient-list-modal__header" toggle={() => setFormOpen(false)}>
           <span className="patient-list-modal__title patient-list-modal__title--simple">
-            <i
-              className={formMode === "create" ? "ri-add-circle-line" : "ri-pencil-fill"}
-              style={{ color: "#25a0e2", fontSize: 15 }}
-              aria-hidden="true"
-            />
-            <span className="patient-list-modal__title-text">
-              {formMode === "create" ? "New Ticket" : `Edit Ticket — ${editingId}`}
-            </span>
+            <i className="ri-add-circle-line" style={{ color: "#25a0e2", fontSize: 15 }} aria-hidden="true" />
+            <span className="patient-list-modal__title-text">New Ticket</span>
           </span>
         </ModalHeader>
         <ModalBody>
@@ -611,6 +446,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
             </Label>
             <Input
               id="support-ticket-subject"
+              maxLength={200}
               value={formData.subject}
               onChange={(e) => setFormData((p) => ({ ...p, subject: e.target.value }))}
               placeholder="Brief summary of your issue"
@@ -626,53 +462,13 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
               value={formData.category}
               onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))}
             >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {TICKET_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
                 </option>
               ))}
             </Input>
           </FormGroup>
-          <div className="row">
-            <div className="col-md-6">
-              <FormGroup>
-                <Label for="support-ticket-priority" className="form-label">
-                  Priority
-                </Label>
-                <Input
-                  id="support-ticket-priority"
-                  type="select"
-                  value={formData.priority}
-                  onChange={(e) => setFormData((p) => ({ ...p, priority: e.target.value }))}
-                >
-                  {PRIORITIES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </Input>
-              </FormGroup>
-            </div>
-            <div className="col-md-6">
-              <FormGroup>
-                <Label for="support-ticket-status" className="form-label">
-                  Status
-                </Label>
-                <Input
-                  id="support-ticket-status"
-                  type="select"
-                  value={formData.status}
-                  onChange={(e) => setFormData((p) => ({ ...p, status: e.target.value }))}
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Input>
-              </FormGroup>
-            </div>
-          </div>
           <FormGroup className="mb-0">
             <Label for="support-ticket-description" className="form-label">
               Description
@@ -681,6 +477,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
               id="support-ticket-description"
               type="textarea"
               rows={4}
+              maxLength={4000}
               className="support-ticket-form__textarea"
               value={formData.description}
               onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
@@ -695,9 +492,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
               <i className="ri-upload-cloud-2-line" aria-hidden="true" />
               <span>
                 <span className="support-ticket-form__dropzone-title">Click to upload files</span>
-                <span className="support-ticket-form__dropzone-hint">
-                  Screenshots, PDF or documents
-                </span>
+                <span className="support-ticket-form__dropzone-hint">Screenshots, PDF or documents</span>
               </span>
             </label>
             <input
@@ -718,9 +513,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                     <i className="ri-file-image-line support-conv__file-icon" aria-hidden="true" />
                     <span className="support-conv__file-info">
                       <span className="support-conv__file-name">{file.name}</span>
-                      {file.size ? (
-                        <span className="support-conv__file-size">{file.size}</span>
-                      ) : null}
+                      {file.size ? <span className="support-conv__file-size">{file.size}</span> : null}
                     </span>
                     <button
                       type="button"
@@ -739,12 +532,8 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
         </ModalBody>
         <ModalFooter>
           <ModalActionButton action="cancel" onClick={() => setFormOpen(false)} />
-          <ModalActionButton
-            action={formMode === "create" ? "submit" : "update"}
-            onClick={handleSaveForm}
-            disabled={!formData.subject.trim()}
-          >
-            {formMode === "create" ? "Create Ticket" : "Update Ticket"}
+          <ModalActionButton action="submit" onClick={handleSaveForm} disabled={!canSave || saving}>
+            Create Ticket
           </ModalActionButton>
         </ModalFooter>
       </Modal>
@@ -753,16 +542,7 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
         isOpen={Boolean(viewTicket)}
         toggle={() => setViewTicketId(null)}
         ticket={viewTicket}
-        onUpdateTicket={handleUpdateTicket}
-      />
-
-      <DeleteModal
-        show={deleteOpen}
-        onDeleteClick={handleConfirmDelete}
-        onCloseClick={() => {
-          setDeleteOpen(false);
-          setDeleteTicket(null);
-        }}
+        onTicketChanged={reload}
       />
     </>
   );

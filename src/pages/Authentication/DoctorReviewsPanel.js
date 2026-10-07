@@ -4,25 +4,10 @@ import Swal from "sweetalert2";
 import moment from "moment";
 
 import ModalActionButton from "../../Components/Common/ModalActionButton";
-import { myReviews, unwrapS4 } from "../../helpers/s4Week4Api";
+import { appealReview } from "../../helpers/s4Week4Api";
+import { listMyDoctorReviews, saveReviewReply } from "../../helpers/s5Week5Api";
 
-const daysAgo = (days) => moment().subtract(days, "days").toISOString();
-
-const SAMPLE_REVIEWS = [
-  { id: "r1", patientName: "Amit Sharma", rating: 5, comment: "Good consultation experience.", createdAt: daysAgo(1), reply: "" },
-  {
-    id: "r2",
-    patientName: "Priya Nair",
-    rating: 5,
-    comment: "Doctor listened patiently and explained the remedy clearly. My skin allergy is much better now.",
-    createdAt: daysAgo(3),
-    reply: "Thank you Priya, glad you are feeling better. Continue the dose for two more weeks.",
-    repliedAt: daysAgo(2),
-  },
-  { id: "r3", patientName: "Rahul Verma", rating: 4, comment: "Video call was smooth. Waiting time was a little long.", createdAt: daysAgo(6), reply: "" },
-  { id: "r4", patientName: "Sneha Patil", rating: 3, comment: "Medicine delivery took more time than expected.", createdAt: daysAgo(12), reply: "" },
-  { id: "r5", patientName: "Kiran Joshi", rating: 5, comment: "Very gentle approach for my child. Highly recommended.", createdAt: daysAgo(20), reply: "" },
-];
+const errText = (err, fallback) => (typeof err === "string" ? err : err?.message || fallback);
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -32,13 +17,17 @@ const FILTERS = [
 
 const normalizeReview = (raw, index) => ({
   id: raw.reviewId ?? raw.ReviewId ?? raw.id ?? raw.Id ?? `review-${index}`,
-  patientName: raw.patientName ?? raw.PatientName ?? raw.reviewerName ?? raw.ReviewerName ?? "Patient",
+  patientName: raw.patientName ?? raw.PatientName ?? "Patient",
   rating: Number(raw.rating ?? raw.Rating ?? 0),
-  comment: raw.comment ?? raw.Comment ?? raw.reviewText ?? raw.ReviewText ?? "",
-  createdAt: raw.createdAt ?? raw.CreatedAt ?? raw.createdDate ?? raw.CreatedDate ?? null,
-  reply: raw.reply ?? raw.Reply ?? raw.doctorReply ?? raw.DoctorReply ?? "",
+  comment: raw.text ?? raw.Text ?? "",
+  createdAt: raw.at ?? raw.At ?? null,
+  reply: raw.doctorReply ?? raw.DoctorReply ?? "",
   repliedAt: raw.repliedAt ?? raw.RepliedAt ?? null,
+  status: String(raw.status ?? raw.Status ?? "").toUpperCase(),
+  appealStatus: String(raw.appealStatus ?? raw.AppealStatus ?? "").toUpperCase(),
 });
+
+const STATUS_LABEL = { PENDING: "Awaiting moderation", HIDDEN: "Hidden", REJECTED: "Rejected" };
 
 const getInitials = (name) =>
   String(name || "P")
@@ -67,17 +56,23 @@ const DoctorReviewsPanel = () => {
   const [replyingId, setReplyingId] = useState(null);
   const [replyDraft, setReplyDraft] = useState("");
 
+  const [loadError, setLoadError] = useState("");
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
-    myReviews()
+    listMyDoctorReviews()
       .then((response) => {
         if (cancelled) return;
-        const data = unwrapS4(response);
-        const list = Array.isArray(data) ? data : data?.items ?? data?.reviews ?? [];
-        setReviews(Array.isArray(list) && list.length ? list.map(normalizeReview) : SAMPLE_REVIEWS);
+        const list = Array.isArray(response?.data) ? response.data : [];
+        setReviews(list.map(normalizeReview));
+        setLoadError("");
       })
-      .catch(() => {
-        if (!cancelled) setReviews(SAMPLE_REVIEWS);
+      .catch((err) => {
+        if (!cancelled) {
+          setReviews([]);
+          setLoadError(errText(err, "Could not load reviews."));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -117,15 +112,23 @@ const DoctorReviewsPanel = () => {
     setReplyDraft("");
   };
 
-  const saveReply = (id) => {
+  const saveReply = async (id) => {
     const text = replyDraft.trim();
     if (!text) {
       Swal.fire({ title: "Reply is empty", text: "Write a reply before saving.", icon: "warning", timer: 1500, showConfirmButton: false });
       return;
     }
-    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, reply: text, repliedAt: new Date().toISOString() } : r)));
-    cancelReply();
-    Swal.fire({ title: "Reply posted", icon: "success", timer: 1200, showConfirmButton: false });
+    setSaving(true);
+    try {
+      const res = await saveReviewReply(id, text);
+      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, reply: text, repliedAt: res?.repliedAt || new Date().toISOString() } : r)));
+      cancelReply();
+      Swal.fire({ title: "Reply posted", icon: "success", timer: 1200, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire({ title: "Reply not saved", text: errText(err, "Please try again."), icon: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const deleteReply = async (id) => {
@@ -137,22 +140,33 @@ const DoctorReviewsPanel = () => {
       confirmButtonColor: "#dc3545",
     });
     if (!result.isConfirmed) return;
-    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, reply: "", repliedAt: null } : r)));
+    try {
+      await saveReviewReply(id, "");
+      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, reply: "", repliedAt: null } : r)));
+    } catch (err) {
+      Swal.fire({ title: "Reply not deleted", text: errText(err, "Please try again."), icon: "error" });
+    }
   };
 
-  const deleteReview = async (review) => {
+  const requestRemoval = async (review) => {
     const result = await Swal.fire({
-      title: "Delete this review?",
-      text: `Review by ${review.patientName} will be removed from your profile.`,
-      icon: "warning",
+      title: "Request review removal",
+      text: `Admin will check the review by ${review.patientName} and decide whether to hide it.`,
+      input: "textarea",
+      inputPlaceholder: "Why should this review be removed?",
+      inputAttributes: { maxlength: 500 },
+      inputValidator: (value) => (!value || value.trim().length < 3 ? "Please give a reason." : undefined),
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      confirmButtonColor: "#dc3545",
+      confirmButtonText: "Send request",
     });
     if (!result.isConfirmed) return;
-    setReviews((prev) => prev.filter((r) => r.id !== review.id));
-    if (replyingId === review.id) cancelReply();
-    Swal.fire({ title: "Review deleted", icon: "success", timer: 1200, showConfirmButton: false });
+    try {
+      await appealReview(review.id, { reason: result.value.trim() });
+      setReviews((prev) => prev.map((r) => (r.id === review.id ? { ...r, appealStatus: "OPEN" } : r)));
+      Swal.fire({ title: "Request sent", icon: "success", timer: 1200, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire({ title: "Request not sent", text: errText(err, "Please try again."), icon: "error" });
+    }
   };
 
   const pendingCount = reviews.filter((r) => !r.reply).length;
@@ -219,6 +233,8 @@ const DoctorReviewsPanel = () => {
 
       {loading ? (
         <p className="text-muted small mb-0">Loading reviews…</p>
+      ) : loadError ? (
+        <p className="text-danger small mb-0">{loadError}</p>
       ) : visibleReviews.length === 0 ? (
         <div className="doctor-reviews__empty">
           <i className="ri-chat-quote-line" aria-hidden="true" />
@@ -238,6 +254,9 @@ const DoctorReviewsPanel = () => {
                     <span className="doctor-reviews__meta">
                       <Stars value={review.rating} />
                       {review.createdAt ? <span>{moment(review.createdAt).format("DD MMM YYYY")}</span> : null}
+                      {STATUS_LABEL[review.status] ? (
+                        <span className="badge bg-light text-muted">{STATUS_LABEL[review.status]}</span>
+                      ) : null}
                     </span>
                   </div>
                   <div className="doctor-reviews__actions">
@@ -251,14 +270,18 @@ const DoctorReviewsPanel = () => {
                         <i className="ri-reply-line" aria-hidden="true" />
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-soft-danger doctor-reviews__icon-btn"
-                      onClick={() => deleteReview(review)}
-                      title="Delete review"
-                    >
-                      <i className="ri-delete-bin-line" aria-hidden="true" />
-                    </button>
+                    {review.appealStatus === "OPEN" ? (
+                      <span className="badge bg-warning-subtle text-warning align-self-center">Removal requested</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-soft-danger doctor-reviews__icon-btn"
+                        onClick={() => requestRemoval(review)}
+                        title="Request removal"
+                      >
+                        <i className="ri-flag-line" aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -280,7 +303,7 @@ const DoctorReviewsPanel = () => {
                       <ModalActionButton action="cancel" type="button" onClick={cancelReply}>
                         Cancel
                       </ModalActionButton>
-                      <ModalActionButton action="confirm" type="button" onClick={() => saveReply(review.id)}>
+                      <ModalActionButton action="confirm" type="button" disabled={saving} onClick={() => saveReply(review.id)}>
                         {review.reply ? "Update Reply" : "Post Reply"}
                       </ModalActionButton>
                     </div>
