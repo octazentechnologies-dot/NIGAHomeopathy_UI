@@ -1,0 +1,209 @@
+import React, { useEffect } from "react";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  CardFooter,
+  Col,
+  Container,
+  UncontrolledAlert,
+  Input,
+  Label,
+  Row,
+  Button,
+  FormFeedback,
+  Spinner,
+} from "reactstrap";
+import { Link } from "react-router-dom";
+import * as Yup from "yup";
+import { useFormik } from "formik";
+import { useDispatch, useSelector } from "react-redux";
+import { setPackageError, setPackageSuccess } from "../../../../slices/admin/packages/reducer";
+import { createPackage } from "../../../../slices/admin/packages/thunk";
+
+const AddPackage = () => {
+  const dispatch = useDispatch();
+  const userDetails = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+  const { packageSuccess, packageError, packageLoading } = useSelector((state) => state?.Package || {});
+
+  const formik = useFormik({
+    enableReinitialize: true,
+    initialValues: {
+      packageName: "",
+      caseCount: "",
+      validityInDays: "",
+      amount: "",
+    },
+    validationSchema: Yup.object({
+      packageName: Yup.string().trim().required("Please Enter Package Name"),
+      caseCount: Yup.number().typeError("Must be a number").required("Please Enter Case Count").min(0),
+      validityInDays: Yup.number().typeError("Must be a number").required("Please Enter Validity").min(1),
+      amount: Yup.number().typeError("Must be a number").required("Please Enter Amount").min(0),
+    }),
+    onSubmit: (values) => {
+      dispatch(
+        createPackage({
+          packageId: 0,
+          packageName: values.packageName.trim(),
+          caseCount: Number(values.caseCount),
+          validityInDays: Number(values.validityInDays),
+          amount: Number(values.amount),
+          enteredBy: userDetails?.userName || userDetails?.data?.userName || "Admin",
+          changedBy: null,
+          deleteStatus: false,
+        })
+      );
+    },
+  });
+
+  useEffect(() => {
+    if (packageSuccess) {
+      const timer = setTimeout(() => {
+        formik.resetForm();
+        dispatch(setPackageSuccess(null));
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+    if (packageError) {
+      const timer = setTimeout(() => {
+        dispatch(setPackageError(null));
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [packageSuccess, packageError, dispatch]);
+
+  document.title = "Add Package";
+
+  return (
+    <React.Fragment>
+      <div className="page-content">
+        <Container fluid>
+          <Row>
+            <Col lg={12}>
+              <Card>
+                <div className="p-2">
+                  {packageSuccess ? (
+                    <UncontrolledAlert color="success" className="alert-label-icon label-arrow" style={{ marginTop: "13px" }}>
+                      <i className="ri-notification-off-line label-icon"></i>
+                      {packageSuccess}
+                    </UncontrolledAlert>
+                  ) : null}
+                  {packageError ? (
+                    <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
+                      <i className="ri-error-warning-line label-icon"></i>
+                      {packageError}
+                    </UncontrolledAlert>
+                  ) : null}
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    formik.handleSubmit();
+                    return false;
+                  }}
+                >
+                  <CardHeader className="align-items-center d-flex">
+                    <h4 className="card-title mb-0 flex-grow-1">New Package</h4>
+                    <Link to="/admin/listpackage" className="btn btn-soft-secondary btn-sm">
+                      Back to List
+                    </Link>
+                  </CardHeader>
+
+                  <CardBody>
+                    <Row className="gy-4">
+                      <Col md={6}>
+                        <Label htmlFor="packageName" className="form-label">
+                          Package Name
+                        </Label>
+                        <Input
+                          name="packageName"
+                          type="text"
+                          id="packageName"
+                          value={formik.values.packageName}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          invalid={formik.touched.packageName && !!formik.errors.packageName}
+                        />
+                        {formik.touched.packageName && formik.errors.packageName ? (
+                          <FormFeedback type="invalid">{formik.errors.packageName}</FormFeedback>
+                        ) : null}
+                      </Col>
+                      <Col md={6}>
+                        <Label htmlFor="caseCount" className="form-label">
+                          Case Count
+                        </Label>
+                        <Input
+                          name="caseCount"
+                          type="number"
+                          id="caseCount"
+                          value={formik.values.caseCount}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          invalid={formik.touched.caseCount && !!formik.errors.caseCount}
+                        />
+                        {formik.touched.caseCount && formik.errors.caseCount ? (
+                          <FormFeedback type="invalid">{formik.errors.caseCount}</FormFeedback>
+                        ) : null}
+                      </Col>
+                      <Col md={6}>
+                        <Label htmlFor="validityInDays" className="form-label">
+                          Validity (Days)
+                        </Label>
+                        <Input
+                          name="validityInDays"
+                          type="number"
+                          id="validityInDays"
+                          value={formik.values.validityInDays}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          invalid={formik.touched.validityInDays && !!formik.errors.validityInDays}
+                        />
+                        {formik.touched.validityInDays && formik.errors.validityInDays ? (
+                          <FormFeedback type="invalid">{formik.errors.validityInDays}</FormFeedback>
+                        ) : null}
+                      </Col>
+                      <Col md={6}>
+                        <Label htmlFor="amount" className="form-label">
+                          Amount
+                        </Label>
+                        <Input
+                          name="amount"
+                          type="number"
+                          step="0.01"
+                          id="amount"
+                          value={formik.values.amount}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          invalid={formik.touched.amount && !!formik.errors.amount}
+                        />
+                        {formik.touched.amount && formik.errors.amount ? (
+                          <FormFeedback type="invalid">{formik.errors.amount}</FormFeedback>
+                        ) : null}
+                      </Col>
+                    </Row>
+                  </CardBody>
+
+                  <CardFooter>
+                    <div className="hstack gap-2 justify-content-end">
+                      <Button color="light" type="button" onClick={() => formik.resetForm()}>
+                        Reset
+                      </Button>
+                      <Button color="success" type="submit" disabled={packageLoading}>
+                        {packageLoading ? <Spinner size="sm" className="me-1" /> : null}
+                        Save
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </form>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    </React.Fragment>
+  );
+};
+
+export default AddPackage;
