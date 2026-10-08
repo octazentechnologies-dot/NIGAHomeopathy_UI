@@ -7,8 +7,6 @@ import { Button, Input, UncontrolledTooltip, Tooltip, Modal, ModalHeader, ModalB
 import Select from "react-select";
 import Swal from 'sweetalert2';
 import ReactHtmlParser from 'html-react-parser';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 // Import Draft.js components
 import { convertToRaw, EditorState, ContentState } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';

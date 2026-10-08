@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Accordion, AccordionItem, Collapse, Nav, NavItem, NavLink, TabContent, TabPane, UncontrolledTooltip, Container, Row, Label } from 'reactstrap';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import ClassicEditor from "../../../Components/Common/ClassicEditor";
 import Swal from 'sweetalert2';
 import classnames from "classnames";
 import moment from 'moment';

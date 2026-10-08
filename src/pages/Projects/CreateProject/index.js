@@ -6,7 +6,7 @@ import BreadCrumb from '../../../Components/Common/BreadCrumb';
 import Flatpickr from "react-flatpickr";
 import Select from "react-select";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import ClassicEditor from "../../../Components/Common/ClassicEditor";
 
 import Dropzone from "react-dropzone";
 

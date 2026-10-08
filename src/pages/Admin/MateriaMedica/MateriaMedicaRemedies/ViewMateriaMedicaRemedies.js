@@ -5,8 +5,6 @@ import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Spinner } from 'reactstrap';
 import { useLocation } from 'react-router-dom';
-import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
 import ReactHtmlParser from 'html-react-parser';

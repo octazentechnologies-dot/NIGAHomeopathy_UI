@@ -4,8 +4,22 @@
   "private": true,
   "homepage": "/",
   "dependencies": {
-    "@ckeditor/ckeditor5-build-classic": "^43.2.0",
-    "@ckeditor/ckeditor5-react": "^9.3.0",
+    "@ckeditor/ckeditor5-autoformat": "48.5.2",
+    "@ckeditor/ckeditor5-basic-styles": "48.5.2",
+    "@ckeditor/ckeditor5-block-quote": "48.5.2",
+    "@ckeditor/ckeditor5-editor-classic": "48.5.2",
+    "@ckeditor/ckeditor5-essentials": "48.5.2",
+    "@ckeditor/ckeditor5-heading": "48.5.2",
+    "@ckeditor/ckeditor5-image": "48.5.2",
+    "@ckeditor/ckeditor5-indent": "48.5.2",
+    "@ckeditor/ckeditor5-link": "48.5.2",
+    "@ckeditor/ckeditor5-list": "48.5.2",
+    "@ckeditor/ckeditor5-media-embed": "48.5.2",
+    "@ckeditor/ckeditor5-paragraph": "48.5.2",
+    "@ckeditor/ckeditor5-paste-from-office": "48.5.2",
+    "@ckeditor/ckeditor5-react": "^11.2.0",
+    "@ckeditor/ckeditor5-table": "48.5.2",
+    "@ckeditor/ckeditor5-typing": "48.5.2",
     "@fullcalendar/bootstrap": "^6.1.15",
     "@fullcalendar/core": "^6.1.15",
     "@fullcalendar/daygrid": "^6.1.15",
@@ -32,10 +46,11 @@
     "axios-mock-adapter": "^2.1.0",
     "bootstrap": "5.3.3",
     "chart.js": "^4.4.5",
+    "ckeditor5": "48.5.2",
     "cleave.js": "^1.6.0",
     "draft-js": "^0.11.7",
     "draftjs-to-html": "^0.9.1",
-    "echarts": "^5.5.1",
+    "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.2",
     "emoji-picker-react": "^4.12.0",
     "eslint": "^8.56.0",
@@ -98,18 +113,18 @@
     "save": "^2.9.0",
     "simplebar-react": "^3.2.6",
     "sweetalert2": "^11.17.2",
-    "swiper": "^11.1.14",
+    "swiper": "^12.2.0",
     "three": "^0.184.0",
     "web-vitals": "^4.2.3",
     "yet-another-react-lightbox": "^3.21.6",
     "yup": "^1.4.0"
   },
   "scripts": {
-  "start": "set NODE_OPTIONS=--max-old-space-size=4096 && react-scripts start",
-  "build": "set NODE_OPTIONS=--max-old-space-size=4096 && react-scripts build",
-  "test": "react-scripts test",
-  "eject": "react-scripts eject"
-},
+    "start": "set NODE_OPTIONS=--max-old-space-size=4096 --disable-warning=DEP0176 && react-scripts start",
+    "build": "set NODE_OPTIONS=--max-old-space-size=4096 --disable-warning=DEP0176 && react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -126,10 +141,28 @@
     "moment": "2.29.1",
     "autoprefixer": "10.4.5"
   },
+  "overrides": {
+    "@grpc/grpc-js": "^1.13.6",
+    "@tootallnate/once": "^2.0.1",
+    "draft-js": {
+      "immutable": "~3.8.4"
+    },
+    "nth-check": "^2.1.1",
+    "resolve-url-loader": "^5.0.0",
+    "serialize-javascript": "^7.1.2",
+    "underscore": "^1.13.8",
+    "undici": "^6.29.0",
+    "uuid": "^11.1.1"
+  },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@types/lodash": "^4.14.195",
     "@types/react-bootstrap-table2-paginator": "^2.1.2",
-    "@types/react-bootstrap-table2-toolkit": "^2.1.7",
-    "babel-eslint": "^10.1.0"
+    "@types/react-bootstrap-table2-toolkit": "^2.1.7"
+  },
+  "allowScripts": {
+    "core-js": false,
+    "core-js-pure": false,
+    "protobufjs": false
   }
 }

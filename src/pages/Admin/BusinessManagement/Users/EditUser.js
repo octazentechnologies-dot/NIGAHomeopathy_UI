@@ -11,9 +11,6 @@ import { setUserError, setUserSuccess } from "../../../../slices/admin/users/red
 import * as Yup from "yup";
 import { useFormik } from "formik";
 
-import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-
 import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
 
