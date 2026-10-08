@@ -33,6 +33,7 @@ const Starter = () => {
 
   // Get userId from location state or URL params
   const userId = location.state?.userId || location.state?.selectedUser?.userId || null;
+  const returnTo = location.state?.returnTo || '/admin/listusers';
 
   // Redux state
   const roleList = useSelector((state) => state?.User?.roleList || []);
@@ -47,9 +48,9 @@ const Starter = () => {
       dispatch(getUserById(userId));
     } else {
       // If no userId, redirect back to list
-      navigate('/admin/listusers');
+      navigate(returnTo);
     }
-  }, [dispatch, userId, navigate]);
+  }, [dispatch, userId, navigate, returnTo]);
 
   // Transform role list to react-select format
   const roleOptions = useMemo(() => {
@@ -102,6 +103,8 @@ const Starter = () => {
         userPassword: values.password || selectedUser?.userPassword, // Use existing password if new one not provided
         userStatus: values.userStatus,
         emailId: values.emailId,
+        // The API writes MobileNo on every update; keep the stored number since this form has no mobile field.
+        mobileNo: selectedUser?.mobileNo ?? null,
         enteredBy: selectedUser?.enteredBy || userDetails?.userName || userDetails?.userId || "Admin",
         deleteStatus: selectedUser?.deleteStatus || false,
         firstName: values.firstName,
@@ -116,7 +119,7 @@ const Starter = () => {
     if (userSuccess) {
       setTimeout(() => {
         dispatch(setUserSuccess(null));
-        navigate('/admin/listusers');
+        navigate(returnTo);
       }, 2000);
     }
     if (userError) {
@@ -124,7 +127,7 @@ const Starter = () => {
         dispatch(setUserError(null));
       }, 3000);
     }
-  }, [userSuccess, userError, dispatch, navigate]);
+  }, [userSuccess, userError, dispatch, navigate, returnTo]);
 
   if (!userId) {
     return null; // Or show loading/error message
@@ -366,7 +369,7 @@ const Starter = () => {
                   <CardFooter className="border-0">
                     <div className="d-flex justify-content-end">
                       <div className="admin-form-actions">
-                        <Link to="/admin/listusers" className="d-inline-flex">
+                        <Link to={returnTo} className="d-inline-flex">
                           <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
                             <i className="ri-close-line align-middle me-1" aria-hidden="true" />
                             Cancel

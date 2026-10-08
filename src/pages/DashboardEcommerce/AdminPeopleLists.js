@@ -200,7 +200,7 @@ const PeopleCard = ({ kind, title, icon, rows, loading, detailLabel }) => {
                     </td>
                     <td className="text-end">
                       {row.userId ? (
-                        <Link to="/admin/edituser" state={{ userId: row.userId }} className="apl-view-btn" title="View / edit">
+                        <Link to="/admin/edituser" state={{ userId: row.userId, returnTo: "/dashboard" }} className="apl-view-btn" title="View / edit">
                           <i className="ri-eye-line" aria-hidden="true" />
                         </Link>
                       ) : (
