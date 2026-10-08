@@ -121,7 +121,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
             const headers = token
               ? { Authorization: "Bearer " + token, "Content-Type": "application/json" }
               : { "Content-Type": "application/json" };
-            fetch(`${api.Old_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
             fetch(`${api.New_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
           } catch (_) {
             /* ignore */
@@ -151,7 +150,7 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
  */
 const APIClients = {
   // Default API client (HOMOCENTRUM)
-  default: createAxiosClient(api.Old_API_Base_URL, "application/json"),
+  default: createAxiosClient(api.New_API_Base_URL, "application/json"),
 
   // Nigahomeopathy API client with JSON content type
   nigahomeo: createAxiosClient(api.New_API_Base_URL, "application/json"),

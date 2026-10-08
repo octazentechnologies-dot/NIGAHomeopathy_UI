@@ -2,7 +2,7 @@ import axios from "axios";
 import config from "../../../../config";
 import { listPublicArticles, getPublicArticle } from "../../../../helpers/publicBookingApi";
 
-const API_BASE = config.api.Old_API_Base_URL;
+const API_BASE = config.api.New_API_Base_URL;
 
 export const unwrapList = (response) => {
     const payload = response?.data;

@@ -7,15 +7,11 @@ import * as url from "./url_helper";
 import { importAPI } from './api_helper';
 
 /*
- * M01 FND-01.03 — Dual-API placement rule:
- * - New domain modules / new HTTP APIs → New-API only (nigahomeoAPI / New_API_Base_URL).
- * - Do not create a third API.
- * - Keep on classic (api / Old_API_Base_URL) until explicit cut-over: Login, Rx-write, Razorpay.
- * - Do not silently switch hosts for an existing call.
+ * Every call goes to the New API (New_API_Base_URL). Do not add calls to Old_API_Base_URL.
  */
 
 //default client using apiHelpers for enhanced API methods
-const api = apiHelpers.default;
+const api = apiHelpers.nigahomeo;
 
 // Nigahomeopathy JSON client
 const nigahomeoAPI = apiHelpers.nigahomeo;
@@ -28,12 +24,9 @@ const nigahomeoMultipart = apiHelpers.nigahomeoMultipart;
 
 export const login = data => api.post(url.LOGIN, data);
 export const getSubscriptionStatus = () => api.get(url.SUBSCRIPTION_STATUS, null);
-/** SEC-03.01 — classic login token on Old-API; New-API denylist when the JWT is accepted there. */
+/** SEC-03.01 — adds the token to the New-API denylist. */
 export const logoutApi = () =>
-  Promise.allSettled([
-    api.post("/Account/Logout"),
-    nigahomeoAPI.post("/Account/Logout"),
-  ]);
+  Promise.allSettled([nigahomeoAPI.post("/Account/Logout")]);
 export const forgotPasswordAccounts = (email) =>
   nigahomeoAPI.post("/Account/ForgotPasswordAccounts", { email });
 export const forgotPasswordSecure = (email, userId) =>
@@ -102,8 +95,6 @@ export const getUserById = userId => api.get(url.GET_USER_BY_ID + "/" + userId, 
 export const createUser = data => api.post(url.CREATE_USER, data);
 export const updateUser = data => api.post(url.UPDATE_USER, data);
 
-/* M02 W1 dual-API (Repertory): Section/Language/Intensity/BodyPart/Remedy/Grade admin CRUD → Old-API (`api`).
-   Rubric–remedy save + Excel import/status/export + subsection Excel/search-by-keyword → New-API (`nigahomeo`). Do not silently switch. */
 export const getSectionList = data => api.get(url.GET_SECTIONS, data);
 
 export const createOrUpdateSection = data => api.post(url.CREATE_SECTION, data);
@@ -111,8 +102,6 @@ export const createOrUpdateSection = data => api.post(url.CREATE_SECTION, data);
 export const deleteSection = data => api.post(url.DELETE_SECTION, data);
 
 export const getAuthorsList = data => api.get(url.GET_AUTHORS, data);
-/* M02 W2 dual-API: Author / Materia Medica / Heads admin CRUD → Old-API. Do not switch. */
-
 export const createOrUpdateAuthor = data => api.post(url.CREATE_AUTHOR, data);
 
 export const deleteAuthor = data => api.post(url.DELETE_AUTHOR, data);
@@ -286,8 +275,6 @@ export const GetLanguages = data => api.get(url.ADD_UPDATE_LANGUAGE, data);
 
 //diagnosis system
 export const getDiagnosisSystemList = data => api.get(url.GET_DIAGNOSIS_SYSTEM, data);
-/* M02 W3 dual-API: Diagnosis admin + board keyword tabs → Old-API only. */
-
 export const deleteDiagnosisSystem = data => api.post(url.DELETE_DIAGNOSIS_SYSTEM, data);
 
 export const saveUpdateDiagnosisSystem = data => api.post(url.SAVE_DIAGNOSIS_SYSTEM, data);
@@ -295,8 +282,6 @@ export const saveUpdateDiagnosisSystem = data => api.post(url.SAVE_DIAGNOSIS_SYS
 //drug system
 
 export const getDrugSystemList = data => api.get(url.GET_DRUG_SYSTEM, data);
-/* M02 W4 dual-API: Drug/Allopathic admin CRUD → Old; Patient Board dropdown → New getAllopathicDrugForDropdown. */
-
 export const deleteDrugSystem = data => api.post(url.DELETE_DRUG_SYSTEM, data);
 
 export const createDrugSystem = data => api.post(url.CREATE_DRUG_SYSTEM, data);
@@ -329,8 +314,6 @@ export const deleteAdverseReaction = data => api.post(url.DELETE_ADVERSE_REACTIO
 // Question Sections API
 
 export const getQuestionSections = data => api.get(url.GET_QUESTION_SECTIONS, data);
-/* M02 W5 dual-API: Question taxonomy / clinical questions admin → Old-API (New has locked parity). */
-
 export const deleteQuestionSection = data => api.post(url.DELETE_QUESTION_SECTION, data);
 
 export const createQuestionSection = data => api.post(url.CREATE_QUESTION_SECTION, data);
@@ -347,7 +330,6 @@ export const createQuestionGroup = data => api.post(url.CREATE_QUESTION_GROUP, d
 
 /* Package API calls */
 export const getPackageList = data => api.get(url.GET_PACKAGES, data);
-/* M02 W7 dual-API: Package admin CRUD → Old-API. PackageEntryDetail = S1 SaaS only (not S2/S5). */
 export const deletePackage = data => api.post(url.DELETE_PACKAGE, data);
 export const createPackage = data => api.post(url.CREATE_PACKAGE, data);
 export const updatePackage = data => api.post(url.CREATE_PACKAGE, data);
@@ -362,7 +344,6 @@ export const getQualificationById = (id) => nigahomeoAPI.get(`${url.GET_QUALIFIC
 
 /* Lab Test API calls */
 export const getLabTestList = data => api.get(url.GET_LAB_TESTS, data);
-/* M02 W7 dual-API: Lab catalog admin → Old PatientLabTest; board/eRx reads still classic PatientLab. */
 export const addEditPatientLabTest = data => api.post(url.ADD_EDIT_PATIENT_LAB_TEST, data);
 export const getPatientLabTestById = labTestId => api.get(url.GET_PATIENT_LAB_TEST_BY_ID + "/" + labTestId, null);
 
@@ -690,8 +671,6 @@ export const getPatientDetails = data => api.get(url.GET_PATIENT_DETAILS + "/" +
 
 /* Role Master API calls */
 export const getRoleMaster = data => api.get(url.GET_ROLE_MASTER, data);
-/* M02 W7 dual-API: Roles/RoleDetails/MenuMaster admin → Old-API. GetMenuByRole restored on New-API mastersAPI. */
-
 /* Role Management API calls */
 export const getRoleList = data => api.get(url.GET_ROLES, data);
 export const getRoleById = roleId => api.get(url.GET_ROLE_BY_ID + "/" + roleId, null);
