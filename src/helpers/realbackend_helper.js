@@ -156,6 +156,9 @@ export const getAuthorForRubric = data => api.get(url.GET_AUTHOR_FOR_RUBRIC, dat
 
 export const getSubSection = data => api.get(url.GET_SUB_SECTION + "/" + data, null);
 
+export const searchSubSections = (sectionId, desc) =>
+  api.get(url.GET_SUBSECTION_BY_SECTION + "/" + sectionId + "?Desc=" + encodeURIComponent(desc || ""), null);
+
 export const getSubSectionById = data => api.get(url.CREATE_UPDATE_SUNSECTION + "/" + data, null);
 
 export const getRemedyGrades = data => api.get(url.GET_REMEDY_GRADES, data);
