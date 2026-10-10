@@ -2285,12 +2285,10 @@ const Widgets = () => {
 
     // Patient validation schema
     const patientValidationSchema = Yup.object().shape({
-        firstName: Yup.string()
-            .required('First name is required')
-            .min(2, 'First name must be at least 2 characters'),
-        lastName: Yup.string()
-            .required('Last name is required')
-            .min(2, 'Last name must be at least 2 characters'),
+        patientName: Yup.string()
+            .trim()
+            .required('Patient name is required')
+            .min(2, 'Patient name must be at least 2 characters'),
         gender: Yup.number()
             .required('Gender is required')
             .oneOf([0, 1], 'Please select a valid gender'),
@@ -2306,18 +2304,38 @@ const Widgets = () => {
             }),
         mobileNo: Yup.string()
             .required('Mobile number is required')
-            .matches(/^[0-9]{10}$/, 'Mobile number must be exactly 10 digits'),
+            .matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number.'),
+        phoneNo: Yup.string()
+            .test('valid-phone', 'Please enter a valid phone number.', (value) => {
+                const digits = String(value || '').replace(/[\s\-()+]/g, '');
+                if (!digits) return true;
+                return /^[0-9]{7,15}$/.test(digits);
+            }),
         address: Yup.string()
+            .trim()
             .required('Address is required')
-            .min(5, 'Address must be at least 5 characters'),
+            .min(5, 'Address must be at least 5 characters')
+            .test('meaningful-address', 'Please enter a valid address.', (value) => {
+                const v = String(value || '').trim();
+                if (!v) return true;
+                if (!/[A-Za-z0-9]/.test(v)) return false;
+                return /^[A-Za-z0-9\s/\-,.#]+$/.test(v);
+            }),
         countryId: Yup.number()
             .required('Country is required'),
         stateId: Yup.number()
             .required('State is required'),
         email: Yup.string()
-            .email('Invalid email format')
+            .email('Please enter a valid email address.')
             .optional(),
         refBy: Yup.string()
+            .test('valid-reference', 'Please enter a valid reference name.', (value) => {
+                const v = String(value || '').trim();
+                if (!v) return true;
+                if (v.length < 2) return false;
+                if (!/[A-Za-z0-9]/.test(v)) return false;
+                return /^[A-Za-z0-9\s.,'&\-()/#]+$/.test(v);
+            })
             .optional()
     });
 
@@ -2329,8 +2347,7 @@ const Widgets = () => {
     }), [prefilledAppointmentPatient]);
 
     const patientInitialValues = {
-        firstName: '',
-        lastName: '',
+        patientName: '',
         gender: 0,
         dateOfBirth: '',
         mobileNo: '',
@@ -2427,7 +2444,7 @@ const Widgets = () => {
     };
 
     // Handle patient form submission
-    const handlePatientSubmit = async (values, { setSubmitting, resetForm }) => {
+    const handlePatientSubmit = async (values, { setSubmitting, resetForm, setFieldError, setFieldTouched }) => {
         console.log("handlePatientSubmit called with values:", values);
         const auth = JSON.parse(sessionStorage.getItem('authUser'));
         const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
@@ -2442,12 +2459,12 @@ const Widgets = () => {
             loggedInUser: parseInt(loggedInUser, 10) || 0,
             doctorID: parseInt(clinicDoctorId, 10) || 0,
             patientID: 0,
-            patientName: `${values.firstName} ${values.lastName}`.trim(),
+            patientName: values.patientName.trim(),
             address: values.address,
             stateId: values.stateId,
             countryId: values.countryId,
             mobileNo: values.mobileNo,
-            phoneNo: values.phoneNo || "string",
+            phoneNo: values.phoneNo?.trim() || "",
             dateOfBirth: formattedDateOfBirth,
             gender: parseInt(values.gender),
             enteredBy: auth?.userName || auth?.user?.userName || "USER",
@@ -2455,7 +2472,7 @@ const Widgets = () => {
             userId: parseInt(userId),
             deleteStatus: false,
             dateodFirstVisit: now.toISOString(),
-            refBy: values.refBy || "string",
+            refBy: values.refBy?.trim() || "",
             IsWhatsAppOptIn: isWhatsAppOptIn,
             WhatsAppOptInDate: isWhatsAppOptIn ? now.toISOString() : null,
         };
@@ -2500,6 +2517,15 @@ const Widgets = () => {
 
         } catch (error) {
             console.log("Error creating patient: ", error);
+            const backendFieldErrors =
+                error && typeof error === "object" ? error.fieldErrors || {} : {};
+            const backendKeys = Object.keys(backendFieldErrors);
+            if (backendKeys.length > 0 && setFieldError && setFieldTouched) {
+                backendKeys.forEach((field) => {
+                    setFieldError(field, backendFieldErrors[field]);
+                    setFieldTouched(field, true, false);
+                });
+            }
         } finally {
             setSubmitting(false);
         }
@@ -3335,35 +3361,20 @@ const Widgets = () => {
                                 )}
                                 <Form>
                                 <div className="row g-2 new-patient-modal__fields">
-                                    <div className="col-md-4 new-patient-modal__field">
+                                    <div className="col-md-8 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-user-line" aria-hidden="true" />
-                                            First Name <span className="text-danger">*</span>
+                                            Patient Name <span className="text-danger">*</span>
                                         </Label>
                                         <Input
-                                            name="firstName"
-                                            placeholder="Enter first name"
-                                            value={values.firstName}
+                                            name="patientName"
+                                            placeholder="Enter patient name"
+                                            value={values.patientName}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
-                                            className={errors.firstName && touched.firstName ? 'is-invalid' : ''}
+                                            className={errors.patientName && touched.patientName ? 'is-invalid' : ''}
                                         />
-                                        {renderNewPatientFieldError(Boolean(errors.firstName && touched.firstName), errors.firstName)}
-                                    </div>
-                                    <div className="col-md-4 new-patient-modal__field">
-                                        <Label className="form-label new-patient-modal__label">
-                                            <i className="ri-user-3-line" aria-hidden="true" />
-                                            Last Name <span className="text-danger">*</span>
-                                        </Label>
-                                        <Input
-                                            name="lastName"
-                                            placeholder="Enter last name"
-                                            value={values.lastName}
-                                            onChange={handleChange}
-                                            onBlur={handleBlur}
-                                            className={errors.lastName && touched.lastName ? 'is-invalid' : ''}
-                                        />
-                                        {renderNewPatientFieldError(Boolean(errors.lastName && touched.lastName), errors.lastName)}
+                                        {renderNewPatientFieldError(Boolean(errors.patientName && touched.patientName), errors.patientName)}
                                     </div>
                                     <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
@@ -3526,7 +3537,9 @@ const Widgets = () => {
                                             value={values.phoneNo}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
+                                            className={errors.phoneNo && touched.phoneNo ? 'is-invalid' : ''}
                                         />
+                                        {renderNewPatientFieldError(Boolean(errors.phoneNo && touched.phoneNo), errors.phoneNo)}
                                     </div>
                                     <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
@@ -3555,7 +3568,9 @@ const Widgets = () => {
                                             value={values.refBy}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
+                                            className={errors.refBy && touched.refBy ? 'is-invalid' : ''}
                                         />
+                                        {renderNewPatientFieldError(Boolean(errors.refBy && touched.refBy), errors.refBy)}
                                     </div>
 
                                     <div className="col-12">

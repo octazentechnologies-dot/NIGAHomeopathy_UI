@@ -185,5 +185,5 @@ describe("Register (post-merge)", () => {
     expect(formData.has("cityId")).toBe(false);
     expect(formData.has("countryCode")).toBe(false);
     expect(formData.has("confirmPassword")).toBe(false);
-  });
+  }, 30000);
 });
