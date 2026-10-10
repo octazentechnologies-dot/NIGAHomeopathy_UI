@@ -49,7 +49,7 @@ const DoctorEarningsSummaryPage = () => {
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
         <h2 className="clinic-page-title">Earnings summary</h2>
-        <p className="clinic-page-subtitle">Consult captures and clinic collections for this doctor (New API).</p>
+        <p className="clinic-page-subtitle">Consult captures and clinic collections for this doctor (API).</p>
         {offline ? <Alert color="warning">You appear to be offline. Earnings will load when the connection returns.</Alert> : null}
         {error ? <Alert color="danger">{error}</Alert> : null}
         {loading ? (

@@ -36,10 +36,10 @@ const Starter = () => {
   const returnTo = location.state?.returnTo || '/admin/listusers';
 
   // Redux state
-  const roleList = useSelector((state) => state?.User?.roleList || []);
+  const roleList = useSelector((state) => state?.User?.roleList) || [];
   const roleLoading = useSelector((state) => state?.User?.roleLoading || false);
   const selectedUser = useSelector((state) => state?.User?.selectedUser);
-  const { userSuccess, userError, userLoading } = useSelector((state) => state?.User || {});
+  const { userSuccess, userError, userLoading } = useSelector((state) => state?.User) || {};
 
   // Fetch roles and user data on component mount
   useEffect(() => {

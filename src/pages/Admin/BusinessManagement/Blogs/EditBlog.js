@@ -26,7 +26,7 @@ const EditBlog = () => {
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
   const selectedBlog = useSelector((state) => state?.Blog?.selectedBlog || null);
   const selectedBlogLoading = useSelector((state) => state?.Blog?.selectedBlogLoading || false);
-  const { blogDetailsSuccess, blogDetailsError, blogDetailsLoading } = useSelector((state) => state?.Blog || {});
+  const { blogDetailsSuccess, blogDetailsError, blogDetailsLoading } = useSelector((state) => state?.Blog) || {};
 
   // Create an empty editor state
   const [editorState, setEditorState] = useState(() => {

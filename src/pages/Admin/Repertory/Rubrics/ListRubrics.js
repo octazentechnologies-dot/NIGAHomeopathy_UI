@@ -12,7 +12,8 @@ import makeAnimated from "react-select/animated";
 import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 //import { DefaultModalExample, CenteredModalExample, GridsModalExample, StaticBackdropModalExample, TogglebetweenExample, TooltipModalExample, ScrollableModalExample, VaryingModalExample, OptionalModalExample, FullscreenResponsiveExample, AnimationModalExample, PositionModalExample } from './UiModalCode';
 
-import { getSectionForSubSection, getRubricsList, importRubricsFromExcel, getGradeDetails, exportRubricsToExcelThunk } from '../../../../slices/thunks';
+import { getSectionForSubSection, getRubricsList, importRubricsFromExcel, exportRubricsToExcelThunk } from '../../../../slices/thunks';
+import { getGradeDetails as getGradeDetailsApi } from '../../../../helpers/realbackend_helper';
 import { setRubricsList, setRubricError, setRubricSuccess, setRubricsLoading, setSectionForSubSection, setGradeDetails } from '../../../../slices/admin/repertory/rubric/reducer';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../../../Components/WhatsAppModal/WhatsAppModal.css';
@@ -59,6 +60,40 @@ const RubricList = () => {
     setmodal_standard(!modal_standard);
   }
 
+  const gradeDetailsCache = React.useRef(new Map());
+  const gradeDetailsRequest = React.useRef(0);
+  const [gradeDetailsLoading, setGradeDetailsLoading] = useState(false);
+  const [gradeDetailsError, setGradeDetailsError] = useState('');
+
+  const openGradeDetails = (subSectionId) => {
+    const cached = gradeDetailsCache.current.get(subSectionId);
+    const requestId = ++gradeDetailsRequest.current;
+    dispatch(setGradeDetails(cached || []));
+    setGradeDetailsError('');
+    setGradeDetailsLoading(!cached);
+    setmodal_standard(true);
+    if (cached) return;
+
+    // The popup shows remedy names only, so skip the slow repertory-wide author alias lookup.
+    getGradeDetailsApi({ subSectionId, includeAuthorAliases: false })
+      .then((response) => {
+        const grades = Array.isArray(response) ? response : [];
+        gradeDetailsCache.current.set(subSectionId, grades);
+        if (requestId === gradeDetailsRequest.current) dispatch(setGradeDetails(grades));
+      })
+      .catch((error) => {
+        const message = typeof error === 'string' ? error : error?.message || '';
+        if (/not found/i.test(message)) {
+          gradeDetailsCache.current.set(subSectionId, []);
+        } else if (requestId === gradeDetailsRequest.current) {
+          setGradeDetailsError(message || 'Could not load remedy details.');
+        }
+      })
+      .finally(() => {
+        if (requestId === gradeDetailsRequest.current) setGradeDetailsLoading(false);
+      });
+  };
+
 
 
   // Default Accordion
@@ -91,6 +126,7 @@ const RubricList = () => {
 
   useEffect(() => {
     if (rubricSuccessresponse) {
+      gradeDetailsCache.current.clear();
       const skipped = rubricSuccessresponse.skippedRows || [];
       const skippedCount = rubricSuccessresponse.skippedCount || 0;
       let skippedHtml = '';
@@ -406,10 +442,7 @@ const RubricList = () => {
                                           type="button"
                                           className="btn btn-sm btn-soft-warning remove-item-btn"
                                           title="View"
-                                          onClick={() => {
-                                            dispatch(getGradeDetails({ subSectionId: rubric.subSectionId }));
-                                            tog_standard();
-                                          }}
+                                          onClick={() => openGradeDetails(rubric.subSectionId)}
                                         >
                                           <i className="ri-eye-line" />
                                         </button>
@@ -419,7 +452,7 @@ const RubricList = () => {
                                   <td className="text-center">
                                     <div className="d-inline-flex gap-2">
                                       <div className="remove">
-                                        <button type="button" className="btn btn-sm btn-soft-danger remove-item-btn" title="Delete">
+                                        <button type="button" className="btn btn-sm btn-soft-danger remove-item-btn" disabled title="Delete is not available for rubrics yet">
                                           <i className="ri-delete-bin-5-line" />
                                         </button>
                                       </div>
@@ -515,24 +548,51 @@ const RubricList = () => {
           </div>
         </ModalHeader>
         <ModalBody className="whatsapp-modal__body">
-          <Accordion id="default-accordion-example" className="rubric-details-accordion">
-            {gradeDetails && gradeDetails.length > 0 ? (
+          <Accordion
+            id="default-accordion-example"
+            className="rubric-details-accordion"
+            open={openAccordion == null ? "" : String(openAccordion)}
+            toggle={(id) => toggleAccordion(Number(id))}
+          >
+            {gradeDetailsLoading ? (
+              <div className="text-center py-3">
+                <Spinner size="sm" className="me-2" />
+                <span className="text-muted">Loading remedies…</span>
+              </div>
+            ) : gradeDetailsError ? (
+              <div className="text-center py-2">
+                <p className="mb-0 text-danger">{gradeDetailsError}</p>
+              </div>
+            ) : gradeDetails && gradeDetails.length > 0 ? (
               gradeDetails.map((grade, index) => (
                 <AccordionItem key={grade.gradeId}>
                   <h2 className="accordion-header" id={`heading${index + 1}`}>
-                    <button
+                    {/* A div, not a button: the Edit link inside it is interactive too. */}
+                    <div
                       className={classnames("accordion-button gap-2", { collapsed: openAccordion !== grade.gradeId })}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={openAccordion === grade.gradeId}
                       onClick={() => toggleAccordion(grade.gradeId)}
+                      onKeyDown={(e) => {
+                        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault();
+                          toggleAccordion(grade.gradeId);
+                        }
+                      }}
                       style={{ cursor: "pointer" }}
                     >
                       Grade - {grade.gradeNo}
-                      <Link to="/admin/editrubrics" state={{ selectedGrade: grade }} onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className="btn btn-sm btn-soft-success edit-item-btn" title="Edit">
-                          <i className="ri-pencil-fill" />
-                        </button>
+                      <Link
+                        to="/admin/editrubrics"
+                        state={{ selectedGrade: grade }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="btn btn-sm btn-soft-success edit-item-btn"
+                        title="Edit"
+                      >
+                        <i className="ri-pencil-fill" />
                       </Link>
-                    </button>
+                    </div>
                   </h2>
 
                   <Collapse isOpen={openAccordion === grade.gradeId} className="accordion-collapse">
@@ -544,8 +604,8 @@ const RubricList = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {grade.remediesModels?.map((remedy) => (
-                            <tr key={remedy.remedyId}>
+                          {grade.remediesModels?.map((remedy, remedyIndex) => (
+                            <tr key={`${remedy.remedyId}-${remedyIndex}`}>
                               <td className={grade.gradeId == 5 ? 'grade1css !important' : grade.gradeId == 2 ? 'grade2css !important' : grade.gradeId == 3 ? 'grade3css !important' : grade.gradeId == 4 && 'grade4css !important'}>{remedy.remedyName}</td>
                             </tr>
                           ))}

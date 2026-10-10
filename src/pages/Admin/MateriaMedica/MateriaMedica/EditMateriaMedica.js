@@ -24,11 +24,11 @@ const EditMateriaMedica = () => {
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
   const dispatch = useDispatch();
   // Redux state
-  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors || []);
-  const remedies = useSelector((state) => state?.MateriaMedica.matriaMedicaRemediesDDL || []);
-  const heads = useSelector((state) => state?.MateriaMedica.materiaMedicaHeads || []);
+  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors) || [];
+  const remedies = useSelector((state) => state?.MateriaMedica.matriaMedicaRemediesDDL) || [];
+  const heads = useSelector((state) => state?.MateriaMedica.materiaMedicaHeads) || [];
   const materiaMedicaDetails = useSelector((state) => state?.MateriaMedica.materiaMedicaDetails || null);
-  const { materiaMedicaSuccess, materiaMedicaError } = useSelector((state) => state?.MateriaMedica || {});
+  const { materiaMedicaSuccess, materiaMedicaError } = useSelector((state) => state?.MateriaMedica) || {};
 
 
   // Create an empty editor state

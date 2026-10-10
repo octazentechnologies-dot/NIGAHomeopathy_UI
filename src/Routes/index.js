@@ -10,7 +10,7 @@ import { authProtectedRoutes, publicRoutes } from "./allRoutes";
 import { AuthProtected } from './AuthProtected';
 import { AdminProtected } from './AdminProtected';
 import { RoleProtected } from './RoleProtected';
-import { isAdminRoutePath, isVelzonPublicDemoPath, isVelzonTemplatePath } from '../Components/constants/roles';
+import { isAdminRoutePath, isTemplateDemoPublicPath, isTemplateDemoPath } from '../Components/constants/roles';
 import { getLoggedinUser } from '../helpers/api_helper';
 import { isSignedOut } from '../helpers/signedOutHistory';
 import { isRegisteredAppPath } from '../helpers/menuDestination';
@@ -34,7 +34,7 @@ const pathPattern = (pattern) => {
 
 const MARKETING_PATTERNS = LANDING_PUBLIC_PATHS.map(pathPattern);
 
-const SHOW_VELZON_DEMO = process.env.REACT_APP_SHOW_VELZON_DEMO === "true";
+const SHOW_TEMPLATE_DEMO = process.env.REACT_APP_SHOW_TEMPLATE_DEMO === "true";
 
 /** Unknown clinic addresses stay signed in. The public site is only for real marketing pages. */
 const LandingGate = () => {
@@ -59,7 +59,7 @@ const Index = () => {
             <Routes>
                 <Route>
                     {publicRoutes
-                    .filter((route) => SHOW_VELZON_DEMO || !isVelzonPublicDemoPath(route.path))
+                    .filter((route) => SHOW_TEMPLATE_DEMO || !isTemplateDemoPublicPath(route.path))
                     .map((route, idx) => (
                         <Route
                             path={route.path}
@@ -77,8 +77,8 @@ const Index = () => {
                 <Route>
                     {authProtectedRoutes
                     .filter((route) => {
-                        // SEC-04.02 — keep Velzon demo URLs out of production unless explicitly enabled.
-                        if (isVelzonTemplatePath(route.path) && !SHOW_VELZON_DEMO) {
+                        // SEC-04.02 — keep template demo URLs out of production unless explicitly enabled.
+                        if (isTemplateDemoPath(route.path) && !SHOW_TEMPLATE_DEMO) {
                             return false;
                         }
                         return true;

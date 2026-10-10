@@ -22,8 +22,7 @@ import { createPackage } from "../../../../slices/admin/packages/thunk";
 
 const AddPackage = () => {
   const dispatch = useDispatch();
-  const userDetails = JSON.parse(sessionStorage.getItem("authUser") || "{}");
-  const { packageSuccess, packageError, packageLoading } = useSelector((state) => state?.Package || {});
+  const { packageSuccess, packageError, packageLoading } = useSelector((state) => state?.Package) || {};
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -47,9 +46,6 @@ const AddPackage = () => {
           caseCount: Number(values.caseCount),
           validityInDays: Number(values.validityInDays),
           amount: Number(values.amount),
-          enteredBy: userDetails?.userName || userDetails?.data?.userName || "Admin",
-          changedBy: null,
-          deleteStatus: false,
         })
       );
     },

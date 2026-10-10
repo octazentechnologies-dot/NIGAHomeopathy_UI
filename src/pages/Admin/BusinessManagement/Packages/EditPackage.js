@@ -24,10 +24,9 @@ const EditPackage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const userDetails = JSON.parse(sessionStorage.getItem("authUser") || "{}");
   const selected = location.state?.selectedPackage;
 
-  const { packageSuccess, packageError, packageLoading } = useSelector((state) => state?.Package || {});
+  const { packageSuccess, packageError, packageLoading } = useSelector((state) => state?.Package) || {};
 
   useEffect(() => {
     if (!selected) {
@@ -57,8 +56,6 @@ const EditPackage = () => {
           caseCount: Number(values.caseCount),
           validityInDays: Number(values.validityInDays),
           amount: Number(values.amount),
-          changedBy: userDetails?.userName || userDetails?.data?.userName || "Admin",
-          deleteStatus: false,
         })
       );
     },

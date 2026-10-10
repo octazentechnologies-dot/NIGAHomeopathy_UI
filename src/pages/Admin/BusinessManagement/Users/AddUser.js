@@ -26,9 +26,9 @@ const Starter = () => {
   const {  quillRef } = useQuill();
 
   // Redux state for roles
-  const roleList = useSelector((state) => state?.User?.roleList || []);
+  const roleList = useSelector((state) => state?.User?.roleList) || [];
   const roleLoading = useSelector((state) => state?.User?.roleLoading || false);
-  const { userSuccess, userError, userLoading } = useSelector((state) => state?.User || {});
+  const { userSuccess, userError, userLoading } = useSelector((state) => state?.User) || {};
 
   // Fetch roles on component mount
   useEffect(() => {

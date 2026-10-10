@@ -27,7 +27,7 @@ const EditQualification = () => {
   const userDetails = JSON.parse(sessionStorage.getItem("authUser") || "{}");
   const selected = location.state?.selectedQualification;
 
-  const { qualificationSuccess, qualificationError, qualificationLoading } = useSelector((state) => state?.Qualification || {});
+  const { qualificationSuccess, qualificationError, qualificationLoading } = useSelector((state) => state?.Qualification) || {};
 
   useEffect(() => {
     if (!selected) {

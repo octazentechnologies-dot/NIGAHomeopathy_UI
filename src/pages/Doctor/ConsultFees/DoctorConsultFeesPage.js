@@ -108,7 +108,7 @@ const DoctorConsultFeesPage = () => {
       <Container fluid>
         <h2 className="clinic-page-title">Consult fees</h2>
         <p className="clinic-page-subtitle">
-          Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the New API.
+          Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the API.
         </p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}

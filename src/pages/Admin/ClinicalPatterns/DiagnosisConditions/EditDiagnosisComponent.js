@@ -8,6 +8,7 @@ import axios from 'axios';
 import AsyncPaginate from "react-select-async-paginate";
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 
 export class EditDiagnosisComponent extends Component {
@@ -144,7 +145,7 @@ export class EditDiagnosisComponent extends Component {
             subsectionId: 0,
             SubSectionName: '',
             selectedSubSection: '',
-            EnteredBy: 'Admin',
+            EnteredBy: getAuditUserName(),
             DeleteStatus: false,
             errors: {},
 
@@ -206,7 +207,7 @@ export class EditDiagnosisComponent extends Component {
                     "examiniations": res.examiniations,
                     diagnosisDetailId: res.diagnosisDetailId,
                     subSectionId: res.subSectionId,
-                    EnteredBy: 'Admin',
+                    EnteredBy: getAuditUserName(),
                     DeleteStatus: false,
                     SelectedSubSectionList: res.modelEx,
                     models: res.diagnosisSymptomsList,
@@ -3170,7 +3171,7 @@ export class EditDiagnosisComponent extends Component {
                 DiagnosisGroupId: '',
                 SectionId: '',
                 SubSectionId: '',
-                EnteredBy: 'Admin',
+                EnteredBy: getAuditUserName(),
                 DeleteStatus: false
             });
         }

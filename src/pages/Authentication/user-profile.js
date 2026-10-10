@@ -31,7 +31,7 @@ import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import PatientProfileFields from "./PatientProfileFields";
 import DoctorReviewsPanel from "./DoctorReviewsPanel";
-import avatar1 from "../../assets/images/users/avatar-1.jpg";
+import defaultAvatar from "../../assets/images/users/user-dummy-img.jpg";
 import { notifyProfilePhotoChanged } from "../../helpers/profilePhotoEvents";
 import {
   getDoctorProfileMe,
@@ -533,7 +533,7 @@ const UserProfile = () => {
     };
   }, []);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
-  const [profilePhoto, setProfilePhoto] = useState(avatar1);
+  const [profilePhoto, setProfilePhoto] = useState(defaultAvatar);
   const [photoFileInputKey, setPhotoFileInputKey] = useState(0);
   const [photoFile, setPhotoFile] = useState(null);
   const photoInputRef = useRef(null);
@@ -951,7 +951,7 @@ const UserProfile = () => {
     const objectUrl = URL.createObjectURL(file);
     setPhotoFile(file);
     setProfilePhoto((prev) => {
-      if (prev && prev !== avatar1 && typeof prev === "string" && prev.startsWith("blob:")) {
+      if (prev && prev !== defaultAvatar && typeof prev === "string" && prev.startsWith("blob:")) {
         URL.revokeObjectURL(prev);
       }
       return objectUrl;
@@ -971,10 +971,10 @@ const UserProfile = () => {
       }
     }
     setProfilePhoto((prev) => {
-      if (prev && prev !== avatar1 && typeof prev === "string" && prev.startsWith("blob:")) {
+      if (prev && prev !== defaultAvatar && typeof prev === "string" && prev.startsWith("blob:")) {
         URL.revokeObjectURL(prev);
       }
-      return avatar1;
+      return defaultAvatar;
     });
     setPhotoFileInputKey((key) => key + 1);
     Swal.fire({
@@ -1454,7 +1454,7 @@ const UserProfile = () => {
               <CardBody className="user-profile-card__body">
                 <div className="user-profile-page__summary">
                   <span className="user-profile-page__avatar" aria-hidden="true">
-                    {profilePhoto && profilePhoto !== avatar1 ? (
+                    {profilePhoto && profilePhoto !== defaultAvatar ? (
                       <img src={profilePhoto} alt="" className="rounded-circle w-100 h-100" style={{ objectFit: "cover" }} />
                     ) : (
                       <i className="ri-user-heart-line" />
@@ -1970,7 +1970,7 @@ const UserProfile = () => {
                         <div className="user-profile-page__photo-body text-center">
                           <div className="user-profile-page__photo-preview-wrap">
                             <img
-                              src={profilePhoto || avatar1}
+                              src={profilePhoto || defaultAvatar}
                               alt={isReceptionUser ? "Receptionist profile" : "Doctor profile"}
                               className="user-profile-page__photo-preview"
                             />
@@ -2225,7 +2225,7 @@ const UserProfile = () => {
                     </Form>
                   </TabPane>
                   <TabPane tabId="credentials">
-                    <DoctorCredentialsPanel />
+                    {userData?.role === UserRole.DOCTOR && <DoctorCredentialsPanel />}
                   </TabPane>
                   <TabPane tabId="hours">
                     <Form onSubmit={handleSaveHours}>

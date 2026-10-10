@@ -6,6 +6,7 @@ import Select from 'react-select';
 import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 import Swal from 'sweetalert2';
 import { getMateriaMedica, getAuthorsForMateriaMedicaDDL, getRemedies, deleteMateriaMedica } from '../../../../slices/thunks';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const MateriaMedicaList = () => {
   const dispatch = useDispatch();
@@ -17,9 +18,9 @@ const MateriaMedicaList = () => {
   const pageSize = 10;
 
   const materiaMedicaLoading = useSelector((state) => state?.MateriaMedica?.materiaMedicaLoading || false);
-  const materiaMedica = useSelector((state) => state?.MateriaMedica?.materiaMedica?.resultObject || []);
-  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors || []);
-  const remedys = useSelector((state) => state?.MateriaMedicaRemedy?.matriaMedicaRemedies || []);
+  const materiaMedica = useSelector((state) => state?.MateriaMedica?.materiaMedica?.resultObject) || [];
+  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors) || [];
+  const remedys = useSelector((state) => state?.MateriaMedicaRemedy?.matriaMedicaRemedies) || [];
   const totalPages = useSelector((state) => state?.MateriaMedica?.materiaMedica?.totalPageCount || 1);
   const totalRecords = useSelector(
     (state) => state?.MateriaMedica?.materiaMedica?.totalRecordCount || materiaMedica.length || 0
@@ -238,11 +239,11 @@ const MateriaMedicaList = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

@@ -32,7 +32,7 @@ function readApiError(err, fallback) {
 }
 
 /**
- * SEC-02.03 — Consumes New-API ResetPassword token from ?token=,
+ * SEC-02.03 — Consumes API ResetPassword token from ?token=,
  * /reset-password/:token, or a Gmail-wrapped google.com/url?q= link.
  */
 const ResetPassword = () => {

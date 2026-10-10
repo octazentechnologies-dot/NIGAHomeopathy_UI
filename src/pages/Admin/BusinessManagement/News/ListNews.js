@@ -6,6 +6,7 @@ import { getAllNews, deleteNewsDetails } from '../../../../slices/admin/news/thu
 import { setNewsDetailsSuccess, setNewsDetailsError } from '../../../../slices/admin/news/reducer';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import Swal from 'sweetalert2';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListNews = () => {
   const dispatch = useDispatch();
@@ -15,10 +16,10 @@ const ListNews = () => {
   const pageSize = 10;
 
   const newsLoading = useSelector((state) => state?.News?.newsLoading || false);
-  const newsList = useSelector((state) => state?.News?.newsList || []);
+  const newsList = useSelector((state) => state?.News?.newsList) || [];
   const totalRecords = useSelector((state) => state?.News?.totalCount || 0);
   const totalPages = useSelector((state) => state?.News?.totalPageCount || 1);
-  const { newsDetailsSuccess, newsDetailsError } = useSelector((state) => state?.News || {});
+  const { newsDetailsSuccess, newsDetailsError } = useSelector((state) => state?.News) || {};
 
   const [deleteModal, setDeleteModal] = useState(false);
   const [newsToDelete, setNewsToDelete] = useState(null);
@@ -119,11 +120,11 @@ const ListNews = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

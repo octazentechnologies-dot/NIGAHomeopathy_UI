@@ -18,7 +18,7 @@ const EditBodyParts = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { bodyPartSuccess, bodyPartError } = useSelector((state) => state?.BodyPart || {});
+  const { bodyPartSuccess, bodyPartError } = useSelector((state) => state?.BodyPart) || {};
   const sectionForSubSection = useSelector((state) => state.BodyPart.sectionForSubSection);
 
   const SectionForSubSectionOptions = sectionForSubSection?.map((section) => ({

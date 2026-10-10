@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardHeader, CardBody, Col, Container, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import Swal from 'sweetalert2';
 import { getRemedyList, deleteRemedy } from '../../../../slices/admin/repertory/remedy/thunk';
+import { importRemedies } from '../../../../helpers/realbackend_helper';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListRemedy = () => {
   const dispatch = useDispatch();
@@ -15,9 +18,11 @@ const ListRemedy = () => {
 
   const [deleteModal, setDeleteModal] = useState(false);
   const [remedyToDelete, setRemedyToDelete] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef(null);
 
   const remediesLoading = useSelector((state) => state?.Remedy?.loading || false);
-  const remedies = useSelector((state) => state?.Remedy?.remedyList?.resultObject || []);
+  const remedies = useSelector((state) => state?.Remedy?.remedyList?.resultObject) || [];
   const totalPages = useSelector((state) => state?.Remedy?.remedyList?.totalPageCount || 1);
   const totalRecords = useSelector((state) => state?.Remedy?.remedyList?.totalRecordCount || remedies.length || 0);
 
@@ -61,6 +66,29 @@ const ListRemedy = () => {
     }
   };
 
+  const handleImportFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    setImporting(true);
+    try {
+      const response = await importRemedies(formData);
+      Swal.fire('Import complete', response?.message || response?.Message || 'Remedies imported.', 'success');
+    } catch (error) {
+      const message = typeof error === 'string' ? error : error?.message || error?.Message;
+      Swal.fire('Import failed', message || 'The file could not be imported.', 'error');
+    } finally {
+      setImporting(false);
+      dispatch(getRemedyList({
+        PageNumber: currentPage,
+        PageSize: pageSize,
+        ...(searchQuery ? { queryString: searchQuery } : {}),
+      }));
+    }
+  };
+
   const rowStart = (currentPage - 1) * pageSize;
 
   document.title = 'List Remedy';
@@ -84,11 +112,17 @@ const ListRemedy = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <input ref={importInputRef} type="file" accept=".xlsx,.xls" hidden onChange={handleImportFile} />
+                      <button
+                        type="button"
+                        className="btn btn-sm admin-list-btn admin-list-btn--import"
+                        disabled={importing}
+                        onClick={() => importInputRef.current?.click()}
+                      >
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
-                        Import
+                        {importing ? 'Importing...' : 'Import'}
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

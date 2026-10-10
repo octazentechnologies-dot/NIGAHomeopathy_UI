@@ -153,11 +153,11 @@ const isAdminRoutePath = (path) => {
 };
 
 /**
- * SEC-04.02 — Velzon template dashboards/apps stay out of production.
- * Direct URLs must not expose CRM/ecommerce demos unless REACT_APP_SHOW_VELZON_DEMO=true.
- * `/dashboard` is the Admin portal home, not a Velzon demo.
+ * SEC-04.02 — template demo dashboards/apps stay out of production.
+ * Direct URLs must not expose CRM/ecommerce demos unless REACT_APP_SHOW_TEMPLATE_DEMO=true.
+ * `/dashboard` is the Admin portal home, not a template demo.
  */
-const isVelzonTemplatePath = (path) => {
+const isTemplateDemoPath = (path) => {
     if (!path || typeof path !== "string") return false;
     const normalized = path.replace(/^\//, "").toLowerCase();
     if (normalized === "dashboard" || normalized === "index" || normalized === "profile") {
@@ -181,8 +181,8 @@ const isVelzonTemplatePath = (path) => {
     );
 };
 
-/** Velzon demo pages in the public route list (sign-in variants, one-page/NFT landings, maintenance). */
-const isVelzonPublicDemoPath = (path) => {
+/** Template demo pages in the public route list (sign-in variants, one-page/NFT landings, maintenance). */
+const isTemplateDemoPublicPath = (path) => {
     if (!path || typeof path !== "string") return false;
     const normalized = path.replace(/^\//, "").toLowerCase();
     if (normalized === "landing" || normalized === "nft-landing") return true;
@@ -212,6 +212,6 @@ export {
     RECEPTION_ROUTE_ROLES,
     DOCTOR_CASE_ROUTE_ROLES,
     DOCTOR_STAFF_ROUTE_ROLES,
-    isVelzonTemplatePath,
-    isVelzonPublicDemoPath,
+    isTemplateDemoPath,
+    isTemplateDemoPublicPath,
 };

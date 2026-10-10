@@ -30,7 +30,7 @@ const DoctorVideoRoomPage = () => {
       <Container fluid className="py-4" style={{ maxWidth: 560 }}>
         <h4 className="mb-2">Video room</h4>
         <p className="text-muted small mb-3">
-          Join consultation from the phone using New-API tele session tokens. Stub vendor — do not
+          Join consultation from the phone using API tele session tokens. Stub vendor — do not
           invent in-call or paid state on the device.
         </p>
         <TeleVideoRoom

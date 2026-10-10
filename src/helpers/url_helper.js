@@ -257,6 +257,7 @@ export const GET_USERS = "/Pagination/GetUser";
 export const GET_USER_BY_ID = "/users";
 export const CREATE_USER = "/users";
 export const UPDATE_USER = "/users";
+export const DELETE_USER = "/users/DeleteUser";
 
 //Section Api Urls
 export const GET_SECTIONS = "/Pagination/GetSections";
@@ -299,6 +300,7 @@ export const GET_REMEDY_GRADES = "/mastersAPI/GetRemedyGrades";
 export const GET_REMEDIES_BY_GRADE = "/mastersAPI/GetRemedies";
 export const SAVE_UPDATE_RUBRIC_REMEDY = "/RubricRemedy/SaveUpdateRubricRemedy";
 export const IMPORT_FROM_EXCEL = "/RubricRemedy/ImportFromExcel";
+export const IMPORT_REMEDIES = "/remedy/import";
 export const IMPORT_FROM_EXCEL_STATUS = "/RubricRemedy/ImportFromExcel/Status";
 export const EXPORT_RUBRICS_TO_EXCEL = "/RubricRemedy/ExportRubricsToExcel";
 export const GET_RUBRIC_REMEDY_BY_SECTION_ID_GREAD_ID = "/RubricRemedy/GetRubricRemedyBySectionIdGreadId";
@@ -426,9 +428,10 @@ export const CREATE_QUESTION_GROUP = "/questiongroup";
 export const GET_QUESTION_GROUP_BY_EXISTANCE_ID = "/questiongroup/GetQuestionGroupByExistanceId";
 
 //Package Api Urls
-export const GET_PACKAGES = "/package";
-export const DELETE_PACKAGE = "/package/DeletePackage";
-export const CREATE_PACKAGE = "/package";
+export const GET_PACKAGES = "/package/GetAllPackages";
+export const GET_PACKAGE_BY_ID = "/package";
+export const DELETE_PACKAGE = "/package/Delete";
+export const SAVE_PACKAGE = "/package/Save";
 
 // Qualification Master
 export const GET_QUALIFICATIONS = "/qualification/GetQualificationList";
@@ -441,6 +444,7 @@ export const GET_QUALIFICATION_BY_ID = "/qualification/GetQualificationDetailsBy
 export const GET_LAB_TESTS = "/Pagination/GetPatientLabTests";
 export const ADD_EDIT_PATIENT_LAB_TEST = "/PatientLabTest/AddEditPatientLabTest";
 export const GET_PATIENT_LAB_TEST_BY_ID = "/PatientLabTest/GetPatientLabTestById";
+export const DELETE_PATIENT_LAB_TEST = "/PatientLabTest/DeletePatientLabTest";
 
 // Sub Question Group URLs
 export const GET_QUESTION_SUB_GROUP_LIST = "/Pagination/GetQuestionSubGroup";
@@ -648,16 +652,16 @@ export const RUBRIC_INTELLIGENCE_REPERTORY_STATUS = "/AudioCaseIntelligence/repe
 export const RUBRIC_INTELLIGENCE_METAPHORS = "/AudioCaseIntelligence/admin/metaphors";
 export const RUBRIC_INTELLIGENCE_ALIASES = "/AudioCaseIntelligence/admin/aliases";
 
-/* M02 W0 — Admin ACL probe (New-API only) */
+/* M02 W0 — Admin ACL probe (API only) */
 export const ADMIN_ACL_ME = "/AdminAcl/me";
 export const ADMIN_ACL_PING = "/AdminAcl/ping";
 export const ADMIN_ACL_REPERTORY = "/AdminAcl/repertory";
 export const ADMIN_ACL_COVERAGE = "/AdminAcl/coverage";
 
-/* M02 W7 — menus by role (New-API mastersAPI) */
+/* M02 W7 — menus by role (API mastersAPI) */
 export const GET_MENU_BY_ROLE = "/mastersAPI/GetMenuByRole";
 
-/* CON-01 / CON-02 — family + caregiver (New-API) */
+/* CON-01 / CON-02 — family + caregiver (API) */
 export const FAMILY_LIST = "/Family";
 export const FAMILY_ME = "/Family/Me";
 export const FAMILY_RELATIONS = "/Family/Relations";

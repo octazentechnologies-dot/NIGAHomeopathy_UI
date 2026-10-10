@@ -13,7 +13,7 @@ import draftToHtml from 'draftjs-to-html';
 import { Editor } from 'react-draft-wysiwyg';
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
 import moment from 'moment';
-import img3 from "../../../assets/images/small/img-3.jpg";
+import { getInitials } from "../../../helpers/initials";
 import AnatomyViewer from "../../../Components/AnatomyViewer";
 import RemedyScoreBar from "../../../Components/RemedyScoreBar";
 import "../../../styles/anatomy.css";
@@ -1191,7 +1191,7 @@ const PatientBoard = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions ?? []);
+  const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions) ?? [];
   const sessionAccessCheckedRef = useRef(false);
   const allopathicDrugForDropdown = useSelector((state) => state?.PatientDashboard?.allopathicDrugForDropdownList);
   const allopathicDrugForDropdownByIdList = useSelector((state) => state?.PatientDashboard?.allopathicDrugForDropdownByIdList);
@@ -7019,6 +7019,17 @@ const PatientBoard = () => {
       object-fit:cover;
       border:2px solid #fff;
       box-shadow:0 0 0 1px #d7e3ef, 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+    .pb-info__avatar--initials {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      background:#e7f0fb;
+      color:#1d4f91;
+      font-size:11px;
+      font-weight:600;
+      line-height:1;
     }
     .pb-info__avatar-status {
       position:absolute;
@@ -12980,7 +12991,9 @@ const PatientBoard = () => {
           <div className="mar-10 d-flex align-items-center justify-content-between flex-wrap gap-2 pb-info">
             <div className="pb-info__identity">
               <div className="pb-info__avatar-wrap">
-                <img src={img3} alt="avatar" className="pb-info__avatar" />
+                <span className="pb-info__avatar pb-info__avatar--initials" aria-hidden="true">
+                  {getInitials(patientDetails?.patientName, 'P')}
+                </span>
                 <span className="pb-info__avatar-status" aria-hidden="true" />
               </div>
               <div className="pb-info__details">

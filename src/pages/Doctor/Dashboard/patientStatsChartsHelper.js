@@ -9,7 +9,7 @@ export const PATIENT_STATS_STATUS_LABELS = [
     'COMPLETED',
 ];
 
-// Shared minimal palette — distinct per status, readable on white (Velzon minimal tokens).
+// Shared minimal palette — distinct per status, readable on white (minimal theme tokens).
 export const PATIENT_STATS_CHART_COLORS = [
     '#25a0e2', // primary / cyan
     '#32ccff', // info / blue

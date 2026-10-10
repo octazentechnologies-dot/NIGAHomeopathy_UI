@@ -1,9 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// TODO(Packages): stub — real Tedarikci admin slice was never committed.
-// Keeps `Package: PackageReducer` in src/slices/index.js compiling until the
-// module (pages + thunk + API wiring) is restored. No live code reads this
-// state; DoctorDashboard packages use their own slice.
+// Admin > Packages master (/admin/listpackage). The doctor dashboard buy-package flow uses its own slice.
 
 const initialState = {
   packageLoading: false,

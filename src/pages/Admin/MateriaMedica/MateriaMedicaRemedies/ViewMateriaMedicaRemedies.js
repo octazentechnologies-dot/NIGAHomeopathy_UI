@@ -20,7 +20,7 @@ const ViewMateriaMedicaRemedies = () => {
   const { quillRef } = useQuill();
 
   const [selectedAuthor, setSelectedAuthor] = useState(null);
-  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors || []);
+  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors) || [];
   const materiaMedicaRemediesDetailsRaw = useSelector((state) => state?.MateriaMedicaRemedy?.materiaMedicaRemediesDetails);
   const materiaMedicaRemediesDetails = Array.isArray(materiaMedicaRemediesDetailsRaw)
     ? materiaMedicaRemediesDetailsRaw

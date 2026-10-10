@@ -7,6 +7,7 @@ import {
   getAnatomySectionMastersList,
   deleteAnatomySectionMaster,
 } from '../../../../slices/admin/3dbodypart/sectionmaster/thunk';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListSectionMaster = () => {
   const dispatch = useDispatch();
@@ -97,11 +98,11 @@ const ListSectionMaster = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

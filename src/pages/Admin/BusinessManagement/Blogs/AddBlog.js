@@ -22,7 +22,7 @@ const AddBlog = () => {
   const navigate = useNavigate();
 
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
-  const { blogDetailsSuccess, blogDetailsError, blogDetailsLoading } = useSelector((state) => state?.Blog || {});
+  const { blogDetailsSuccess, blogDetailsError, blogDetailsLoading } = useSelector((state) => state?.Blog) || {};
 
   // Create an empty editor state
   const [editorState, setEditorState] = useState(() => {

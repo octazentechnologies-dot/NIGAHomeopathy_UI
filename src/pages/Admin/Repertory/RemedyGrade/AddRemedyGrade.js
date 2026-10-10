@@ -10,12 +10,13 @@ import { useFormik } from "formik";
 import { useSelector, useDispatch } from "react-redux";
 import { createRemedyGrade } from "../../../../slices/thunks";
 import { setRemedyGradeError, setRemedyGradeSuccess } from "../../../../slices/admin/repertory/remedygrade/reducer";
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 const AddRemedyGrade = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { remedyGradeSuccess, remedyGradeError } = useSelector((state) => state?.RemedyGrade || {});
+  const { remedyGradeSuccess, remedyGradeError } = useSelector((state) => state?.RemedyGrade) || {};
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -40,7 +41,7 @@ const AddRemedyGrade = () => {
         FontName: values.fontName,
         FontStyle: values.fontStyle,
         FontColor: values.fontColor,
-        EnteredBy: 'Admin',
+        EnteredBy: getAuditUserName(),
         DeleteStatus: false
       }));
     }

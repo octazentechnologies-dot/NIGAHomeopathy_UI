@@ -16,7 +16,7 @@ const EditIntensity = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { intensitySuccess, intensityError } = useSelector((state) => state?.Intensity || {});
+  const { intensitySuccess, intensityError } = useSelector((state) => state?.Intensity) || {};
 
   const formik = useFormik({
     enableReinitialize: true,

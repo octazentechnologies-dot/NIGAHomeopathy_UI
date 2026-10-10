@@ -28,12 +28,12 @@ const EditClinicalQuestion = () => {
   const dispatch = useDispatch();
 
   // Redux State
-  const questionSectionDDL = useSelector((state) => state?.ClinicalQuestions?.questionSectionDDL || []);
-  const questionSubSection = useSelector((state) => state?.ClinicalQuestions?.questionSubSectionDDL || []);
-  const questionGroups = useSelector((state) => state?.ClinicalQuestions?.questionGroups || []);
-  const questionBodyPart = useSelector((state) => state?.ClinicalQuestions?.questionBodyParts || []);
-  const questionSubSectionList = useSelector((state) => state?.ClinicalQuestions?.questionSubSections || []);
-  const questionSectionList = useSelector((state) => state?.ClinicalQuestions?.questionSections || []);
+  const questionSectionDDL = useSelector((state) => state?.ClinicalQuestions?.questionSectionDDL) || [];
+  const questionSubSection = useSelector((state) => state?.ClinicalQuestions?.questionSubSectionDDL) || [];
+  const questionGroups = useSelector((state) => state?.ClinicalQuestions?.questionGroups) || [];
+  const questionBodyPart = useSelector((state) => state?.ClinicalQuestions?.questionBodyParts) || [];
+  const questionSubSectionList = useSelector((state) => state?.ClinicalQuestions?.questionSubSections) || [];
+  const questionSectionList = useSelector((state) => state?.ClinicalQuestions?.questionSections) || [];
   const { questionError, questionSuccess, questionBodyPartDataById } = useSelector((state) => state.ClinicalQuestions);
   const [isLocationSelected, setIsLocationSelected] = useState(false);
   const [tableData, setTableData] = useState([]);

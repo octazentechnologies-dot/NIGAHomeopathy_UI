@@ -146,7 +146,7 @@ $value in $theme-colors {
     background-color: $black;
 }
 
-// Btn Customizer (legacy — layout uses .velzon-floating-actions in RightSidebar.js)
+// Btn Customizer (legacy — layout uses .app-floating-actions in RightSidebar.js)
 .customizer-setting {
     position: fixed;
     bottom: 40px;
@@ -155,7 +155,7 @@ $value in $theme-colors {
 }
 
 // Back-to-top: one column, flush right, compact (RightSidebar)
-.velzon-floating-actions {
+.app-floating-actions {
     position: fixed;
     right: 8px;
     bottom: 15px;
@@ -283,7 +283,7 @@ code {
     display: var(--#{$prefix}card-logo-dark);
 }
 
-// Pages that render #back-to-top without .velzon-floating-actions (e.g. landings)
+// Pages that render #back-to-top without .app-floating-actions (e.g. landings)
 #back-to-top {
     position: fixed;
     bottom: 100px;

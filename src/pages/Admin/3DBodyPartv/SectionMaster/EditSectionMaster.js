@@ -43,8 +43,8 @@ const EditSectionMaster = () => {
   const userDetails = JSON.parse(sessionStorage.getItem("authUser"));
   const selected = location.state?.selectedSection || {};
   const { anatomySectionMasterSuccess, anatomySectionMasterError } = useSelector(
-    (state) => state?.AnatomySectionMaster || {}
-  );
+    (state) => state?.AnatomySectionMaster
+  ) || {};
   const meshKeyList = useSelector(
     (state) => state?.MeshKeyMaster?.meshKeyMasterList?.resultObject
   );

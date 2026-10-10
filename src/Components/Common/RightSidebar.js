@@ -140,7 +140,7 @@ const RightSidebar = (props) => {
 
     return (
         <React.Fragment>
-            <div className="velzon-floating-actions">
+            <div className="app-floating-actions">
                 <button
                     type="button"
                     onClick={() => toTop()}

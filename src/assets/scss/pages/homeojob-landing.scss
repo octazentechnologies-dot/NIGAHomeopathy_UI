@@ -1,5 +1,5 @@
 //
-// HomeoJobLanding â€” Velzon Job Landing theme (scoped, minimal palette)
+// HomeoJobLanding â€” base template Job Landing theme (scoped, minimal palette)
 // Matches D:\NIGA_API_OLD_NEW\minimal jobs-landing colors & layout
 // Imported only by pages/Landing/HomeoJobLanding/index.js
 //
@@ -7383,7 +7383,8 @@
     gap: 0.45rem;
     z-index: 2;
 
-    button {
+    button,
+    a {
       width: 36px;
       height: 36px;
       border-radius: 50%;

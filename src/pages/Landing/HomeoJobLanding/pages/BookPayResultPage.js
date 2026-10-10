@@ -7,7 +7,7 @@ import { landingPath } from "../../../../constants/landingRoutes";
 import { getPaymentStatus } from "../../../../helpers/publicBookingApi";
 
 /**
- * PAT-19.02 — result screen re-reads paymentStatus from New-API (not a local outcome flag).
+ * PAT-19.02 — result screen re-reads paymentStatus from API (not a local outcome flag).
  */
 const BookPayResultPage = ({ outcome }) => {
     const { bookingId } = useParams();

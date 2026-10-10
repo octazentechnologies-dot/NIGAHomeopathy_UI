@@ -1,4 +1,4 @@
-/** Checklist #40 / S4 demo #6 — badge text follows New-API PaymentStatus. */
+/** Checklist #40 / S4 demo #6 — badge text follows API PaymentStatus. */
 export const paymentStatusMeta = (rawStatus) => {
   const raw = String(rawStatus || "UNPAID").trim().toUpperCase().replace(/[\s-]+/g, "_");
   if (raw === "PAID") return { label: "Paid", tone: "success" };

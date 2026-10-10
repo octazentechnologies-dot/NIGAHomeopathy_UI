@@ -1,7 +1,7 @@
 import React from 'react';
 import { Spinner } from 'reactstrap';
 
-/** Standard modal actions — soft Velzon buttons with Remix icons. */
+/** Standard modal actions — soft theme buttons with Remix icons. */
 export const MODAL_ACTIONS = {
   save: { soft: 'success', icon: 'ri-save-line', label: 'Save' },
   update: { soft: 'info', icon: 'ri-refresh-line', label: 'Update' },

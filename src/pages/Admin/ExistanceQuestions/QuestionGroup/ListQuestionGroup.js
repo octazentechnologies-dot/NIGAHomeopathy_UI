@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getQuestionGroups, deleteQuestionGroup } from '../../../../slices/admin/questiongroup/thunk';
 import Swal from 'sweetalert2';
+import { getAuditUserName } from "../../../../helpers/api_helper";
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const renderAdminListPagination = ({ currentPage, totalPages, onPrev, onNext, onPage }) => (
   <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
@@ -58,7 +60,7 @@ const ListQuestionGroup = () => {
   });
 
   const questionGroupLoading = useSelector((state) => state?.QuestionGroup?.loading || false);
-  const questionGroups = useSelector((state) => state?.QuestionGroup?.questionGroups?.resultObject || []);
+  const questionGroups = useSelector((state) => state?.QuestionGroup?.questionGroups?.resultObject) || [];
   const totalPages = useSelector((state) => state?.QuestionGroup?.questionGroups?.totalPageCount || 1);
   const totalRecords = useSelector(
     (state) => state?.QuestionGroup?.questionGroups?.totalRecordCount || questionGroups.length || 0
@@ -88,7 +90,7 @@ const ListQuestionGroup = () => {
           deleteQuestionGroup({
             questionGroupId: group.questionGroupId,
             QuestionGroupName: group.questionGroupName,
-            enteredBy: 'Admin',
+            enteredBy: getAuditUserName(),
             deleteStatus: true,
           })
         );
@@ -133,11 +135,11 @@ const ListQuestionGroup = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

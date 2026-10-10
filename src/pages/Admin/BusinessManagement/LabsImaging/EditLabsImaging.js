@@ -18,7 +18,7 @@ const EditLabsImaging = () => {
 
   const selectedLabTest = useSelector((state) => state?.LabTest?.selectedLabTest || null);
   const selectedLabTestLoading = useSelector((state) => state?.LabTest?.selectedLabTestLoading || false);
-  const { labTestDetailsSuccess, labTestDetailsError, labTestDetailsLoading } = useSelector((state) => state?.LabTest || {});
+  const { labTestDetailsSuccess, labTestDetailsError, labTestDetailsLoading } = useSelector((state) => state?.LabTest) || {};
 
   // Flag to track if form has been populated
   const formPopulatedRef = useRef(false);

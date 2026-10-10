@@ -206,7 +206,7 @@ const BookingConfirmModal = ({
                     /* keep default on */
                 });
         }
-        // PAT-17.02 — load Booking policy from New-API (version + body for review/consent).
+        // PAT-17.02 — load Booking policy from API (version + body for review/consent).
         getBookingConsentPolicy()
             .then((policy) => {
                 setPolicyVersion(policy.version || "2026.09");

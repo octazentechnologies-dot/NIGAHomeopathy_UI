@@ -268,7 +268,7 @@ const ReceptionHome = () => {
                       amount: "",
                       method: "CASH",
                       appointmentId: firstApp,
-                      gst: "GST applied by New API on collection",
+                      gst: "GST applied by API on collection",
                     });
                     setDeskPanel("collect");
                   }}
@@ -326,7 +326,7 @@ const ReceptionHome = () => {
                                 amount: "",
                                 method: "CASH",
                                 appointmentId: String(id),
-                                gst: "GST applied by New API on collection",
+                                gst: "GST applied by API on collection",
                               });
                               setDeskPanel("collect");
                             }}
@@ -364,7 +364,7 @@ const ReceptionHome = () => {
           </Col>
           {deskPanel === "collect" && receipt ? (
             <Col md={6}>
-              {/* PAY-04 / REC-13 — CollectAtReception on New API :5002 */}
+              {/* PAY-04 / REC-13 — CollectAtReception on API :5002 */}
               <Card className="admin-dash-card" data-testid="reception-receipt-shell" style={{ position: "relative", zIndex: 6 }}>
                 <CardBody>
                   <div className="d-flex justify-content-between align-items-center mb-2">

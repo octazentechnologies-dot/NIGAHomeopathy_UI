@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader, Col, Container, Row, Spinner } from 'reacts
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getRemedieList } from '../../../../slices/admin/repertory/remedialrubrics/thunk';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListRemedialRubrics = () => {
   const dispatch = useDispatch();
@@ -12,7 +13,7 @@ const ListRemedialRubrics = () => {
   const pageSize = 10;
 
   const remediesLoading = useSelector((state) => state?.RemedicalRubric?.loading || false);
-  const remedies = useSelector((state) => state?.RemedicalRubric?.matriaMedicaRemedies?.resultObject || []);
+  const remedies = useSelector((state) => state?.RemedicalRubric?.matriaMedicaRemedies?.resultObject) || [];
   const totalPages = useSelector((state) => state?.RemedicalRubric?.matriaMedicaRemedies?.totalPageCount || 1);
   const totalRecords = useSelector(
     (state) => state?.RemedicalRubric?.matriaMedicaRemedies?.totalRecordCount || remedies.length || 0
@@ -62,11 +63,11 @@ const ListRemedialRubrics = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

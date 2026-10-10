@@ -32,10 +32,10 @@ const AddMateriaMedica = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   // Redux state
-  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors || []);
-  const remedies = useSelector((state) => state?.MateriaMedica.matriaMedicaRemediesDDL || []);
-  const heads = useSelector((state) => state?.MateriaMedica.materiaMedicaHeads || []);
-  const { materiaMedicaSuccess, materiaMedicaError } = useSelector((state) => state?.MateriaMedica || {});
+  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors) || [];
+  const remedies = useSelector((state) => state?.MateriaMedica.matriaMedicaRemediesDDL) || [];
+  const heads = useSelector((state) => state?.MateriaMedica.materiaMedicaHeads) || [];
+  const { materiaMedicaSuccess, materiaMedicaError } = useSelector((state) => state?.MateriaMedica) || {};
 
   const { quillRef } = useQuill();
 

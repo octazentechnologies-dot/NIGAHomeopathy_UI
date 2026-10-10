@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getRoleList, deleteRole } from '../../../../slices/admin/role/thunk';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListRole = () => {
   const dispatch = useDispatch();
@@ -14,7 +15,7 @@ const ListRole = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const roleLoading = useSelector((state) => state?.Role?.roleLoading || false);
-  const roles = useSelector((state) => state?.Role?.roleList || []);
+  const roles = useSelector((state) => state?.Role?.roleList) || [];
 
   useEffect(() => {
     dispatch(getRoleList());
@@ -72,11 +73,11 @@ const ListRole = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

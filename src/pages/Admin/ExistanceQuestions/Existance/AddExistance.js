@@ -6,6 +6,7 @@ import { createQuestionSection } from '../../../../slices/admin/existance/thunk'
 import { setExistanceError, setExistanceSuccess } from '../../../../slices/admin/existance/reducer';
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 const AddExistance = () => {
   const dispatch = useDispatch();
@@ -26,7 +27,7 @@ const AddExistance = () => {
         questionSectionId: 0,
         questionSectionName: values.questionSectionName,
         description: values.description,
-        enteredBy: 'Admin',
+        enteredBy: getAuditUserName(),
         deleteStatus: false,
       }));
     },

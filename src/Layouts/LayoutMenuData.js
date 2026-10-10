@@ -1657,9 +1657,9 @@ const Navdata = () => {
         );
     }
 
-    const showVelzonDemo = process.env.REACT_APP_SHOW_VELZON_DEMO === "true";
+    const showTemplateDemo = process.env.REACT_APP_SHOW_TEMPLATE_DEMO === "true";
     let productionMenuItems = menuItems;
-    if (!showVelzonDemo) {
+    if (!showTemplateDemo) {
         const demoHeaderIdx = menuItems.findIndex(
             (item) => item.isHeader && item.label === "Menu"
         );

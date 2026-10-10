@@ -2,11 +2,13 @@ import './silenceConsole';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './helpers/swalMessageIcon';
+import './i18n';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
+import { Fade } from "reactstrap";
 import rootReducer from "./slices";
 import ErrorBoundary from "./Components/Common/ErrorBoundary";
 import { reportClientIssue } from "./helpers/client_error_reporter";
@@ -34,7 +36,24 @@ window.addEventListener("unhandledrejection", function (event) {
   });
 });
 
-const store = configureStore({ reducer: rootReducer, devTools: process.env.NODE_ENV !== "production" });
+// reactstrap 9.2.3 Alert and PopperContent build their default transition from Fade.defaultProps, which Fade no
+// longer sets, so they hand Fade timeout={undefined}. Fade falls back to its own 150 ms default; only the prop-type
+// check runs before that fallback. Patched in place because PopperContent validates against this same object.
+if (Fade.propTypes && typeof Fade.propTypes.timeout === "function") {
+  const checkTimeout = Fade.propTypes.timeout;
+  Fade.propTypes.timeout = (props, ...rest) => (props.timeout === undefined ? null : checkTimeout(props, ...rest));
+}
+
+// Repertory sub-section lists in the store run to several MB, so the dev-only checks need more than the default 32 ms.
+const store = configureStore({
+  reducer: rootReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      immutableCheck: { warnAfter: 300 },
+      serializableCheck: { warnAfter: 300 },
+    }),
+  devTools: process.env.NODE_ENV !== "production",
+});
 
 const rootElement = document.getElementById("root");
 

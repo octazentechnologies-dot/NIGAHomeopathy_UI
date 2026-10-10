@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getLanguagesList, deleteLanguage } from '../../../../slices/admin/repertory/language/thunk';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const LanguageList = () => {
   const dispatch = useDispatch();
@@ -17,7 +18,7 @@ const LanguageList = () => {
   const [languageToDelete, setLanguageToDelete] = useState(null);
 
   const languagesLoading = useSelector((state) => state?.Language?.loading || false);
-  const languages = useSelector((state) => state?.Language?.languagesList?.resultObject || []);
+  const languages = useSelector((state) => state?.Language?.languagesList?.resultObject) || [];
   const totalPages = useSelector((state) => state?.Language?.languagesList?.totalPageCount || 1);
   const totalRecords = useSelector(
     (state) => state?.Language?.languagesList?.totalRecordCount || languages.length || 0
@@ -82,11 +83,11 @@ const LanguageList = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

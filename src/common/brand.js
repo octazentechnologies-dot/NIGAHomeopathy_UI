@@ -2,15 +2,15 @@ export const APP_TITLE = 'Niga Homeocentrum';
 
 export const pageTitle = (pageName) => (pageName ? `${pageName} | ${APP_TITLE}` : APP_TITLE);
 
-const VELZON_TITLE_PATTERN = /\s*\|\s*Velzon[\s\S]*$/i;
-const VELZON_ONLY_PATTERN = /^Velzon[\s\S]*$/i;
+const TEMPLATE_TITLE_PATTERN = /\s*\|\s*Velzon[\s\S]*$/i;
+const TEMPLATE_ONLY_PATTERN = /^Velzon[\s\S]*$/i;
 
 export const normalizeDocumentTitle = (title) => {
-  if (!title || VELZON_ONLY_PATTERN.test(title.trim())) {
+  if (!title || TEMPLATE_ONLY_PATTERN.test(title.trim())) {
     return APP_TITLE;
   }
-  if (VELZON_TITLE_PATTERN.test(title)) {
-    return title.replace(VELZON_TITLE_PATTERN, ` | ${APP_TITLE}`);
+  if (TEMPLATE_TITLE_PATTERN.test(title)) {
+    return title.replace(TEMPLATE_TITLE_PATTERN, ` | ${APP_TITLE}`);
   }
   return title;
 };

@@ -23,6 +23,7 @@ import {
   setDiagnosisConditionSuccess,
   setDiagnosisConditionError
 } from '../../../../slices/admin/clinicalpattern/diagnosiscondition/reducer';
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 
 const EditDiagnosisConditions = () => {
@@ -169,7 +170,7 @@ const EditDiagnosisConditions = () => {
   const [subsectionId, setSubsectionId] = useState(0);
   const [SubSectionName, setSubSectionName] = useState('');
   const [selectedSubSection, setSelectedSubSection] = useState('');
-  const [EnteredBy, setEnteredBy] = useState('Admin');
+  const [EnteredBy, setEnteredBy] = useState(getAuditUserName);
   const [DeleteStatus, setDeleteStatus] = useState(false);
   const [errors, setErrors] = useState({});
 

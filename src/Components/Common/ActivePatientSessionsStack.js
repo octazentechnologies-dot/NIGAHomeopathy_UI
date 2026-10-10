@@ -9,7 +9,7 @@ import {
 } from '../../helpers/patientBoardSessionHelper';
 
 const ActivePatientSessionsStack = () => {
-  const sessions = useSelector((state) => state?.PatientBoardSession?.sessions ?? []);
+  const sessions = useSelector((state) => state?.PatientBoardSession?.sessions) ?? [];
   const activePatientKey = useSelector((state) => state?.PatientBoardSession?.activePatientKey);
 
   const sortedSessions = useMemo(() => {

@@ -14,6 +14,7 @@ import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectThem
 import { getDiagnosisForClinicalPatternList, getDiagnosisTherapeuticsList, getDiagnosisTherapeuticsById } from '../../../../slices/thunks';
 import { setDiagnosisTherapeuticsList } from '../../../../slices/admin/clinicalpattern/diagnosistherapeutics/reducer';
 import { useDispatch, useSelector } from 'react-redux';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 import '../../../../Components/WhatsAppModal/WhatsAppModal.css';
 
 const DiagnosisTherapeuticsList = () => {
@@ -169,11 +170,11 @@ const DiagnosisTherapeuticsList = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>
@@ -238,7 +239,7 @@ const DiagnosisTherapeuticsList = () => {
                                             </Link>
                                           </div>
                                           <div className="remove">
-                                            <button className="btn btn-sm btn-soft-danger remove-item-btn" type="button" title="Delete"><i className="ri-delete-bin-5-line" /> </button>
+                                            <button className="btn btn-sm btn-soft-danger remove-item-btn" type="button" disabled title="Delete is not available for therapeutics details yet"><i className="ri-delete-bin-5-line" /> </button>
                                           </div>
                                         </div>
                                       </td>

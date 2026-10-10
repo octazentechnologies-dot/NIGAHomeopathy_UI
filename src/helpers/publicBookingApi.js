@@ -2,9 +2,9 @@ import axios from "axios";
 import { api } from "../config";
 import NoPhotoAvatar from "../assets/images/users/user-dummy-img.jpg";
 
-/** Anonymous New-API client for public find-doctor / booking / policies / articles. */
+/** Anonymous API client for public find-doctor / booking / policies / articles. */
 const publicClient = axios.create({
-  baseURL: api.New_API_Base_URL,
+  baseURL: api.API_Base_URL,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -81,7 +81,7 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
     inClinic,
     tele,
     available: isOnline ? "today" : "tomorrow",
-    image: photoPath && id ? `${api.New_API_Base_URL}/Profile/Photo/${id}` : fallback.image || NoPhotoAvatar,
+    image: photoPath && id ? `${api.API_Base_URL}/Profile/Photo/${id}` : fallback.image || NoPhotoAvatar,
     verified,
     verificationStatus: row?.verificationStatus ?? row?.VerificationStatus ?? (verified ? "Verified" : "Pending"),
     rankingSummary,

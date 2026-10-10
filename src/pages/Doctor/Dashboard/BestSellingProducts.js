@@ -704,7 +704,7 @@ const BestSellingProducts = () => {
     const patientSuccess = useSelector((state) => state?.DoctorDashboard?.patientSuccess);
     const appointmentHistoryNotes = useSelector((state) => state?.DoctorDashboard?.appointmentHistoryNotes);
     const appointmentHistoryNotesLoading = useSelector((state) => state?.DoctorDashboard?.appointmentHistoryNotesLoading);
-    const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions ?? []);
+    const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions) ?? [];
     const [caseTakingModalOpen, setCaseTakingModalOpen] = useState(false);
     const [selectedPatientForCaseTaking, setSelectedPatientForCaseTaking] = useState(null);
 
@@ -3245,7 +3245,12 @@ const BestSellingProducts = () => {
                         </div>
                     ) : (
                         <div className="patient-list-modal__table-wrap history-patient-modal__accordion-wrap">
-                            <Accordion id="history-accordion" className="accordion-flush history-patient-modal__accordion mb-0">
+                            <Accordion
+                                id="history-accordion"
+                                className="accordion-flush history-patient-modal__accordion mb-0"
+                                open={openAppointmentId == null ? '' : String(openAppointmentId)}
+                                toggle={() => {}}
+                            >
                             {patientAppointments.map((appointment) => {
                                 const appointmentId = appointment.patientAppId;
                                 const isOpen = openAppointmentId === appointmentId;

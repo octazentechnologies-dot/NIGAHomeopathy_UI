@@ -5,16 +5,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import { deletePackage, getPackageList } from '../../../../slices/admin/packages/thunk';
 import { setPackageError, setPackageSuccess } from '../../../../slices/admin/packages/reducer';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListPackage = () => {
   const dispatch = useDispatch();
   const [deleteModal, setDeleteModal] = useState(false);
   const [packageToDelete, setPackageToDelete] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const userDetails = JSON.parse(sessionStorage.getItem('authUser') || '{}');
 
   const loading = useSelector((state) => state?.Package?.packageLoading || false);
-  const packages = useSelector((state) => state?.Package?.packageList || []);
+  const packages = useSelector((state) => state?.Package?.packageList) || [];
   const success = useSelector((state) => state?.Package?.packageSuccess);
   const error = useSelector((state) => state?.Package?.packageError);
 
@@ -52,17 +52,7 @@ const ListPackage = () => {
 
   const handleDelete = () => {
     if (!packageToDelete) return;
-    dispatch(
-      deletePackage({
-        packageId: packageToDelete.packageId ?? packageToDelete.PackageId,
-        packageName: packageToDelete.packageName ?? packageToDelete.PackageName,
-        caseCount: packageToDelete.caseCount ?? packageToDelete.CaseCount,
-        validityInDays: packageToDelete.validityInDays ?? packageToDelete.ValidityInDays,
-        amount: packageToDelete.amount ?? packageToDelete.Amount,
-        changedBy: userDetails?.userName || userDetails?.data?.userName || 'Admin',
-        deleteStatus: true,
-      })
-    );
+    dispatch(deletePackage({ packageId: packageToDelete.packageId ?? packageToDelete.PackageId }));
     setDeleteModal(false);
     setPackageToDelete(null);
   };
@@ -89,11 +79,11 @@ const ListPackage = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

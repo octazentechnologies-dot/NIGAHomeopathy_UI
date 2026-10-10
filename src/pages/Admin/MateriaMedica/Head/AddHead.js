@@ -17,8 +17,8 @@ const AddHead = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { authors } = useSelector((state) => state?.Head || {});
-  const { headSuccess, headError } = useSelector((state) => state?.Head || {});
+  const { authors } = useSelector((state) => state?.Head) || {};
+  const { headSuccess, headError } = useSelector((state) => state?.Head) || {};
   const SingleOptions = authors?.map((author) => ({
     label: author.authorName,
     value: author.authorId,

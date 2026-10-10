@@ -121,7 +121,7 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
             const headers = token
               ? { Authorization: "Bearer " + token, "Content-Type": "application/json" }
               : { "Content-Type": "application/json" };
-            fetch(`${api.New_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
+            fetch(`${api.API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
           } catch (_) {
             /* ignore */
           }
@@ -150,13 +150,13 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
  */
 const APIClients = {
   // Default API client (HOMOCENTRUM)
-  default: createAxiosClient(api.New_API_Base_URL, "application/json"),
+  default: createAxiosClient(api.API_Base_URL, "application/json"),
 
   // Nigahomeopathy API client with JSON content type
-  nigahomeo: createAxiosClient(api.New_API_Base_URL, "application/json"),
+  nigahomeo: createAxiosClient(api.API_Base_URL, "application/json"),
 
   // Nigahomeopathy API client with multipart/form-data content type
-  nigahomeoMultipart: createAxiosClient(api.New_API_Base_URL, "multipart/form-data"),
+  nigahomeoMultipart: createAxiosClient(api.API_Base_URL, "multipart/form-data"),
 };
 
 /**
@@ -294,9 +294,8 @@ class APIClient {
     return APIClients.default.delete(url, { ...config });
   };
 
-  //New API for Import
+  //API for Import
   import = (url, data) => {
-    debugger
     return APIClients.nigahomeoMultipart.post(url, data);
   };
 }
@@ -310,10 +309,32 @@ const getLoggedinUser = () => {
   }
 };
 
+/** Signed-in user's profile fields (authUser may be nested under `data`). */
+const getLoggedinUserInfo = () => {
+  try {
+    const stored = getLoggedinUser();
+    return (stored && (stored.data || stored)) || null;
+  } catch {
+    return null;
+  }
+};
+
+/** Name written to EnteredBy / ChangedBy audit columns. */
+const getAuditUserName = (fallback = "Admin") => {
+  const info = getLoggedinUserInfo();
+  if (!info) return fallback;
+  const loginName = info.userName || info.UserName;
+  if (loginName) return String(loginName);
+  const fullName = [info.firstName || info.FirstName, info.lastName || info.LastName].filter(Boolean).join(" ");
+  return fullName || info.displayName || info.DisplayName || fallback;
+};
+
 export {
   APIClient,
   setAuthorization,
   getLoggedinUser,
+  getLoggedinUserInfo,
+  getAuditUserName,
   importAPI,
   nigahomeoAPI,
   APIClients,

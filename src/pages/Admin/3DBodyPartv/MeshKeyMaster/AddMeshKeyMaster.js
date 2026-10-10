@@ -27,8 +27,8 @@ const AddMeshKeyMaster = () => {
   const dispatch = useDispatch();
   const userDetails = JSON.parse(sessionStorage.getItem("authUser"));
   const { meshKeyMasterSuccess, meshKeyMasterError } = useSelector(
-    (state) => state?.MeshKeyMaster || {}
-  );
+    (state) => state?.MeshKeyMaster
+  ) || {};
 
   const formik = useFormik({
     initialValues: { meshKeyName: "" },

@@ -95,6 +95,7 @@ const DoctorDetailPage = () => {
     const [doctor, setDoctor] = useState(null);
     const [activeTab, setActiveTab] = useState("overview");
     const [favorite, setFavorite] = useState(false);
+    const [shareCopied, setShareCopied] = useState(false);
     const [consultMode, setConsultMode] = useState("clinic");
     const [slots, setSlots] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState("");
@@ -210,6 +211,21 @@ const DoctorDetailPage = () => {
         );
     }
 
+    const handleShare = async (profile) => {
+        const url = window.location.href;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: `${profile.name} | ${SITE.name}`, url });
+                return;
+            }
+            await navigator.clipboard.writeText(url);
+            setShareCopied(true);
+            setTimeout(() => setShareCopied(false), 2000);
+        } catch (_) {
+            // Share sheet dismissed or clipboard blocked; nothing to undo.
+        }
+    };
+
     const phone = doctor.phone || "";
     const dateValue = toIsoDate(bookingDate);
     const displayReviews = reviews.map(normalizeReview);
@@ -238,12 +254,21 @@ const DoctorDetailPage = () => {
                                 >
                                     <i className={favorite ? "ri-heart-fill" : "ri-heart-line"} />
                                 </button>
-                                <button type="button" aria-label="Share">
-                                    <i className="ri-share-forward-line" />
+                                <button
+                                    type="button"
+                                    aria-label="Share"
+                                    title={shareCopied ? "Link copied" : "Share"}
+                                    onClick={() => handleShare(doctor)}
+                                >
+                                    <i className={shareCopied ? "ri-check-line" : "ri-share-forward-line"} />
                                 </button>
-                                <button type="button" aria-label="Report">
+                                <a
+                                    href={`mailto:${SITE.supportEmail}?subject=${encodeURIComponent(`Report doctor profile: ${doctor.name}`)}&body=${encodeURIComponent(`Profile: ${window.location.href}\n\nWhat is wrong with this profile?\n`)}`}
+                                    aria-label="Report"
+                                    title="Report this profile"
+                                >
                                     <i className="ri-flag-line" />
-                                </button>
+                                </a>
                             </div>
 
                             <div className="homeojob-doctor-detail__hero">

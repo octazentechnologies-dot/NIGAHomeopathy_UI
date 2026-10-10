@@ -23,7 +23,7 @@ import { createQualification } from "../../../../slices/admin/qualifications/thu
 const AddQualification = () => {
   const dispatch = useDispatch();
   const userDetails = JSON.parse(sessionStorage.getItem("authUser") || "{}");
-  const { qualificationSuccess, qualificationError, qualificationLoading } = useSelector((state) => state?.Qualification || {});
+  const { qualificationSuccess, qualificationError, qualificationLoading } = useSelector((state) => state?.Qualification) || {};
 
   const formik = useFormik({
     enableReinitialize: true,

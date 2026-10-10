@@ -213,7 +213,7 @@ const AudioCasePanel = ({
   } = useAudioRecorder();
 
   const waveformLevels = useAudioWaveform(mediaStream, isRecording && !isPaused);
-  const audioCase = useSelector((state) => state?.AudioCaseTaking ?? {});
+  const audioCase = useSelector((state) => state?.AudioCaseTaking) ?? {};
   const handleContinueWaiting = useCallback(() => {
     if (!audioCase.sessionId || audioCase.pollLoading) return;
     dispatch(pollAudioCaseAnalysis(audioCase.sessionId));

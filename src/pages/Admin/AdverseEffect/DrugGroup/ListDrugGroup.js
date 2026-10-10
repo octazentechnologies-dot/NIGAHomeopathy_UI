@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getDrugGroupList, deleteDrugGroup } from '../../../../slices/admin/druggroup/thunk';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const DrugGroupList = () => {
   const dispatch = useDispatch();
@@ -17,7 +18,7 @@ const DrugGroupList = () => {
   const [drugGroupToDelete, setDrugGroupToDelete] = useState(null);
 
   const drugGroupLoading = useSelector((state) => state?.DrugGroup?.drugGroupLoading || false);
-  const drugGroups = useSelector((state) => state?.DrugGroup?.drugGroupList?.resultObject || []);
+  const drugGroups = useSelector((state) => state?.DrugGroup?.drugGroupList?.resultObject) || [];
   const totalPages = useSelector((state) => state?.DrugGroup?.drugGroupList?.totalPageCount || 1);
   const totalRecords = useSelector(
     (state) => state?.DrugGroup?.drugGroupList?.totalRecordCount || drugGroups.length || 0
@@ -87,11 +88,11 @@ const DrugGroupList = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

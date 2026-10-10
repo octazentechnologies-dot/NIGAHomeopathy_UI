@@ -108,7 +108,7 @@ const mapQueueRow = (apiRow, doctorFallback, feeByType) => {
     vitals: {},
     paymentDetails: {
       amount: pay.label === "Paid" ? formatRupees(fee) : "₹ 0",
-      gst: "GST applied by New API on collection",
+      gst: "GST applied by API on collection",
       total: formatRupees(fee),
       method: apiRow.paymentMethod || apiRow.PaymentMethod || "—",
       notes: pay.label === "Unpaid" || pay.label === "Pay-at-clinic" ? "Collect at reception" : "",

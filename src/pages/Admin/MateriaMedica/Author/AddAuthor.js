@@ -166,13 +166,10 @@ const AddAuthor = (props) => {
                             value={formik.values.description || ""}
                             onChange={formik.handleChange}
                             onBlur={formik.handleBlur}
-                            className="form-control"
+                            className={`form-control${formik.touched.description && formik.errors.description ? " is-invalid" : ""}`}
                             id="exampleFormControlTextarea5"
                             rows="1"
-                            placeholder="Enter Description"
-                            invalid={
-                              formik.touched.description && formik.errors.description ? true : false
-                            }></textarea>
+                            placeholder="Enter Description"></textarea>
                           {formik.touched.description && formik.errors.description && (
                             <FormFeedback>{formik.errors.description}</FormFeedback>
                           )}
