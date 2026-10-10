@@ -60,6 +60,7 @@ import {
     updateAppointmentStatus as updateAppointmentStatusApi
 } from '../../../helpers/realbackend_helper';
 import { getAuthUserId as readSessionUserId } from '../../../helpers/menuByRole';
+import { extractPatientFieldErrors, sanitizePatientSaveMessage } from '../../../helpers/patient_payload_helper';
 
 export const fetchDoctorDashboardCounts = (payload) => async (dispatch) => {
     try {
@@ -129,14 +130,20 @@ export const getAppointmentList = (payload) => async (dispatch) => {
 export const createPatient = (payload) => async (dispatch) => {
     try {
         dispatch(setPatientLoading(true));
-        const response = await createPatientApi(payload);
+        const response = await createPatientApi(payload, { returnErrorBody: true });
         dispatch(setPatient(response));
         const isUpdate = payload?.patientID > 0;
         dispatch(setPatientSuccess(isUpdate ? "Patient updated successfully!" : "Patient created successfully!"));
         return response;
     } catch (error) {
-        dispatch(setPatientError(error));
-        throw error;
+        const body = error && typeof error === "object" ? error.data : null;
+        const fieldErrors = extractPatientFieldErrors(body);
+        const banner = sanitizePatientSaveMessage(
+            (error && typeof error === "object" ? error.message : error) || "Failed to save patient",
+            Object.keys(fieldErrors).length > 0
+        );
+        dispatch(setPatientError(banner));
+        throw { message: banner, status: error?.status ?? 0, data: body, fieldErrors };
     } finally {
         dispatch(setPatientLoading(false));
     }
