@@ -81,6 +81,7 @@ export const activatePharmacy = (id) => nigahomeoAPI.post(`/Pharmacy/${id}/Activ
 export const pharmacyQueue = () => nigahomeoAPI.get("/Pharmacy/Orders", null);
 export const markMedicineReady = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Ready`, null);
 export const dispatchMedicine = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Dispatch`, null);
+export const deliverMedicine = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Deliver`, null);
 export const grantMedicineConsent = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Consent`, null);
 export const acceptMedicineQuote = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/AcceptQuote`, null);
 export const createMedicineOrder = (payload) => nigahomeoAPI.post("/MedicineOrders", payload);

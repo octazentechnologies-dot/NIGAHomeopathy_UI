@@ -11,11 +11,11 @@ import {
   grantMedicineConsent,
   listErxRefills,
   medicineTracking,
-  patientMedicineOrders,
   patientPayments,
   s4Message,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
+import { patientMedicineHistory, reviewMedicineOrder } from "../../../helpers/s5Week5Api";
 import OrderDetailsModal from "./OrderDetailsModal";
 import {
   formatDate,
@@ -24,9 +24,6 @@ import {
   normalizeOrder,
   orderStage,
   pick,
-  readDemoOrders,
-  replaceDemoOrder,
-  saveDemoOrder,
 } from "./medicineOrderData";
 import "../Prescriptions/patientPrescriptions.css";
 import "./patientMedicine.css";
@@ -75,14 +72,15 @@ const PatientMedicineOrdersPage = () => {
     setLoading(true);
     setError("");
     const [ordersResult, paymentsResult, refillResult] = await Promise.allSettled([
-      patientMedicineOrders(),
+      patientMedicineHistory(),
       patientPayments(),
       listErxRefills(),
     ]);
-    const apiOrders = ordersResult.status === "fulfilled" ? asList(ordersResult.value).map(normalizeOrder) : [];
-    const demo = readDemoOrders();
-    const seen = new Set(apiOrders.map((row) => row.id));
-    setOrders([...apiOrders, ...demo.filter((row) => !seen.has(row.id))]);
+    setOrders(
+      ordersResult.status === "fulfilled"
+        ? asList(ordersResult.value).map(normalizeOrder).filter((row) => row.id != null)
+        : []
+    );
     if (ordersResult.status === "rejected") setError(s4Message(ordersResult.reason));
     setPayments(paymentsResult.status === "fulfilled" ? asList(paymentsResult.value) : []);
     const refills = refillResult.status === "fulfilled" ? asList(refillResult.value) : [];
@@ -131,9 +129,7 @@ const PatientMedicineOrdersPage = () => {
   const activeOrder = orders.find((row) => row.id === activeId) || null;
 
   const updateLocal = (order, changes) => {
-    const next = { ...order, ...changes };
-    setOrders((prev) => prev.map((row) => (row.id === order.id ? next : row)));
-    if (order.isDemo) replaceDemoOrder(next);
+    setOrders((prev) => prev.map((row) => (row.id === order.id ? { ...row, ...changes } : row)));
   };
 
   const runAction = async (task) => {
@@ -151,24 +147,16 @@ const PatientMedicineOrdersPage = () => {
 
   const onAcceptQuote = (order) =>
     runAction(async () => {
-      if (order.isDemo) {
-        updateLocal(order, { status: "QUOTED_ACCEPTED" });
-        return;
-      }
       await acceptMedicineQuote(order.id);
       await load();
     });
 
   const onPay = (order, payMode) =>
     runAction(async () => {
-      if (order.isDemo) {
-        updateLocal(order, { status: payMode === "COD" ? "COD" : "PAID", payMode });
-      } else {
-        const response = unwrapS4(await createMedicinePayment({ medicineOrderId: order.id, payMode }));
-        const payUrl = pick(response, "paymentUrl", "PaymentUrl", "checkoutUrl", "CheckoutUrl", "url", "Url");
-        if (payUrl) window.open(payUrl, "_blank", "noopener");
-        await load();
-      }
+      const response = unwrapS4(await createMedicinePayment({ medicineOrderId: order.id, payMode }));
+      const payUrl = pick(response, "paymentUrl", "PaymentUrl", "checkoutUrl", "CheckoutUrl", "url", "Url");
+      if (payUrl) window.open(payUrl, "_blank", "noopener");
+      await load();
       Swal.fire({
         title: payMode === "COD" ? "Cash on delivery confirmed" : "Payment started",
         icon: "success",
@@ -181,9 +169,12 @@ const PatientMedicineOrdersPage = () => {
     runAction(async () => {
       const data = unwrapS4(await medicineTracking(order.id)) || {};
       const status = pick(data, "status", "Status");
+      const events = pick(data, "events", "Events");
       updateLocal(order, {
         status: status || order.status,
-        events: pick(data, "events", "Events") || order.events,
+        events: Array.isArray(events)
+          ? events.map((row) => ({ status: pick(row, "status", "Status") || "", detail: pick(row, "detail", "Detail") || "", at: pick(row, "at", "At") }))
+          : order.events,
       });
     });
 
@@ -205,24 +196,6 @@ const PatientMedicineOrdersPage = () => {
 
   const onReorder = (order) =>
     runAction(async () => {
-      if (order.isDemo) {
-        const copy = {
-          ...order,
-          id: `demo-${Date.now()}`,
-          orderNo: `HM${new Date().getFullYear()}S${String(Date.now()).slice(-4)}`,
-          date: new Date().toISOString(),
-          status: "CREATED",
-          payMode: "",
-          amount: 0,
-          deliveryFee: 0,
-          items: order.items.map((item) => ({ ...item, price: 0 })),
-          reviewed: false,
-        };
-        saveDemoOrder(copy);
-        setOrders((prev) => [copy, ...prev]);
-        setActiveId(copy.id);
-        return;
-      }
       if (!order.erxId) throw new Error("This order has no prescription to reorder from.");
       const created = unwrapS4(await createMedicineOrder({ erxSnapshotId: order.erxId }));
       const orderId = created?.medicineOrderId || created?.MedicineOrderId;
@@ -232,10 +205,14 @@ const PatientMedicineOrdersPage = () => {
       Swal.fire({ title: "Reorder placed", text: "The pharmacy will send a new quote.", icon: "success", timer: 1800, showConfirmButton: false });
     });
 
-  const onReview = (order) => {
-    updateLocal(order, { reviewed: true });
-    Swal.fire({ title: "Review added", icon: "success", timer: 1300, showConfirmButton: false });
-  };
+  const onReview = (order, rating, comment) =>
+    runAction(async () => {
+      const saved = unwrapS4(await reviewMedicineOrder(order.id, rating, comment || null)) || {};
+      updateLocal(order, {
+        review: { rating, comment: comment || "", createdAt: pick(saved, "createdAt", "CreatedAt") || new Date().toISOString() },
+      });
+      Swal.fire({ title: "Review added", icon: "success", timer: 1300, showConfirmButton: false });
+    });
 
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page prx-page">

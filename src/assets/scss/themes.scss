@@ -1646,7 +1646,7 @@ html:not([data-bs-theme="dark"]) {
   // Portaled menus must sit above sticky thead / card sections / list search icons
   .admin-form-select__menu-portal,
   [class*="__menu-portal"],
-  div[class*="-menu"] {
+  div[class*="-menu"]:not(.navbar-menu):not(.app-menu) {
     z-index: 9999 !important;
   }
 
@@ -1857,6 +1857,18 @@ html:not([data-bs-theme="dark"]) {
     background-color: #ffffff !important;
     background-image: none !important;
     border-bottom: 1px solid var(--#{$prefix}border-color);
+
+    .notification-view-all-btn {
+      padding: 0.2rem 0.65rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: 5px;
+      line-height: 1.4;
+
+      i {
+        font-size: 0.9rem;
+      }
+    }
 
     .nav-tabs-custom {
       border-bottom: 1px solid var(--#{$prefix}border-color) !important;

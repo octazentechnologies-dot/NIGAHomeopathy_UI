@@ -1,93 +1,68 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardBody, CardHeader, Col } from 'reactstrap';
-import { bestSellingProducts } from "../../common/data";
-import AdminPeriodFilter from './AdminPeriodFilter';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Card, CardBody, CardHeader, Col, Spinner } from "reactstrap";
 
-const BestSellingProducts = () => {
-    const [activePeriod, setActivePeriod] = useState('all');
+const BestSellingProducts = ({ summary, loading }) => {
+  const remedies = summary?.topRemedies || [];
+  const top = remedies[0]?.count || 0;
 
-    return (
-        <React.Fragment>
-            <Col xl={6}>
-                <Card className="admin-dash-card">
-                    <CardHeader className="align-items-center d-flex admin-dash-card-header">
-                        <h4 className="card-title mb-0 flex-grow-1">Recent Appointments</h4>
-                        <AdminPeriodFilter activePeriod={activePeriod} onChange={setActivePeriod} />
-                    </CardHeader>
+  return (
+    <Col xl={6}>
+      <Card className="card-height-100 admin-dash-card">
+        <CardHeader className="align-items-center d-flex admin-dash-card-header">
+          <h4 className="card-title mb-0 flex-grow-1">Top Remedies Ordered</h4>
+          <div className="flex-shrink-0">
+            <Link to="/admin/medicine-report" className="btn btn-sm doctor-dashboard-toolbar-btn">
+              Medicine report
+            </Link>
+          </div>
+        </CardHeader>
 
-                    <CardBody>
-                        <div className="table-responsive table-card">
-                            <table className="table table-hover table-centered align-middle table-nowrap mb-0">
-                                <tbody>
-                                    {(bestSellingProducts || []).map((item, key) => (
-                                        <tr key={key}>
-                                            <td>
-                                                <div className="d-flex align-items-center">
-                                                    <div className="avatar-sm bg-light rounded p-1 me-2">
-                                                        <img src={item.img} alt="" className="img-fluid d-block rounded-circle" />
-                                                    </div>
-                                                    <div>
-                                                        <h5 className="fs-14 my-1"><Link to="/apps-ecommerce-product-details" className="text-reset">{item.label}</Link></h5>
-                                                        <span className="text-muted">{item.date}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <h5 className="fs-14 my-1 fw-normal">{item.time}</h5>
-                                                <span className="text-muted">Appointment</span>
-                                            </td>
-                                            <td>
-                                                <h5 className="fs-14 my-1 fw-normal">{item.doctor}</h5>
-                                                <span className="text-muted">Doctor</span>
-                                            </td>
-                                            <td>
-                                                <h5 className="fs-14 my-1 fw-normal">{item.type}</h5>
-                                                <span className="text-muted">Type</span>
-                                            </td>
-                                            <td>
-                                                <h5 className="fs-14 my-1 fw-normal">
-                                                    <span className={"badge bg-" + item.statusClass + "-subtle text-" + item.statusClass}>{item.status}</span>
-                                                </h5>
-                                                <span className="text-muted">Status</span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+        <CardBody>
+          {loading && !summary ? (
+            <div className="text-muted d-flex align-items-center gap-2">
+              <Spinner size="sm" /> Loading…
+            </div>
+          ) : remedies.length === 0 ? (
+            <p className="text-muted mb-0">No medicine orders in this period.</p>
+          ) : (
+            <div className="table-responsive table-card">
+              <table className="table table-hover table-centered align-middle table-nowrap mb-0">
+                <tbody>
+                  {remedies.map((item, index) => (
+                    <tr key={item.name}>
+                      <td style={{ width: 48 }}>
+                        <div className="avatar-xs">
+                          <span className="avatar-title rounded-circle bg-info-subtle text-info fw-semibold">{index + 1}</span>
                         </div>
-
-                        <div className="align-items-center mt-4 pt-2 justify-content-between row text-center text-sm-start">
-                            <div className="col-sm">
-                                <div className="text-muted">Showing <span className="fw-semibold">5</span> of <span className="fw-semibold">28</span> Appointments
-                                </div>
-                            </div>
-                            <div className="col-sm-auto mt-3 mt-sm-0">
-                                <ul className="pagination pagination-separated pagination-sm mb-0 justify-content-center">
-                                    <li className="page-item disabled">
-                                        <Link to="#" className="page-link">←</Link>
-                                    </li>
-                                    <li className="page-item">
-                                        <Link to="#" className="page-link">1</Link>
-                                    </li>
-                                    <li className="page-item active">
-                                        <Link to="#" className="page-link">2</Link>
-                                    </li>
-                                    <li className="page-item">
-                                        <Link to="#" className="page-link">3</Link>
-                                    </li>
-                                    <li className="page-item">
-                                        <Link to="#" className="page-link">→</Link>
-                                    </li>
-                                </ul>
-                            </div>
+                      </td>
+                      <td>
+                        <h5 className="fs-14 my-1">{item.name}</h5>
+                        <span className="text-muted">Remedy</span>
+                      </td>
+                      <td style={{ width: "40%" }}>
+                        <div className="progress" style={{ height: "6px" }}>
+                          <div
+                            className="progress-bar bg-info"
+                            role="progressbar"
+                            style={{ width: `${top ? (item.count / top) * 100 : 0}%` }}
+                          />
                         </div>
-
-                    </CardBody>
-                </Card>
-            </Col>
-        </React.Fragment>
-    );
+                      </td>
+                      <td className="text-end">
+                        <h5 className="fs-14 my-1 fw-normal">{item.count}</h5>
+                        <span className="text-muted">Orders</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
+    </Col>
+  );
 };
 
 export default BestSellingProducts;

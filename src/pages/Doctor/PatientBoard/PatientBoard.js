@@ -1949,6 +1949,8 @@ const PatientBoard = () => {
   const [selectedQuestionRubric, setSelectedQuestionRubric] = useState(null);
   const [therapeuticsFontSize, setTherapeuticsFontSize] = useState(11);
   const [selectedSubSection, setSelectedSubSection] = useState(null);
+  const [crossRefFlashId, setCrossRefFlashId] = useState(null);
+  const crossRefFlashTimeoutRef = useRef(null);
   const rubricDetailsPrefetchObserverRef = useRef(null);
   const rubricDetailsScrollPrefetchTimerRef = useRef(null);
 
@@ -2438,20 +2440,42 @@ const PatientBoard = () => {
     }, 300);
   };
 
+  const handleRemedyInfoToggle = (remedy) => {
+    const remedyId = remedy?.remedyId ?? remedy?.RemedyId ?? null;
+    if (hoveredRemedyInfo != null && hoveredRemedyInfoIdRef.current === remedyId) {
+      hoveredRemedyInfoIdRef.current = null;
+      if (remedyInfoTooltipTimeoutRef.current) {
+        clearTimeout(remedyInfoTooltipTimeoutRef.current);
+      }
+      setHoveredRemedyInfo(null);
+      return;
+    }
+    handleRemedyInfoEnter(remedy);
+  };
+
   const renderRemedyInfoIcon = (remedy) => {
     if (!showRemedyInfo) {
       return null;
     }
+    const remedyId = remedy?.remedyId ?? remedy?.RemedyId ?? null;
+    const expanded = hoveredRemedyInfo != null && hoveredRemedyInfoIdRef.current === remedyId;
     return (
       <span
         className="remedy-info-icon"
-        onMouseEnter={(e) => {
+        role="button"
+        tabIndex={0}
+        aria-label="Show remedy details"
+        aria-expanded={expanded}
+        onClick={(e) => {
           e.stopPropagation();
-          handleRemedyInfoEnter(remedy);
+          handleRemedyInfoToggle(remedy);
         }}
-        onMouseLeave={(e) => {
-          e.stopPropagation();
-          handleRemedyInfoLeave();
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            handleRemedyInfoToggle(remedy);
+          }
         }}
       >
         i
@@ -2465,6 +2489,18 @@ const PatientBoard = () => {
       setHoveredRemedyInfo(null);
     }
   }, [showRemedyInfo]);
+
+  useEffect(() => {
+    if (hoveredRemedyInfo == null) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        hoveredRemedyInfoIdRef.current = null;
+        setHoveredRemedyInfo(null);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [hoveredRemedyInfo]);
 
   useEffect(() => {
     remedyInfoCacheRef.current.clear();
@@ -8258,7 +8294,7 @@ const PatientBoard = () => {
       padding:2px 0;
       word-break:break-word;
       color:#0d6efd !important;
-      cursor:default;
+      cursor:pointer;
       font-weight:400;
       font-style:normal;
     }
@@ -9967,6 +10003,10 @@ const PatientBoard = () => {
     .pb-tab-panel--repertory .pb-rubric-row--repertory-subsection:hover:not(.pb-rubric-row--repertory-subsection-selected) {
       background:#f5faff !important;
     }
+    .pb-tab-panel--repertory .pb-rubric-row--crossref-flash {
+      box-shadow:inset 0 0 0 2px #1e88e5 !important;
+      background:#e3f2fd !important;
+    }
     .pb-tab-panel--repertory .pb-subsection-tree-toggle {
       width:14px;
       height:14px;
@@ -10085,6 +10125,7 @@ const PatientBoard = () => {
       color:#0b5cab !important;
       display:flex;
       align-items:center;
+      cursor:pointer;
       transition:background-color .12s ease;
     }
     .pb-tab-panel--repertory .pb-reference-rubric-item + .pb-reference-rubric-item {
@@ -12223,6 +12264,34 @@ const PatientBoard = () => {
     });
   };
 
+  const handleReferenceRubricClick = (entry) => {
+    const refId = Number(entry?.refSubSectionId);
+    if (!Number.isFinite(refId)) return;
+    let ancestorId = null;
+    subSectionChildrenMap.forEach((children, parentId) => {
+      if (Array.isArray(children) && children.some((c) => Number(c?.subSectionId) === refId)) {
+        ancestorId = parentId;
+      }
+    });
+    if (ancestorId != null && !expandedSubSections.has(ancestorId)) {
+      const next = new Set(expandedSubSections);
+      next.add(ancestorId);
+      setExpandedSubSections(next);
+    }
+    handleSubSectionClick({ subSectionId: refId, subSectionName: entry?.refSubSectionName || '' });
+    if (crossRefFlashTimeoutRef.current) {
+      clearTimeout(crossRefFlashTimeoutRef.current);
+    }
+    setCrossRefFlashId(refId);
+    crossRefFlashTimeoutRef.current = setTimeout(() => setCrossRefFlashId(null), 2200);
+    setTimeout(() => {
+      const el = typeof document !== 'undefined' && document.querySelector(`[data-subsection-id="${refId}"]`);
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 300);
+  };
+
   const prefetchRubricDetails = useCallback(
     (subSectionId) => {
       if (!subSectionId) return;
@@ -12438,7 +12507,7 @@ const PatientBoard = () => {
               isSelected ? ' pb-rubric-row--repertory-subsection-selected' : ''
             }${inRepertorize ? ' pb-rubric-row--repertory-has-grade' : ''}${
               hasChildren ? ' pb-rubric-row--repertory-subsection-parent' : ' pb-rubric-row--repertory-subsection-leaf'
-            }`}
+            }${crossRefFlashId != null && crossRefFlashId === Number(item.subSectionId) ? ' pb-rubric-row--crossref-flash' : ''}`}
             data-subsection-id={item.subSectionId}
             style={{ cursor: 'pointer' }}
             onClick={(e) => {
@@ -13922,6 +13991,17 @@ const PatientBoard = () => {
                                   <div
                                     key={`ref-rubric-${entry?.refSubSectionId ?? idx}-${entry.refSubSectionName}`}
                                     className="pb-reference-rubric-item"
+                                    role="button"
+                                    tabIndex={0}
+                                    title={entry.refSubSectionName}
+                                    aria-label={`Open referenced rubric ${entry.refSubSectionName}`}
+                                    onClick={() => handleReferenceRubricClick(entry)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        handleReferenceRubricClick(entry);
+                                      }
+                                    }}
                                   >
                                     {entry.refSubSectionName}
                                   </div>

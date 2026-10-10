@@ -58,10 +58,10 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
   const clinicName = row?.clinicName ?? row?.ClinicName ?? fallback.clinicName ?? "";
   const inClinic = Number(row?.consultFeeInClinic ?? row?.ConsultFeeInClinic ?? fallback.inClinic ?? 0);
   const tele = Number(row?.consultFeeTele ?? row?.ConsultFeeTele ?? fallback.tele ?? 0);
-  const verified = Boolean(row?.verified ?? row?.Verified ?? true);
+  const verified = Boolean(row?.verified ?? row?.Verified ?? false);
   const isOnline = Boolean(row?.isOnline ?? row?.IsOnline);
   const rankingSummary = row?.rankingSummary ?? row?.RankingSummary ?? "";
-  const workingHoursNote = row?.workingHoursNote ?? row?.WorkingHoursNote ?? fallback.timings?.weekdays ?? "10:00-18:00";
+  const workingHoursNote = row?.workingHoursNote ?? row?.WorkingHoursNote ?? fallback.timings?.weekdays ?? "";
   const photoPath = row?.photoPath ?? row?.PhotoPath;
   return {
     ...fallback,
@@ -90,10 +90,10 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
     about: rankingSummary || fallback.about || `${name} is a verified homeopathy practitioner.`,
     education: qualification,
     specialtyLine: rankingSummary || "Classical homeopathy",
-    languages: fallback.languages || "Languages: English, Hindi",
+    languages: fallback.languages || "",
     timings: {
       weekdays: workingHoursNote,
-      sunday: fallback.timings?.sunday || "Closed",
+      sunday: fallback.timings?.sunday || "",
     },
     expertise: fallback.expertise || [qualification || "Homeopathy"],
     phone: fallback.phone || "",

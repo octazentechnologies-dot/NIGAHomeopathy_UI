@@ -11,7 +11,6 @@ import Select from "react-select";
 import moment from 'moment';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import { ecomWidgets } from "../../../common/data";
 import { useDispatch, useSelector } from 'react-redux';
 import { UserRole, resolveUserRole } from '../../../Components/constants/roles';
 import { openReceptionPatientRow } from '../../Reception/receptionSession';
@@ -452,74 +451,10 @@ const getAppointmentStatusFilterBucket = (status) => {
     return 'upcoming';
 };
 
-const getPatientAppointmentsSorted = (patient, appointmentList = []) => {
-    const patientId = patient?.patientID ?? patient?.patientId;
-    if (patientId == null || !Array.isArray(appointmentList) || appointmentList.length === 0) {
-        return [];
-    }
-
-    return appointmentList
-        .filter((appointment) => {
-            const appointmentPatientId = appointment?.patientID ?? appointment?.patientId;
-            return String(appointmentPatientId) === String(patientId);
-        })
-        .slice()
-        .sort((a, b) => {
-            const aDate = moment(a?.appointmentDate);
-            const bDate = moment(b?.appointmentDate);
-            const aValid = aDate.isValid();
-            const bValid = bDate.isValid();
-            if (aValid && bValid) return bDate.valueOf() - aDate.valueOf();
-            if (aValid) return -1;
-            if (bValid) return 1;
-            return 0;
-        });
-};
-
-/** Resolve last appointment date for a patient (API fields or appointment list). */
-const resolvePatientLastAppointmentDate = (patient, appointmentList = [], fallbackIndex = 0) => {
-    const candidates = [
-        patient?.lastAppointmentDate,
-        patient?.lastAppDate,
-        patient?.LastAppointmentDate,
-        patient?.appointmentDate,
-        patient?.AppointmentDate,
-    ];
-
-    for (const value of candidates) {
-        if (value && moment(value).isValid()) {
-            return moment(value).format('DD-MM-YYYY');
-        }
-    }
-
-    const matches = getPatientAppointmentsSorted(patient, appointmentList)
-        .map((appointment) => moment(appointment.appointmentDate))
-        .filter((date) => date.isValid());
-
-    if (matches.length > 0) {
-        return matches[0].format('DD-MM-YYYY');
-    }
-
-    if (patient?.enteredDate && moment(new Date(patient.enteredDate)).isValid()) {
-        return moment(patient.enteredDate).format('DD-MM-YYYY');
-    }
-
-    // Deterministic demo dates when API has no last-appointment value
-    return moment().subtract(fallbackIndex + 1, 'days').format('DD-MM-YYYY');
-};
-
-const patientMatchesAppointmentStatusFilter = (patient, appointmentList, filterValue) => {
+const appointmentMatchesStatusFilter = (appointment, filterValue) => {
     if (!filterValue || filterValue === 'all') return true;
-    const matches = getPatientAppointmentsSorted(patient, appointmentList);
-    if (matches.length === 0) return false;
-    return matches.some((appointment) => {
-        const bucket = getAppointmentStatusFilterBucket(appointment.status ?? appointment.appStatus);
-        return bucket === filterValue;
-    });
+    return getAppointmentStatusFilterBucket(appointment?.status ?? appointment?.appStatus) === filterValue;
 };
-
-/** Build a fixed consultation list: unpaidCount Unpaid + paidCount Paid rows. */
-const PAID_CONSULTATION_DEMO_AMOUNTS = [500, 750, 1000, 1200, 1500, 1800, 2000, 2500, 3000, 3500];
 
 const formatConsultationAmountDisplay = (amount) => {
     const value = Math.round(Number(amount) || 0);
@@ -529,61 +464,35 @@ const formatConsultationAmountDisplay = (amount) => {
     })}`;
 };
 
-const buildConsultationPaymentList = (
-    patientList,
-    unpaidCount,
-    paidCount,
-    appointmentList = [],
-    unpaidTotalAmount = 2400
-) => {
-    const unpaidTarget = Math.max(0, Number(unpaidCount) || 0);
-    const paidTarget = Math.max(0, Number(paidCount) || 0);
-    const totalNeeded = unpaidTarget + paidTarget;
-    const source = Array.isArray(patientList) ? [...patientList] : [];
-    const unpaidTotal = Math.max(0, Number(unpaidTotalAmount) || 0);
-    const unpaidEach =
-        unpaidTarget > 0 ? Math.floor(unpaidTotal / unpaidTarget) : 0;
+const consultationPaymentLabel = (appointment) => {
+    const raw = String(appointment?.paymentStatus || appointment?.PaymentStatus || 'UNPAID').trim().toUpperCase();
+    if (raw === 'PAID') return 'Paid';
+    if (raw === 'REFUNDED') return 'Refunded';
+    return 'Unpaid';
+};
 
-    while (source.length < totalNeeded) {
-        const index = source.length;
-        source.push({
-            patientID: `consultation-demo-${index + 1}`,
-            patientName: `Patient ${index + 1}`,
-            mobileNo: '—',
-            address: '—',
-            gender: index % 2,
-            enteredDate: null,
-            dateOfBirth: null,
-        });
-    }
-
-    const withStatus = (patient, status, index, amount) => ({
-        ...patient,
-        consultationPaymentStatus: status,
-        lastAppDt: resolvePatientLastAppointmentDate(patient, appointmentList, index),
-        consultationAmount: amount,
+/** One row per appointment in the list, with its real payment status and consultation fee. */
+const buildConsultationPaymentList = (appointmentList = [], patientList = []) => {
+    const patientsById = new Map(
+        (Array.isArray(patientList) ? patientList : []).map((p) => [String(p?.patientID ?? p?.patientId), p])
+    );
+    return (Array.isArray(appointmentList) ? appointmentList : []).map((appointment) => {
+        const patientId = appointment?.patientID ?? appointment?.patientId ?? appointment?.PatientId;
+        const patient = patientsById.get(String(patientId)) || {};
+        const date = moment(appointment?.appointmentDate);
+        return {
+            ...patient,
+            ...appointment,
+            patientID: patientId,
+            patientName: appointment?.patientName || patient.patientName,
+            mobileNo: appointment?.mobileNo || patient.mobileNo,
+            address: patient.address ?? appointment?.address,
+            gender: patient.gender ?? appointment?.gender,
+            consultationPaymentStatus: consultationPaymentLabel(appointment),
+            consultationAmount: Number(appointment?.consultFee ?? appointment?.ConsultFee ?? 0) || 0,
+            lastAppDt: date.isValid() ? date.format('DD-MM-YYYY') : '-',
+        };
     });
-
-    const unpaidRows = source.slice(0, unpaidTarget).map((patient, index) => {
-        // Last unpaid row absorbs remainder so unpaid amounts always sum to unpaidTotal (e.g. ₹2,400)
-        const amount =
-            index === unpaidTarget - 1
-                ? unpaidTotal - unpaidEach * (unpaidTarget - 1)
-                : unpaidEach;
-        return withStatus(patient, 'Unpaid', index, amount);
-    });
-    const paidRows = source
-        .slice(unpaidTarget, unpaidTarget + paidTarget)
-        .map((patient, index) =>
-            withStatus(
-                patient,
-                'Paid',
-                unpaidTarget + index,
-                PAID_CONSULTATION_DEMO_AMOUNTS[index % PAID_CONSULTATION_DEMO_AMOUNTS.length]
-            )
-        );
-
-    return [...unpaidRows, ...paidRows];
 };
 
 /** react-select inside Bootstrap modals: menu must portal above modal (z-index ~1055). */
@@ -1482,7 +1391,7 @@ const AppointmentListModal = ({ isOpen, toggle }) => {
 };
 
 // Unpaid consultation patient list (same layout as Patients; Status instead of Action)
-const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unpaidAmount = 2400 }) => {
+const BillingListModal = ({ isOpen, toggle }) => {
     const dispatch = useDispatch();
     const patientList = useSelector((state) => state?.DoctorDashboard?.patientList) || [];
     const appointmentList = useSelector((state) => state?.DoctorDashboard?.appointmentList) || [];
@@ -1510,12 +1419,14 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
     }, [isOpen, dispatch]);
 
     const patientsWithStatus = useMemo(
-        () => buildConsultationPaymentList(patientList, unpaidCount, paidCount, appointmentList, unpaidAmount),
-        [patientList, unpaidCount, paidCount, appointmentList, unpaidAmount]
+        () => buildConsultationPaymentList(appointmentList, patientList),
+        [patientList, appointmentList]
     );
+    const paidCount = patientsWithStatus.filter((row) => row.consultationPaymentStatus === 'Paid').length;
+    const unpaidCount = patientsWithStatus.filter((row) => row.consultationPaymentStatus === 'Unpaid').length;
 
     const filtered = patientsWithStatus.filter((patient) => {
-        if (!patientMatchesAppointmentStatusFilter(patient, appointmentList, appointmentStatusFilter)) {
+        if (!appointmentMatchesStatusFilter(patient, appointmentStatusFilter)) {
             return false;
         }
 
@@ -1602,7 +1513,7 @@ const BillingListModal = ({ isOpen, toggle, unpaidCount = 3, paidCount = 10, unp
                             ) : (
                                 <>
                                     {pageItems.map((patient, index) => (
-                                        <tr key={patient.patientID || `unpaid-${startIndex + index}`}>
+                                        <tr key={patient.patientAppId || patient.patientAppID || `unpaid-${startIndex + index}`}>
                                             <td className="text-center patient-list-modal__index">{startIndex + index + 1}</td>
                                             <td>
                                                 <PatientListNameCell appointment={patient} />
@@ -1980,15 +1891,10 @@ const Widgets = () => {
             (sum, row) => sum + (Number(row.consultFee ?? row.ConsultFee ?? 0) || 0),
             0
         );
-        const paid = rows.filter((row) => {
-            const raw = String(row.paymentStatus || row.PaymentStatus || "").trim().toUpperCase();
-            return raw === "PAID";
-        }).length;
-        return { unpaidCount: unpaid.length, unpaidAmount: amount, paidCount: paid };
+        return { unpaidCount: unpaid.length, unpaidAmount: amount };
     }, [appointmentList]);
     const unpaidConsultationAmount = liveUnpaid.unpaidAmount;
     const unpaidConsultationCount = liveUnpaid.unpaidCount;
-    const paidConsultationCount = liveUnpaid.paidCount;
     const appointmentListLoading = useSelector((state) => state?.DoctorDashboard?.appointmentListLoading);
     const orderSuccess = useSelector((state) => state?.DoctorDashboard?.orderSuccess);
     const subscriptionSuccess = useSelector((state) => state?.DoctorDashboard?.subscriptionSuccess);
@@ -2379,12 +2285,10 @@ const Widgets = () => {
 
     // Patient validation schema
     const patientValidationSchema = Yup.object().shape({
-        firstName: Yup.string()
-            .required('First name is required')
-            .min(2, 'First name must be at least 2 characters'),
-        lastName: Yup.string()
-            .required('Last name is required')
-            .min(2, 'Last name must be at least 2 characters'),
+        patientName: Yup.string()
+            .trim()
+            .required('Patient name is required')
+            .min(2, 'Patient name must be at least 2 characters'),
         gender: Yup.number()
             .required('Gender is required')
             .oneOf([0, 1], 'Please select a valid gender'),
@@ -2400,18 +2304,38 @@ const Widgets = () => {
             }),
         mobileNo: Yup.string()
             .required('Mobile number is required')
-            .matches(/^[0-9]{10}$/, 'Mobile number must be exactly 10 digits'),
+            .matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number.'),
+        phoneNo: Yup.string()
+            .test('valid-phone', 'Please enter a valid phone number.', (value) => {
+                const digits = String(value || '').replace(/[\s\-()+]/g, '');
+                if (!digits) return true;
+                return /^[0-9]{7,15}$/.test(digits);
+            }),
         address: Yup.string()
+            .trim()
             .required('Address is required')
-            .min(5, 'Address must be at least 5 characters'),
+            .min(5, 'Address must be at least 5 characters')
+            .test('meaningful-address', 'Please enter a valid address.', (value) => {
+                const v = String(value || '').trim();
+                if (!v) return true;
+                if (!/[A-Za-z0-9]/.test(v)) return false;
+                return /^[A-Za-z0-9\s/\-,.#]+$/.test(v);
+            }),
         countryId: Yup.number()
             .required('Country is required'),
         stateId: Yup.number()
             .required('State is required'),
         email: Yup.string()
-            .email('Invalid email format')
+            .email('Please enter a valid email address.')
             .optional(),
         refBy: Yup.string()
+            .test('valid-reference', 'Please enter a valid reference name.', (value) => {
+                const v = String(value || '').trim();
+                if (!v) return true;
+                if (v.length < 2) return false;
+                if (!/[A-Za-z0-9]/.test(v)) return false;
+                return /^[A-Za-z0-9\s.,'&\-()/#]+$/.test(v);
+            })
             .optional()
     });
 
@@ -2423,8 +2347,7 @@ const Widgets = () => {
     }), [prefilledAppointmentPatient]);
 
     const patientInitialValues = {
-        firstName: '',
-        lastName: '',
+        patientName: '',
         gender: 0,
         dateOfBirth: '',
         mobileNo: '',
@@ -2521,7 +2444,7 @@ const Widgets = () => {
     };
 
     // Handle patient form submission
-    const handlePatientSubmit = async (values, { setSubmitting, resetForm }) => {
+    const handlePatientSubmit = async (values, { setSubmitting, resetForm, setFieldError, setFieldTouched }) => {
         console.log("handlePatientSubmit called with values:", values);
         const auth = JSON.parse(sessionStorage.getItem('authUser'));
         const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
@@ -2536,12 +2459,12 @@ const Widgets = () => {
             loggedInUser: parseInt(loggedInUser, 10) || 0,
             doctorID: parseInt(clinicDoctorId, 10) || 0,
             patientID: 0,
-            patientName: `${values.firstName} ${values.lastName}`.trim(),
+            patientName: values.patientName.trim(),
             address: values.address,
             stateId: values.stateId,
             countryId: values.countryId,
             mobileNo: values.mobileNo,
-            phoneNo: values.phoneNo || "string",
+            phoneNo: values.phoneNo?.trim() || "",
             dateOfBirth: formattedDateOfBirth,
             gender: parseInt(values.gender),
             enteredBy: auth?.userName || auth?.user?.userName || "USER",
@@ -2549,7 +2472,7 @@ const Widgets = () => {
             userId: parseInt(userId),
             deleteStatus: false,
             dateodFirstVisit: now.toISOString(),
-            refBy: values.refBy || "string",
+            refBy: values.refBy?.trim() || "",
             IsWhatsAppOptIn: isWhatsAppOptIn,
             WhatsAppOptInDate: isWhatsAppOptIn ? now.toISOString() : null,
         };
@@ -2594,6 +2517,15 @@ const Widgets = () => {
 
         } catch (error) {
             console.log("Error creating patient: ", error);
+            const backendFieldErrors =
+                error && typeof error === "object" ? error.fieldErrors || {} : {};
+            const backendKeys = Object.keys(backendFieldErrors);
+            if (backendKeys.length > 0 && setFieldError && setFieldTouched) {
+                backendKeys.forEach((field) => {
+                    setFieldError(field, backendFieldErrors[field]);
+                    setFieldTouched(field, true, false);
+                });
+            }
         } finally {
             setSubmitting(false);
         }
@@ -3276,9 +3208,6 @@ const Widgets = () => {
             <BillingListModal
                 isOpen={modal_billingList}
                 toggle={tog_billingList}
-                unpaidCount={unpaidConsultationCount}
-                paidCount={paidConsultationCount}
-                unpaidAmount={unpaidConsultationAmount}
             />
             <SubscriptionExpirationModal
                 isOpen={modal_subscriptionExpiration}
@@ -3432,35 +3361,20 @@ const Widgets = () => {
                                 )}
                                 <Form>
                                 <div className="row g-2 new-patient-modal__fields">
-                                    <div className="col-md-4 new-patient-modal__field">
+                                    <div className="col-md-8 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-user-line" aria-hidden="true" />
-                                            First Name <span className="text-danger">*</span>
+                                            Patient Name <span className="text-danger">*</span>
                                         </Label>
                                         <Input
-                                            name="firstName"
-                                            placeholder="Enter first name"
-                                            value={values.firstName}
+                                            name="patientName"
+                                            placeholder="Enter patient name"
+                                            value={values.patientName}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
-                                            className={errors.firstName && touched.firstName ? 'is-invalid' : ''}
+                                            className={errors.patientName && touched.patientName ? 'is-invalid' : ''}
                                         />
-                                        {renderNewPatientFieldError(Boolean(errors.firstName && touched.firstName), errors.firstName)}
-                                    </div>
-                                    <div className="col-md-4 new-patient-modal__field">
-                                        <Label className="form-label new-patient-modal__label">
-                                            <i className="ri-user-3-line" aria-hidden="true" />
-                                            Last Name <span className="text-danger">*</span>
-                                        </Label>
-                                        <Input
-                                            name="lastName"
-                                            placeholder="Enter last name"
-                                            value={values.lastName}
-                                            onChange={handleChange}
-                                            onBlur={handleBlur}
-                                            className={errors.lastName && touched.lastName ? 'is-invalid' : ''}
-                                        />
-                                        {renderNewPatientFieldError(Boolean(errors.lastName && touched.lastName), errors.lastName)}
+                                        {renderNewPatientFieldError(Boolean(errors.patientName && touched.patientName), errors.patientName)}
                                     </div>
                                     <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
@@ -3623,7 +3537,9 @@ const Widgets = () => {
                                             value={values.phoneNo}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
+                                            className={errors.phoneNo && touched.phoneNo ? 'is-invalid' : ''}
                                         />
+                                        {renderNewPatientFieldError(Boolean(errors.phoneNo && touched.phoneNo), errors.phoneNo)}
                                     </div>
                                     <div className="col-md-4 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
@@ -3652,7 +3568,9 @@ const Widgets = () => {
                                             value={values.refBy}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
+                                            className={errors.refBy && touched.refBy ? 'is-invalid' : ''}
                                         />
+                                        {renderNewPatientFieldError(Boolean(errors.refBy && touched.refBy), errors.refBy)}
                                     </div>
 
                                     <div className="col-12">

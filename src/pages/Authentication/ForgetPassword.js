@@ -121,10 +121,10 @@ const ForgetPasswordPage = props => {
         <Container>
           <Row className="justify-content-center">
             <Col md={8} lg={6} xl={5}>
-              <Card className="mt-4 auth-signin-card">
+              <Card className="mt-3 mb-3 auth-signin-card">
 
                 <CardBody className="p-4">
-                  <div className="text-center mt-2">
+                  <div className="text-center">
                     <img src={logoDark} alt="Homeocentrum" className="auth-signin-logo mb-3" height="38" />
                     <h5 className="text-primary mb-0">Forgot Password?</h5>
 
@@ -133,7 +133,7 @@ const ForgetPasswordPage = props => {
                       trigger="loop"
                       colors="primary:#1e88e5"
                       className="avatar-xl"
-                      style={{ width: "120px", height: "120px" }}
+                      style={{ width: "80px", height: "80px" }}
                     >
                     </lord-icon>
 

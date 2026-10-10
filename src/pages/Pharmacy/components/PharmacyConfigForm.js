@@ -1,14 +1,9 @@
 import React, { useEffect, useState } from "react";
 import moment from "moment";
 
-import { s4Message, savePharmacyRouting } from "../../../helpers/s4Week4Api";
-import {
-  WEEK_DAYS,
-  formatConfigTime,
-  pharmacyConfigFor,
-  readPharmacyConfigs,
-  writePharmacyConfig,
-} from "../pharmacyConfigStore";
+import { s4Message } from "../../../helpers/s4Week4Api";
+import { savePharmacyConfig } from "../../../helpers/s5Week5Api";
+import { EMPTY_PHARMACY_CONFIG, WEEK_DAYS, formatConfigTime, loadPharmacyConfig } from "../pharmacyConfigStore";
 import "./pharmacyConfigForm.css";
 
 const splitAreas = (raw) =>
@@ -18,18 +13,40 @@ const splitAreas = (raw) =>
     .filter(Boolean);
 
 /** Operating hours, working days, service areas, delivery charges and capacity for one pharmacy partner. */
-const PharmacyConfigForm = ({ partner, onSaved, onError, disabled = false }) => {
-  const [config, setConfig] = useState(() => pharmacyConfigFor(partner));
+const PharmacyConfigForm = ({ partner, onSaved, onLoaded, onError, disabled = false }) => {
+  const [config, setConfig] = useState(EMPTY_PHARMACY_CONFIG);
+  const [loaded, setLoaded] = useState(EMPTY_PHARMACY_CONFIG);
+  const [loading, setLoading] = useState(false);
   const [areaDraft, setAreaDraft] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState(null);
 
   useEffect(() => {
-    setConfig(pharmacyConfigFor(partner));
-    setSavedAt(partner ? readPharmacyConfigs()[partner.id]?.savedAt || null : null);
+    let cancelled = false;
     setAreaDraft("");
     setFormError("");
+    if (!partner?.id) {
+      setConfig(EMPTY_PHARMACY_CONFIG);
+      setLoaded(EMPTY_PHARMACY_CONFIG);
+      return undefined;
+    }
+    setLoading(true);
+    loadPharmacyConfig(partner)
+      .then((next) => {
+        if (cancelled) return;
+        setConfig(next);
+        setLoaded(next);
+        if (onLoaded) onLoaded(next);
+      })
+      .catch((err) => {
+        if (!cancelled) setFormError(s4Message(err) || "Configuration could not be loaded.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [partner?.id]);
 
   const update = (patch) => {
@@ -87,25 +104,19 @@ const PharmacyConfigForm = ({ partner, onSaved, onError, disabled = false }) => 
     }
     setSaving(true);
     try {
-      if (!partner.sample) {
-        await Promise.all(
-          areas.map((area) =>
-            savePharmacyRouting({
-              pharmacyPartnerId: Number(partner.id),
-              area,
-              openTime: config.openTime,
-              closeTime: config.closeTime,
-              capacity: Number(config.capacity),
-            })
-          )
-        );
-      }
-      const stamp = new Date().toISOString();
-      const next = { ...config, areas, savedAt: stamp };
-      writePharmacyConfig(partner.id, next);
+      const response = await savePharmacyConfig(partner.id, {
+        openTime: config.openTime,
+        closeTime: config.closeTime,
+        days: config.days,
+        areas,
+        deliveryCharge: Number(config.deliveryCharge),
+        freeAbove: config.freeAbove === "" ? null : Number(config.freeAbove),
+        capacity: Number(config.capacity),
+      });
+      const next = { ...config, areas, configured: true, updatedAt: response?.updatedAt || new Date().toISOString() };
       setConfig(next);
+      setLoaded(next);
       setAreaDraft("");
-      setSavedAt(stamp);
       if (onSaved) onSaved(next);
     } catch (err) {
       if (onError) onError(s4Message(err));
@@ -115,7 +126,7 @@ const PharmacyConfigForm = ({ partner, onSaved, onError, disabled = false }) => 
     }
   };
 
-  const locked = disabled || saving || !partner;
+  const locked = disabled || saving || loading || !partner;
 
   return (
     <div className="phc-config">
@@ -264,14 +275,22 @@ const PharmacyConfigForm = ({ partner, onSaved, onError, disabled = false }) => 
       {formError ? <p className="phc-config__error">{formError}</p> : null}
 
       <div className="phc-config__footer">
-        <span className="phc-config__saved">{savedAt ? `Last saved ${moment(savedAt).fromNow()}` : ""}</span>
+        <span className="phc-config__saved">
+          {loading
+            ? "Loading configuration…"
+            : config.updatedAt
+              ? `Last saved ${moment(config.updatedAt).fromNow()}`
+              : config.configured
+                ? ""
+                : "Not configured yet"}
+        </span>
         <div>
           <button
             type="button"
             className="phc-config__btn phc-config__btn--ghost"
             disabled={locked}
             onClick={() => {
-              setConfig(pharmacyConfigFor(partner));
+              setConfig(loaded);
               setAreaDraft("");
               setFormError("");
             }}

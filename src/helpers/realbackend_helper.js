@@ -84,16 +84,6 @@ export const getRegistrationPinCodes = async (cityId) =>
     await nigahomeoAPI.get(url.REGISTRATION_PINCODES_BY_CITY(cityId), null)
   );
 
-export const getRegistrationDistricts = async (stateId) =>
-  unwrapRegistrationList(
-    await nigahomeoAPI.get(url.REGISTRATION_DISTRICTS, stateId ? { stateId } : null)
-  );
-
-export const getRegistrationCities = async (districtId) =>
-  unwrapRegistrationList(
-    await nigahomeoAPI.get(url.REGISTRATION_CITIES, districtId ? { districtId } : null)
-  );
-
 export const getRegistrationQualifications = async () => {
   try {
     const list = unwrapRegistrationList(await nigahomeoAPI.get(url.REGISTRATION_QUALIFICATIONS, null));
@@ -659,7 +649,7 @@ export const getAppointmentListByPatientId = data => {
 };
 export const getPrescriptionDetailsByAppointmentId = data =>
   nigahomeoAPI.get(`${url.GET_PRESCRIPTION_DETAILS_BY_APPOINTMENT_ID}?AppointmentId=${data.appointmentId}`, null);
-export const createPatient = data => nigahomeoAPI.post(url.CREATE_PATIENT, data);
+export const createPatient = (data, config) => nigahomeoAPI.post(url.CREATE_PATIENT, { ...data, EntityType: "Web" }, config);
 export const deletePatient = data =>
   nigahomeoAPI.post(
     `${url.DELETE_PATIENT}?patientId=${data.patientId ?? data.patientID}`,
