@@ -22,8 +22,7 @@ export const getPatientAuthContext = () => {
     return { auth, userId, userName };
 };
 
-/** Email for edit form: prefer `mail` from /doctorDashBoard, then other patient fields. */
-export const getPatientEmailForEdit = (patient, appointmentList = []) => {
+/** Email for edit form: prefer `mail` from /doctorDashBoard, then other patient fields. */export const getPatientEmailForEdit = (patient, appointmentList = []) => {
     if (!patient) return '';
 
     const fromRecord = patient.mail || patient.email || patient.emailId;
@@ -95,4 +94,69 @@ export const buildPatientApiPayload = ({ patient = {}, form = {}, isCreate = fal
         age,
         mail: form.email ?? form.mail ?? patient.mail ?? patient.email ?? 'string',
     };
+};
+
+/**
+ * Map backend validation keys (case-insensitive) to Create Patient form fields.
+ * Returns `{ formField: message }` with the first message per field, or `{}`.
+ */
+const PATIENT_BACKEND_FIELD_MAP = [
+    [/^(mobile_?no|mobile_?number|mobile)$/, 'mobileNo'],
+    [/^(phone_?no|phone|phone_?number|alternate_?phone|additional_?phone)$/, 'phoneNo'],
+    [/^(e?mail(_?id|_?address)?|mail)$/, 'email'],
+    [/^(ref_?by|reference(_?by)?|referred_?by)$/, 'refBy'],
+    [/^(patient_?name|full_?name|name)$/, 'patientName'],
+    [/^address$/, 'address'],
+    [/^(date_?of_?birth|dob|birth_?date)$/, 'dateOfBirth'],
+    [/^(gender|sex)$/, 'gender'],
+    [/^(country_?id|country)$/, 'countryId'],
+    [/^(state_?id|state)$/, 'stateId'],
+];
+
+const normalizeBackendKey = (key) => String(key || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const firstMessage = (value) => {
+    if (Array.isArray(value)) {
+        const first = value.find((v) => v != null && String(v).trim() !== '');
+        return first == null ? '' : String(first).trim();
+    }
+    if (value != null && typeof value === 'object') {
+        return firstMessage(value.message ?? value.Message ?? Object.values(value)[0]);
+    }
+    return String(value ?? '').trim();
+};
+
+export const extractPatientFieldErrors = (body) => {
+    if (!body || typeof body !== 'object') return {};
+    const raw =
+        body.errors ?? body.Errors ??
+        body.fieldErrors ?? body.FieldErrors ??
+        body.validationErrors ?? body.ValidationErrors ?? null;
+    const entries = Array.isArray(raw)
+        ? raw.map((e) => [e?.field ?? e?.Field ?? e?.key ?? e?.Key, e?.message ?? e?.Message ?? e])
+        : (raw && typeof raw === 'object' ? Object.entries(raw) : []);
+    const mapped = {};
+    entries.forEach(([key, value]) => {
+        const normalized = normalizeBackendKey(key);
+        if (!normalized) return;
+        const match = PATIENT_BACKEND_FIELD_MAP.find(([pattern]) => pattern.test(normalized));
+        if (!match || mapped[match[1]]) return;
+        const message = firstMessage(value);
+        if (message) mapped[match[1]] = message;
+    });
+    return mapped;
+};
+
+const TECHNICAL_ERROR_PATTERN = /inner exception|entity changes|entity framework|sql|stack trace|at\s+[\w.]+\(|null ?reference|object reference|unhandled|500|timed out/i;
+
+/** Never show raw technical text: fall back to a user-friendly save message. */
+export const sanitizePatientSaveMessage = (message, hasFieldErrors = false) => {
+    const text = String(message || '').trim();
+    if (hasFieldErrors && (!text || TECHNICAL_ERROR_PATTERN.test(text))) {
+        return 'Could not save the patient. Please check the highlighted fields and try again.';
+    }
+    if (!text || TECHNICAL_ERROR_PATTERN.test(text)) {
+        return 'Could not save the patient. Please check the details and try again.';
+    }
+    return text;
 };
