@@ -1,5 +1,4 @@
 // Homeocentrum UI API hosts.
-// Keep exactly one module.exports block active. Comment out the other two.
 
 module.exports = {
   api: {
