@@ -12,7 +12,7 @@ const SELECT_COLOR = new THREE.Color("#007BFF");
 const SELECT_EMISSIVE = new THREE.Color("#3399FF");
 const BASE_EMISSIVE = new THREE.Color("#000000");
 
-/** Hover uses Velzon primary (same family as toolbar / fullscreen); softened for light UI */
+/** Hover uses the theme primary (same family as toolbar / fullscreen); softened for light UI */
 const THEME_PRIMARY_FALLBACK = "#800020";
 const HOVER_EMISSIVE_INTENSITY = 0.58;
 const SELECT_EMISSIVE_INTENSITY = 1.1;

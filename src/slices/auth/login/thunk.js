@@ -1,11 +1,4 @@
-//Include Both Helper File with needed methods
 import { getFirebaseBackend } from "../../../helpers/firebase_helper";
-import {
-  postFakeLogin,
-  postJwtLogin,
-  postSocialLogin,
-} from "../../../helpers/fakebackend_helper";
-
 import { loginSuccess, logoutUserSuccess, apiError, reset_login_flag, loginLoading, updateSubscriptionStatus } from './reducer';
 import { clearPatientBoardSession } from '../../doctor/patientBoardSession/reducer';
 import { clearPatientBoardBackupSummary } from '../../doctor/patientBoardBackup/reducer';
@@ -17,30 +10,8 @@ import { changeLayout, changeSidebarVisibility } from '../../../slices/thunks';
 import { layoutTypes, sidebarVisibilitytypes } from '../../../Components/constants/layout';
 import { clearSignedOut, markSignedOut } from '../../../helpers/signedOutHistory';
 
-// const fireBaseBackend = getFirebaseBackend();
-
 export const loginUser = (user, history) => async (dispatch) => {
   try {
-    /* if (process.env.REACT_APP_DEFAULTAUTH === "firebase") {
-      let fireBaseBackend = getFirebaseBackend();
-      response = fireBaseBackend.loginUser(
-        user.email,
-        user.password
-      );
-    } else if (process.env.REACT_APP_DEFAULTAUTH === "jwt") {
-      response = postJwtLogin({
-        email: user.email,
-        password: user.password
-      });
-
-    } else if (process.env.REACT_APP_API_URL) {
-      response = postFakeLogin({
-        email: user.email,
-        password: user.password,
-      });
-    } */
-
-    console.log("user :", user);
     dispatch(loginLoading(true));
 
     const response = await loginApi(user);
@@ -131,7 +102,7 @@ export const logoutUser = () => async (dispatch) => {
       const { logoutApi } = await import("../../../helpers/realbackend_helper");
       await logoutApi();
     } catch {
-      // Best-effort Old-API + New-API revoke (SEC-03.01)
+      // Best-effort API revoke (SEC-03.01)
     }
     markSignedOut();
     document.body.classList.remove('admin-layout', 'doctor-layout', 'admin-forms-ui', 'admin-dashboard-route', 'admin-mobile-topbar');
@@ -158,9 +129,6 @@ export const socialLogin = (type, history) => async (dispatch) => {
       const fireBaseBackend = getFirebaseBackend();
       response = fireBaseBackend.socialLoginUser(type);
     }
-    //  else {
-    //   response = postSocialLogin(data);
-    // }
 
     const socialdata = await response;
     if (socialdata) {

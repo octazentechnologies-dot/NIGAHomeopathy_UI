@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { deleteQualification, getQualificationList } from '../../../../slices/admin/qualifications/thunk';
 import { setQualificationError, setQualificationSuccess } from '../../../../slices/admin/qualifications/reducer';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListQualification = () => {
   const dispatch = useDispatch();
@@ -13,7 +14,7 @@ const ListQualification = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const loading = useSelector((state) => state?.Qualification?.qualificationLoading || false);
-  const qualifications = useSelector((state) => state?.Qualification?.qualificationList || []);
+  const qualifications = useSelector((state) => state?.Qualification?.qualificationList) || [];
   const success = useSelector((state) => state?.Qualification?.qualificationSuccess);
   const error = useSelector((state) => state?.Qualification?.qualificationError);
 
@@ -78,11 +79,11 @@ const ListQualification = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

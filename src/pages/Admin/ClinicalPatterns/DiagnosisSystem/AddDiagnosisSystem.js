@@ -9,7 +9,7 @@ import { setDiagnosisSystemError, setDiagnosisSystemSuccess } from '../../../../
 
 const AddDiagnosisSystem = () => {
   const dispatch = useDispatch();
-  const { diagnosisSystemSuccess, diagnosisSystemError } = useSelector((state) => state?.DiagnosisSystem || {});
+  const { diagnosisSystemSuccess, diagnosisSystemError } = useSelector((state) => state?.DiagnosisSystem) || {};
 
   const formik = useFormik({
     enableReinitialize: true,

@@ -6,6 +6,7 @@ import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateQuestionSection } from '../../../../slices/admin/existance/thunk';
 import { setExistanceSuccess, setExistanceError } from '../../../../slices/admin/existance/reducer';
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 const EditExistance = () => {
   const location = useLocation();
@@ -29,7 +30,7 @@ const EditExistance = () => {
         questionSectionId: values.questionSectionId,
         questionSectionName: values.questionSectionName,
         description: values.description,
-        enteredBy: 'Admin',
+        enteredBy: getAuditUserName(),
         deleteStatus: false,
       }));
     },

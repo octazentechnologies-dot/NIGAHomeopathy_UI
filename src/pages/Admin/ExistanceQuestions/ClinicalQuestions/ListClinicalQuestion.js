@@ -11,6 +11,7 @@ import {
   getClinicalQuestionBodyPart,
   deleteClinicalQuestionBodyPart,
 } from '../../../../slices/thunks';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const renderAdminListPagination = ({ currentPage, totalPages, onPrev, onNext, onPage }) => (
   <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
@@ -71,14 +72,14 @@ const ClinicalQuestionList = () => {
   const clinicalQuestionsLoading = useSelector(
     (state) => state?.ClinicalQuestions?.clinicalQuestionsLoading || false
   );
-  const clinicalQuestions = useSelector((state) => state?.ClinicalQuestions?.questions || []);
+  const clinicalQuestions = useSelector((state) => state?.ClinicalQuestions?.questions) || [];
   const rows = clinicalQuestions?.resultObject || [];
   const totalPages = useSelector((state) => state?.ClinicalQuestions?.questions?.totalPageCount || 1);
   const totalRecords = useSelector(
     (state) => state?.ClinicalQuestions?.questions?.totalRecordCount || rows.length || 0
   );
-  const questionGroups = useSelector((state) => state?.ClinicalQuestions?.questionGroups || []);
-  const questionSubGroups = useSelector((state) => state?.ClinicalQuestions?.questionSubGroups || []);
+  const questionGroups = useSelector((state) => state?.ClinicalQuestions?.questionGroups) || [];
+  const questionSubGroups = useSelector((state) => state?.ClinicalQuestions?.questionSubGroups) || [];
 
   const questionGroupOptions = useMemo(
     () => questionGroups.map((group) => ({ value: group.questionGroupId, label: group.questionGroupName })),
@@ -238,11 +239,11 @@ const ClinicalQuestionList = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

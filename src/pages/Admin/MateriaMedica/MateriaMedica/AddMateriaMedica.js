@@ -12,8 +12,6 @@ import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
 // Formik Validation
 import * as Yup from "yup";
 import { useFormik } from "formik";
-import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 //redux
 import { useSelector, useDispatch } from "react-redux";
 import { getAuthorsForMateriaMedicaDDL, getRemedyDDL, getMateriaMedicaHeadByAuthorId, createMateriaMedica } from '../../../../slices/thunks';
@@ -34,10 +32,10 @@ const AddMateriaMedica = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   // Redux state
-  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors || []);
-  const remedies = useSelector((state) => state?.MateriaMedica.matriaMedicaRemediesDDL || []);
-  const heads = useSelector((state) => state?.MateriaMedica.materiaMedicaHeads || []);
-  const { materiaMedicaSuccess, materiaMedicaError } = useSelector((state) => state?.MateriaMedica || {});
+  const authors = useSelector((state) => state?.MateriaMedica?.materiaMedicaAuthors) || [];
+  const remedies = useSelector((state) => state?.MateriaMedica.matriaMedicaRemediesDDL) || [];
+  const heads = useSelector((state) => state?.MateriaMedica.materiaMedicaHeads) || [];
+  const { materiaMedicaSuccess, materiaMedicaError } = useSelector((state) => state?.MateriaMedica) || {};
 
   const { quillRef } = useQuill();
 

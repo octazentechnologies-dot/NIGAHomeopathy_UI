@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getQuestionSections, deleteQuestionSection } from '../../../../slices/admin/existance/thunk';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListExistance = () => {
   const dispatch = useDispatch();
@@ -23,7 +24,7 @@ const ListExistance = () => {
   const [questionSectionToDelete, setQuestionSectionToDelete] = useState(null);
 
   const questionSectionLoading = useSelector((state) => state?.Existance?.loading || false);
-  const questionSections = useSelector((state) => state?.Existance?.questionSections?.resultObject || []);
+  const questionSections = useSelector((state) => state?.Existance?.questionSections?.resultObject) || [];
   const totalPages = useSelector((state) => state?.Existance?.questionSections?.totalPageCount || 1);
   const totalRecords = useSelector((state) => state?.Existance?.questionSections?.totalRecordCount || questionSections.length || 0);
 
@@ -91,11 +92,11 @@ const ListExistance = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

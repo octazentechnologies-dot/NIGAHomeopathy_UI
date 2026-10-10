@@ -19,8 +19,8 @@ const EditRole = () => {
   const roleId = location.state?.roleId || null;
 
   // Redux state
-  const { roleSuccess, roleError, roleLoading, selectedRole } = useSelector((state) => state?.Role || {});
-  const firmList = useSelector((state) => state?.Role?.firmList || []);
+  const { roleSuccess, roleError, roleLoading, selectedRole } = useSelector((state) => state?.Role) || {};
+  const firmList = useSelector((state) => state?.Role?.firmList) || [];
   const firmLoading = useSelector((state) => state?.Role?.firmLoading || false);
 
   // Fetch role data and firms on component mount

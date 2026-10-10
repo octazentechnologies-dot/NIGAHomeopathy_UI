@@ -16,7 +16,7 @@ const EditLanguage = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { languageSuccess, languageError } = useSelector((state) => state?.Language || {});
+  const { languageSuccess, languageError } = useSelector((state) => state?.Language) || {};
 
   const formik = useFormik({
     enableReinitialize: true,

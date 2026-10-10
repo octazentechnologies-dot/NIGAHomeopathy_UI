@@ -11,7 +11,7 @@ $app-form-field-height: 1.75rem; // 28px — shared height for search + all admi
 $app-form-field-padding-y: 0.22rem;
 // Match react-select / Bootstrap $input-padding-x so text inset matches dropdowns
 $app-form-field-padding-x: 0.9rem;
-// Actual rendered topbar height (.navbar-header override); differs from Velzon $header-height (70px)
+// Actual rendered topbar height (.navbar-header override); differs from base template $header-height (70px)
 $app-topbar-height: 60px;
 // Match compacted horizontal menu-link padding (0.45rem y) + label/icon line
 $app-horizontal-nav-height: 2.05rem;
@@ -932,7 +932,7 @@ div[class*="-control"][class*="--is-multi"] {
   height: $app-topbar-height;
 }
 
-// Horizontal nav must align to actual topbar height (not Velzon $header-height 70px)
+// Horizontal nav must align to actual topbar height (not base template $header-height 70px)
 html[data-layout="horizontal"] {
   .navbar-menu {
     top: $app-topbar-height !important;
@@ -1771,7 +1771,7 @@ html:not([data-bs-theme="dark"]) {
     padding-left: 25px !important;
   }
 
-  // Velzon: .dropdownmenu-primary etc. — minimal blue text, no background fill
+  // base template: .dropdownmenu-primary etc. — minimal blue text, no background fill
   @each $state in map-keys($theme-colors) {
     .dropdownmenu-#{$state} .dropdown-item:is(:focus, :hover, .active) {
       color: $dropdown-option-active-color !important;
@@ -3039,7 +3039,7 @@ body.doctor-layout {
       transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
     }
 
-    /* Prevent Velzon .card-animate translateY from clipping rounded corners on hover */
+    /* Prevent base template .card-animate translateY from clipping rounded corners on hover */
     .doctor-kpi-card.card-animate,
     .doctor-action-card.card-animate {
       transform: none !important;
@@ -3890,7 +3890,7 @@ body.admin-layout {
     border-radius: 0 !important;
     padding-top: 0 !important;
 
-    // Mobile drawer: restore left inset (Velzon sets padding-left: 0 below 1024)
+    // Mobile drawer: restore left inset (base template sets padding-left: 0 below 1024)
     @media (max-width: 1024px) {
       padding-left: 0.85rem !important;
       padding-right: 0.85rem !important;
@@ -3914,7 +3914,7 @@ body.admin-layout {
 
         > .nav-item > .nav-link.menu-link,
         > li > .nav-link.menu-link,
-        // Override Velzon “only 2nd item gets padding” quirk
+        // Override base template “only 2nd item gets padding” quirk
         > li:nth-of-type(2) > .nav-link.menu-link {
           display: flex !important;
           align-items: center !important;
@@ -4071,7 +4071,7 @@ body.admin-layout {
           }
         }
 
-        // Undo Velzon uneven padding on 2nd item
+        // Undo base template uneven padding on 2nd item
         > li:nth-of-type(2) > .nav-link.menu-link {
           padding-left: 0.35rem !important;
         }
@@ -5342,7 +5342,7 @@ html:not([data-bs-theme="dark"]) {
   }
 }
 
-// Semibox + hidden sidebar: keep topbar flush to top (no Velzon detached top: 25px at 1440px+)
+// Semibox + hidden sidebar: keep topbar flush to top (no base template detached top: 25px at 1440px+)
 @media (min-width: 1440px) {
   [data-layout="semibox"][data-sidebar-visibility="hidden"] {
     #page-topbar {
@@ -5365,7 +5365,7 @@ html:not([data-bs-theme="dark"]) {
 @import "./components/appointment-slot-grid";
 @import "./pages/clinic-workspace";
 @import "./pages/patient-portal";
-@import "./theme/velzon-minimal";
+@import "./theme/minimal-skin";
 
 // App-wide card border radius (5px) — overrides page-specific card styles
 $app-card-radius: 5px;
@@ -5788,7 +5788,7 @@ $minimal-tab-active: #25a0e2;
 $minimal-tab-indicator-height: 2px;
 
 html:not([data-bs-theme="dark"]) {
-  // Velzon nav-tabs-custom (underline grows on active)
+  // base template nav-tabs-custom (underline grows on active)
   .nav-tabs-custom .nav-item .nav-link {
     &::after {
       background: $minimal-tab-active !important;

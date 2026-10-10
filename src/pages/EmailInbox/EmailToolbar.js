@@ -5,7 +5,7 @@ import { Col, DropdownItem, DropdownMenu, DropdownToggle, Nav, NavItem, NavLink,
 import classnames from "classnames";
 
 import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import ClassicEditor from "../../Components/Common/ClassicEditor";
 import FeatherIcon from 'feather-icons-react';
 import DeleteModal from '../../Components/Common/DeleteModal';
 //SimpleBar

@@ -1,5 +1,6 @@
 import { getAuthDoctorId } from "../../helpers/appointmentSlotHelper";
 import { getReceptionPatientOpen } from "../../helpers/realbackend_helper";
+import { navigateHidden } from "../../helpers/hiddenRouteParams";
 
 export const readReceptionDoctorId = () => {
   const direct = getAuthDoctorId();
@@ -24,7 +25,7 @@ export const openReceptionPatientRow = async (patientId, navigate) => {
   const id = Number(patientId);
   const fallback = id ? `/reception/case-paper?patientId=${id}` : "/reception/case-paper";
   if (!id) {
-    navigate(fallback);
+    navigateHidden(navigate, fallback);
     return;
   }
   try {
@@ -33,12 +34,12 @@ export const openReceptionPatientRow = async (patientId, navigate) => {
     const path = String(data.path || data.Path || "");
     const destination = String(data.destination || data.Destination || "").toLowerCase();
     if (!path || /patientboard|repertor/i.test(path) || destination === "repertory") {
-      navigate(fallback);
+      navigateHidden(navigate, fallback);
       return;
     }
-    navigate(path);
+    navigateHidden(navigate, path);
   } catch {
-    navigate(fallback);
+    navigateHidden(navigate, fallback);
   }
 };
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Input, Label, Row, Button, UncontrolledAlert } from 'reactstrap';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import { getBlogDetailById, saveBlogDetail } from '../../../../slices/admin/blog/thunk';
@@ -21,12 +21,14 @@ const EditBlog = () => {
   document.title = "Edit Blog";
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { id } = useParams();
+  const location = useLocation();
+  const params = useParams();
+  const id = location.state?.blogId ?? params.id;
 
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
   const selectedBlog = useSelector((state) => state?.Blog?.selectedBlog || null);
   const selectedBlogLoading = useSelector((state) => state?.Blog?.selectedBlogLoading || false);
-  const { blogDetailsSuccess, blogDetailsError, blogDetailsLoading } = useSelector((state) => state?.Blog || {});
+  const { blogDetailsSuccess, blogDetailsError, blogDetailsLoading } = useSelector((state) => state?.Blog) || {};
 
   // Create an empty editor state
   const [editorState, setEditorState] = useState(() => {

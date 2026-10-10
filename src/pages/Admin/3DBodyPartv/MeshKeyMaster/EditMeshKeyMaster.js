@@ -29,8 +29,8 @@ const EditMeshKeyMaster = () => {
   const selected = location.state?.selectedMeshKey || {};
   const userDetails = JSON.parse(sessionStorage.getItem("authUser"));
   const { meshKeyMasterSuccess, meshKeyMasterError } = useSelector(
-    (state) => state?.MeshKeyMaster || {}
-  );
+    (state) => state?.MeshKeyMaster
+  ) || {};
 
   const formik = useFormik({
     enableReinitialize: true,

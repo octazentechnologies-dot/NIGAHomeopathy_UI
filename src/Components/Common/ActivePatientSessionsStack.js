@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { UncontrolledTooltip } from 'reactstrap';
+import { HiddenLink } from '../../helpers/hiddenRouteParams';
 import { useSelector } from 'react-redux';
 import {
   getPatientAvatarColor,
@@ -9,7 +9,7 @@ import {
 } from '../../helpers/patientBoardSessionHelper';
 
 const ActivePatientSessionsStack = () => {
-  const sessions = useSelector((state) => state?.PatientBoardSession?.sessions ?? []);
+  const sessions = useSelector((state) => state?.PatientBoardSession?.sessions) ?? [];
   const activePatientKey = useSelector((state) => state?.PatientBoardSession?.activePatientKey);
 
   const sortedSessions = useMemo(() => {
@@ -38,7 +38,7 @@ const ActivePatientSessionsStack = () => {
 
           return (
             <React.Fragment key={session.patientKey || index}>
-              <Link
+              <HiddenLink
                 to={session.resumePath || '/doctor/patientboard'}
                 id={tooltipId}
                 className={`active-patient-sessions-stack__avatar${isActive ? ' is-active' : ''}`}
@@ -46,7 +46,7 @@ const ActivePatientSessionsStack = () => {
                 aria-label={`Open patient board for ${displayName}`}
               >
                 <span>{initials}</span>
-              </Link>
+              </HiddenLink>
               <UncontrolledTooltip placement="bottom" target={tooltipId}>
                 {displayName}
               </UncontrolledTooltip>

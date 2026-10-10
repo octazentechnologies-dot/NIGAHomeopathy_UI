@@ -24,9 +24,9 @@ const AddNews = () => {
   const dispatch = useDispatch();
 
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
-  const newsCategoriesList = useSelector((state) => state?.News?.newsCategoriesList || []);
+  const newsCategoriesList = useSelector((state) => state?.News?.newsCategoriesList) || [];
   const newsCategoriesLoading = useSelector((state) => state?.News?.newsCategoriesLoading || false);
-  const { newsDetailsSuccess, newsDetailsError, newsDetailsLoading } = useSelector((state) => state?.News || {});
+  const { newsDetailsSuccess, newsDetailsError, newsDetailsLoading } = useSelector((state) => state?.News) || {};
 
   // Create an empty editor state
   const [editorState, setEditorState] = useState(() => {

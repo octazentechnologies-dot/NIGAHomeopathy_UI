@@ -21,7 +21,7 @@ const loadRazorpayScript = () =>
     });
 
 /**
- * PAT-19.02 / PAY — payment status from New-API GET /api/Public/Bookings/{token}.
+ * PAT-19.02 / PAY — payment status from API GET /api/Public/Bookings/{token}.
  * Online pay uses CreateConsultOrder on :5002 with the booking token (Razorpay keys stay empty until S5).
  * Paid is confirmed only by webhook — this page refreshes status after checkout.
  */
@@ -150,7 +150,7 @@ const BookPayPage = () => {
                 <h1 className="h3 mb-3">Payment status</h1>
                 <p className="text-muted mb-3">
                     Immediate confirmation of paid, pending, or failed — from the clinic booking API.
-                    Online checkout needs gateway keys on the New API (empty until S5). Pay at clinic still works.
+                    Online checkout needs gateway keys on the API (empty until S5). Pay at clinic still works.
                 </p>
 
                 {phase === "empty" ? (

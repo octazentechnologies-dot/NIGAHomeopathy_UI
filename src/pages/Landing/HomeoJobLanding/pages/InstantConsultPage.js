@@ -128,7 +128,7 @@ const InstantConsultPage = () => {
         }
         setLoading(true);
         try {
-            // PatientId omitted — New-API resolves from Bearer when linked (do not ask user to type it).
+            // PatientId omitted — API resolves from Bearer when linked (do not ask user to type it).
             const row = await requestInstantConsult({
                 contactName,
                 contactMobile,

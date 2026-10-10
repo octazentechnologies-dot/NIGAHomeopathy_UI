@@ -59,9 +59,6 @@ export const getHomeDashboardPath = (role) => {
   if (userRole === UserRole.PATIENT) {
     return "/family";
   }
-  if (userRole === UserRole.ADMIN) {
-    return "/admin/dashboard";
-  }
   return "/dashboard";
 };
 

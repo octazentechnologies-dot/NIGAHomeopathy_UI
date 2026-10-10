@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
-import { NEARBY_MAP_DOCTORS } from "../constants/doctorsData";
 import {
     listCareCategories,
     listPublicDoctors,
@@ -12,6 +11,18 @@ import {
 } from "../../../../helpers/publicBookingApi";
 
 const PAGE_SIZE = 5;
+
+// Doctor rows carry no coordinates, so pins use fixed slots on the illustrated map.
+const MAP_PIN_SLOTS = [
+    { top: "22%", left: "36%" },
+    { top: "30%", left: "18%" },
+    { top: "38%", left: "62%" },
+    { top: "52%", left: "28%" },
+    { top: "58%", left: "70%" },
+    { top: "68%", left: "44%" },
+    { top: "26%", left: "78%" },
+    { top: "74%", left: "16%" },
+];
 
 const FindDoctorPage = () => {
     const [searchParams] = useSearchParams();
@@ -30,6 +41,7 @@ const FindDoctorPage = () => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState("");
     const [categories, setCategories] = useState([]);
+    const cityInputRef = useRef(null);
 
     useEffect(() => {
         document.title = `${SITE.name} | Find a Doctor`;
@@ -98,6 +110,8 @@ const FindDoctorPage = () => {
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
     const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+    const mapDoctors = pageItems.slice(0, MAP_PIN_SLOTS.length);
+    const locationLabel = city.trim() || "All cities";
 
     const handleSearch = (event) => {
         event.preventDefault();
@@ -175,6 +189,7 @@ const FindDoctorPage = () => {
                         style={{ minWidth: 140 }}
                         placeholder="City"
                         aria-label="City"
+                        ref={cityInputRef}
                         value={city}
                         onChange={(e) => {
                             setCity(e.target.value);
@@ -345,12 +360,10 @@ const FindDoctorPage = () => {
                                             Book Appointment
                                         </Link>
                                         <span
-                                            className={`homeojob-doctor-card__avail homeojob-doctor-card__avail--${doc.available}`}
+                                            className={`homeojob-doctor-card__avail homeojob-doctor-card__avail--${doc.isOnline ? "today" : "tomorrow"}`}
                                         >
                                             <i />
-                                            {doc.available === "today"
-                                                ? "Available Today"
-                                                : "Available Tomorrow"}
+                                            {doc.isOnline ? "Online now" : "Book a slot"}
                                         </span>
                                     </div>
                                 </article>
@@ -364,9 +377,13 @@ const FindDoctorPage = () => {
                             <div className="homeojob-find-map__head">
                                 <h2>
                                     <i className="ri-map-pin-2-fill" aria-hidden="true" />
-                                    Doctors Near You
+                                    Doctors on this page
                                 </h2>
-                                <p>Showing nearby doctors within 3 km of your location.</p>
+                                <p>
+                                    {mapDoctors.length > 0
+                                        ? `Showing ${mapDoctors.length} verified doctor${mapDoctors.length === 1 ? "" : "s"} in ${locationLabel}.`
+                                        : "No doctors to show for these filters."}
+                                </p>
                             </div>
 
                             <div
@@ -402,43 +419,26 @@ const FindDoctorPage = () => {
                                 <div className="homeojob-find-map__canvas" aria-hidden={false}>
                                     <div className="homeojob-find-map__roads" aria-hidden="true" />
 
-                                    <div
-                                        className="homeojob-find-map__radius"
-                                        aria-hidden="true"
-                                        title="3 km radius"
-                                    >
-                                        <span>3 km</span>
-                                    </div>
-
-                                    <div className="homeojob-find-map__you" title="Your location">
-                                        <span className="homeojob-find-map__you-pulse" />
-                                        <span className="homeojob-find-map__you-dot" />
-                                    </div>
-
-                                    {NEARBY_MAP_DOCTORS.map((doc) => (
-                                        <button
+                                    {mapDoctors.map((doc, index) => (
+                                        <Link
                                             key={doc.id}
-                                            type="button"
+                                            to={landingPath(`book/${doc.id}`)}
                                             className={`homeojob-find-map__pin${
                                                 activePin === doc.id ? " is-active" : ""
                                             }`}
-                                            style={{
-                                                top: doc.mapPos.top,
-                                                left: doc.mapPos.left,
-                                            }}
-                                            aria-label={`${doc.name}, ${doc.distanceKm} km away`}
-                                            onClick={() =>
-                                                setActivePin((prev) =>
-                                                    prev === doc.id ? null : doc.id
-                                                )
-                                            }
+                                            style={MAP_PIN_SLOTS[index]}
+                                            aria-label={`${doc.name}${doc.location ? `, ${doc.location}` : ""}`}
+                                            onMouseEnter={() => setActivePin(doc.id)}
+                                            onMouseLeave={() => setActivePin(null)}
+                                            onFocus={() => setActivePin(doc.id)}
+                                            onBlur={() => setActivePin(null)}
                                         >
                                             <i className="ri-map-pin-2-fill" aria-hidden="true" />
                                             <span className="homeojob-find-map__pin-tip">
                                                 {doc.name}
-                                                <small>{doc.distanceKm} km</small>
+                                                {doc.location ? <small>{doc.location}</small> : null}
                                             </span>
-                                        </button>
+                                        </Link>
                                     ))}
                                 </div>
                             </div>
@@ -447,15 +447,17 @@ const FindDoctorPage = () => {
                                 <div className="homeojob-find-map__location">
                                     <i className="ri-crosshair-2-line" aria-hidden="true" />
                                     <div>
-                                        <strong>Your Location:</strong> Kolhapur, Maharashtra
+                                        <strong>Location:</strong> {locationLabel}
                                     </div>
-                                    <button type="button">Change</button>
+                                    <button type="button" onClick={() => cityInputRef.current?.focus()}>
+                                        Change
+                                    </button>
                                 </div>
                                 <div className="homeojob-find-map__hint">
                                     <i className="ri-map-pin-fill" aria-hidden="true" />
                                     <span>
-                                        <strong>Nearby Doctors:</strong> Click on a marker to view
-                                        doctor details
+                                        <strong>Doctors:</strong> Click a marker to book with that
+                                        doctor
                                     </span>
                                 </div>
                             </div>

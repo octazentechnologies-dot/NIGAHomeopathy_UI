@@ -14,7 +14,7 @@ const mapOption = (row) => {
 };
 
 /**
- * Searchable SubSection picker for admin forms (New-API SearchRubricsByKeyword).
+ * Searchable SubSection picker for admin forms (API SearchRubricsByKeyword).
  */
 const SubSectionSearchSelect = ({ value, onChange, isClearable = true, placeholder = "Search rubric / subsection..." }) => {
   const selected = useMemo(() => {

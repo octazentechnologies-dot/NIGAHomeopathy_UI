@@ -30,8 +30,8 @@ const AddHotspots = () => {
   const dispatch = useDispatch();
   const userDetails = JSON.parse(sessionStorage.getItem("authUser"));
   const { anatomyHotspotSuccess, anatomyHotspotError } = useSelector(
-    (state) => state?.AnatomyHotspot || {}
-  );
+    (state) => state?.AnatomyHotspot
+  ) || {};
   const sectionRaw = useSelector((state) => state?.BodyPart?.sectionForSubSection);
 
   const sectionArray = useMemo(() => {

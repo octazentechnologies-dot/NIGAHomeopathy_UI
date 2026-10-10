@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useSelector, useDispatch } from 'react-redux';
 import { getHeadsList, deleteHead, updateDifferentialMateriaMedicaDefaultStatus } from '../../../../slices/thunks';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListHead = () => {
   const dispatch = useDispatch();
@@ -13,7 +14,7 @@ const ListHead = () => {
   const pageSize = 10;
 
   const headsLoading = useSelector((state) => state?.Head?.headsLoading || false);
-  const heads = useSelector((state) => state?.Head?.heads?.resultObject || []);
+  const heads = useSelector((state) => state?.Head?.heads?.resultObject) || [];
   const totalPages = useSelector((state) => state?.Head?.heads?.totalPageCount || 1);
   const totalRecords = useSelector((state) => state?.Head?.heads?.totalRecordCount || heads.length || 0);
 
@@ -86,11 +87,11 @@ const ListHead = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

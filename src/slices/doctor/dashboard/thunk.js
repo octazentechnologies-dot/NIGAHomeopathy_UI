@@ -282,17 +282,24 @@ export const fetchPatientStatsCharts = (payload) => async (dispatch, getState) =
     const cacheKey = payload?.cacheKey
         || (period === 'ALL' && fromDate && toDate ? `ALL|${fromDate}|${toDate}` : period);
 
-    const cached = getState()?.DoctorDashboard?.patientStatsChartsByKey?.[cacheKey];
-    if (cached && !payload?.force) {
+    const dashboardState = getState()?.DoctorDashboard;
+    const cached = dashboardState?.patientStatsChartsByKey?.[cacheKey];
+    const meta = dashboardState?.patientStatsChartsMetaByKey?.[cacheKey];
+    const cacheFresh = cached
+        && meta
+        && String(meta.userId) === String(userId)
+        && meta.at >= (dashboardState?.patientStatsChartsInvalidatedAt || 0);
+    if (cacheFresh && !payload?.force) {
         return cached;
     }
 
     try {
         dispatch(setPatientStatsChartsLoading(true));
+        const fetchedAt = Date.now();
         const response = unwrapPatientStatsCharts(
             await getPatientStatsChartsApi({ userId, period, fromDate, toDate })
         );
-        dispatch(setPatientStatsCharts({ cacheKey, data: response }));
+        dispatch(setPatientStatsCharts({ cacheKey, data: response, userId, fetchedAt }));
         dispatch(setPatientStatsChartsError(null));
         return response;
     } catch (error) {

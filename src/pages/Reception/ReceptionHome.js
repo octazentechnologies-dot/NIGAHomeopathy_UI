@@ -9,6 +9,7 @@ import TodaysAppointments from "./components/TodaysAppointments";
 import ReceptionNewPatientForm from "./components/ReceptionNewPatientForm";
 import RescheduleModal from "../../Components/Common/RescheduleModal";
 import CancelAppointmentModal from "../../Components/Common/CancelAppointmentModal";
+import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from "../../helpers/appointmentStatus";
 import AssistedBookWizard from "../../Components/Common/AssistedBookWizard";
 import { apiMessage, readReceptionDoctorId, unwrap } from "./receptionSession";
 import "./components/receptionDashboard.css";
@@ -267,7 +268,7 @@ const ReceptionHome = () => {
                       amount: "",
                       method: "CASH",
                       appointmentId: firstApp,
-                      gst: "GST applied by New API on collection",
+                      gst: "GST applied by API on collection",
                     });
                     setDeskPanel("collect");
                   }}
@@ -325,27 +326,34 @@ const ReceptionHome = () => {
                                 amount: "",
                                 method: "CASH",
                                 appointmentId: String(id),
-                                gst: "GST applied by New API on collection",
+                                gst: "GST applied by API on collection",
                               });
                               setDeskPanel("collect");
                             }}
                           >
                             Collect
                           </Button>
-                          <Button
-                            size="sm"
-                            color="soft-info"
-                            onClick={() => setRescheduleRow(row)}
+                          <span
+                            className="d-flex gap-1"
+                            title={isAppointmentCompleted(row.status || row.Status) ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : undefined}
                           >
-                            Reschedule
-                          </Button>
-                          <Button
-                            size="sm"
-                            color="soft-danger"
-                            onClick={() => setCancelRow(row)}
-                          >
-                            Cancel
-                          </Button>
+                            <Button
+                              size="sm"
+                              color="soft-info"
+                              disabled={isAppointmentCompleted(row.status || row.Status)}
+                              onClick={() => setRescheduleRow(row)}
+                            >
+                              Reschedule
+                            </Button>
+                            <Button
+                              size="sm"
+                              color="soft-danger"
+                              disabled={isAppointmentCompleted(row.status || row.Status)}
+                              onClick={() => setCancelRow(row)}
+                            >
+                              Cancel
+                            </Button>
+                          </span>
                         </div>
                       </li>
                     );
@@ -356,7 +364,7 @@ const ReceptionHome = () => {
           </Col>
           {deskPanel === "collect" && receipt ? (
             <Col md={6}>
-              {/* PAY-04 / REC-13 — CollectAtReception on New API :5002 */}
+              {/* PAY-04 / REC-13 — CollectAtReception on API :5002 */}
               <Card className="admin-dash-card" data-testid="reception-receipt-shell" style={{ position: "relative", zIndex: 6 }}>
                 <CardBody>
                   <div className="d-flex justify-content-between align-items-center mb-2">

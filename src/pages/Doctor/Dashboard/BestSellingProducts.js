@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { HiddenLink, navigateHidden, useHiddenSearchParams } from '../../../helpers/hiddenRouteParams';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Accordion, AccordionItem, Collapse, Nav, NavItem, NavLink, TabContent, TabPane, UncontrolledTooltip, Container, Row, Label } from 'reactstrap';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import ClassicEditor from "../../../Components/Common/ClassicEditor";
 import Swal from 'sweetalert2';
 import classnames from "classnames";
 import moment from 'moment';
@@ -36,6 +37,7 @@ import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Commo
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
 import AppointmentChangeActions from './AppointmentChangeActions';
+import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from '../../../helpers/appointmentStatus';
 import {
   normalizeAppointmentSlotsResponse,
   formatSlotIntervalLabel,
@@ -174,6 +176,7 @@ const AppointmentTimeCell = ({
 }) => {
     const dispatch = useDispatch();
     const { userProfile } = useProfile();
+    const isLocked = isAppointmentCompleted(appStatus);
     const patientAppId = getPatientAppIdFromRow(patient);
     const doctorId = patient?.doctorId || patient?.doctorID;
     const rawTime = patient?.appointmentTime;
@@ -398,22 +401,25 @@ const AppointmentTimeCell = ({
         <>
             <div className="appointment-time-cell">
                 <span className="appointment-time-value">{displayTime}</span>
-                <button
-                    type="button"
-                    id={editButtonId}
-                    className="btn btn-sm btn-soft-success edit-item-btn appointment-time-edit-btn"
-                    onClick={onStartEdit}
-                    aria-label="Edit appointment time"
-                >
-                    <i className="ri-pencil-fill" aria-hidden="true" />
-                </button>
+                <span id={editButtonId} className="d-inline-block" tabIndex={isLocked ? 0 : undefined}>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-soft-success edit-item-btn appointment-time-edit-btn"
+                        onClick={onStartEdit}
+                        disabled={isLocked}
+                        style={isLocked ? { pointerEvents: 'none' } : undefined}
+                        aria-label="Edit appointment time"
+                    >
+                        <i className="ri-pencil-fill" aria-hidden="true" />
+                    </button>
+                </span>
                 <UncontrolledTooltip placement="top" target={editButtonId}>
-                    Edit appointment time
+                    {isLocked ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : 'Edit appointment time'}
                 </UncontrolledTooltip>
             </div>
 
             <Modal
-                isOpen={isEditing}
+                isOpen={isEditing && !isLocked}
                 toggle={onCancelEdit}
                 centered
                 size="lg"
@@ -687,7 +693,7 @@ const BestSellingProducts = () => {
     const userRole =
         resolveUserRole(userProfile) ?? resolveUserRole(loginUser) ?? getUserRoleFromAuthStorage();
     const isReceptionUser = userRole === UserRole.RECEPTION;
-    const [searchParams] = useSearchParams();
+    const [searchParams] = useHiddenSearchParams();
     const focusedAppointmentId = searchParams.get('openAppointment');
 
     // Get patient data from Redux
@@ -699,7 +705,7 @@ const BestSellingProducts = () => {
     const patientSuccess = useSelector((state) => state?.DoctorDashboard?.patientSuccess);
     const appointmentHistoryNotes = useSelector((state) => state?.DoctorDashboard?.appointmentHistoryNotes);
     const appointmentHistoryNotesLoading = useSelector((state) => state?.DoctorDashboard?.appointmentHistoryNotesLoading);
-    const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions ?? []);
+    const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions) ?? [];
     const [caseTakingModalOpen, setCaseTakingModalOpen] = useState(false);
     const [selectedPatientForCaseTaking, setSelectedPatientForCaseTaking] = useState(null);
 
@@ -1344,7 +1350,7 @@ const BestSellingProducts = () => {
         if (!selectedPatientForCaseTaking) {
             return;
         }
-        navigate(buildPatientBoardPath(selectedPatientForCaseTaking));
+        navigateHidden(navigate, buildPatientBoardPath(selectedPatientForCaseTaking));
         closeCaseTakingModal();
     };
 
@@ -1352,7 +1358,7 @@ const BestSellingProducts = () => {
         if (!selectedPatientForCaseTaking) {
             return;
         }
-        navigate(buildPatientBoardAudioPath(selectedPatientForCaseTaking));
+        navigateHidden(navigate, buildPatientBoardAudioPath(selectedPatientForCaseTaking));
         closeCaseTakingModal();
     };
 
@@ -1404,14 +1410,14 @@ const BestSellingProducts = () => {
 
         return (
             <>
-                <Link
+                <HiddenLink
                     id={tooltipId}
                     to={buildPatientBoardPath(boardPatient)}
                     className="dashboard-patient-name-link fw-medium"
                     onClick={(event) => handlePatientBoardLinkClick(event, boardPatient)}
                 >
                     {displayName}
-                </Link>
+                </HiddenLink>
                 <UncontrolledTooltip placement="top" target={tooltipId}>
                     {fullName}
                 </UncontrolledTooltip>
@@ -3240,7 +3246,12 @@ const BestSellingProducts = () => {
                         </div>
                     ) : (
                         <div className="patient-list-modal__table-wrap history-patient-modal__accordion-wrap">
-                            <Accordion id="history-accordion" className="accordion-flush history-patient-modal__accordion mb-0">
+                            <Accordion
+                                id="history-accordion"
+                                className="accordion-flush history-patient-modal__accordion mb-0"
+                                open={openAppointmentId == null ? '' : String(openAppointmentId)}
+                                toggle={() => {}}
+                            >
                             {patientAppointments.map((appointment) => {
                                 const appointmentId = appointment.patientAppId;
                                 const isOpen = openAppointmentId === appointmentId;

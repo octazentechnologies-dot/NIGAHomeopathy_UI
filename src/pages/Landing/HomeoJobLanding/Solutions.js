@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
 import { landingPath } from "../../../constants/landingRoutes";
+import usePublicHighlights, { formatCount } from "./usePublicHighlights";
 import TelemedicineVisual from "../../../assets/images/landing/solution-telemedicine.png";
 import ErxVisual from "../../../assets/images/landing/solution-erx.png";
 import HomeomedsVisual from "../../../assets/images/landing/solution-homeomeds.png";
@@ -64,33 +65,47 @@ const SOLUTIONS = [
     },
 ];
 
-const TRUST_ITEMS = [
-    {
-        icon: "ri-shield-check-line",
-        tone: "blue",
-        content: (
-            <>
-                Trusted by <strong>50K+</strong> Patients
-            </>
-        ),
-    },
-    {
-        icon: "ri-group-line",
-        tone: "blue",
-        content: (
-            <>
-                <strong>500+</strong> Verified Doctors
-            </>
-        ),
-    },
-    {
-        icon: "ri-leaf-line",
-        tone: "green",
-        content: <>Safe. Natural. Personalized.</>,
-    },
-];
+const buildTrustItems = (highlights) => {
+    const patients = Number(highlights?.patientsConsulted || 0);
+    const doctors = Number(highlights?.verifiedDoctors || 0);
+    return [
+        patients > 0
+            ? {
+                  id: "patients",
+                  icon: "ri-shield-check-line",
+                  tone: "blue",
+                  content: (
+                      <>
+                          <strong>{formatCount(patients)}</strong> Patients Consulted
+                      </>
+                  ),
+              }
+            : null,
+        doctors > 0
+            ? {
+                  id: "doctors",
+                  icon: "ri-group-line",
+                  tone: "blue",
+                  content: (
+                      <>
+                          <strong>{formatCount(doctors)}</strong> Verified Doctor{doctors === 1 ? "" : "s"}
+                      </>
+                  ),
+              }
+            : null,
+        {
+            id: "care",
+            icon: "ri-leaf-line",
+            tone: "green",
+            content: <>Safe. Natural. Personalized.</>,
+        },
+    ].filter(Boolean);
+};
 
-const Solutions = () => (
+const Solutions = () => {
+    const trustItems = buildTrustItems(usePublicHighlights());
+
+    return (
     <section className="section homeojob-solutions" id="solutions">
         <Container>
             <div className="homeojob-solutions__header">
@@ -213,8 +228,8 @@ const Solutions = () => (
             </Row>
 
             <div className="homeojob-solutions__trust">
-                {TRUST_ITEMS.map((item, index) => (
-                    <div className="homeojob-solutions__trust-item" key={index}>
+                {trustItems.map((item) => (
+                    <div className="homeojob-solutions__trust-item" key={item.id}>
                         <i className={`${item.icon} homeojob-solutions__trust-icon--${item.tone}`} aria-hidden="true" />
                         <span>{item.content}</span>
                     </div>
@@ -222,6 +237,7 @@ const Solutions = () => (
             </div>
         </Container>
     </section>
-);
+    );
+};
 
 export default Solutions;

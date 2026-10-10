@@ -10,6 +10,7 @@ import { useFormik } from "formik";
 import { useSelector, useDispatch } from "react-redux";
 import { updateRemedyGrade } from "../../../../slices/thunks";
 import { setRemedyGradeError, setRemedyGradeSuccess } from "../../../../slices/admin/repertory/remedygrade/reducer";
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 const EditRemedyGrade = () => {
   const location = useLocation();
@@ -17,7 +18,7 @@ const EditRemedyGrade = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { remedyGradeSuccess, remedyGradeError } = useSelector((state) => state?.RemedyGrade || {});
+  const { remedyGradeSuccess, remedyGradeError } = useSelector((state) => state?.RemedyGrade) || {};
 
   const selectedRemedyGrade = location.state?.selectedRemedyGrade || {};
 
@@ -45,7 +46,7 @@ const EditRemedyGrade = () => {
         FontName: values.fontName,
         FontStyle: values.fontStyle,
         FontColor: values.fontColor,
-        EnteredBy: 'Admin',
+        EnteredBy: getAuditUserName(),
         DeleteStatus: false
       }));
     }

@@ -3,7 +3,7 @@ import { Card, CardBody, Col, Row, CardHeader, Form, Container } from "reactstra
 import UiContent from "../../../Components/Common/UiContent";
 
 import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import ClassicEditor from "../../../Components/Common/ClassicEditor";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 
 import { useQuill } from "react-quilljs";

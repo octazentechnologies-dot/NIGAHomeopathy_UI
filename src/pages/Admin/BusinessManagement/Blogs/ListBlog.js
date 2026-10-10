@@ -6,6 +6,7 @@ import { getAllBlogDetail, deleteBlogDetail } from '../../../../slices/admin/blo
 import { setBlogDetailsSuccess, setBlogDetailsError } from '../../../../slices/admin/blog/reducer';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import Swal from 'sweetalert2';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListBlog = () => {
   const dispatch = useDispatch();
@@ -119,11 +120,11 @@ const ListBlog = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>
@@ -168,7 +169,7 @@ const ListBlog = () => {
                                 <td className="text-center">
                                   <div className="d-inline-flex gap-2">
                                     <div className="edit">
-                                      <Link to={`/admin/editblog/${blog.blogId}`}>
+                                      <Link to="/admin/editblog" state={{ blogId: blog.blogId }}>
                                         <button type="button" className="btn btn-sm btn-soft-success edit-item-btn" title="Edit">
                                           <i className="ri-pencil-fill" />
                                         </button>

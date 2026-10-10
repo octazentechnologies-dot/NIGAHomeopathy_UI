@@ -3,6 +3,10 @@ const MAX_ENTRIES = 1000;
 const CACHE_VERSION = 'v8';
 export const INITIAL_RUBRIC_PREFETCH_LIMIT = 15;
 export const SCROLL_RUBRIC_PREFETCH_BATCH = 8;
+/** Prefetch skips entries younger than this; older ones are fetched again from the API. */
+export const RUBRIC_PREFETCH_FRESH_MS = 60 * 1000;
+/** A click still shows the cached copy instantly but revalidates when it is older than this. */
+export const RUBRIC_CLICK_FRESH_MS = 3 * 1000;
 
 export const getRubricDetailsCacheKey = (subSectionId) =>
   `${CACHE_VERSION}:${subSectionId}`;
@@ -70,13 +74,18 @@ export const setCachedRubricDetails = (subSectionId, data) => {
   persistToSessionStorage();
 };
 
+export const isRubricDetailsFresh = (subSectionId, maxAgeMs = RUBRIC_PREFETCH_FRESH_MS) => {
+  const cached = getCachedRubricDetails(subSectionId);
+  const cachedAt = Number(cached?._cachedAt);
+  return Number.isFinite(cachedAt) && Date.now() - cachedAt < maxAgeMs;
+};
+
 export const prefetchRubricDetailsIds = new Set();
 
 export const markPrefetchQueued = (subSectionId) => {
   const id = normalizeSubSectionId(subSectionId);
   if (!id) return false;
-  const key = getRubricDetailsCacheKey(id);
-  if (memoryCache.has(key) || prefetchRubricDetailsIds.has(id)) {
+  if (isRubricDetailsFresh(id) || prefetchRubricDetailsIds.has(id)) {
     return false;
   }
   prefetchRubricDetailsIds.add(id);

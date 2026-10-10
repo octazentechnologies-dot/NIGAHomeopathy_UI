@@ -30,7 +30,8 @@ import {
 } from '../../../slices/doctor/dashboard/thunk';
 import { refreshAuthSubscriptionStatus } from '../../../slices/auth/login/thunk';
 import { readPlanActive } from '../../../helpers/client_error_reporter';
-import img3 from "../../../assets/images/small/img-3.jpg";
+import { getInitials } from "../../../helpers/initials";
+import { getLoggedinUserInfo } from "../../../helpers/api_helper";
 import {
     buildPatientApiPayload,
     formatCalendarDateForApi,
@@ -212,11 +213,21 @@ const PatientListNameCell = ({ appointment }) => {
     return (
         <div className="d-flex align-items-center patient-list-modal__name">
             <div className="flex-shrink-0 me-2">
-                <img
-                    src={appointment.avatar || img3}
-                    alt=""
-                    className="avatar-xxs rounded-circle patient-list-modal__avatar"
-                />
+                {appointment.avatar ? (
+                    <img
+                        src={appointment.avatar}
+                        alt=""
+                        className="avatar-xxs rounded-circle patient-list-modal__avatar"
+                    />
+                ) : (
+                    <span
+                        className="avatar-xxs rounded-circle patient-list-modal__avatar d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-semibold"
+                        style={{ fontSize: 10 }}
+                        aria-hidden="true"
+                    >
+                        {getInitials(appointment.patientName)}
+                    </span>
+                )}
             </div>
             {isReception && patientId ? (
                 <button
@@ -2234,10 +2245,17 @@ const Widgets = () => {
         label: patient.patientName
     })) || [];
 
-    const doctorOptions = doctorList?.map((doctor) => ({
-        value: doctor.doctorID,
-        label: doctor.doctorName
-    })) || [];
+    const doctorOptions = useMemo(() => {
+        const allDoctors = (doctorList || []).map((doctor) => ({
+            value: doctor.doctorID,
+            label: doctor.doctorName
+        }));
+        const authDoctorId = getAuthDoctorId();
+        if (resolveUserRole() !== UserRole.DOCTOR || authDoctorId == null) return allDoctors;
+        const ownDoctor = allDoctors.filter((option) => String(option.value) === String(authDoctorId));
+        return ownDoctor.length ? ownDoctor : allDoctors;
+    }, [doctorList]);
+    const defaultAppointmentDoctor = doctorOptions.length === 1 ? doctorOptions[0] : null;
 
     const countryOptions = (countries || []).map((country) => ({
         value: country.countryId,
@@ -2341,10 +2359,18 @@ const Widgets = () => {
 
     const appointmentFormInitialValues = useMemo(() => ({
         patient: prefilledAppointmentPatient,
-        doctor: null,
+        doctor: defaultAppointmentDoctor,
         appointmentDate: prefilledAppointmentPatient ? moment().format(DOB_DISPLAY_FORMAT) : '',
         consultMode: 'InClinic',
-    }), [prefilledAppointmentPatient]);
+    }), [prefilledAppointmentPatient, defaultAppointmentDoctor]);
+
+    useEffect(() => {
+        if (!modal_newAppointment) return;
+        const { doctor, appointmentDate } = appointmentFormInitialValues;
+        if (doctor?.value && appointmentDate) {
+            loadAppointmentSlotsForForm(doctor.value, appointmentDate);
+        }
+    }, [modal_newAppointment, appointmentFormInitialValues]);
 
     const patientInitialValues = {
         patientName: '',
@@ -2542,7 +2568,8 @@ const Widgets = () => {
             const result = await dispatch(generateOrderId({
                 amount: variant.amount,
                 currency: "INR",
-                receipt: "order_rcptid_11",
+                // Razorpay caps receipt at 40 characters.
+                receipt: `pkg_${variant.packageId ?? 0}_${doctorList?.[0]?.doctorID ?? 0}_${Date.now()}`.slice(0, 40),
                 paymentCapture: 1
             }));
 
@@ -2553,18 +2580,22 @@ const Widgets = () => {
                 script.src = 'https://checkout.razorpay.com/v1/checkout.js';
                 script.async = true;
                 script.onload = () => {
-                    // Initialize Razorpay
+                    const doctor = doctorList?.[0] || {};
+                    const authInfo = getLoggedinUserInfo() || {};
+                    const authFullName = [authInfo.firstName || authInfo.FirstName, authInfo.lastName || authInfo.LastName]
+                        .filter(Boolean)
+                        .join(" ");
                     const razorpay = new window.Razorpay({
                         key: 'rzp_live_WSDlLVrcCPFbEQ',
                         amount: variant.amount * 100,
                         name: 'Homeo Centrum',
-                        description: 'Payment For Doctor Subscription',
+                        description: `Doctor subscription: ${variant.packageName || 'package'}`,
                         order_id: result?.orderId,
                         handler: handlePaymentSuccess,
                         prefill: {
-                            name: localStorage.getItem("UserName"),
-                            email: 'nigahomeocentrum@gmail.com',
-                            contact: '9730596019'
+                            name: doctor.doctorName || authFullName || authInfo.userName || authInfo.UserName || '',
+                            email: doctor.emailId || doctor.email || authInfo.email || authInfo.emailId || authInfo.EmailId || '',
+                            contact: doctor.mobileNo || doctor.mobile || authInfo.mobileNo || authInfo.MobileNo || authInfo.phoneNumber || '',
                         },
                         notes: {
                             address: 'NIGA HOMEOPATHY, Bagechiwadi,B6 Ramkali, Sangram Nagar Malshiras Road Akluj.'
@@ -3704,7 +3735,7 @@ const Widgets = () => {
                                                 options={doctorOptions}
                                                 placeholder="Search and select doctor..."
                                                 isSearchable={true}
-                                                isClearable={true}
+                                                isClearable={doctorOptions.length > 1}
                                                 {...doctorModalSelectPortalProps}
                                                 styles={getDoctorModalSelectStyles(Boolean(errors.doctor && touched.doctor))}
                                             />

@@ -11,7 +11,7 @@ import {
 } from "../../../../helpers/publicBookingApi";
 
 /**
- * PAT-22.02 — cancel appointment via New-API CancelAppointment (Bearer).
+ * PAT-22.02 — cancel appointment via API CancelAppointment (Bearer).
  * States: empty / loading / error / offline / ready / done.
  * Status CANCELLED only from API — never invented on the device.
  */

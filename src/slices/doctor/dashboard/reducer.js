@@ -43,7 +43,11 @@ export const initialState = {
     updateAppointmentStatusSuccess: null,
     patientStatsChartsLoading: false,
     patientStatsChartsError: null,
-    patientStatsChartsByKey: {}
+    patientStatsChartsByKey: {},
+    // { [cacheKey]: { at, userId } } — when and for whom each cached chart was loaded.
+    patientStatsChartsMetaByKey: {},
+    // Cached charts loaded before this time are stale (appointments changed since).
+    patientStatsChartsInvalidatedAt: 0
 };
 
 const DoctorDashboardSlice = createSlice({
@@ -183,11 +187,15 @@ const DoctorDashboardSlice = createSlice({
             state.patientStatsChartsLoading = action.payload;
         },
         setPatientStatsCharts(state, action) {
-            const { cacheKey, data } = action.payload;
+            const { cacheKey, data, userId, fetchedAt } = action.payload;
             state.patientStatsChartsByKey[cacheKey] = data;
+            state.patientStatsChartsMetaByKey[cacheKey] = { at: fetchedAt || Date.now(), userId: userId ?? null };
         },
         setPatientStatsChartsError(state, action) {
             state.patientStatsChartsError = action.payload;
+        },
+        invalidatePatientStatsCharts(state) {
+            state.patientStatsChartsInvalidatedAt = Date.now();
         }
     }
 });
@@ -235,7 +243,8 @@ export const {
     setUpdateAppointmentStatusError,
     setPatientStatsChartsLoading,
     setPatientStatsCharts,
-    setPatientStatsChartsError
+    setPatientStatsChartsError,
+    invalidatePatientStatsCharts
 } = DoctorDashboardSlice.actions;
 
 export default DoctorDashboardSlice.reducer;

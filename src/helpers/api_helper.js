@@ -59,9 +59,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
       const authUser = getCurrentAuthUser();
       if (authUser?.token) {
         config.headers.Authorization = "Bearer " + authUser.token;
-        console.log("Setting Authorization header for:", config.url, "Token:", authUser.token.substring(0, 20) + "...");
-      } else {
-        console.warn("No token found for request to:", config.url);
       }
       return config;
     },
@@ -73,7 +70,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
   // Add response interceptor
   client.interceptors.response.use(
     function (response) {
-      console.log("axios.interceptors.response :", response.data);
       if (response && response.data instanceof Blob) {
         return response;
       }
@@ -89,7 +85,6 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
         return client.request(error.config);
       }
       let message = readApiMessage(error, status);
-      console.error("API Error:", error);
       const reqUrl = error.config?.url || error.config?.baseURL || "";
       const statusCode = status || 0;
       if (statusCode >= 500) {
@@ -126,8 +121,7 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
             const headers = token
               ? { Authorization: "Bearer " + token, "Content-Type": "application/json" }
               : { "Content-Type": "application/json" };
-            fetch(`${api.Old_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
-            fetch(`${api.New_API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
+            fetch(`${api.API_Base_URL || ""}/Account/Logout`, { method: "POST", headers }).catch(() => {});
           } catch (_) {
             /* ignore */
           }
@@ -156,13 +150,13 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
  */
 const APIClients = {
   // Default API client (HOMOCENTRUM)
-  default: createAxiosClient(api.Old_API_Base_URL, "application/json"),
+  default: createAxiosClient(api.API_Base_URL, "application/json"),
 
   // Nigahomeopathy API client with JSON content type
-  nigahomeo: createAxiosClient(api.New_API_Base_URL, "application/json"),
+  nigahomeo: createAxiosClient(api.API_Base_URL, "application/json"),
 
   // Nigahomeopathy API client with multipart/form-data content type
-  nigahomeoMultipart: createAxiosClient(api.New_API_Base_URL, "multipart/form-data"),
+  nigahomeoMultipart: createAxiosClient(api.API_Base_URL, "multipart/form-data"),
 };
 
 /**
@@ -192,7 +186,6 @@ const createAPIHelpers = (client) => ({
     if (isAxiosConfig) {
       // Treat as axios config object - pass directly to axios
       const response = await client.get(url, paramsOrConfig);
-      console.log("get response:", response);
       return response;
     } else if (paramsOrConfig) {
       // Treat as query parameters - build query string (existing behavior)
@@ -211,11 +204,9 @@ const createAPIHelpers = (client) => ({
       const queryString = paramKeys && paramKeys.length ? paramKeys.join('&') : "";
       const fullUrl = queryString ? `${url}?${queryString}` : url;
       const response = await client.get(fullUrl);
-      console.log("get response:", response);
       return response;
     } else {
       const response = await client.get(`${url}`);
-      console.log("get response:", response);
       return response;
     }
   },
@@ -275,7 +266,6 @@ class APIClient {
     } else {
       response = await APIClients.default.get(`${url}`, params);
     }
-    console.log("get response:", response);
     return response;
   };
 
@@ -304,9 +294,8 @@ class APIClient {
     return APIClients.default.delete(url, { ...config });
   };
 
-  //New API for Import
+  //API for Import
   import = (url, data) => {
-    debugger
     return APIClients.nigahomeoMultipart.post(url, data);
   };
 }
@@ -320,10 +309,32 @@ const getLoggedinUser = () => {
   }
 };
 
+/** Signed-in user's profile fields (authUser may be nested under `data`). */
+const getLoggedinUserInfo = () => {
+  try {
+    const stored = getLoggedinUser();
+    return (stored && (stored.data || stored)) || null;
+  } catch {
+    return null;
+  }
+};
+
+/** Name written to EnteredBy / ChangedBy audit columns. */
+const getAuditUserName = (fallback = "Admin") => {
+  const info = getLoggedinUserInfo();
+  if (!info) return fallback;
+  const loginName = info.userName || info.UserName;
+  if (loginName) return String(loginName);
+  const fullName = [info.firstName || info.FirstName, info.lastName || info.LastName].filter(Boolean).join(" ");
+  return fullName || info.displayName || info.DisplayName || fallback;
+};
+
 export {
   APIClient,
   setAuthorization,
   getLoggedinUser,
+  getLoggedinUserInfo,
+  getAuditUserName,
   importAPI,
   nigahomeoAPI,
   APIClients,

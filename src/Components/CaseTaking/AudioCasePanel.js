@@ -31,6 +31,7 @@ import {
 import {
   buildAudioDownloadFileName,
   downloadLocalAudioBlob,
+  getExtensionFromBlobType,
   getExtensionFromFile,
   getExtensionFromFileName,
   resolveAudioDownloadBlob,
@@ -212,7 +213,7 @@ const AudioCasePanel = ({
   } = useAudioRecorder();
 
   const waveformLevels = useAudioWaveform(mediaStream, isRecording && !isPaused);
-  const audioCase = useSelector((state) => state?.AudioCaseTaking ?? {});
+  const audioCase = useSelector((state) => state?.AudioCaseTaking) ?? {};
   const handleContinueWaiting = useCallback(() => {
     if (!audioCase.sessionId || audioCase.pollLoading) return;
     dispatch(pollAudioCaseAnalysis(audioCase.sessionId));
@@ -437,7 +438,7 @@ const AudioCasePanel = ({
     if (readyBlob) {
       const extension = activeSourceTab === 'upload'
         ? getExtensionFromFile(selectedFile)
-        : 'webm';
+        : getExtensionFromBlobType(readyBlob);
       downloadLocalAudioBlob(
         readyBlob,
         buildAudioDownloadFileName(patientName, audioCase.sessionId, extension)
@@ -489,7 +490,7 @@ const AudioCasePanel = ({
     const audioSource = activeSourceTab === 'upload' ? AUDIO_SOURCE_FILE : AUDIO_SOURCE_LIVE;
     const originalFileName = activeSourceTab === 'upload'
       ? selectedFile?.name
-      : buildAudioDownloadFileName(patientName, null, 'webm');
+      : buildAudioDownloadFileName(patientName, null, getExtensionFromBlobType(readyBlob));
 
     try {
       await dispatch(uploadAndAnalyzeAudioCase({

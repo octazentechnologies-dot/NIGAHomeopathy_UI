@@ -9,6 +9,7 @@ import { updateQuestionGroup } from '../../../../slices/admin/questiongroup/thun
 import { getQuestionSections } from '../../../../slices/admin/existance/thunk';
 import { setQuestionGroupSuccess, setQuestionGroupError } from '../../../../slices/admin/questiongroup/reducer';
 import { neutralSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 const EditQuestionGroup = () => {
   const location = useLocation();
@@ -34,7 +35,7 @@ const EditQuestionGroup = () => {
     ) || null,
     questionSectionName: selectedQuestionGroup?.questionSectionName || '',
     description: selectedQuestionGroup?.description || '',
-    enteredBy: 'Admin',
+    enteredBy: getAuditUserName(),
     deleteStatus: false,
   }), [selectedQuestionGroup, questionSectionOptions]);
 

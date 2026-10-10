@@ -6,6 +6,7 @@ import { Spinner } from 'reactstrap';
 import { useSelector, useDispatch } from "react-redux";
 import { getDiagnosisSystemsList, deleteDiagnosisSystem } from '../../../../slices/admin/clinicalpattern/diagnosissystem/thunk';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListDiagnosisSystem = () => {
   const dispatch = useDispatch();
@@ -22,9 +23,9 @@ const ListDiagnosisSystem = () => {
 
   // Redux state
   const diagnosisSystemLoading = useSelector((state) => state?.DiagnosisSystem?.diagnosisSystemLoading || false);
-  const diagnosisSystems = useSelector((state) => state?.DiagnosisSystem?.diagnosisSystemsList?.resultObject || []);
+  const diagnosisSystems = useSelector((state) => state?.DiagnosisSystem?.diagnosisSystemsList?.resultObject) || [];
   const totalPages = useSelector((state) => state?.DiagnosisSystem?.diagnosisSystemsList?.totalPageCount || 1);
-  const { diagnosisSystemSuccess, diagnosisSystemError } = useSelector((state) => state?.DiagnosisSystem || {});
+  const { diagnosisSystemSuccess, diagnosisSystemError } = useSelector((state) => state?.DiagnosisSystem) || {};
 
   useEffect(() => {
     dispatch(getDiagnosisSystemsList({ PageNumber: currentPage, PageSize: pageSize, queryString: searchQuery }));
@@ -88,11 +89,11 @@ const ListDiagnosisSystem = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>

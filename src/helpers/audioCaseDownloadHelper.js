@@ -31,6 +31,16 @@ export const getExtensionFromFileName = (fileName, fallback = 'webm') => {
   return match ? match[1].toLowerCase() : fallback;
 };
 
+export const getExtensionFromBlobType = (blob, fallback = 'webm') => {
+  const type = String(blob?.type || '').toLowerCase();
+  if (type.includes('mp4') || type.includes('aac') || type.includes('m4a')) return 'm4a';
+  if (type.includes('ogg')) return 'ogg';
+  if (type.includes('wav')) return 'wav';
+  if (type.includes('mpeg') || type.includes('mp3')) return 'mp3';
+  if (type.includes('webm')) return 'webm';
+  return fallback;
+};
+
 export const resolveAudioDownloadBlob = (response) => {
   if (response instanceof Blob) {
     return response;

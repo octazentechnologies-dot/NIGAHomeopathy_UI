@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { HiddenLink } from "../../../helpers/hiddenRouteParams";
 import { Badge, ButtonGroup, Button, Container } from "reactstrap";
 
 import { listDoctorRefills } from "../../../helpers/realbackend_helper";
@@ -151,9 +152,9 @@ const RefillInboxPage = () => {
                     </div>
                     {reason ? <div className="small text-danger">Reason: {reason}</div> : null}
                   </div>
-                  <Link className="btn btn-sm btn-primary" to={`/doctor/mobile/refill/${id}`}>
+                  <HiddenLink className="btn btn-sm btn-primary" to={`/doctor/mobile/refill/detail?refillId=${id}`}>
                     {rowStatus === "PENDING" ? "Review" : "Open"}
-                  </Link>
+                  </HiddenLink>
                 </li>
               );
             })}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { Alert, Button, Col, FormFeedback, Input, Label, Row, Spinner } from "reactstrap";
 import {
+  getConsentNotice,
   getPatientProfileMe,
   getPrivacyConsentStatus,
   grantPrivacyConsent,
@@ -88,22 +89,33 @@ const PatientProfileFields = () => {
   const [healthNote, setHealthNote] = useState("");
   const [savingHealth, setSavingHealth] = useState(false);
   const [privacyGranted, setPrivacyGranted] = useState(false);
+  const [privacyStatus, setPrivacyStatus] = useState(null);
+  const [privacyNotice, setPrivacyNotice] = useState(null);
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [privacyNote, setPrivacyNote] = useState("");
+
+  const loadPrivacy = async () => {
+    const [privacyRes, noticeRes] = await Promise.all([
+      getPrivacyConsentStatus().catch(() => null),
+      getConsentNotice("Privacy").catch(() => null),
+    ]);
+    const privacy = unwrap(privacyRes) || privacyRes;
+    setPrivacyStatus(privacy || null);
+    setPrivacyGranted(Boolean(privacy?.granted ?? privacy?.Granted ?? privacy?.isGranted ?? privacy?.privacyGranted));
+    setPrivacyNotice(unwrap(noticeRes) || null);
+  };
 
   const load = async () => {
     setLoading(true);
     setLoadError("");
     try {
-      const [profileRes, privacyRes, healthRes] = await Promise.all([
+      const [profileRes, healthRes] = await Promise.all([
         getPatientProfileMe(),
-        getPrivacyConsentStatus().catch(() => null),
         getPatientProfileS4().catch(() => null),
+        loadPrivacy(),
       ]);
       setForm(formFromProfile(unwrap(profileRes)));
       setHealth(healthFromProfile(unwrap(healthRes)));
-      const privacy = unwrap(privacyRes) || privacyRes;
-      setPrivacyGranted(Boolean(privacy?.granted ?? privacy?.Granted ?? privacy?.isGranted ?? privacy?.privacyGranted));
     } catch (err) {
       setLoadError(errorText(err, "Profile could not be loaded."));
     } finally {
@@ -200,11 +212,17 @@ const PatientProfileFields = () => {
     setPrivacyBusy(true);
     setPrivacyNote("");
     try {
-      await grantPrivacyConsent();
-      setPrivacyGranted(true);
-      setPrivacyNote("Privacy consent is recorded.");
+      await grantPrivacyConsent({ noticeVersion: privacyNotice?.version, noticeLanguage: privacyNotice?.language });
+      await loadPrivacy();
+      setPrivacyNote(`Privacy consent is recorded against notice version ${privacyNotice?.version || "current"}.`);
     } catch (err) {
-      setPrivacyNote(errorText(err, "Could not record privacy consent."));
+      const code = err?.data?.code;
+      if (code === "NOTICE_OUTDATED") {
+        await loadPrivacy();
+        setPrivacyNote("The privacy notice was updated while you were reading. Please read the new version and consent again.");
+      } else {
+        setPrivacyNote(err?.data?.message || errorText(err, "Could not record privacy consent."));
+      }
     } finally {
       setPrivacyBusy(false);
     }
@@ -348,12 +366,32 @@ const PatientProfileFields = () => {
       </h5>
       <p className="text-muted">
         {privacyGranted
-          ? "Privacy consent is already granted for this account."
-          : "Grant privacy consent so the clinic can keep your case records."}
+          ? `Privacy consent is granted (notice version ${privacyStatus?.grantedNoticeVersion || "on file"}${
+              privacyStatus?.grantedForMinor && privacyStatus?.guardianName ? `, given by guardian ${privacyStatus.guardianName}` : ""
+            }).`
+          : privacyStatus?.isMinor
+            ? "This profile belongs to someone under 18. A parent or legal guardian must give privacy consent from their family account (Family page) or at the clinic."
+            : privacyStatus?.reconsentRequired
+              ? "The privacy notice has changed since you last consented. Please read the current version and consent again."
+              : "Read the privacy notice below and grant consent so the clinic can keep your case records."}
       </p>
+      {privacyNotice ? (
+        <details className="mb-3">
+          <summary>
+            {privacyNotice.title || "Privacy notice"} (version {privacyNotice.version})
+          </summary>
+          <div className="border rounded p-2 mt-2 small" style={{ whiteSpace: "pre-wrap", maxHeight: 260, overflowY: "auto" }}>
+            {privacyNotice.body}
+          </div>
+        </details>
+      ) : null}
       {privacyNote ? <Alert color={privacyGranted ? "success" : "danger"}>{privacyNote}</Alert> : null}
-      <Button color="success" disabled={privacyBusy || privacyGranted} onClick={grantPrivacy}>
-        {privacyBusy ? "Saving…" : privacyGranted ? "Granted" : "Grant privacy"}
+      <Button
+        color="success"
+        disabled={privacyBusy || privacyGranted || Boolean(privacyStatus?.isMinor) || !privacyNotice}
+        onClick={grantPrivacy}
+      >
+        {privacyBusy ? "Saving…" : privacyGranted ? "Granted" : "I have read the notice and consent"}
       </Button>
     </>
   );

@@ -14,8 +14,8 @@ const AddRole = () => {
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
 
   // Redux state
-  const { roleSuccess, roleError, roleLoading } = useSelector((state) => state?.Role || {});
-  const firmList = useSelector((state) => state?.Role?.firmList || []);
+  const { roleSuccess, roleError, roleLoading } = useSelector((state) => state?.Role) || {};
+  const firmList = useSelector((state) => state?.Role?.firmList) || [];
   const firmLoading = useSelector((state) => state?.Role?.firmLoading || false);
 
   // Fetch firms on component mount

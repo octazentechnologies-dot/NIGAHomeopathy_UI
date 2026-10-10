@@ -3,7 +3,7 @@ import { Alert, Button, Card, CardBody, Container, Input, Spinner, Table } from 
 import { listMedicineExceptions, rerouteMedicine, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
 
 /**
- * MED-12 — admin HomeoMeds exception queue + re-route (New API :5002).
+ * MED-12 — admin HomeoMeds exception queue + re-route (API :5002).
  */
 const HomemedsExceptionsPage = () => {
   const [rows, setRows] = useState([]);

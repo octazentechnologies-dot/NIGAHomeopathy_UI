@@ -9,6 +9,7 @@ import DragSortableList from 'react-drag-sortable';
 import CommonServices from '../../Services/CommonServices';
 import '../../components/CommanStyle.css';
 import { reject, result } from 'lodash';
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 /**
  * Created Date     :   07-01-2020.
@@ -907,7 +908,7 @@ export class EditClinicalQuestionsComponent extends Component {
                 QuestionGroupId: this.state.QuestionGroupId,
                 Questions: this.state.Question,
                 Description: this.state.Description,
-                EnteredBy: localStorage.getItem("UserName"),
+                EnteredBy: getAuditUserName(),
                 SeqNo: this.state.SeqNo,
             }
             clinicalquestionsModel.push(item);
@@ -980,7 +981,7 @@ export class EditClinicalQuestionsComponent extends Component {
         var DeleteClinicalQuestions = {
             QuestionsId: QuestionsId,
             DeleteStatus: true,
-            EnteredBy: localStorage.getItem("UserName"),
+            EnteredBy: getAuditUserName(),
             QuestionGroupId: this.state.QuestionGroupId,
             Questions: "Test",
         };

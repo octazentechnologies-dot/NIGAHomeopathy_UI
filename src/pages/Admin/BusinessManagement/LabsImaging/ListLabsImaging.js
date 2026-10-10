@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardBody, CardHeader, Col, Container, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import Swal from 'sweetalert2';
 import { getLabTestList } from '../../../../slices/admin/labtests/thunk';
+import { deletePatientLabTest } from '../../../../helpers/realbackend_helper';
+import { exportListTableCsv } from '../../../../helpers/listExport';
 
 const ListLabsImaging = () => {
   const dispatch = useDispatch();
@@ -12,7 +15,7 @@ const ListLabsImaging = () => {
   const pageSize = 10;
 
   const labTestLoading = useSelector((state) => state?.LabTest?.labTestLoading || false);
-  const labTests = useSelector((state) => state?.LabTest?.labTestList?.resultObject || []);
+  const labTests = useSelector((state) => state?.LabTest?.labTestList?.resultObject) || [];
   const totalPages = useSelector((state) => state?.LabTest?.labTestList?.totalPageCount || 1);
   const totalRecords = useSelector(
     (state) => state?.LabTest?.labTestList?.totalRecordCount || labTests.length || 0
@@ -39,6 +42,26 @@ const ListLabsImaging = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
+  const handleDelete = async (test) => {
+    const confirm = await Swal.fire({
+      title: 'Delete lab / imaging test?',
+      text: `"${test.labTestName || 'This test'}" will be removed from the list.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete',
+    });
+    if (!confirm.isConfirmed) return;
+    try {
+      const response = await deletePatientLabTest(test.patientLabTestId);
+      Swal.fire('Deleted', typeof response === 'string' ? response : 'Lab test deleted successfully.', 'success');
+      dispatch(getLabTestList({ PageNumber: currentPage, PageSize: pageSize, queryString: searchQuery }));
+    } catch (error) {
+      const message = typeof error === 'string' ? error : error?.message;
+      Swal.fire('Error', message || 'The lab test could not be deleted.', 'error');
+    }
+  };
+
   const rowStart = (currentPage - 1) * pageSize;
 
   document.title = 'List Labs & Imaging';
@@ -62,11 +85,11 @@ const ListLabsImaging = () => {
                       />
                     </div>
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
                       </button>
-                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export">
+                      <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={(e) => exportListTableCsv(e)}>
                         <i className="ri-download-2-line align-middle me-1" aria-hidden="true" />
                         Export
                       </button>
@@ -109,14 +132,19 @@ const ListLabsImaging = () => {
                                 <td className="text-center">
                                   <div className="d-inline-flex gap-2">
                                     <div className="edit">
-                                      <Link to={`/admin/editlabsimaging/${test.patientLabTestId}`}>
+                                      <Link to="/admin/editlabsimaging" state={{ patientLabTestId: test.patientLabTestId }}>
                                         <button type="button" className="btn btn-sm btn-soft-success edit-item-btn" title="Edit">
                                           <i className="ri-pencil-fill" />
                                         </button>
                                       </Link>
                                     </div>
                                     <div className="remove">
-                                      <button type="button" className="btn btn-sm btn-soft-danger remove-item-btn" title="Delete">
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-soft-danger remove-item-btn"
+                                        title="Delete"
+                                        onClick={() => handleDelete(test)}
+                                      >
                                         <i className="ri-delete-bin-5-line" />
                                       </button>
                                     </div>

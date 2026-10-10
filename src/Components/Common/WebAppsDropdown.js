@@ -13,7 +13,7 @@ const LINKS_BY_ROLE = {
         { to: '/doctor/support', icon: 'ri-customer-service-2-line', label: 'Support' },
     ],
     [UserRole.ADMIN]: [
-        { to: '/admin/dashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
+        { to: '/dashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
         { to: '/admin/listusers', icon: 'ri-user-settings-line', label: 'Users' },
         { to: '/admin/trust-queue', icon: 'ri-shield-check-line', label: 'Trust queue' },
         { to: '/admin/consult-payments', icon: 'ri-bank-card-line', label: 'Payments' },

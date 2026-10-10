@@ -1,27 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from 'reactstrap';
+import Swal from 'sweetalert2';
 
-//import images
-import avatar1 from "../../assets/images/users/avatar-1.jpg";
 import { createSelector } from 'reselect';
 import { UserRole } from '../constants/roles';
 import { dispatchOpenBillingListModal } from '../../helpers/dashboard_helper';
-import { getCaregiverMe } from '../../helpers/realbackend_helper';
+import { getAvailabilityMe, getCaregiverMe, getDoctorPhotoBlob, updateAvailabilityMe } from '../../helpers/realbackend_helper';
+import { PROFILE_PHOTO_CHANGED_EVENT } from '../../helpers/profilePhotoEvents';
+import { setCounts } from '../../slices/doctor/dashboard/reducer';
 
-const DOCTOR_ONLINE_STATUS_KEY = 'doctorOnlineStatus';
-
-const readDoctorOnlineStatus = () => {
-    try {
-        const stored = sessionStorage.getItem(DOCTOR_ONLINE_STATUS_KEY);
-        return stored === null ? true : stored === 'true';
-    } catch {
-        return true;
-    }
+const readOnlineFlag = (source) => {
+    const value = source?.isOnline ?? source?.IsOnline;
+    return typeof value === 'boolean' ? value : null;
 };
 
 const ProfileDropdown = () => {
+    const dispatch = useDispatch();
+    const dashboardCounts = useSelector((state) => state?.DoctorDashboard?.counts);
 
     const profiledropdownData = createSelector(
         (state) => state.Profile,
@@ -102,8 +99,70 @@ const ProfileDropdown = () => {
 
     //Dropdown Toggle
     const [isProfileDropdown, setIsProfileDropdown] = useState(false);
-    const [isOnline, setIsOnline] = useState(readDoctorOnlineStatus);
+    const [isOnline, setIsOnline] = useState(false);
+    const [availabilityBusy, setAvailabilityBusy] = useState(false);
+    const [doctorId, setDoctorId] = useState(null);
+    const [photoUrl, setPhotoUrl] = useState(null);
+    const [photoVersion, setPhotoVersion] = useState(0);
     const isDoctor = userRole === UserRole.DOCTOR;
+
+    useEffect(() => {
+        if (!isDoctor) {
+            setDoctorId(null);
+            return undefined;
+        }
+        let cancelled = false;
+        getAvailabilityMe()
+            .then((raw) => {
+                const me = raw?.data ?? raw;
+                if (cancelled || !me) return;
+                const online = readOnlineFlag(me);
+                if (online !== null) setIsOnline(online);
+                setDoctorId(me.doctorId ?? me.DoctorId ?? null);
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+        };
+    }, [isDoctor]);
+
+    // The dashboard availability widget updates the same flag through the counts API.
+    const countsOnline = readOnlineFlag(dashboardCounts);
+    useEffect(() => {
+        if (isDoctor && countsOnline !== null) setIsOnline(countsOnline);
+    }, [isDoctor, countsOnline]);
+
+    useEffect(() => {
+        const onPhotoChanged = () => setPhotoVersion((v) => v + 1);
+        window.addEventListener(PROFILE_PHOTO_CHANGED_EVENT, onPhotoChanged);
+        return () => window.removeEventListener(PROFILE_PHOTO_CHANGED_EVENT, onPhotoChanged);
+    }, []);
+
+    useEffect(() => {
+        if (!doctorId) {
+            setPhotoUrl(null);
+            return undefined;
+        }
+        let cancelled = false;
+        let objectUrl = null;
+        getDoctorPhotoBlob(doctorId)
+            .then((response) => {
+                const blob = response?.data instanceof Blob ? response.data : response;
+                if (cancelled || !(blob instanceof Blob) || blob.size === 0) {
+                    if (!cancelled) setPhotoUrl(null);
+                    return;
+                }
+                objectUrl = URL.createObjectURL(blob);
+                setPhotoUrl(objectUrl);
+            })
+            .catch(() => {
+                if (!cancelled) setPhotoUrl(null);
+            });
+        return () => {
+            cancelled = true;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [doctorId, photoVersion]);
     const isReception = userRole === UserRole.RECEPTION;
     const avatarLetter = String(displayName || userName || "U").trim().charAt(0).toUpperCase() || "U";
     const roleLabel = isReception
@@ -114,19 +173,30 @@ const ProfileDropdown = () => {
     const toggleProfileDropdown = () => {
         setIsProfileDropdown(!isProfileDropdown);
     };
-    const handleOnlineToggle = (event) => {
+    const handleOnlineToggle = useCallback(async (event) => {
         event.preventDefault();
         event.stopPropagation();
-        setIsOnline((prev) => {
-            const next = !prev;
-            try {
-                sessionStorage.setItem(DOCTOR_ONLINE_STATUS_KEY, String(next));
-            } catch {
-                /* ignore storage errors */
+        if (availabilityBusy) return;
+        const next = !isOnline;
+        setAvailabilityBusy(true);
+        try {
+            const raw = await updateAvailabilityMe({ isOnline: next });
+            const saved = readOnlineFlag(raw?.data ?? raw);
+            const value = saved ?? next;
+            setIsOnline(value);
+            if (dashboardCounts) {
+                dispatch(setCounts({ ...dashboardCounts, isOnline: value, IsOnline: value }));
             }
-            return next;
-        });
-    };
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Availability update failed',
+                text: typeof err === 'string' ? err : err?.message || 'Could not change online status',
+            });
+        } finally {
+            setAvailabilityBusy(false);
+        }
+    }, [availabilityBusy, isOnline, dashboardCounts, dispatch]);
     const handleOpenBilling = (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -139,19 +209,20 @@ const ProfileDropdown = () => {
                 <DropdownToggle tag="button" type="button" className="btn">
                     <span className="d-flex align-items-center">
                         <span className={`header-profile-user-wrap${isDoctor && isOnline ? " is-online" : ""}`}>
-                            {isReception ? (
+                            {photoUrl ? (
+                                <img
+                                    className="rounded-circle header-profile-user"
+                                    src={photoUrl}
+                                    alt={displayName || "Profile"}
+                                    style={{ objectFit: "cover" }}
+                                />
+                            ) : (
                                 <span
                                     className="rounded-circle header-profile-user header-profile-user--letter"
                                     aria-hidden="true"
                                 >
                                     {avatarLetter}
                                 </span>
-                            ) : (
-                                <img
-                                    className="rounded-circle header-profile-user"
-                                    src={avatar1}
-                                    alt="Header Avatar"
-                                />
                             )}
                             {isDoctor && isOnline ? (
                                 <span className="header-profile-user-status" aria-hidden="true" />
@@ -187,6 +258,7 @@ const ProfileDropdown = () => {
                                     role="switch"
                                     id="doctorOnlineStatus"
                                     checked={isOnline}
+                                    disabled={availabilityBusy}
                                     onChange={handleOnlineToggle}
                                     aria-label={isOnline ? "Set offline" : "Set online"}
                                 />

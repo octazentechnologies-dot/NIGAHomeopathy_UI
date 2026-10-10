@@ -1,21 +1,20 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { HiddenLink, useHiddenSearchParams } from '../../../helpers/hiddenRouteParams';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import InfiniteScrollContainer from '../../../Components/Common/InfiniteScrollContainer';
 import { Button, Input, UncontrolledTooltip, Tooltip, Modal, ModalHeader, ModalBody, ModalFooter, Col, Row, Label, Spinner } from 'reactstrap';
 import Select from "react-select";
 import Swal from 'sweetalert2';
 import ReactHtmlParser from 'html-react-parser';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 // Import Draft.js components
 import { convertToRaw, EditorState, ContentState } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';
 import { Editor } from 'react-draft-wysiwyg';
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
 import moment from 'moment';
-import img3 from "../../../assets/images/small/img-3.jpg";
+import { getInitials } from "../../../helpers/initials";
 import AnatomyViewer from "../../../Components/AnatomyViewer";
 import RemedyScoreBar from "../../../Components/RemedyScoreBar";
 import "../../../styles/anatomy.css";
@@ -41,7 +40,6 @@ import {
   getPatientBoardData,
   getQuestionSectionsBySubSectionId,
   getRubricDetails,
-  getRubricDetailsBySubSectionId,
   searchRubricsByKeyword,
   getRemedyCounts,
   getSectionList,
@@ -130,6 +128,7 @@ import {
 import {
   collectSubSectionIdsFromTree,
   getCachedRubricDetails,
+  isRubricDetailsFresh,
   INITIAL_RUBRIC_PREFETCH_LIMIT,
   SCROLL_RUBRIC_PREFETCH_BATCH,
 } from '../../../utils/rubricDetailsCache';
@@ -1194,7 +1193,7 @@ const PatientBoard = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions ?? []);
+  const activePatientSessions = useSelector((state) => state?.PatientBoardSession?.sessions) ?? [];
   const sessionAccessCheckedRef = useRef(false);
   const allopathicDrugForDropdown = useSelector((state) => state?.PatientDashboard?.allopathicDrugForDropdownList);
   const allopathicDrugForDropdownByIdList = useSelector((state) => state?.PatientDashboard?.allopathicDrugForDropdownByIdList);
@@ -1252,7 +1251,7 @@ const PatientBoard = () => {
   const patientDetailsLoading = useSelector((state) => state?.PatientDashboard?.patientDetailsLoading);
 
   // Get patientId and caseId (and legacy patientAppId) from URL params
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useHiddenSearchParams();
   const patientId = searchParams.get('patientId');
   const caseId = searchParams.get('caseId');
   const patientAppId = searchParams.get('patientAppId');
@@ -1964,7 +1963,7 @@ const PatientBoard = () => {
           Number.isFinite(subSectionId) &&
           subSectionId > 0 &&
           !uniqueIds.includes(subSectionId) &&
-          !getCachedRubricDetails(subSectionId)
+          !isRubricDetailsFresh(subSectionId)
         ) {
           uniqueIds.push(subSectionId);
         }
@@ -4310,32 +4309,6 @@ const PatientBoard = () => {
     }
     return [];
   }, [subSectionList]);
-
-  // Old dummy data - keeping for reference
-  const _oldSubSectionOptions = useMemo(() => {
-    return [
-      'Sub-section 1',
-      'Sub-section 2',
-      'Sub-section 3',
-      'Sub-section 4',
-      'Sub-section 5',
-      'Sub-section 6',
-      'Sub-section 7',
-      'Sub-section 8',
-      'Sub-section 9',
-      'Sub-section 10',
-      'Sub-section 11',
-      'Sub-section 12',
-      'Sub-section 13',
-      'Sub-section 14',
-      'Sub-section 15',
-      'Sub-section 16',
-      'Sub-section 17',
-      'Sub-section 18',
-      'Sub-section 19',
-      'Sub-section 20'
-    ];
-  }, []);
 
   // No frontend filtering or pagination - API handles both
   const filteredSubSections = subSectionOptions;
@@ -7084,6 +7057,17 @@ const PatientBoard = () => {
       object-fit:cover;
       border:2px solid #fff;
       box-shadow:0 0 0 1px #d7e3ef, 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+    .pb-info__avatar--initials {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      background:#e7f0fb;
+      color:#1d4f91;
+      font-size:11px;
+      font-weight:600;
+      line-height:1;
     }
     .pb-info__avatar-status {
       position:absolute;
@@ -12292,6 +12276,24 @@ const PatientBoard = () => {
     }, 300);
   };
 
+  const selectedRubricSubSectionId = selectedSubSection?.subSectionId ?? selectedSubSection?.SubSectionId;
+
+  useEffect(() => {
+    if (activeTab !== 'Repertory' || !selectedRubricSubSectionId) {
+      return undefined;
+    }
+    const revalidateSelectedRubric = () => {
+      if (document.visibilityState !== 'visible') return;
+      dispatch(getRubricDetails({ subSectionId: selectedRubricSubSectionId })).catch(() => {});
+    };
+    window.addEventListener('focus', revalidateSelectedRubric);
+    document.addEventListener('visibilitychange', revalidateSelectedRubric);
+    return () => {
+      window.removeEventListener('focus', revalidateSelectedRubric);
+      document.removeEventListener('visibilitychange', revalidateSelectedRubric);
+    };
+  }, [activeTab, selectedRubricSubSectionId, dispatch]);
+
   const prefetchRubricDetails = useCallback(
     (subSectionId) => {
       if (!subSectionId) return;
@@ -13055,13 +13057,13 @@ const PatientBoard = () => {
           </div>
           <Link to={getHomeDashboardPath()} className="btn btn-link text-decoration-none ms-2"><i className="ri-dashboard-2-line me-1" />Dashboard</Link>
           {patientAppId ? (
-            <Link
+            <HiddenLink
               to={`/doctor/erx?patientAppId=${encodeURIComponent(patientAppId)}`}
               className="btn btn-link text-decoration-none ms-2"
             >
               <i className="ri-file-text-line me-1" />
               Sign eRx
-            </Link>
+            </HiddenLink>
           ) : null}
         </div>
         <div className="pb-logo-wrapper">
@@ -13078,7 +13080,9 @@ const PatientBoard = () => {
           <div className="mar-10 d-flex align-items-center justify-content-between flex-wrap gap-2 pb-info">
             <div className="pb-info__identity">
               <div className="pb-info__avatar-wrap">
-                <img src={img3} alt="avatar" className="pb-info__avatar" />
+                <span className="pb-info__avatar pb-info__avatar--initials" aria-hidden="true">
+                  {getInitials(patientDetails?.patientName, 'P')}
+                </span>
                 <span className="pb-info__avatar-status" aria-hidden="true" />
               </div>
               <div className="pb-info__details">

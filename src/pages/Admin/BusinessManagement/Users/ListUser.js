@@ -3,7 +3,10 @@ import { CardHeader, Card, CardBody, Col, Container, Row, Spinner } from 'reacts
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUserList } from '../../../../slices/admin/users/thunk';
+import Swal from 'sweetalert2';
 import { downloadCsvEnvelope, exportUsers, importUsers, s4Message } from '../../../../helpers/s5Week5Api';
+import { deleteUser as deleteUserApi } from '../../../../helpers/realbackend_helper';
+import { getLoggedinUserInfo } from '../../../../helpers/api_helper';
 
 const ListUser = () => {
   const dispatch = useDispatch();
@@ -16,7 +19,7 @@ const ListUser = () => {
   const pageSize = 10;
 
   const userLoading = useSelector((state) => state?.User?.userLoading || false);
-  const users = useSelector((state) => state?.User?.userList || []);
+  const users = useSelector((state) => state?.User?.userList) || [];
   const totalRecords = useSelector((state) => state?.User?.totalCount || users.length || 0);
   const totalPages = useSelector((state) => state?.User?.totalPageCount || 1);
 
@@ -76,6 +79,31 @@ const ListUser = () => {
       setActionMessage(unknown.length ? `Unknown names: ${unknown.join(', ')}` : (response?.message || 'Import checked.'));
     } catch (err) {
       setActionMessage(s4Message(err));
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    const signedIn = getLoggedinUserInfo();
+    if (signedIn && String(signedIn.userId ?? signedIn.UserId) === String(user.userId)) {
+      Swal.fire('Not allowed', 'You cannot delete the account you are signed in with.', 'info');
+      return;
+    }
+    const label = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.userName || 'this user';
+    const confirm = await Swal.fire({
+      title: 'Delete user?',
+      text: `${label} will no longer be able to sign in.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete',
+    });
+    if (!confirm.isConfirmed) return;
+    try {
+      const response = await deleteUserApi(user.userId);
+      Swal.fire('Deleted', typeof response === 'string' ? response : 'User deleted successfully.', 'success');
+      dispatch(getUserList({ queryString: searchQuery, PageNumber: currentPage, PageSize: pageSize }));
+    } catch (err) {
+      Swal.fire('Error', s4Message(err) || 'The user could not be deleted.', 'error');
     }
   };
 
@@ -181,7 +209,12 @@ const ListUser = () => {
                                       </Link>
                                     </div>
                                     <div className="remove">
-                                      <button type="button" className="btn btn-sm btn-soft-danger remove-item-btn" title="Delete">
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-soft-danger remove-item-btn"
+                                        title="Delete"
+                                        onClick={() => handleDeleteUser(user)}
+                                      >
                                         <i className="ri-delete-bin-5-line" />
                                       </button>
                                     </div>

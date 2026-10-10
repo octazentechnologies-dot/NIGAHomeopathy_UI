@@ -15,7 +15,7 @@ const AddLabsImaging = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { labTestDetailsSuccess, labTestDetailsError, labTestDetailsLoading } = useSelector((state) => state?.LabTest || {});
+  const { labTestDetailsSuccess, labTestDetailsError, labTestDetailsLoading } = useSelector((state) => state?.LabTest) || {};
 
   const formik = useFormik({
     enableReinitialize: false,

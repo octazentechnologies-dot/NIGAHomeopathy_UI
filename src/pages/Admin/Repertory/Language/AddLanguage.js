@@ -15,7 +15,7 @@ const AddLanguage = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { languageSuccess, languageError } = useSelector((state) => state?.Language || {});
+  const { languageSuccess, languageError } = useSelector((state) => state?.Language) || {};
   console.log(languageSuccess)
 
   const formik = useFormik({

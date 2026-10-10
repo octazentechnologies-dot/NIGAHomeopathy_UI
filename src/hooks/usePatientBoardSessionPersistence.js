@@ -30,7 +30,7 @@ const usePatientBoardSessionPersistence = ({
   skipPersistRef,
   dispatch,
 }) => {
-  const storedSessions = useSelector((state) => state?.PatientBoardSession?.sessions ?? []);
+  const storedSessions = useSelector((state) => state?.PatientBoardSession?.sessions) ?? [];
   const storedSessionsRef = useRef(storedSessions);
   storedSessionsRef.current = storedSessions;
 

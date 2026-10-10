@@ -1,5 +1,5 @@
 /**
- * ADM-B04.03 — Map New-API GetMenuByRole MenuMaster rows to SPA nav items.
+ * ADM-B04.03 — Map API GetMenuByRole MenuMaster rows to SPA nav items.
  * Seed URLs from M02 W7 may differ from CRA routes; normalize those here.
  */
 const SEED_URL_TO_SPA = {

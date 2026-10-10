@@ -5,7 +5,7 @@ import {
 } from "./reducer";
 import { forgotPasswordSecure } from "../../../helpers/realbackend_helper";
 
-/** SEC-02.03 — real New-API ForgotPassword (no fake/Firebase). */
+/** SEC-02.03 — real API ForgotPassword (no fake/Firebase). */
 export const userForgetPassword = (user) => async (dispatch) => {
   try {
     const email = user?.email;

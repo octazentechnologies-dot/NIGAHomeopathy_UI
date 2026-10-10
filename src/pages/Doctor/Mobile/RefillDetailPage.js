@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Badge, Container, Table } from "reactstrap";
+import { useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
 
 import {
   approveDoctorRefill,
@@ -33,8 +34,9 @@ const errorText = (err, fallback) => {
  * Reject requires a reason. The prescription snapshot cannot be edited here.
  */
 const RefillDetailPage = () => {
-  const { refillId } = useParams();
-  const id = Number(refillId);
+  const { refillId: paramId } = useParams();
+  const [searchParams] = useHiddenSearchParams();
+  const id = Number(paramId || searchParams.get("refillId"));
 
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);

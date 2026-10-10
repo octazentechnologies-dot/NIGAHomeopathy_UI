@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
 import { Alert, Badge, Container, Input, Spinner } from "reactstrap";
 import moment from "moment";
 import {
@@ -125,7 +125,7 @@ const hasSummaryOrVisit = (visit) => visit.status !== "CANCELLED";
 export const PatientChatPage = () => {
   document.title = "Visit chat | Niga Homeocentrum";
   const offline = useOffline();
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useHiddenSearchParams();
   const { visits, loading: visitsLoading, error: visitsError } = usePatientVisits(hasSession);
   const [selectedId, setSelectedId] = useState("");
   const [messages, setMessages] = useState([]);
@@ -192,7 +192,7 @@ export const PatientChatPage = () => {
         <div className="prx-card__body">
           {visitsLoading ? (
             <p className="text-muted mb-0">
-              <Spinner size="sm" /> Loading your visits…
+              <Spinner size="sm" tag="span" /> Loading your visits…
             </p>
           ) : (
             <VisitPicker
@@ -211,7 +211,7 @@ export const PatientChatPage = () => {
               <div className="border rounded p-3 my-3" style={{ maxHeight: 360, overflowY: "auto" }}>
                 {loading ? (
                   <p className="text-muted mb-0">
-                    <Spinner size="sm" /> Loading messages…
+                    <Spinner size="sm" tag="span" /> Loading messages…
                   </p>
                 ) : messages.length === 0 ? (
                   <p className="text-muted mb-0">No messages for this visit yet.</p>
@@ -315,7 +315,7 @@ export const PatientRejoinPage = () => {
         <div className="prx-card__body">
           {visitsLoading ? (
             <p className="text-muted mb-0">
-              <Spinner size="sm" /> Checking for an active call…
+              <Spinner size="sm" tag="span" /> Checking for an active call…
             </p>
           ) : (
             <VisitPicker
@@ -372,7 +372,7 @@ export const PatientRejoinPage = () => {
 export const PatientSummaryPage = () => {
   document.title = "Consultation summary | Niga Homeocentrum";
   const offline = useOffline();
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useHiddenSearchParams();
   const { visits, loading: visitsLoading, error: visitsError } = usePatientVisits(hasSummaryOrVisit);
   const [selectedId, setSelectedId] = useState("");
   const [summaries, setSummaries] = useState([]);
@@ -427,7 +427,7 @@ export const PatientSummaryPage = () => {
         <div className="prx-card__body">
           {visitsLoading ? (
             <p className="text-muted mb-0">
-              <Spinner size="sm" /> Loading your visits…
+              <Spinner size="sm" tag="span" /> Loading your visits…
             </p>
           ) : (
             <VisitPicker
@@ -449,7 +449,7 @@ export const PatientSummaryPage = () => {
               </div>
               {loading ? (
                 <p className="text-muted mb-0">
-                  <Spinner size="sm" /> Loading summary…
+                  <Spinner size="sm" tag="span" /> Loading summary…
                 </p>
               ) : summaryTexts.length === 0 && !note ? (
                 <p className="text-muted mb-0">No summary has been written for this visit yet.</p>

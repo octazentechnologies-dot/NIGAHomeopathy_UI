@@ -9,6 +9,7 @@ import { createQuestionGroup } from '../../../../slices/admin/questiongroup/thun
 import { getQuestionSections } from '../../../../slices/admin/existance/thunk';
 import { setQuestionGroupSuccess, setQuestionGroupError } from '../../../../slices/admin/questiongroup/reducer';
 import { neutralSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
+import { getAuditUserName } from "../../../../helpers/api_helper";
 
 const AddQuestionGroup = () => {
   const dispatch = useDispatch();
@@ -31,7 +32,7 @@ const AddQuestionGroup = () => {
       questionSectionId: null,
       questionSectionName: '',
       description: '',
-      enteredBy: 'Admin',
+      enteredBy: getAuditUserName(),
       enteredDate: new Date().toISOString(),
       deleteStatus: false,
     },

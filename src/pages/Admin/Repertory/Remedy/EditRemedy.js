@@ -28,7 +28,7 @@ const EditRemedy = () => {
   const navigate = useNavigate();
 
   // Redux state
-  const { remedySuccess, remedyError, termalDDLList, singleRemedy, loading } = useSelector((state) => state?.Remedy || {});
+  const { remedySuccess, remedyError, termalDDLList, singleRemedy, loading } = useSelector((state) => state?.Remedy) || {};
 
   const ThermalNameOptions = termalDDLList?.map((thermal) => ({
     label: thermal.thermalName,

@@ -27,14 +27,14 @@ const EditNews = () => {
   const navigate = useNavigate();
 
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
-  const newsCategoriesList = useSelector((state) => state?.News?.newsCategoriesList || []);
+  const newsCategoriesList = useSelector((state) => state?.News?.newsCategoriesList) || [];
   const newsCategoriesLoading = useSelector((state) => state?.News?.newsCategoriesLoading || false);
   const newsDetailsData = useSelector((state) => {
     const details = state?.News?.newsDetailsList;
     // Handle both array and object responses
     return Array.isArray(details) && details.length > 0 ? details[0] : (details || null);
   });
-  const { newsDetailsSuccess, newsDetailsError, newsDetailsLoading } = useSelector((state) => state?.News || {});
+  const { newsDetailsSuccess, newsDetailsError, newsDetailsLoading } = useSelector((state) => state?.News) || {};
 
   // Get newsId from location state
   const newsId = location.state?.newsId || null;

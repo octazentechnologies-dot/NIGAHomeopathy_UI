@@ -12,6 +12,10 @@ import {
   FormGroup,
   Input,
   Label,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Row,
   Spinner,
   Table,
@@ -21,9 +25,12 @@ import {
   addFamilyRelation,
   createFamilyMember,
   deleteFamilyMember,
+  getConsentNotice,
   getFamilyMembers,
   getFamilyMe,
   getFamilyRelations,
+  getPrivacyConsentStatus,
+  grantConsent,
   updateFamilyMember,
 } from "../../helpers/realbackend_helper";
 import { unwrapApiList } from "../../helpers/menuByRole";
@@ -35,9 +42,18 @@ const emptyForm = {
   patientName: "",
   mobileNo: "",
   email: "",
+  dateOfBirth: "",
+  gender: "",
 };
 
 const ADD_NEW_VALUE = "__new__";
+
+const toDateInput = (value) => {
+  const text = value ? String(value) : "";
+  return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : "";
+};
+
+const memberPatientIdOf = (row) => row.memberPatientId ?? row.MemberPatientId;
 
 const FamilyMembers = () => {
   document.title = "Family | Niga Homeocentrum";
@@ -55,6 +71,12 @@ const FamilyMembers = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [consentByPatient, setConsentByPatient] = useState({});
+  const [consentFor, setConsentFor] = useState(null);
+  const [privacyNotice, setPrivacyNotice] = useState(null);
+  const [guardianDeclared, setGuardianDeclared] = useState(false);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const [consentError, setConsentError] = useState(null);
 
   const relationOptions = useMemo(() => {
     const rows = unwrapApiList(relations)
@@ -109,7 +131,9 @@ const FamilyMembers = () => {
       setOwnerPatientId(me?.ownerPatientId ?? me?.OwnerPatientId ?? me?.patientId ?? me?.PatientId ?? null);
       setOwnerMobile(me?.ownerMobileNo ?? me?.OwnerMobileNo ?? me?.mobileNo ?? me?.MobileNo ?? "");
       setActingAsCaregiver(!!(me?.isActingAsCaregiver ?? me?.IsActingAsCaregiver ?? listRaw?.isActingAsCaregiver));
-      setMembers(unwrapApiList(listRaw?.data ?? listRaw));
+      const rows = unwrapApiList(listRaw?.data ?? listRaw);
+      setMembers(rows);
+      loadConsents(rows);
     } catch (err) {
       setError(typeof err === "string" ? err : "Could not load family members.");
       setMembers([]);
@@ -118,9 +142,101 @@ const FamilyMembers = () => {
     }
   };
 
+  const loadConsents = async (rows) => {
+    const entries = await Promise.all(
+      rows
+        .map(memberPatientIdOf)
+        .filter(Boolean)
+        .map(async (patientId) => {
+          try {
+            const raw = await getPrivacyConsentStatus(patientId);
+            return [patientId, raw?.data ?? raw];
+          } catch {
+            return [patientId, null];
+          }
+        })
+    );
+    setConsentByPatient(Object.fromEntries(entries));
+  };
+
   useEffect(() => {
     load();
   }, []);
+
+  const openGuardianConsent = async (row) => {
+    setConsentFor(row);
+    setGuardianDeclared(false);
+    setConsentError(null);
+    try {
+      const raw = await getConsentNotice("Privacy");
+      setPrivacyNotice(raw?.data ?? raw);
+    } catch {
+      setPrivacyNotice(null);
+      setConsentError("The privacy notice could not be loaded.");
+    }
+  };
+
+  const closeGuardianConsent = () => {
+    setConsentFor(null);
+    setPrivacyNotice(null);
+  };
+
+  const submitGuardianConsent = async () => {
+    if (!consentFor || !privacyNotice) return;
+    setConsentBusy(true);
+    setConsentError(null);
+    try {
+      await grantConsent({
+        consentTypeCode: "Privacy",
+        subjectType: "Patient",
+        subjectId: memberPatientIdOf(consentFor),
+        noticeVersion: privacyNotice.version,
+        noticeLanguage: privacyNotice.language,
+        guardian: {
+          method: "FamilyAccount",
+          declaresLegalGuardian: guardianDeclared,
+          relationship: consentFor.relation ?? consentFor.Relation ?? null,
+        },
+      });
+      const name = consentFor.patientName ?? consentFor.PatientName ?? "the child";
+      closeGuardianConsent();
+      setMessage(`Privacy consent recorded for ${name} (notice version ${privacyNotice.version}).`);
+      await loadConsents(members);
+    } catch (err) {
+      if (err?.data?.code === "NOTICE_OUTDATED") {
+        await openGuardianConsent(consentFor);
+        setConsentError("The notice was updated. Please read the new version and confirm again.");
+      } else {
+        setConsentError(err?.data?.message || (typeof err === "string" ? err : err?.message) || "Consent could not be recorded.");
+      }
+    } finally {
+      setConsentBusy(false);
+    }
+  };
+
+  const consentCell = (row) => {
+    const status = consentByPatient[memberPatientIdOf(row)];
+    const isMinor = status?.isMinor ?? row.isMinor ?? row.IsMinor;
+    if (status?.granted) {
+      return (
+        <span className="badge bg-success-subtle text-success">
+          Granted v{status.grantedNoticeVersion || "?"}
+          {status.grantedForMinor ? " (guardian)" : ""}
+        </span>
+      );
+    }
+    if (isMinor) {
+      return (
+        <Button color="warning" size="sm" outline onClick={() => openGuardianConsent(row)}>
+          Give guardian consent
+        </Button>
+      );
+    }
+    if (status?.reconsentRequired) {
+      return <span className="badge bg-warning-subtle text-warning">Needs fresh consent</span>;
+    }
+    return <span className="text-muted small">{isMinor === false ? "Adult · consents themselves" : "Add date of birth"}</span>;
+  };
 
   const onChange = (event) => {
     const { name, value } = event.target;
@@ -199,6 +315,8 @@ const FamilyMembers = () => {
         patientName: form.patientName,
         mobileNo: form.mobileNo || null,
         email: form.email || null,
+        dateOfBirth: form.dateOfBirth || null,
+        gender: form.gender === "" ? null : Number(form.gender),
       };
       if (editingId) {
         await updateFamilyMember(editingId, payload);
@@ -225,6 +343,8 @@ const FamilyMembers = () => {
       patientName: row.patientName ?? row.PatientName ?? "",
       mobileNo: row.mobileNo ?? row.MobileNo ?? "",
       email: row.email ?? row.Email ?? "",
+      dateOfBirth: toDateInput(row.dateOfBirth ?? row.DateOfBirth),
+      gender: String(row.gender ?? row.Gender ?? ""),
     });
   };
 
@@ -348,6 +468,27 @@ const FamilyMembers = () => {
                     <Label>Email</Label>
                     <Input type="email" name="email" value={form.email} onChange={onChange} />
                   </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="family-dob">Date of birth</Label>
+                    <Input
+                      id="family-dob"
+                      type="date"
+                      name="dateOfBirth"
+                      value={form.dateOfBirth}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={onChange}
+                    />
+                    <small className="text-muted">Needed so a parent or guardian can consent for children under 18.</small>
+                  </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="family-gender">Gender</Label>
+                    <Input id="family-gender" type="select" name="gender" value={form.gender} onChange={onChange}>
+                      <option value="">Select</option>
+                      <option value="0">Male</option>
+                      <option value="1">Female</option>
+                      <option value="2">Other</option>
+                    </Input>
+                  </FormGroup>
                   <Button
                     color="primary"
                     type="submit"
@@ -388,13 +529,14 @@ const FamilyMembers = () => {
                           <th>Name</th>
                           <th>Relation</th>
                           <th>Mobile</th>
+                          <th>Privacy consent</th>
                           <th></th>
                         </tr>
                       </thead>
                       <tbody>
                         {members.length === 0 ? (
                           <tr>
-                            <td colSpan={4}>No family members yet.</td>
+                            <td colSpan={5}>No family members yet.</td>
                           </tr>
                         ) : (
                           members.map((row) => {
@@ -404,6 +546,7 @@ const FamilyMembers = () => {
                                 <td>{row.patientName ?? row.PatientName}</td>
                                 <td>{row.relation ?? row.Relation}</td>
                                 <td>{row.mobileNo ?? row.MobileNo}</td>
+                                <td>{consentCell(row)}</td>
                                 <td className="text-end">
                                   <Button color="link" size="sm" onClick={() => onEdit(row)}>
                                     Edit
@@ -425,6 +568,49 @@ const FamilyMembers = () => {
           </Col>
         </Row>
       </Container>
+      <Modal isOpen={Boolean(consentFor)} toggle={closeGuardianConsent} size="lg" scrollable>
+        <ModalHeader toggle={closeGuardianConsent}>
+          Guardian consent for {consentFor?.patientName ?? consentFor?.PatientName ?? "child"}
+        </ModalHeader>
+        <ModalBody>
+          {consentError ? <Alert color="danger">{consentError}</Alert> : null}
+          <p className="text-muted">
+            This family member is under 18. Under the DPDP Act 2023 a parent or legal guardian gives consent for them.
+            The consent is recorded against your account and the notice version below.
+          </p>
+          {privacyNotice ? (
+            <>
+              <h6>
+                {privacyNotice.title || "Privacy notice"} (version {privacyNotice.version})
+              </h6>
+              <div className="border rounded p-2 mb-3 small" style={{ whiteSpace: "pre-wrap", maxHeight: 280, overflowY: "auto" }}>
+                {privacyNotice.body}
+              </div>
+            </>
+          ) : (
+            <Spinner size="sm" />
+          )}
+          <FormGroup check>
+            <Input
+              id="guardian-declaration"
+              type="checkbox"
+              checked={guardianDeclared}
+              onChange={(e) => setGuardianDeclared(e.target.checked)}
+            />
+            <Label check htmlFor="guardian-declaration">
+              I am this child&apos;s parent or legal guardian, I am 18 or older, and I consent on their behalf.
+            </Label>
+          </FormGroup>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="light" onClick={closeGuardianConsent} disabled={consentBusy}>
+            Cancel
+          </Button>
+          <Button color="primary" onClick={submitGuardianConsent} disabled={consentBusy || !guardianDeclared || !privacyNotice}>
+            {consentBusy ? "Saving…" : "Give consent"}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 };

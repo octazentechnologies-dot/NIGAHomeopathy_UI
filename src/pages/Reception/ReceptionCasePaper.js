@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useHiddenSearchParams } from "../../helpers/hiddenRouteParams";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, ListGroup, ListGroupItem, Row, Spinner } from "reactstrap";
 import { getPatientList, getReceptionCasePapers, saveReceptionCasePaper } from "../../helpers/realbackend_helper";
 import { getAuthUserId } from "../../helpers/menuByRole";
@@ -11,7 +12,7 @@ const nameOf = (row) => row?.patientName ?? row?.PatientName ?? "Patient";
 const mobileOf = (row) => row?.mobileNo ?? row?.MobileNo ?? "";
 
 const ReceptionCasePaper = () => {
-  const [params] = useSearchParams();
+  const [params] = useHiddenSearchParams();
   const [patientId, setPatientId] = useState(params.get("patientId") || "");
   const [patientAppId, setPatientAppId] = useState(params.get("patientAppId") || "");
   const [caseId, setCaseId] = useState(params.get("caseId") || "");

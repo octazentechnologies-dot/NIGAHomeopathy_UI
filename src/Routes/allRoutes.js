@@ -108,9 +108,9 @@ import ListAllopathicDrug from "../pages/Admin/AdverseEffect/AllopathicDrug/List
 import AddAllopathicDrug from "../pages/Admin/AdverseEffect/AllopathicDrug/AddAllopathicDrug";
 import EditAllopathicDrug from "../pages/Admin/AdverseEffect/AllopathicDrug/EditAllopathicDrug";
 
-// import ListPackage from "../pages/Admin/BusinessManagement/Packages/ListPackage";
-// import AddPackage from "../pages/Admin/BusinessManagement/Packages/AddPackage";
-// import EditPackage from "../pages/Admin/BusinessManagement/Packages/EditPackage";
+import ListPackage from "../pages/Admin/BusinessManagement/Packages/ListPackage";
+import AddPackage from "../pages/Admin/BusinessManagement/Packages/AddPackage";
+import EditPackage from "../pages/Admin/BusinessManagement/Packages/EditPackage";
 
 import ListQualification from "../pages/Admin/BusinessManagement/Qualifications/ListQualification";
 import AddQualification from "../pages/Admin/BusinessManagement/Qualifications/AddQualification";
@@ -548,10 +548,9 @@ const authProtectedRoutes = [
   { path: "admin/addallopathicdrug", component: <AddAllopathicDrug /> },
   { path: "admin/editallopathicdrug", component: <EditAllopathicDrug /> },
 
-  // TODO(Packages): pages missing (no src/pages/Admin/BusinessManagement/Packages) — placeholder until module is restored.
-  { path: "admin/listpackage", component: <CommingSoon /> },
-  { path: "admin/addpackage", component: <CommingSoon /> },
-  { path: "admin/editpackage", component: <CommingSoon /> },
+  { path: "admin/listpackage", component: <ListPackage /> },
+  { path: "admin/addpackage", component: <AddPackage /> },
+  { path: "admin/editpackage", component: <EditPackage /> },
 
   { path: "admin/listqualification", component: <ListQualification /> },
   { path: "admin/addqualification", component: <AddQualification /> },
@@ -559,6 +558,7 @@ const authProtectedRoutes = [
 
   { path: "admin/listblog", component: <ListBlog /> },
   { path: "admin/addblog", component: <AddBlog /> },
+  { path: "admin/editblog", component: <EditBlog /> },
   { path: "admin/editblog/:id", component: <EditBlog /> },
 
   { path: "admin/listnews", component: <ListNews /> },
@@ -567,6 +567,7 @@ const authProtectedRoutes = [
 
   { path: "admin/listlabsimaging", component: <ListLabsImaging /> },
   { path: "admin/addlabsimaging", component: <AddLabsImaging /> },
+  { path: "admin/editlabsimaging", component: <EditLabsImaging /> },
   { path: "admin/editlabsimaging/:id", component: <EditLabsImaging /> },
 
   { path: "admin/listusers", component: <ListUser /> },
@@ -615,6 +616,7 @@ const authProtectedRoutes = [
   { path: "doctor/mobile/videoroom/:sessionId", component: <DoctorVideoRoomPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/mobile/videoroom", component: <DoctorVideoRoomPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   // DMO-09.02 — refill inbox + approve/reject APIs (snapshot not editable).
+  { path: "doctor/mobile/refill/detail", component: <RefillDetailPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/mobile/refill/:refillId", component: <RefillDetailPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/mobile/refill", component: <RefillInboxPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/reports/practice", component: <PracticeAnalysisPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },

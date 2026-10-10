@@ -1,4 +1,8 @@
-# Getting Started with Create React App
+# Homeocentrum.Niga.UI
+
+Web UI for the Homeocentrum NIGA platform (admin, doctor, reception, accounts, pharmacy and patient portals, plus the public site). Every API call goes to the host set as `API_Base_URL` in `src/config.js`.
+
+## Getting started
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

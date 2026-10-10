@@ -1,4 +1,4 @@
-/* Anatomy viewer — colors follow Velzon / Bootstrap theme (--vz-*) from corporate SCSS */
+/* Anatomy viewer — colors follow the Bootstrap theme variables (--vz-*) from corporate SCSS */
 
 .anatomy-root {
   /* Align with src/assets/scss/config/corporate/_variables.scss */
@@ -268,7 +268,7 @@
 }
 
 .anatomy-canvas-icon-btn {
-  /* Use Velzon topbar button sizing & hover */
+  /* Use topbar button sizing & hover */
   width: 36px;
   height: 36px;
   padding: 0;

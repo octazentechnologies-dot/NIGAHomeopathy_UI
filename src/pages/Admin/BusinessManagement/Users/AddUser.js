@@ -11,9 +11,6 @@ import { setUserError, setUserSuccess } from "../../../../slices/admin/users/red
 import * as Yup from "yup";
 import { useFormik } from "formik";
 
-import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-
 import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
 
@@ -29,9 +26,9 @@ const Starter = () => {
   const {  quillRef } = useQuill();
 
   // Redux state for roles
-  const roleList = useSelector((state) => state?.User?.roleList || []);
+  const roleList = useSelector((state) => state?.User?.roleList) || [];
   const roleLoading = useSelector((state) => state?.User?.roleLoading || false);
-  const { userSuccess, userError, userLoading } = useSelector((state) => state?.User || {});
+  const { userSuccess, userError, userLoading } = useSelector((state) => state?.User) || {};
 
   // Fetch roles on component mount
   useEffect(() => {
