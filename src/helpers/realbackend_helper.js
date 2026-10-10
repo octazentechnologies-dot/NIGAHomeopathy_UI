@@ -639,7 +639,7 @@ export const getAppointmentListByPatientId = data => {
 };
 export const getPrescriptionDetailsByAppointmentId = data =>
   nigahomeoAPI.get(`${url.GET_PRESCRIPTION_DETAILS_BY_APPOINTMENT_ID}?AppointmentId=${data.appointmentId}`, null);
-export const createPatient = data => nigahomeoAPI.post(url.CREATE_PATIENT, { ...data, EntityType: "Web" });
+export const createPatient = (data, config) => nigahomeoAPI.post(url.CREATE_PATIENT, { ...data, EntityType: "Web" }, config);
 export const deletePatient = data =>
   nigahomeoAPI.post(
     `${url.DELETE_PATIENT}?patientId=${data.patientId ?? data.patientID}`,
