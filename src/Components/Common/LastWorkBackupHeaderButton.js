@@ -9,6 +9,7 @@ import {
 } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { navigateHidden } from '../../helpers/hiddenRouteParams';
 import Swal from 'sweetalert2';
 import ModalActionButton from './ModalActionButton';
 import '../WhatsAppModal/WhatsAppModal.css';
@@ -105,7 +106,7 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
       if (restored) {
         closeModal();
         if (session?.resumePath) {
-          navigate(session.resumePath);
+          navigateHidden(navigate, session.resumePath);
         }
       }
     } catch (error) {

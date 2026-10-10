@@ -65,10 +65,12 @@ export const fetchRubricDetailsWithPriority = (subSectionId, execute, { priority
 
   if (priority === 'high') {
     const pendingIndex = pendingPrefetches.findIndex((task) => task.subSectionId === id);
-    if (pendingIndex >= 0) {
-      pendingPrefetches.splice(pendingIndex, 1);
+    const promoted = pendingIndex >= 0 ? pendingPrefetches.splice(pendingIndex, 1)[0] : null;
+    const promise = startFetch(id, execute);
+    if (promoted) {
+      promise.then(promoted.resolve, promoted.reject);
     }
-    return startFetch(id, execute);
+    return promise;
   }
 
   return new Promise((resolve, reject) => {
@@ -82,5 +84,6 @@ export const fetchRubricDetailsWithPriority = (subSectionId, execute, { priority
 };
 
 export const cancelPendingPrefetches = () => {
-  pendingPrefetches.length = 0;
+  const cancelled = pendingPrefetches.splice(0, pendingPrefetches.length);
+  cancelled.forEach((task) => task.resolve(null));
 };

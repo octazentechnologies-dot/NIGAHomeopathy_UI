@@ -16,6 +16,6 @@ module.exports = {
           API_Base_URL: "https://devmaigrationapi.homeocentrum.com/api",
 
          /* 5. Local Development */
-            //API_Base_URL: "http://localhost:5002/api",
+         //  API_Base_URL: "http://localhost:5002/api",
    }
  };

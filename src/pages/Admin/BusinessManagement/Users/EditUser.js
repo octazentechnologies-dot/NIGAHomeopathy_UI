@@ -19,11 +19,15 @@ import makeAnimated from "react-select/animated";
 import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const Starter = () => {
-  document.title = "Edit User";
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
+
+  // The dashboard opens users read-only; the Users list opens them ready to edit.
+  const openedInViewMode = location.state?.mode === 'view';
+  const [isEditing, setIsEditing] = useState(!openedInViewMode);
+  document.title = isEditing ? "Edit User" : "View User";
 
   const {  quillRef } = useQuill();
 
@@ -147,7 +151,7 @@ const Starter = () => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit User</h5>
+                      <h5 className="admin-form-title">{isEditing ? "Edit User" : "View User"}</h5>
                     </div>
                   </CardHeader>
 
@@ -174,7 +178,7 @@ const Starter = () => {
                         <Spinner color="primary" />
                       </div>
                     ) : (
-                      <>
+                      <fieldset disabled={!isEditing}>
                         <Row className="gy-3 admin-form-fields">
                           <Col xxl={4} md={4}>
                             <div>
@@ -269,6 +273,7 @@ const Starter = () => {
                                 onBlur={() => formik.setFieldTouched('roleId', true)}
                                 options={roleOptions}
                                 isLoading={roleLoading}
+                                isDisabled={!isEditing}
                                 placeholder="Select Role"
                                 className={formik.touched.roleId && formik.errors.roleId ? 'is-invalid' : ''}
                                 classNamePrefix="admin-form-select"
@@ -362,20 +367,59 @@ const Starter = () => {
                             </div>
                           </Col>
                         </Row>
-                      </>
+                      </fieldset>
                     )}
                   </CardBody>
 
                   <CardFooter className="border-0">
                     <div className="d-flex justify-content-end">
+                      {!isEditing ? (
                       <div className="admin-form-actions">
                         <Link to={returnTo} className="d-inline-flex">
                           <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                            <i className="ri-arrow-left-line align-middle me-1" aria-hidden="true" />
+                            Back
+                          </button>
+                        </Link>
+                        {/* Separate key and preventDefault: this click re-renders the slot as the submit button. */}
+                        <button
+                          key="edit"
+                          type="button"
+                          className="btn btn-sm admin-list-btn admin-list-btn--new"
+                          disabled={!selectedUser}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setIsEditing(true);
+                          }}
+                        >
+                          <i className="ri-pencil-line align-middle me-1" aria-hidden="true" />
+                          Edit
+                        </button>
+                      </div>
+                      ) : (
+                      <div className="admin-form-actions">
+                        {openedInViewMode ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm admin-list-btn admin-list-btn--reset"
+                            onClick={() => {
+                              formik.resetForm();
+                              setIsEditing(false);
+                            }}
+                          >
                             <i className="ri-close-line align-middle me-1" aria-hidden="true" />
                             Cancel
                           </button>
-                        </Link>
+                        ) : (
+                          <Link to={returnTo} className="d-inline-flex">
+                            <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--reset">
+                              <i className="ri-close-line align-middle me-1" aria-hidden="true" />
+                              Cancel
+                            </button>
+                          </Link>
+                        )}
                         <button
+                          key="update"
                           type="submit"
                           className="btn btn-sm admin-list-btn admin-list-btn--new"
                           disabled={userLoading || !selectedUser}
@@ -392,6 +436,7 @@ const Starter = () => {
                           )}
                         </button>
                       </div>
+                      )}
                     </div>
                   </CardFooter>
                 </form>

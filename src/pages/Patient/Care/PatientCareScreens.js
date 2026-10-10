@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
 import { Alert, Badge, Container, Input, Spinner } from "reactstrap";
 import moment from "moment";
 import {
@@ -125,7 +125,7 @@ const hasSummaryOrVisit = (visit) => visit.status !== "CANCELLED";
 export const PatientChatPage = () => {
   document.title = "Visit chat | Niga Homeocentrum";
   const offline = useOffline();
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useHiddenSearchParams();
   const { visits, loading: visitsLoading, error: visitsError } = usePatientVisits(hasSession);
   const [selectedId, setSelectedId] = useState("");
   const [messages, setMessages] = useState([]);
@@ -372,7 +372,7 @@ export const PatientRejoinPage = () => {
 export const PatientSummaryPage = () => {
   document.title = "Consultation summary | Niga Homeocentrum";
   const offline = useOffline();
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useHiddenSearchParams();
   const { visits, loading: visitsLoading, error: visitsError } = usePatientVisits(hasSummaryOrVisit);
   const [selectedId, setSelectedId] = useState("");
   const [summaries, setSummaries] = useState([]);

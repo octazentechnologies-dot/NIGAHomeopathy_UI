@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { HiddenLink, navigateHidden, useHiddenSearchParams } from '../../../helpers/hiddenRouteParams';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Accordion, AccordionItem, Collapse, Nav, NavItem, NavLink, TabContent, TabPane, UncontrolledTooltip, Container, Row, Label } from 'reactstrap';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import { CKEditor } from "@ckeditor/ckeditor5-react";
@@ -692,7 +693,7 @@ const BestSellingProducts = () => {
     const userRole =
         resolveUserRole(userProfile) ?? resolveUserRole(loginUser) ?? getUserRoleFromAuthStorage();
     const isReceptionUser = userRole === UserRole.RECEPTION;
-    const [searchParams] = useSearchParams();
+    const [searchParams] = useHiddenSearchParams();
     const focusedAppointmentId = searchParams.get('openAppointment');
 
     // Get patient data from Redux
@@ -1349,7 +1350,7 @@ const BestSellingProducts = () => {
         if (!selectedPatientForCaseTaking) {
             return;
         }
-        navigate(buildPatientBoardPath(selectedPatientForCaseTaking));
+        navigateHidden(navigate, buildPatientBoardPath(selectedPatientForCaseTaking));
         closeCaseTakingModal();
     };
 
@@ -1357,7 +1358,7 @@ const BestSellingProducts = () => {
         if (!selectedPatientForCaseTaking) {
             return;
         }
-        navigate(buildPatientBoardAudioPath(selectedPatientForCaseTaking));
+        navigateHidden(navigate, buildPatientBoardAudioPath(selectedPatientForCaseTaking));
         closeCaseTakingModal();
     };
 
@@ -1409,14 +1410,14 @@ const BestSellingProducts = () => {
 
         return (
             <>
-                <Link
+                <HiddenLink
                     id={tooltipId}
                     to={buildPatientBoardPath(boardPatient)}
                     className="dashboard-patient-name-link fw-medium"
                     onClick={(event) => handlePatientBoardLinkClick(event, boardPatient)}
                 >
                     {displayName}
-                </Link>
+                </HiddenLink>
                 <UncontrolledTooltip placement="top" target={tooltipId}>
                     {fullName}
                 </UncontrolledTooltip>

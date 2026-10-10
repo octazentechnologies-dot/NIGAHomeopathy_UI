@@ -2245,10 +2245,17 @@ const Widgets = () => {
         label: patient.patientName
     })) || [];
 
-    const doctorOptions = doctorList?.map((doctor) => ({
-        value: doctor.doctorID,
-        label: doctor.doctorName
-    })) || [];
+    const doctorOptions = useMemo(() => {
+        const allDoctors = (doctorList || []).map((doctor) => ({
+            value: doctor.doctorID,
+            label: doctor.doctorName
+        }));
+        const authDoctorId = getAuthDoctorId();
+        if (resolveUserRole() !== UserRole.DOCTOR || authDoctorId == null) return allDoctors;
+        const ownDoctor = allDoctors.filter((option) => String(option.value) === String(authDoctorId));
+        return ownDoctor.length ? ownDoctor : allDoctors;
+    }, [doctorList]);
+    const defaultAppointmentDoctor = doctorOptions.length === 1 ? doctorOptions[0] : null;
 
     const countryOptions = (countries || []).map((country) => ({
         value: country.countryId,
@@ -2334,10 +2341,18 @@ const Widgets = () => {
 
     const appointmentFormInitialValues = useMemo(() => ({
         patient: prefilledAppointmentPatient,
-        doctor: null,
+        doctor: defaultAppointmentDoctor,
         appointmentDate: prefilledAppointmentPatient ? moment().format(DOB_DISPLAY_FORMAT) : '',
         consultMode: 'InClinic',
-    }), [prefilledAppointmentPatient]);
+    }), [prefilledAppointmentPatient, defaultAppointmentDoctor]);
+
+    useEffect(() => {
+        if (!modal_newAppointment) return;
+        const { doctor, appointmentDate } = appointmentFormInitialValues;
+        if (doctor?.value && appointmentDate) {
+            loadAppointmentSlotsForForm(doctor.value, appointmentDate);
+        }
+    }, [modal_newAppointment, appointmentFormInitialValues]);
 
     const patientInitialValues = {
         firstName: '',
@@ -3705,7 +3720,7 @@ const Widgets = () => {
                                                 options={doctorOptions}
                                                 placeholder="Search and select doctor..."
                                                 isSearchable={true}
-                                                isClearable={true}
+                                                isClearable={doctorOptions.length > 1}
                                                 {...doctorModalSelectPortalProps}
                                                 styles={getDoctorModalSelectStyles(Boolean(errors.doctor && touched.doctor))}
                                             />

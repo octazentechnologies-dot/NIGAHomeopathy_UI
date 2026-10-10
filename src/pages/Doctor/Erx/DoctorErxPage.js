@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
 import { Alert, Col, Container, Input, Row, Spinner } from "reactstrap";
 import Swal from "sweetalert2";
 import moment from "moment";
@@ -101,7 +101,7 @@ const NOT_SIGNED_PATTERN = /not (been )?signed|no (signed )?erx|not found/i;
  * ERX — prescription lines, dosage, notes, sign & lock, record, print / download, history and refill inbox.
  */
 const DoctorErxPage = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useHiddenSearchParams();
   const [patientAppId, setPatientAppId] = useState(() => searchParams.get("patientAppId") || "");
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(false);

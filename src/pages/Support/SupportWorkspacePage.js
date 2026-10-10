@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { navigateHidden, useHiddenSearchParams } from "../../helpers/hiddenRouteParams";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner, Table } from "reactstrap";
 import {
   addSupportTicketMessage,
@@ -21,7 +22,9 @@ const unwrap = (response) => {
 
 const SupportWorkspacePage = ({ mode = "mine" }) => {
   const isAdmin = mode === "admin";
-  const { ticketId: routeTicketId } = useParams();
+  const { ticketId: paramTicketId } = useParams();
+  const [searchParams] = useHiddenSearchParams();
+  const routeTicketId = paramTicketId || searchParams.get("ticketId");
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -180,7 +183,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                             style={{ cursor: "pointer" }}
                             onClick={() => {
                               openThread(id);
-                              if (isAdmin) navigate(`/admin/support-tickets/${id}`);
+                              if (isAdmin) navigateHidden(navigate, `/admin/support-tickets?ticketId=${id}`);
                             }}
                           >
                             <td>{id}</td>

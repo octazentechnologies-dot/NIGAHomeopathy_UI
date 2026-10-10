@@ -1,8 +1,9 @@
 import React from "react";
 import { Container } from "reactstrap";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import PatientContextCard from "../../../Components/Common/PatientContextCard";
+import { useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
 
 /**
  * DMO-07.02 — doctor mobile patient context card page.
@@ -10,7 +11,7 @@ import PatientContextCard from "../../../Components/Common/PatientContextCard";
  */
 const DoctorMobileContextPage = () => {
   const { patientAppId: paramId } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useHiddenSearchParams();
   const patientAppId = paramId || searchParams.get("patientAppId") || "";
 
   return (

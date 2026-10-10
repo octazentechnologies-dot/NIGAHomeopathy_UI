@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
 import { Container } from "reactstrap";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import TeleVideoRoom from "../../../Components/Common/TeleVideoRoom";
+import { HiddenLink, navigateHidden, useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
 
 /**
  * DMO-08.01 / DMO-08.02 — doctor mobile VideoRoom + tele session tokens.
@@ -12,7 +13,7 @@ import TeleVideoRoom from "../../../Components/Common/TeleVideoRoom";
 const DoctorVideoRoomPage = () => {
   const navigate = useNavigate();
   const { sessionId: paramId } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams] = useHiddenSearchParams();
   const sessionId = paramId || searchParams.get("sessionId") || "";
   const patientAppId = searchParams.get("patientAppId") || "";
 
@@ -21,8 +22,8 @@ const DoctorVideoRoomPage = () => {
   }, []);
 
   const onSessionCreated = (createdId, appId) => {
-    const qs = appId ? `?patientAppId=${encodeURIComponent(appId)}` : "";
-    navigate(`/doctor/mobile/videoroom/${encodeURIComponent(createdId)}${qs}`, { replace: true });
+    const qs = appId ? `&patientAppId=${encodeURIComponent(appId)}` : "";
+    navigateHidden(navigate, `/doctor/mobile/videoroom?sessionId=${encodeURIComponent(createdId)}${qs}`, { replace: true });
   };
 
   return (
@@ -40,12 +41,12 @@ const DoctorVideoRoomPage = () => {
         />
         <div className="mt-3">
           {patientAppId ? (
-            <Link
+            <HiddenLink
               className="btn btn-outline-secondary btn-sm me-2"
-              to={`/doctor/mobile/context/${encodeURIComponent(patientAppId)}`}
+              to={`/doctor/mobile/context?patientAppId=${encodeURIComponent(patientAppId)}`}
             >
               Patient context
-            </Link>
+            </HiddenLink>
           ) : null}
           <Link className="btn btn-link btn-sm" to="/doctordashboard">
             Dashboard

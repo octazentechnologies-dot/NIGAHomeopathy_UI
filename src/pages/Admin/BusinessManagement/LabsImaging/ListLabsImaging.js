@@ -132,7 +132,7 @@ const ListLabsImaging = () => {
                                 <td className="text-center">
                                   <div className="d-inline-flex gap-2">
                                     <div className="edit">
-                                      <Link to={`/admin/editlabsimaging/${test.patientLabTestId}`}>
+                                      <Link to="/admin/editlabsimaging" state={{ patientLabTestId: test.patientLabTestId }}>
                                         <button type="button" className="btn btn-sm btn-soft-success edit-item-btn" title="Edit">
                                           <i className="ri-pencil-fill" />
                                         </button>

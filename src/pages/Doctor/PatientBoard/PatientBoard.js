@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { HiddenLink, useHiddenSearchParams } from '../../../helpers/hiddenRouteParams';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import InfiniteScrollContainer from '../../../Components/Common/InfiniteScrollContainer';
 import { Button, Input, UncontrolledTooltip, Tooltip, Modal, ModalHeader, ModalBody, ModalFooter, Col, Row, Label, Spinner } from 'reactstrap';
@@ -127,6 +128,7 @@ import {
 import {
   collectSubSectionIdsFromTree,
   getCachedRubricDetails,
+  isRubricDetailsFresh,
   INITIAL_RUBRIC_PREFETCH_LIMIT,
   SCROLL_RUBRIC_PREFETCH_BATCH,
 } from '../../../utils/rubricDetailsCache';
@@ -1249,7 +1251,7 @@ const PatientBoard = () => {
   const patientDetailsLoading = useSelector((state) => state?.PatientDashboard?.patientDetailsLoading);
 
   // Get patientId and caseId (and legacy patientAppId) from URL params
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useHiddenSearchParams();
   const patientId = searchParams.get('patientId');
   const caseId = searchParams.get('caseId');
   const patientAppId = searchParams.get('patientAppId');
@@ -1959,7 +1961,7 @@ const PatientBoard = () => {
           Number.isFinite(subSectionId) &&
           subSectionId > 0 &&
           !uniqueIds.includes(subSectionId) &&
-          !getCachedRubricDetails(subSectionId)
+          !isRubricDetailsFresh(subSectionId)
         ) {
           uniqueIds.push(subSectionId);
         }
@@ -12205,6 +12207,24 @@ const PatientBoard = () => {
     });
   };
 
+  const selectedRubricSubSectionId = selectedSubSection?.subSectionId ?? selectedSubSection?.SubSectionId;
+
+  useEffect(() => {
+    if (activeTab !== 'Repertory' || !selectedRubricSubSectionId) {
+      return undefined;
+    }
+    const revalidateSelectedRubric = () => {
+      if (document.visibilityState !== 'visible') return;
+      dispatch(getRubricDetails({ subSectionId: selectedRubricSubSectionId })).catch(() => {});
+    };
+    window.addEventListener('focus', revalidateSelectedRubric);
+    document.addEventListener('visibilitychange', revalidateSelectedRubric);
+    return () => {
+      window.removeEventListener('focus', revalidateSelectedRubric);
+      document.removeEventListener('visibilitychange', revalidateSelectedRubric);
+    };
+  }, [activeTab, selectedRubricSubSectionId, dispatch]);
+
   const prefetchRubricDetails = useCallback(
     (subSectionId) => {
       if (!subSectionId) return;
@@ -12968,13 +12988,13 @@ const PatientBoard = () => {
           </div>
           <Link to={getHomeDashboardPath()} className="btn btn-link text-decoration-none ms-2"><i className="ri-dashboard-2-line me-1" />Dashboard</Link>
           {patientAppId ? (
-            <Link
+            <HiddenLink
               to={`/doctor/erx?patientAppId=${encodeURIComponent(patientAppId)}`}
               className="btn btn-link text-decoration-none ms-2"
             >
               <i className="ri-file-text-line me-1" />
               Sign eRx
-            </Link>
+            </HiddenLink>
           ) : null}
         </div>
         <div className="pb-logo-wrapper">

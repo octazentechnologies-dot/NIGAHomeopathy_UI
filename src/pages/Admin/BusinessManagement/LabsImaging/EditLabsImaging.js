@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Input, Label, Row, UncontrolledAlert } from 'reactstrap';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import { getPatientLabTestById, addEditPatientLabTest } from '../../../../slices/admin/labtests/thunk';
@@ -14,7 +14,9 @@ const EditLabsImaging = () => {
   document.title = "Edit Labs & Imaging";
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { id } = useParams();
+  const location = useLocation();
+  const params = useParams();
+  const id = location.state?.patientLabTestId ?? params.id;
 
   const selectedLabTest = useSelector((state) => state?.LabTest?.selectedLabTest || null);
   const selectedLabTestLoading = useSelector((state) => state?.LabTest?.selectedLabTestLoading || false);

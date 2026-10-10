@@ -63,8 +63,10 @@ import {
 import {
     getCachedRubricDetails,
     setCachedRubricDetails,
+    isRubricDetailsFresh,
     markPrefetchQueued,
     unmarkPrefetchQueued,
+    RUBRIC_CLICK_FRESH_MS,
 } from '../../../utils/rubricDetailsCache';
 import {
     fetchRubricDetailsWithPriority,
@@ -226,76 +228,83 @@ const createRubricDetailsFetch = (subSectionId) => () =>
         return response;
     });
 
-export const getRubricDetails = (data) => async (dispatch) => {
+const getRubricDetailsSubSectionId = (details) =>
+    details?.subSectionId ?? details?.subSectionID ?? details?.subsectionId ?? details?.SubSectionId;
+
+const isRubricDetailsOnScreen = (getState, subSectionId) => {
+    const shownId = getRubricDetailsSubSectionId(getState?.()?.PatientDashboard?.rubricDetailsList);
+    return shownId != null && String(shownId) === String(subSectionId);
+};
+
+/**
+ * Stale-while-revalidate: a cached copy renders instantly (no spinner) and the API is always
+ * asked again on click, so the panel ends up showing what is in the database right now.
+ */
+export const getRubricDetails = (data) => async (dispatch, getState) => {
     const subSectionId = Number(data?.subSectionId);
     const prefetchOnly = Boolean(data?.prefetchOnly);
-    const requestId = ++rubricDetailsRequestSeq;
 
     if (!Number.isFinite(subSectionId) || subSectionId <= 0) {
         return null;
     }
 
+    const requestId = prefetchOnly ? null : ++rubricDetailsRequestSeq;
+    const isLatestClick = () => !prefetchOnly && requestId === rubricDetailsRequestSeq;
     const cached = getCachedRubricDetails(subSectionId);
-    if (cached) {
-        if (!prefetchOnly) {
-            applyRubricDetailsToStore(dispatch, cached);
+
+    if (!prefetchOnly && cached) {
+        applyRubricDetailsToStore(dispatch, cached);
+        if (isRubricDetailsFresh(subSectionId, RUBRIC_CLICK_FRESH_MS)) {
+            return cached;
         }
-        return cached;
     }
 
     const existingRequest = getQueuedRubricDetailsFetch(subSectionId);
-    if (existingRequest) {
-        if (!prefetchOnly) {
-            dispatch(setRubricDetailsLoading(false));
-            dispatch(setRubricDetailsRefreshing(true));
-        }
-        try {
-            const response = await existingRequest;
-            if (!prefetchOnly && requestId === rubricDetailsRequestSeq) {
-                applyRubricDetailsToStore(dispatch, response);
-            }
-            return response;
-        } catch (error) {
-            if (!prefetchOnly && requestId === rubricDetailsRequestSeq) {
-                dispatch(setRubricDetailsError(error));
-                dispatch(setRubricDetailsLoading(false));
-                dispatch(setRubricDetailsRefreshing(false));
-            }
-            throw error;
-        }
-    }
-
-    if (prefetchOnly && !markPrefetchQueued(subSectionId)) {
-        return null;
+    if (prefetchOnly && !existingRequest && !markPrefetchQueued(subSectionId)) {
+        return cached ?? null;
     }
 
     if (!prefetchOnly) {
-        dispatch(setRubricDetailsLoading(true));
-        dispatch(setRubricDetailsRefreshing(false));
+        dispatch(setRubricDetailsLoading(!cached));
+        dispatch(setRubricDetailsRefreshing(Boolean(cached)));
     }
 
-    const execute = createRubricDetailsFetch(subSectionId);
-    const priority = prefetchOnly ? 'low' : 'high';
-
     try {
-        const response = await fetchRubricDetailsWithPriority(
-            subSectionId,
-            execute,
-            { priority }
-        );
+        const response = existingRequest
+            ? await existingRequest
+            : await fetchRubricDetailsWithPriority(
+                subSectionId,
+                createRubricDetailsFetch(subSectionId),
+                { priority: prefetchOnly ? 'low' : 'high' }
+            );
+
         if (response == null) {
-            return null;
+            unmarkPrefetchQueued(subSectionId);
+            if (isLatestClick()) {
+                dispatch(setRubricDetailsLoading(false));
+                dispatch(setRubricDetailsRefreshing(false));
+            }
+            return cached ?? null;
         }
-        if (!prefetchOnly && requestId === rubricDetailsRequestSeq) {
+
+        if (isLatestClick()) {
             applyRubricDetailsToStore(dispatch, response);
+        } else if (prefetchOnly && isRubricDetailsOnScreen(getState, subSectionId)) {
+            dispatch(setRubricDetailsList(response));
         }
         return response;
     } catch (error) {
         unmarkPrefetchQueued(subSectionId);
-        if (!prefetchOnly && requestId === rubricDetailsRequestSeq) {
-            dispatch(setRubricDetailsError(error));
+        if (isLatestClick()) {
             dispatch(setRubricDetailsLoading(false));
             dispatch(setRubricDetailsRefreshing(false));
+            if (cached) {
+                return cached;
+            }
+            dispatch(setRubricDetailsError(error));
+        }
+        if (prefetchOnly || cached) {
+            return cached ?? null;
         }
         throw error;
     }
