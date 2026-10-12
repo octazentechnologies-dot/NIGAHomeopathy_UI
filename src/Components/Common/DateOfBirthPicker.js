@@ -4,19 +4,27 @@ import moment from 'moment';
 
 export const DATE_DISPLAY_FORMAT = 'M/D/YYYY';
 export const DOB_DISPLAY_FORMAT = DATE_DISPLAY_FORMAT;
+/** Indian display format (DD-MM-YYYY) — opt-in per caller via `displayFormat`. */
+export const DOB_INDIAN_DISPLAY_FORMAT = 'DD-MM-YYYY';
+/** Indian appointment format (DD/MM/YYYY) — opt-in per caller via `displayFormat`. */
+export const APPOINTMENT_INDIAN_DISPLAY_FORMAT = 'DD/MM/YYYY';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const YEARS_PER_PAGE = 24;
 const POPOVER_WIDTH = 248;
 
-const parseDateValue = (value) => {
+const parseDateValue = (value, preferredFormats = []) => {
     if (!value) return null;
-    const parsed = moment(value, [DATE_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+    const parsed = moment(
+        value,
+        [...preferredFormats, DATE_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'DD/MM/YYYY', 'D/M/YYYY', 'YYYY-MM-DD'],
+        true
+    );
     return parsed.isValid() ? parsed.startOf('day') : null;
 };
 
-const formatDateValue = (date) => moment(date).format(DATE_DISPLAY_FORMAT);
+const formatDateValue = (date, format = DATE_DISPLAY_FORMAT) => moment(date).format(format);
 
 const resolveBoundary = (boundary, today) => {
     if (!boundary) return null;
@@ -36,13 +44,26 @@ const DateOfBirthPicker = ({
     minDate = null,
     maxDate = 'today',
     hideIcon = false,
+    displayFormat = DATE_DISPLAY_FORMAT,
+    openOnInputClick = false,
 }) => {
     const wrapperRef = useRef(null);
     const popoverRef = useRef(null);
     const today = useMemo(() => moment().startOf('day'), []);
     const minBoundary = useMemo(() => resolveBoundary(minDate, today), [minDate, today]);
     const maxBoundary = useMemo(() => resolveBoundary(maxDate, today), [maxDate, today]);
-    const selectedDate = useMemo(() => parseDateValue(value), [value]);
+    // Day-first display (DD/MM or DD-MM) parses day-first inputs first; all other
+    // callers keep the historical US-first order.
+    const preferredParseFormats = useMemo(
+        () => (String(displayFormat || '').startsWith('D')
+            ? ['DD/MM/YYYY', 'D/M/YYYY', 'DD-MM-YYYY', 'D-M-YYYY']
+            : []),
+        [displayFormat]
+    );
+    const selectedDate = useMemo(
+        () => parseDateValue(value, preferredParseFormats),
+        [value, preferredParseFormats]
+    );
 
     const clampToBounds = (date) => {
         let next = date.clone().startOf('day');
@@ -171,7 +192,7 @@ const DateOfBirthPicker = ({
 
     const selectDate = (date) => {
         if (isDayDisabled(date)) return;
-        const formatted = formatDateValue(date);
+        const formatted = formatDateValue(date, displayFormat);
         onChange?.(formatted);
         setViewDate(date.clone());
         setIsOpen(false);
@@ -187,16 +208,16 @@ const DateOfBirthPicker = ({
             return '';
         }
 
-        const parsed = parseDateValue(typed);
+        const parsed = parseDateValue(typed, preferredParseFormats);
         if (parsed && !isDayDisabled(parsed)) {
-            const formatted = formatDateValue(parsed);
+            const formatted = formatDateValue(parsed, displayFormat);
             if (formatted !== value) onChange?.(formatted);
             setViewDate(parsed.clone());
             return formatted;
         }
 
         if (selectedDate) {
-            const formatted = formatDateValue(selectedDate);
+            const formatted = formatDateValue(selectedDate, displayFormat);
             onChange?.(formatted);
             return formatted;
         }
@@ -502,6 +523,12 @@ const DateOfBirthPicker = ({
                     onChange={handleInputChange}
                     onBlur={handleInputBlur}
                     onKeyDown={handleInputKeyDown}
+                    onClick={() => {
+                        if (openOnInputClick) openPicker();
+                    }}
+                    onFocus={() => {
+                        if (openOnInputClick) openPicker();
+                    }}
                 />
             </div>
             {typeof document !== 'undefined' && popoverContent
