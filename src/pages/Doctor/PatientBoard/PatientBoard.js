@@ -1893,6 +1893,8 @@ const PatientBoard = () => {
   const hoveredRemedyInfoIdRef = useRef(null);
   const remedyInfoCacheRef = useRef(new Map());
   const remedyInfoTooltipTimeoutRef = useRef(null);
+  const remedyDetailsInflightRef = useRef(new Map());
+  const remedyDetailsAbortRef = useRef(null);
   const [showEnglishTooltip, setShowEnglishTooltip] = useState(false);
   const [showMarathiTooltip, setShowMarathiTooltip] = useState(false);
   const [rubricRemedyModalOpen, setRubricRemedyModalOpen] = useState(false);
@@ -2343,6 +2345,41 @@ const PatientBoard = () => {
 
   // ###### Dj UI Code Start - Remedy Abbreviation Hover Tooltip Functions ######
   // Remedy abbreviation hover tooltip functions
+  // Single-flight remedy details fetch: concurrent triggers for the same
+  // remedy share one network request; starting another remedy aborts the
+  // previous one so stale responses never compete.
+  const abortRemedyDetailsFetch = () => {
+    if (remedyDetailsAbortRef.current) {
+      try {
+        remedyDetailsAbortRef.current.abort();
+      } catch (_) {
+        /* ignore */
+      }
+      remedyDetailsAbortRef.current = null;
+    }
+  };
+
+  const fetchRemedyDetailsOnce = (remedyId) => {
+    if (remedyId == null) return Promise.resolve(null);
+    if (remedyInfoCacheRef.current.has(remedyId)) {
+      return Promise.resolve(remedyInfoCacheRef.current.get(remedyId));
+    }
+    const pending = remedyDetailsInflightRef.current.get(remedyId);
+    if (pending) return pending;
+    abortRemedyDetailsFetch();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    remedyDetailsAbortRef.current = controller;
+    const request = getRubricRemedyDetailsApi(
+      { remedyId },
+      controller ? { signal: controller.signal } : undefined
+    ).finally(() => {
+      if (remedyDetailsInflightRef.current.get(remedyId) === request) {
+        remedyDetailsInflightRef.current.delete(remedyId);
+      }
+    });
+    remedyDetailsInflightRef.current.set(remedyId, request);
+    return request;
+  };
   const handleRemedyAbbrevHover = (remedy) => {
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
@@ -2370,7 +2407,7 @@ const PatientBoard = () => {
       return;
     }
 
-    getRubricRemedyDetailsApi({ remedyId })
+    fetchRemedyDetailsOnce(remedyId)
       .then((response) => {
         const payload = response?.resultObject ?? response?.data ?? response;
         const fetched = extractRemedyTooltipData(payload);
@@ -2418,7 +2455,7 @@ const PatientBoard = () => {
       return;
     }
 
-    getRubricRemedyDetailsApi({ remedyId })
+    fetchRemedyDetailsOnce(remedyId)
       .then((response) => {
         const payload = response?.resultObject ?? response?.data ?? response;
         const fetched = mergeRemedyTooltipData(payload, remedy);
@@ -2446,6 +2483,7 @@ const PatientBoard = () => {
       if (remedyInfoTooltipTimeoutRef.current) {
         clearTimeout(remedyInfoTooltipTimeoutRef.current);
       }
+      abortRemedyDetailsFetch();
       setHoveredRemedyInfo(null);
       return;
     }
@@ -2485,6 +2523,7 @@ const PatientBoard = () => {
   useEffect(() => {
     if (!showRemedyInfo) {
       hoveredRemedyInfoIdRef.current = null;
+      abortRemedyDetailsFetch();
       setHoveredRemedyInfo(null);
     }
   }, [showRemedyInfo]);
@@ -2494,6 +2533,7 @@ const PatientBoard = () => {
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
         hoveredRemedyInfoIdRef.current = null;
+        abortRemedyDetailsFetch();
         setHoveredRemedyInfo(null);
       }
     };
@@ -2504,6 +2544,7 @@ const PatientBoard = () => {
   useEffect(() => {
     remedyInfoCacheRef.current.clear();
     hoveredRemedyInfoIdRef.current = null;
+    abortRemedyDetailsFetch();
     setHoveredRemedyInfo(null);
   }, [
     rubricDetailsList?.subSectionId,

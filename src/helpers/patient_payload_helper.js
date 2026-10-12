@@ -5,7 +5,7 @@ export const formatCalendarDateForApi = (dateStr) => {
     if (!dateStr) return '';
     const parsed = String(dateStr).includes('T')
         ? moment(dateStr)
-        : moment(dateStr, ['M/D/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+        : moment(dateStr, ['M/D/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'DD/MM/YYYY', 'D/M/YYYY', 'YYYY-MM-DD'], true);
     return parsed.isValid() ? `${parsed.format('YYYY-MM-DD')}T00:00:00.000Z` : '';
 };
 

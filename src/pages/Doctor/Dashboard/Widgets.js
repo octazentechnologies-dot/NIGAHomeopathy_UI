@@ -40,7 +40,7 @@ import {
     getPatientEmailForEdit,
 } from '../../../helpers/patient_payload_helper';
 import { extractApiList } from '../../../helpers/patient_history_helper';
-import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
+import DateOfBirthPicker, { DOB_DISPLAY_FORMAT, DOB_INDIAN_DISPLAY_FORMAT, APPOINTMENT_INDIAN_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import {
     buildPatientSelectOption,
     DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT,
@@ -2291,12 +2291,12 @@ const Widgets = () => {
             }),
         appointmentDate: Yup.string()
             .required('Appointment date is required')
-            .test('valid-date', `Please enter a valid date (${DOB_DISPLAY_FORMAT})`, (value) => {
+            .test('valid-date', `Please enter a valid date (${APPOINTMENT_INDIAN_DISPLAY_FORMAT})`, (value) => {
                 if (!value) return false;
-                return moment(value, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true).isValid();
+                return moment(value, [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true).isValid();
             })
             .test('not-past', 'Appointment date cannot be in the past', (value) => {
-                const parsed = moment(value, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true);
+                const parsed = moment(value, [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true);
                 return parsed.isValid() && parsed.isSameOrAfter(moment(), 'day');
             }),
     });
@@ -2312,7 +2312,7 @@ const Widgets = () => {
             .oneOf([0, 1], 'Please select a valid gender'),
         dateOfBirth: Yup.string()
             .required('Date of birth is required')
-            .test('valid-dob', `Please enter a valid date (${DOB_DISPLAY_FORMAT})`, (value) => {
+            .test('valid-dob', `Please enter a valid date (${DOB_INDIAN_DISPLAY_FORMAT})`, (value) => {
                 if (!value) return false;
                 return moment(value, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true).isValid();
             })
@@ -3459,7 +3459,9 @@ const Widgets = () => {
                                             value={values.dateOfBirth}
                                             className="doctor-modal-date-picker"
                                             hasError={Boolean(errors.dateOfBirth && touched.dateOfBirth)}
-                                            placeholder={DOB_DISPLAY_FORMAT}
+                                            placeholder={DOB_INDIAN_DISPLAY_FORMAT}
+                                            displayFormat={DOB_INDIAN_DISPLAY_FORMAT}
+                                            openOnInputClick
                                             onChange={(dateStr) => {
                                                 setFieldTouched('dateOfBirth', true, false);
                                                 setFieldValue('dateOfBirth', dateStr, true);
@@ -3760,14 +3762,16 @@ const Widgets = () => {
                                             maxDate={null}
                                             hideIcon
                                             hasError={Boolean(errors.appointmentDate && touched.appointmentDate)}
-                                            placeholder={DOB_DISPLAY_FORMAT}
+                                            placeholder={APPOINTMENT_INDIAN_DISPLAY_FORMAT}
+                                            displayFormat={APPOINTMENT_INDIAN_DISPLAY_FORMAT}
+                                            openOnInputClick
                                             onChange={(dateStr) => {
                                                 setFieldTouched('appointmentDate', true, false);
                                                 setFieldValue('appointmentDate', dateStr, true);
                                                 setSelectedAppointmentSlotTime(null);
-                                                const parsed = moment(dateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+                                                const parsed = moment(dateStr, [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
                                                 if (parsed.isValid()) {
-                                                    loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
+                                                    loadAppointmentSlotsForForm(values.doctor?.value, parsed.format('YYYY-MM-DD'));
                                                 }
                                             }}
                                             onBlur={() => setFieldTouched('appointmentDate', true, true)}

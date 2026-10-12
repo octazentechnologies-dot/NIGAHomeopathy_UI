@@ -76,6 +76,10 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
       return response.data ? response.data : response;
     },
     async function (error) {
+      // Aborted requests must never be retried — the caller cancelled on purpose.
+      if (error?.code === 'ERR_CANCELED') {
+        return Promise.reject(error);
+      }
       const status = error.response?.status;
       const method = String(error.config?.method || "").toLowerCase();
       const retryStatus = !status || status === 429 || status === 502 || status === 503;
@@ -172,6 +176,8 @@ const createAPIHelpers = (client) => ({
     const isAxiosConfig = paramsOrConfig && typeof paramsOrConfig === 'object' && (
       // responseType is the primary indicator (used for blob downloads)
       paramsOrConfig.responseType !== undefined || 
+      // AbortController signal must reach axios directly, never the query string
+      paramsOrConfig.signal !== undefined ||
       // Other axios-specific config properties that would never be query params
       (paramsOrConfig.headers && typeof paramsOrConfig.headers === 'object' && !Array.isArray(paramsOrConfig.headers)) ||
       (paramsOrConfig.params !== undefined && typeof paramsOrConfig.params === 'object' && !Array.isArray(paramsOrConfig.params)) ||
