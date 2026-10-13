@@ -2233,3 +2233,29 @@ body.admin-mobile-topbar {
     }
   }
 }
+
+// Appointment patient dropdown: pinned "+ Create New Patient" action.
+// Top-level (not nested): the react-select menu portals to document.body,
+// so ancestor-scoped selectors would never match it.
+.new-appointment-modal__create-patient {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 12px;
+    background: #fff;
+    border: 0;
+    border-bottom: 1px solid #eef2f6;
+    color: #1e88e5;
+    font-size: 1.05em;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+        background: #f5faff;
+    }
+}

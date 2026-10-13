@@ -194,6 +194,13 @@ const DailyScheduleSetupModal = ({
                 type="time"
                 value={workStartTime}
                 onChange={(event) => setWorkStartTime(event.target.value)}
+                onClick={(event) => {
+                  try {
+                    event.currentTarget.showPicker?.();
+                  } catch {
+                    /* unsupported browser — field stays focus-and-type */
+                  }
+                }}
               />
             </div>
             <div className="col-md-6">
@@ -202,6 +209,13 @@ const DailyScheduleSetupModal = ({
                 type="time"
                 value={workEndTime}
                 onChange={(event) => setWorkEndTime(event.target.value)}
+                onClick={(event) => {
+                  try {
+                    event.currentTarget.showPicker?.();
+                  } catch {
+                    /* unsupported browser — field stays focus-and-type */
+                  }
+                }}
               />
             </div>
           </div>
