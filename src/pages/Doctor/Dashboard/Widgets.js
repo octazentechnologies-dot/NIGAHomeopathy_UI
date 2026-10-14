@@ -7,7 +7,7 @@ import Swal from 'sweetalert2';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
-import Select from "react-select";
+import Select, { components as ReactSelectComponents } from "react-select";
 import moment from 'moment';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -40,7 +40,7 @@ import {
     getPatientEmailForEdit,
 } from '../../../helpers/patient_payload_helper';
 import { extractApiList } from '../../../helpers/patient_history_helper';
-import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
+import DateOfBirthPicker, { DOB_DISPLAY_FORMAT, DOB_INDIAN_DISPLAY_FORMAT, APPOINTMENT_INDIAN_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import {
     buildPatientSelectOption,
     DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT,
@@ -537,6 +537,32 @@ const renderNewPatientFieldError = (show, message) => (
     >
         {show ? message : null}
     </div>
+);
+
+/** Patient dropdown footer/header action: pinned "+ Create New Patient" that can
+ * never become a selected value (it is not part of `options`). Triggered on
+ * mousedown because menu blur would unmount it before click fires. */
+const PatientSelectMenuList = (props) => (
+    <ReactSelectComponents.MenuList {...props}>
+        <button
+            type="button"
+            className="new-appointment-modal__create-patient"
+            onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                props.selectProps?.onCreateNewPatient?.();
+            }}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    props.selectProps?.onCreateNewPatient?.();
+                }
+            }}
+        >
+            + Create New Patient
+        </button>
+        {props.children}
+    </ReactSelectComponents.MenuList>
 );
 
 // Compact modal pagination: ← 1 2 … [current] … last →
@@ -1912,6 +1938,7 @@ const Widgets = () => {
     const subscriptionError = useSelector((state) => state?.DoctorDashboard?.subscriptionError);
     const [selectedPackage, setSelectedPackage] = useState(null);
     const [availabilityBusy, setAvailabilityBusy] = useState(false);
+    const [todaySlotCount, setTodaySlotCount] = useState(null);
     const razorpayInstanceRef = useRef(null);
     const selectedPackageRef = useRef(null);
 
@@ -1919,6 +1946,23 @@ const Widgets = () => {
         () => getDoctorPatientTotalCount(patientList, counts),
         [patientList, counts]
     );
+
+    const loadTodaySlotCount = () => {
+        (async () => {
+            try {
+                const doctorId = getAuthDoctorId();
+                if (!doctorId) return;
+                const response = await getAppointmentSlots({
+                    doctorId,
+                    appointmentDate: moment().format('YYYY-MM-DD'),
+                });
+                const normalized = normalizeAppointmentSlotsResponse(response);
+                setTodaySlotCount(Array.isArray(normalized.slots) ? normalized.slots.length : 0);
+            } catch {
+                setTodaySlotCount(0);
+            }
+        })();
+    };
 
     useEffect(() => {
         const auth = JSON.parse(sessionStorage.getItem('authUser'));
@@ -1943,6 +1987,7 @@ const Widgets = () => {
         dispatch(getCountries());
         dispatch(getStates());
         dispatch(getPackages());
+        loadTodaySlotCount();
     }, [dispatch]);
 
     // Check subscription status and show appropriate modals
@@ -2086,6 +2131,8 @@ const Widgets = () => {
     const [scheduleModalDoctorId, setScheduleModalDoctorId] = useState(null);
     const [scheduleModalDate, setScheduleModalDate] = useState(null);
     const [requireDailyScheduleSave, setRequireDailyScheduleSave] = useState(false);
+    const [scheduleModalContext, setScheduleModalContext] = useState(null);
+    const availabilityEvaluatedRef = useRef('');
     const appointmentSlotsRequestRef = useRef(0);
     const appointmentResetFormRef = useRef(null);
 
@@ -2103,6 +2150,11 @@ const Widgets = () => {
         setSelectedAppointmentSlotTime(null);
         setBookingSlotTime(null);
         setModalNewAppointment(true);
+    };
+
+    const handleCreatePatientFromAppointment = () => {
+        setModalNewAppointment(false);
+        setModalNewPatient(true);
     };
 
     function tog_newAppointment() {
@@ -2161,13 +2213,73 @@ const Widgets = () => {
         }
     };
 
-    const openScheduleSetupModal = (doctorId, scheduleDate, requireSave = false) => {
+    const openScheduleSetupModal = (doctorId, scheduleDate, requireSave = false, context = null) => {
         const normalizedDate = formatCalendarDateForSchedule(scheduleDate) || formatApiDate(scheduleDate);
         setScheduleModalDoctorId(doctorId);
         setScheduleModalDate(normalizedDate || scheduleDate);
         setRequireDailyScheduleSave(requireSave);
+        setScheduleModalContext(context);
         setDailyScheduleModalOpen(true);
     };
+
+    const refreshDashboardCounts = () => {
+        try {
+            const auth = JSON.parse(sessionStorage.getItem('authUser'));
+            const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
+            if (!userId) return;
+            dispatch(fetchDoctorDashboardCounts({
+                appointmentDate: dashboardQueryDateIso(),
+                status: "",
+                userId,
+            }));
+        } catch {
+            /* session unreadable — leave counts untouched */
+        }
+    };
+
+    const openTodaySlotsSetup = () => {
+        const doctorId = getAuthDoctorId();
+        if (!doctorId) return;
+        openScheduleSetupModal(doctorId, moment().format('YYYY-MM-DD'), false, 'dashboard');
+    };
+
+    // Slot-driven availability: past the day's last slot end, Online flips to Offline.
+    const getScheduleDayEnd = (schedule) => {
+        const normalized = schedule?.data ?? schedule;
+        const slots = normalized?.slots ?? normalized?.Slots ?? normalized?.appointments ?? normalized?.Appointments ?? [];
+        const candidates = [
+            ...(Array.isArray(slots) ? slots.map((s) => s?.end ?? s?.End ?? s?.endTime ?? s?.EndTime ?? s?.slotEnd ?? s?.SlotEnd) : []),
+            normalized?.workEnd ?? normalized?.WorkEnd ?? normalized?.endTime ?? normalized?.EndTime ?? normalized?.dayEnd ?? normalized?.DayEnd,
+        ].filter(Boolean);
+        for (const candidate of candidates) {
+            const parsed = moment(candidate, [moment.ISO_8601, 'HH:mm', 'HH:mm:ss', 'h:mm A', 'YYYY-MM-DDTHH:mm:ss'], true);
+            if (parsed.isValid()) return parsed;
+        }
+        return null;
+    };
+
+    useEffect(() => {
+        const online = !!(counts?.isOnline || counts?.IsOnline);
+        if (!online) return;
+        const todayKey = moment().format('YYYY-MM-DD');
+        if (availabilityEvaluatedRef.current === todayKey) return;
+        availabilityEvaluatedRef.current = todayKey;
+        (async () => {
+            try {
+                const doctorId = getAuthDoctorId();
+                if (!doctorId) return;
+                const schedule = await getDailySchedule({ doctorId, scheduleDate: todayKey });
+                if (!schedule) return;
+                const dayEnd = getScheduleDayEnd(schedule);
+                if (dayEnd && moment().isAfter(dayEnd)) {
+                    await updateAvailabilityMe({ isOnline: false });
+                    refreshDashboardCounts();
+                }
+            } catch {
+                /* leave status untouched on errors */
+            }
+        })();
+    }, [counts?.isOnline, counts?.IsOnline]);
 
     useEffect(() => {
         const doctorId = getAuthDoctorId();
@@ -2181,7 +2293,7 @@ const Widgets = () => {
                     scheduleDate: moment().format('YYYY-MM-DD'),
                 });
                 if (!isMounted || schedule) return;
-                openScheduleSetupModal(doctorId, moment().format('YYYY-MM-DD'), true);
+                openScheduleSetupModal(doctorId, moment().format('YYYY-MM-DD'), true, 'dashboard');
             } catch (error) {
                 console.error('Failed to check daily schedule:', error);
             }
@@ -2291,12 +2403,12 @@ const Widgets = () => {
             }),
         appointmentDate: Yup.string()
             .required('Appointment date is required')
-            .test('valid-date', `Please enter a valid date (${DOB_DISPLAY_FORMAT})`, (value) => {
+            .test('valid-date', `Please enter a valid date (${APPOINTMENT_INDIAN_DISPLAY_FORMAT})`, (value) => {
                 if (!value) return false;
-                return moment(value, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true).isValid();
+                return moment(value, [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true).isValid();
             })
             .test('not-past', 'Appointment date cannot be in the past', (value) => {
-                const parsed = moment(value, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true);
+                const parsed = moment(value, [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true);
                 return parsed.isValid() && parsed.isSameOrAfter(moment(), 'day');
             }),
     });
@@ -2312,7 +2424,7 @@ const Widgets = () => {
             .oneOf([0, 1], 'Please select a valid gender'),
         dateOfBirth: Yup.string()
             .required('Date of birth is required')
-            .test('valid-dob', `Please enter a valid date (${DOB_DISPLAY_FORMAT})`, (value) => {
+            .test('valid-dob', `Please enter a valid date (${DOB_INDIAN_DISPLAY_FORMAT})`, (value) => {
                 if (!value) return false;
                 return moment(value, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', DASHBOARD_DATE_DISPLAY_FORMAT, 'D-M-YYYY', 'YYYY-MM-DD'], true).isValid();
             })
@@ -2991,6 +3103,35 @@ const Widgets = () => {
                 </div>
                 <div
                     className="col-6 col-md-4 col-lg-2"
+                    role="button"
+                    tabIndex={0}
+                    title="Set today's slots"
+                    onClick={() => {
+                        openTodaySlotsSetup();
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openTodaySlotsSetup();
+                        }
+                    }}
+                >
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
+                                    <i className="ri-grid-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">{todaySlotCount == null ? '…' : todaySlotCount}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">Appointment Slots</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    className="col-6 col-md-4 col-lg-2"
                     onClick={() => tog_econsult()}
                     role="button"
                     tabIndex={0}
@@ -3076,7 +3217,7 @@ const Widgets = () => {
                                             e.currentTarget.blur();
                                         }}
                                     >
-                                        <i className="mdi mdi-calendar-clock me-1 align-middle" />
+                                        <i className="ri-calendar-event-line me-1 align-middle" />
                                         Create New Appointment
                                     </Button>
                                 </div>
@@ -3101,7 +3242,7 @@ const Widgets = () => {
                                         aria-label="Open doctor schedule calendar"
                                         onClick={dispatchOpenDoctorScheduleCalendar}
                                     >
-                                        <i className="mdi mdi-calendar-clock" aria-hidden="true" />
+                                        <i className="ri-calendar-event-line" aria-hidden="true" />
                                     </button>
                                 </div>
                             </div>
@@ -3459,7 +3600,9 @@ const Widgets = () => {
                                             value={values.dateOfBirth}
                                             className="doctor-modal-date-picker"
                                             hasError={Boolean(errors.dateOfBirth && touched.dateOfBirth)}
-                                            placeholder={DOB_DISPLAY_FORMAT}
+                                            placeholder={DOB_INDIAN_DISPLAY_FORMAT}
+                                            displayFormat={DOB_INDIAN_DISPLAY_FORMAT}
+                                            openOnInputClick
                                             onChange={(dateStr) => {
                                                 setFieldTouched('dateOfBirth', true, false);
                                                 setFieldValue('dateOfBirth', dateStr, true);
@@ -3705,6 +3848,8 @@ const Widgets = () => {
                                                 placeholder="Search and select patient..."
                                                 isSearchable={true}
                                                 isClearable={true}
+                                                components={{ MenuList: PatientSelectMenuList }}
+                                                onCreateNewPatient={handleCreatePatientFromAppointment}
                                                 {...doctorModalSelectPortalProps}
                                                 styles={getDoctorModalSelectStyles(Boolean(errors.patient && touched.patient))}
                                             />
@@ -3760,14 +3905,16 @@ const Widgets = () => {
                                             maxDate={null}
                                             hideIcon
                                             hasError={Boolean(errors.appointmentDate && touched.appointmentDate)}
-                                            placeholder={DOB_DISPLAY_FORMAT}
+                                            placeholder={APPOINTMENT_INDIAN_DISPLAY_FORMAT}
+                                            displayFormat={APPOINTMENT_INDIAN_DISPLAY_FORMAT}
+                                            openOnInputClick
                                             onChange={(dateStr) => {
                                                 setFieldTouched('appointmentDate', true, false);
                                                 setFieldValue('appointmentDate', dateStr, true);
                                                 setSelectedAppointmentSlotTime(null);
-                                                const parsed = moment(dateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+                                                const parsed = moment(dateStr, [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
                                                 if (parsed.isValid()) {
-                                                    loadAppointmentSlotsForForm(values.doctor?.value, dateStr);
+                                                    loadAppointmentSlotsForForm(values.doctor?.value, parsed.format('YYYY-MM-DD'));
                                                 }
                                             }}
                                             onBlur={() => setFieldTouched('appointmentDate', true, true)}
@@ -3843,7 +3990,8 @@ const Widgets = () => {
                                                         onClick={() => openScheduleSetupModal(
                                                             values.doctor.value,
                                                             values.appointmentDate,
-                                                            false
+                                                            false,
+                                                            'appointment'
                                                         )}
                                                     >
                                                         <i className="ri-add-circle-line me-1" aria-hidden="true" />
@@ -4362,12 +4510,30 @@ const Widgets = () => {
                 onClose={() => {
                     if (!requireDailyScheduleSave) {
                         setDailyScheduleModalOpen(false);
+                        setScheduleModalContext(null);
                     }
                 }}
                 onSaved={() => {
                     setDailyScheduleModalOpen(false);
                     if (modal_newAppointment && scheduleModalDoctorId && scheduleModalDate) {
                         loadAppointmentSlotsForForm(scheduleModalDoctorId, scheduleModalDate);
+                    }
+                    if (scheduleModalContext === 'dashboard') {
+                        (async () => {
+                            try {
+                                await updateAvailabilityMe({ isOnline: true });
+                                refreshDashboardCounts();
+                                loadTodaySlotCount();
+                            } catch (err) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Availability update failed',
+                                    text: typeof err === 'string' ? err : err?.message || 'Slots saved, but online status could not be updated',
+                                });
+                            } finally {
+                                setScheduleModalContext(null);
+                            }
+                        })();
                     }
                 }}
             />

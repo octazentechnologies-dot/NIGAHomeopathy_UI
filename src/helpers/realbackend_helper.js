@@ -242,7 +242,7 @@ export const deleteRemedyGrade = data => api.post(url.DELETE_REMEDY_GRADE, data)
 export const createUpdateRemedyGrade = data => api.post(url.CREATE_UPDATE_REMEDY_GRADE, data);
 
 //remedical rubric
-export const getRubricRemedyDetails = data => api.get(url.GET_RUBRIC_REMEDY_DETAILS + "/" + data.remedyId, null);
+export const getRubricRemedyDetails = (data, config) =>  nigahomeoAPI.get(url.GET_RUBRIC_REMEDY_DETAILS + "/" + data.remedyId, config ?? null);
 
 export const updateIsSmallRubric = data => api.get(url.UPDATE_ISSMALL_RUBRIC + "/" + data.rubricId + "/" + data.isSmallRubric, null);
 
