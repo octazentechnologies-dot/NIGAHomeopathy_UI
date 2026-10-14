@@ -1,5 +1,4 @@
 // Homeocentrum UI API hosts.
-// Keep exactly one module.exports block active. Comment out the other two.
 
 module.exports = {
   api: {
@@ -16,6 +15,6 @@ module.exports = {
           API_Base_URL: "https://devmaigrationapi.homeocentrum.com/api",
 
          /* 5. Local Development */
-         //  API_Base_URL: "http://localhost:5002/api",
+          //API_Base_URL: "http://localhost:5000/api",
    }
  };

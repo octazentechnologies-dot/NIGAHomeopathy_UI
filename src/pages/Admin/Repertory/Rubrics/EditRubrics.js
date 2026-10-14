@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import BreadCrumb from '../../../../Components/Common/BreadCrumb';
 import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Label, Row, UncontrolledAlert, Spinner } from 'reactstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Select from "react-select";
+import AsyncSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 import { useDispatch, useSelector } from 'react-redux';
-import { getAuthorForRubric, getSubSection, getRemedyGrades, getRemediesByGrade, updateRubric, getSectionForSubSection, getRubricRemedyBySectionIdGreadId } from '../../../../slices/admin/repertory/rubric/thunk';
+import { searchSubSections } from '../../../../helpers/realbackend_helper';
+import { getAuthorForRubric, getRemedyGrades, getRemediesByGrade, updateRubric, getSectionForSubSection, getRubricRemedyBySectionIdGreadId } from '../../../../slices/admin/repertory/rubric/thunk';
 import { setRubricError, setRubricSuccess } from '../../../../slices/admin/repertory/rubric/reducer';
 import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
@@ -18,15 +20,11 @@ const EditRubrics = () => {
   console.log('location', location)
   console.log('selectedGrade', selectedGrade)
   const [authorRemedyList, setAuthorRemedyList] = useState([]);
-
-  // Lazy loading state for SubSection dropdown
-  const [displayedSubSectionCount, setDisplayedSubSectionCount] = useState(10);
-  const ITEMS_PER_LOAD = 10;
+  const hydratedRef = useRef(false);
 
   // Redux State
   const sectionForSubSection = useSelector((state) => state.Rubric.sectionForSubSection);
   const authorForRubric = useSelector((state) => state.Rubric.authorForRubric);
-  const subSection = useSelector((state) => state.Rubric.subSection);
   const remedyGrades = useSelector((state) => state.Rubric.remedyGrades);
   const remediesByGrade = useSelector((state) => state.Rubric.remediesByGrade);
   const rubricRemedyData = useSelector((state) => state.Rubric.rubricRemedyData);
@@ -84,15 +82,6 @@ const EditRubrics = () => {
     value: section.sectionId,
   })) || [];
 
-  // Full SubSection options
-  const AllSubSectionOptions = subSection?.map((section) => ({
-    label: section.subSectionName,
-    value: section.subSectionId,
-  })) || [];
-
-  // Lazy loaded SubSection options (only show limited items)
-  const SubSectionOptions = AllSubSectionOptions.slice(0, displayedSubSectionCount);
-
   const GradeOptions = remedyGrades?.map((grade) => ({
     label: grade.gradeNo,
     value: grade.gradeId,
@@ -108,94 +97,94 @@ const EditRubrics = () => {
     value: remedy.remedyId,
   })) || [];
 
-  // Fetch initial data
+  const loadSubSectionOptions = (inputValue) => {
+    const sectionId = formik.values.section?.value;
+    const term = (inputValue || '').trim();
+    if (!sectionId || term.length < 2) return Promise.resolve([]);
+    return searchSubSections(sectionId, term)
+      .then((rows) => (Array.isArray(rows) ? rows : []).map((row) => ({
+        value: row.subSectionId ?? row.SubSectionId,
+        label: row.subSectionName ?? row.SubSectionName,
+      })))
+      .catch(() => []);
+  };
+
+  // Fetch initial data. The subsection is not the whole section list: MIND alone is large enough to time out.
   useEffect(() => {
     dispatch(getSectionForSubSection(null));
     dispatch(getRemedyGrades(null));
     dispatch(getAuthorForRubric(null));
-    dispatch(getRubricRemedyBySectionIdGreadId({
-      subSectionId: selectedGrade.subSectionId,
-      gradeId: selectedGrade.gradeId
-    }));
-  }, []);
-
-  // Set initial values when selectedGrade is available
-  useEffect(() => {
-    if (selectedGrade && SectionForSubSectionOptions.length > 0 && GradeOptions.length > 0 && rubricRemedyBySectionIdGreadId) {
-      const sectionOption = SectionForSubSectionOptions.find(
-        option => option.value === rubricRemedyBySectionIdGreadId.sectionId
-      );
-      const gradeOption = GradeOptions.find(
-        option => option.value === rubricRemedyBySectionIdGreadId.gradeId
-      );
-
-      // Find in all subsection options to ensure we can find it even if not loaded yet
-      const subSectionOption = AllSubSectionOptions.find(
-        option => option.value === rubricRemedyBySectionIdGreadId.subSectionId
-      );
-
-      // If subsection exists but not displayed, load enough items to show it
-      if (subSectionOption && !formik.values.subSection) {
-        const subSectionIndex = AllSubSectionOptions.findIndex(
-          option => option.value === rubricRemedyBySectionIdGreadId.subSectionId
-        );
-        if (subSectionIndex >= displayedSubSectionCount) {
-          setDisplayedSubSectionCount(subSectionIndex + ITEMS_PER_LOAD);
-        }
-      }
-
-      if (sectionOption && !formik.values.section) {
-        formik.setFieldValue('section', sectionOption);
-        dispatch(getSubSection(sectionOption.value));
-      }
-      if (gradeOption && !formik.values.grade) {
-        formik.setFieldValue('grade', gradeOption);
-        // Load remedies when grade is selected
-        dispatch(getRemediesByGrade({
-          SubSectionId: rubricRemedyBySectionIdGreadId.subSectionId,
-          GradeId: rubricRemedyBySectionIdGreadId.gradeId
-        }));
-      }
-      if (subSectionOption && !formik.values.subSection) {
-        formik.setFieldValue('subSection', subSectionOption);
-      }
+    if (selectedGrade?.subSectionId && selectedGrade?.gradeId) {
+      dispatch(getRubricRemedyBySectionIdGreadId({
+        subSectionId: selectedGrade.subSectionId,
+        gradeId: selectedGrade.gradeId
+      }));
     }
-  }, [selectedGrade, SectionForSubSectionOptions, GradeOptions, AllSubSectionOptions, displayedSubSectionCount, formik.values.section, formik.values.grade, formik.values.subSection, rubricRemedyBySectionIdGreadId]);
+  }, [dispatch]);
 
+  // Show the row the list already knows, before the remedy request returns.
+  useEffect(() => {
+    if (!selectedGrade || hydratedRef.current) return;
+    if (selectedGrade.sectionId && selectedGrade.sectionName) {
+      formik.setFieldValue('section', { value: selectedGrade.sectionId, label: selectedGrade.sectionName });
+    }
+    if (selectedGrade.subSectionId && selectedGrade.subSectionName) {
+      formik.setFieldValue('subSection', { value: selectedGrade.subSectionId, label: selectedGrade.subSectionName });
+    }
+    if (selectedGrade.gradeId != null && selectedGrade.gradeNo != null) {
+      formik.setFieldValue('grade', { value: selectedGrade.gradeId, label: selectedGrade.gradeNo });
+    }
+  }, [selectedGrade]);
+
+  // Fill section, subsection and grade from the saved rubric once the small lookup lists are in.
+  useEffect(() => {
+    const saved = rubricRemedyBySectionIdGreadId;
+    if (hydratedRef.current || !saved || SectionForSubSectionOptions.length === 0 || GradeOptions.length === 0) return;
+    const sectionOption = SectionForSubSectionOptions.find((option) => option.value === saved.sectionId);
+    const gradeOption = GradeOptions.find((option) => option.value === saved.gradeId);
+    if (sectionOption) formik.setFieldValue('section', sectionOption);
+    if (saved.subSectionId) {
+      formik.setFieldValue('subSection', {
+        value: saved.subSectionId,
+        label: saved.subSectionName || selectedGrade?.subSectionName || String(saved.subSectionId),
+      });
+    }
+    if (gradeOption) formik.setFieldValue('grade', gradeOption);
+    if (saved.subSectionId && saved.gradeId) {
+      dispatch(getRemediesByGrade({
+        SubSectionId: saved.subSectionId,
+        GradeId: saved.gradeId
+      }));
+    }
+    hydratedRef.current = true;
+  }, [rubricRemedyBySectionIdGreadId, SectionForSubSectionOptions, GradeOptions, selectedGrade, dispatch]);
 
   // Update authorRemedyList when rubricRemedyBySectionIdGreadId changes (load existing data)
   useEffect(() => {
-    if (rubricRemedyBySectionIdGreadId?.rubricRemedyAuthorList && rubricRemedyBySectionIdGreadId.rubricRemedyAuthorList.length > 0) {
-      const formattedList = rubricRemedyBySectionIdGreadId.rubricRemedyAuthorList.map(item => ({
-        id: item.rubricRemedyId, // Keep the actual database ID
+    const savedRows = rubricRemedyBySectionIdGreadId?.rubricRemedyAuthorList
+      || rubricRemedyBySectionIdGreadId?.RubricRemedyAuthorList;
+    if (!savedRows) return;
+    const formattedList = savedRows.map(item => {
+      const authorRows = item.rubricAuthorList || item.RubricAuthorList || [];
+      return {
+        id: item.rubricRemedyId ?? item.RubricRemedyId,
         remedy: {
-          label: item.remedyName,
-          value: item.remedyId
+          label: item.remedyName ?? item.RemedyName,
+          value: item.remedyId ?? item.RemedyId
         },
-        authors: item.rubricAuthorList ? item.rubricAuthorList.map(author => ({
-          label: author.authorName,
-          value: author.authorId
-        })) : []
-      }));
-      setAuthorRemedyList(formattedList);
-    }
+        authors: authorRows.map(author => ({
+          label: author.authorName ?? author.AuthorName,
+          value: author.authorId ?? author.AuthorId
+        }))
+      };
+    });
+    setAuthorRemedyList(formattedList);
   }, [rubricRemedyBySectionIdGreadId]);
 
   // Handle section change
   const handleSectionChange = (selectedOption) => {
     formik.setFieldValue('section', selectedOption);
-    formik.setFieldValue('subSection', null); // Reset subsection when section changes
-    setDisplayedSubSectionCount(ITEMS_PER_LOAD); // Reset lazy load count
-    if (selectedOption) {
-      dispatch(getSubSection(selectedOption.value));
-    }
-  };
-
-  // Handle SubSection menu scroll to bottom
-  const handleSubSectionMenuScrollToBottom = () => {
-    if (displayedSubSectionCount < AllSubSectionOptions.length) {
-      setDisplayedSubSectionCount(prev => prev + ITEMS_PER_LOAD);
-    }
+    formik.setFieldValue('subSection', null);
   };
 
   // Handle grade change
@@ -245,6 +234,10 @@ const EditRubrics = () => {
 
   // Remove author and remedy from table
   const handleRemoveAuthorRemedy = (id, authorValue) => {
+    if (String(authorValue).startsWith('none-')) {
+      setAuthorRemedyList(prevList => prevList.filter(item => item.id !== id));
+      return;
+    }
     setAuthorRemedyList(prevList => {
       return prevList.map(item => {
         if (item.id === id) {
@@ -315,28 +308,23 @@ const EditRubrics = () => {
 
                       <Col xxl={4} md={4}>
                         <div>
-                          <Label htmlFor="subSection" className="form-label">
-                            Sub Section Name
-                            {AllSubSectionOptions.length > displayedSubSectionCount && (
-                              <small className="text-muted ms-2">
-                                (Showing {SubSectionOptions.length} of {AllSubSectionOptions.length})
-                              </small>
-                            )}
-                          </Label>
-                          <Select
+                          <Label htmlFor="subSection" className="form-label">Sub Section Name</Label>
+                          <AsyncSelect
                             id="subSection"
                             name="subSection"
                             value={formik.values.subSection}
                             onChange={(selected) => formik.setFieldValue('subSection', selected)}
-                            options={SubSectionOptions}
-                            onMenuScrollToBottom={handleSubSectionMenuScrollToBottom}
+                            loadOptions={loadSubSectionOptions}
+                            defaultOptions={false}
+                            cacheOptions={false}
                             isClearable
-                            placeholder="Select Sub Section"
+                            placeholder={formik.values.section ? "Type to search sub section" : "Select Sub Section"}
                             isDisabled={!formik.values.section}
                             className={formik.touched.subSection && formik.errors.subSection ? 'is-invalid' : ''}
                             classNamePrefix="admin-form-select"
                             theme={neutralSelectTheme}
                             styles={getAdminFormSelectStyles({ invalid: Boolean(formik.touched.subSection && formik.errors.subSection) })}
+                            noOptionsMessage={({ inputValue }) => (inputValue || '').trim().length < 2 ? "Type at least 2 letters" : "No sub sections"}
                           />
                           {formik.touched.subSection && formik.errors.subSection && (
                             <FormFeedback type="invalid">{formik.errors.subSection}</FormFeedback>
@@ -455,10 +443,10 @@ const EditRubrics = () => {
                               ) : (
                                 authorRemedyList.map((item) => (
                                   <React.Fragment key={item.id}>
-                                    {item.authors && item.authors.map((author, authorIndex) => (
+                                    {(item.authors?.length ? item.authors : [{ value: `none-${item.id}`, label: '—' }]).map((author, authorIndex) => (
                                       <tr key={`${item.id}-${author.value}`}>
                                         {authorIndex === 0 ? (
-                                          <td rowSpan={item.authors.length}>{item.remedy.label}</td>
+                                          <td rowSpan={Math.max(item.authors?.length || 0, 1)}>{item.remedy.label}</td>
                                         ) : null}
                                         <td>{author.label}</td>
                                         <td className='text-center'>

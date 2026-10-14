@@ -65,7 +65,11 @@ const RubricList = () => {
   const [gradeDetailsLoading, setGradeDetailsLoading] = useState(false);
   const [gradeDetailsError, setGradeDetailsError] = useState('');
 
-  const openGradeDetails = (subSectionId) => {
+  const [detailsRubric, setDetailsRubric] = useState(null);
+
+  const openGradeDetails = (rubric) => {
+    const subSectionId = rubric?.subSectionId;
+    setDetailsRubric(rubric || null);
     const cached = gradeDetailsCache.current.get(subSectionId);
     const requestId = ++gradeDetailsRequest.current;
     dispatch(setGradeDetails(cached || []));
@@ -442,7 +446,7 @@ const RubricList = () => {
                                           type="button"
                                           className="btn btn-sm btn-soft-warning remove-item-btn"
                                           title="View"
-                                          onClick={() => openGradeDetails(rubric.subSectionId)}
+                                          onClick={() => openGradeDetails(rubric)}
                                         >
                                           <i className="ri-eye-line" />
                                         </button>
@@ -585,7 +589,15 @@ const RubricList = () => {
                       Grade - {grade.gradeNo}
                       <Link
                         to="/admin/editrubrics"
-                        state={{ selectedGrade: grade }}
+                        state={{
+                          selectedGrade: {
+                            ...grade,
+                            subSectionId: grade.subSectionId || detailsRubric?.subSectionId,
+                            subSectionName: detailsRubric?.subSectionName,
+                            sectionId: selectedSection?.value,
+                            sectionName: selectedSection?.label,
+                          },
+                        }}
                         onClick={(e) => e.stopPropagation()}
                         className="btn btn-sm btn-soft-success edit-item-btn"
                         title="Edit"
