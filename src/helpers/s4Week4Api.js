@@ -164,5 +164,6 @@ export const openPatientDocument = (documentId) =>
   nigahomeoAPI.get(`/Patient/Documents/${documentId}`, { responseType: "blob" });
 export const deletePatientDocument = (documentId) => nigahomeoAPI.delete(`/Patient/Documents/${documentId}`);
 export const postDataRequest = (payload) => nigahomeoAPI.post("/Patient/DataRequests", payload);
+export const getDataRequests = () => nigahomeoAPI.get("/Patient/DataRequests", null);
 export const getPatientProfileS4 = () => nigahomeoAPI.get("/Patient/Profile", null);
 export const putPatientProfileS4 = (payload) => nigahomeoAPI.put("/Patient/Profile", payload);

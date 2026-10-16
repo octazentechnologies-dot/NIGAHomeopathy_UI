@@ -7,6 +7,7 @@ import moment from "moment";
 import {
   completeFollowUp,
   deletePatientDocument,
+  getDataRequests,
   getPatientConsents,
   getPatientDiary,
   getPatientFollowUps,
@@ -134,7 +135,14 @@ const normalizeDocument = (row, index) => ({
   at: pick(row, "createdAt", "CreatedAt"),
 });
 
-const SECTION_LABELS = ["timeline", "follow-ups", "diary", "progress", "consents", "profile", "documents"];
+const SECTION_LABELS = ["timeline", "follow-ups", "diary", "progress", "consents", "profile", "documents", "data requests"];
+
+const normalizeDataRequest = (row, index) => ({
+  id: pick(row, "dataRequestId", "DataRequestId") || `r${index}`,
+  type: pick(row, "requestType", "RequestType") || "Request",
+  status: pick(row, "status", "Status") || "OPEN",
+  at: pick(row, "createdAt", "CreatedAt"),
+});
 
 const readAuthProfile = () => {
   try {
@@ -194,6 +202,7 @@ const PatientContinuityPage = () => {
   const [progress, setProgress] = useState({ visits: 0, series: [] });
   const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
   const [consents, setConsents] = useState([]);
+  const [dataRequests, setDataRequests] = useState([]);
   const [profile, setProfile] = useState(() => normalizeProfile(null));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -218,6 +227,7 @@ const PatientContinuityPage = () => {
       getPatientConsents(),
       getPatientProfileS4(),
       listPatientDocuments(),
+      getDataRequests(),
     ]);
     const value = (index) => (results[index].status === "fulfilled" ? unwrapS4(results[index].value) : null);
 
@@ -241,6 +251,7 @@ const PatientContinuityPage = () => {
 
     setProfile(normalizeProfile(value(5)));
     setDocuments(asList(value(6)).map(normalizeDocument));
+    setDataRequests(asList(value(7)).map(normalizeDataRequest));
 
     const failed = results
       .map((row, index) => (row.status === "rejected" ? SECTION_LABELS[index] : null))
@@ -457,6 +468,7 @@ const PatientContinuityPage = () => {
     if (!result.isConfirmed) return;
     try {
       await postDataRequest({ requestType: "Export" });
+      setDataRequests(asList(unwrapS4(await getDataRequests())).map(normalizeDataRequest));
       Swal.fire({ title: "Request sent", icon: "success", timer: 1400, showConfirmButton: false });
     } catch (err) {
       setError(s4Message(err));
@@ -542,6 +554,26 @@ const PatientContinuityPage = () => {
                   </button>
                 }
               >
+                {dataRequests.length > 0 ? (
+                  <ul className="pcon-consents mb-3">
+                    {dataRequests.map((request) => (
+                      <li key={request.id}>
+                        <span className="pcon-consents__icon">
+                          <i className="ri-file-list-3-line" aria-hidden="true" />
+                        </span>
+                        <div className="pcon-consents__main">
+                          <div className="pcon-consents__top">
+                            <strong>{request.type}</strong>
+                            <span className="prx-chip">{request.status}</span>
+                          </div>
+                          {request.at ? <span>{formatDate(request.at)}</span> : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="pcon-hint">No data requests yet. A request is recorded and is not carried out automatically.</p>
+                )}
                 {consents.length === 0 ? <p className="pcon-hint">No consent records yet.</p> : null}
                 <ul className="pcon-consents">
                   {consents.map((consent) => (

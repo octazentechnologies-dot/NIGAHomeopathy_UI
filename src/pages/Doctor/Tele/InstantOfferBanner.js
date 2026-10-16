@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Alert, Button } from "reactstrap";
 import { acceptInstantConsult, listInstantConsultOffers } from "../../../helpers/realbackend_helper";
 
@@ -6,6 +7,7 @@ import { acceptInstantConsult, listInstantConsultOffers } from "../../../helpers
 const SHOW_INSTANT_OFFERS = true;
 
 const InstantOfferBanner = () => {
+  const navigate = useNavigate();
   const [offers, setOffers] = useState([]);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
@@ -66,8 +68,15 @@ const InstantOfferBanner = () => {
                 if (!id) return;
                 setBusy(id);
                 try {
-                  await acceptInstantConsult(id);
+                  const accepted = await acceptInstantConsult(id);
+                  const body = accepted?.data ?? accepted ?? {};
+                  const sessionId = body.teleSessionId ?? body.TeleSessionId;
+                  const patientAppId = body.patientAppId ?? body.PatientAppId;
                   await load();
+                  if (sessionId) {
+                    const visit = patientAppId ? `&patientAppId=${encodeURIComponent(patientAppId)}` : "";
+                    navigate(`/doctor/mobile/videoroom?sessionId=${encodeURIComponent(sessionId)}${visit}`);
+                  }
                 } catch (err) {
                   setError(err?.message || "Could not accept offer.");
                 } finally {

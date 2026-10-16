@@ -313,7 +313,10 @@ const DoctorDetailPage = () => {
                                         <i className="ri-user-3-fill" />
                                     </span>
                                     <div>
-                                        <strong>₹ {doctor.inClinic}</strong>
+                                        <strong>
+                                            {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                            {doctor.inClinic}
+                                        </strong>
                                         <span>In-Clinic Consultation</span>
                                     </div>
                                 </div>
@@ -322,7 +325,10 @@ const DoctorDetailPage = () => {
                                         <i className="ri-vidicon-fill" />
                                     </span>
                                     <div>
-                                        <strong>₹ {doctor.tele}</strong>
+                                        <strong>
+                                            {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                            {doctor.tele}
+                                        </strong>
                                         <span>Tele Consultation</span>
                                     </div>
                                 </div>
@@ -533,14 +539,16 @@ const DoctorDetailPage = () => {
                                         className={consultMode === "clinic" ? "is-active" : undefined}
                                         onClick={() => setConsultMode("clinic")}
                                     >
-                                        In-Clinic | ₹ {doctor.inClinic}
+                                        In-Clinic | {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                        {doctor.inClinic}
                                     </button>
                                     <button
                                         type="button"
                                         className={consultMode === "tele" ? "is-active" : undefined}
                                         onClick={() => setConsultMode("tele")}
                                     >
-                                        Tele Consultation | ₹ {doctor.tele}
+                                        Tele Consultation | {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                        {doctor.tele}
                                     </button>
                                 </div>
 

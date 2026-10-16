@@ -343,11 +343,17 @@ const FindDoctorPage = () => {
                                     <div className="homeojob-doctor-card__fees">
                                         <div>
                                             <span>In-Clinic</span>
-                                            <strong>₹ {doc.inClinic}</strong>
+                                            <strong>
+                                                {doc.feeCurrency ? `${doc.feeCurrency} ` : ""}
+                                                {doc.inClinic}
+                                            </strong>
                                         </div>
                                         <div>
                                             <span>Tele</span>
-                                            <strong>₹ {doc.tele}</strong>
+                                            <strong>
+                                                {doc.feeCurrency ? `${doc.feeCurrency} ` : ""}
+                                                {doc.tele}
+                                            </strong>
                                         </div>
                                     </div>
 

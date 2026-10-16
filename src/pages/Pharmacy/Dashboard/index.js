@@ -184,6 +184,8 @@ const PharmacyDashboard = () => {
     : {
         orders: ordersError ? null : counts.new + counts.process,
         quotes: ordersError ? null : counts.quotes,
+        inventory: ordersError ? null : counts.new,
+        prescriptions: ordersError ? null : orders.length,
         onboarding: partner ? (partner.status === "ACTIVE" ? "Active" : prettyStatus(partner.status)) : "Not started",
       };
 

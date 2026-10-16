@@ -71,9 +71,17 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const [submitted, setSubmitted] = useState(null);
   const [mine, setMine] = useState([]);
 
-  document.title = `${
-    mode === "onboarding" ? "Pharmacy onboarding" : mode === "quotes" ? "Quotes" : "Medicine orders"
-  } | Niga Homeocentrum`;
+  const pageTitle =
+    mode === "onboarding"
+      ? "Pharmacy onboarding"
+      : mode === "quotes"
+        ? "Quotes"
+        : mode === "stock"
+          ? "Stock confirmation"
+          : mode === "prescriptions"
+            ? "Prescriptions"
+            : "Medicine orders";
+  document.title = `${pageTitle} | Niga Homeocentrum`;
 
   const loadOrders = async () => {
     setLoading(true);
@@ -104,7 +112,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   };
 
   useEffect(() => {
-    if (mode === "orders" || mode === "quotes") loadOrders();
+    if (mode === "orders" || mode === "quotes" || mode === "stock" || mode === "prescriptions") loadOrders();
     else {
       setLoading(false);
       loadMine();
@@ -112,12 +120,16 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   }, [mode]);
 
   const isQuotes = mode === "quotes";
+  const isStock = mode === "stock";
+  const isPrescriptions = mode === "prescriptions";
   const visibleRows = isQuotes
     ? rows.filter((row) => {
         const status = orderStatus(row);
         return status === "ACCEPTED" || status === "QUOTED";
       })
-    : rows;
+    : isStock
+      ? rows.filter((row) => orderStatus(row) === "OFFERED")
+      : rows;
 
   const runAction = async (id, work, successText, reload = true) => {
     setBusyId(id);
@@ -583,11 +595,15 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h2 className="pharmacy-page-title mb-1">{isQuotes ? "Quotes" : "Medicine orders"}</h2>
+            <h2 className="pharmacy-page-title mb-1">{pageTitle}</h2>
             <p className="pharmacy-page-subtitle mb-0">
               {isQuotes
                 ? "Accepted orders waiting for a price, and quotes waiting for the patient."
-                : "Send the OTP and accept or reject new offers, quote a price, then mark ready and dispatch after the patient pays."}
+                : isStock
+                  ? "Confirm the pack is in stock when you accept. There is no separate stock catalogue."
+                  : isPrescriptions
+                    ? "Each order is the signed prescription. Remedy names stay hidden until you accept with the OTP."
+                    : "Send the OTP and accept or reject new offers, quote a price, then mark ready and dispatch after the patient pays."}
             </p>
           </div>
           <Button size="sm" color="soft-secondary" onClick={loadOrders} disabled={loading}>
@@ -604,7 +620,11 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               <p className="text-muted mb-0">
                 {isQuotes
                   ? "No orders are waiting for a quote. Accept the order on Medicine orders first."
-                  : "No medicine orders assigned to your pharmacy yet."}
+                  : isStock
+                    ? "No orders are waiting for a stock check."
+                    : isPrescriptions
+                      ? "No signed prescriptions have been handed to your pharmacy yet."
+                      : "No medicine orders assigned to your pharmacy yet."}
               </p>
             ) : (
               <div className="table-responsive">

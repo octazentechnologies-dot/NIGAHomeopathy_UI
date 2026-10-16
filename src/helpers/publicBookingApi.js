@@ -63,6 +63,14 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
   const rankingSummary = row?.rankingSummary ?? row?.RankingSummary ?? "";
   const workingHoursNote = row?.workingHoursNote ?? row?.WorkingHoursNote ?? fallback.timings?.weekdays ?? "";
   const photoPath = row?.photoPath ?? row?.PhotoPath;
+  const photoUrl = row?.photoUrl ?? row?.PhotoUrl;
+  const feeCurrency = row?.feeCurrency ?? row?.FeeCurrency ?? null;
+  const image =
+    (typeof photoUrl === "string" && photoUrl.trim())
+      ? photoUrl.trim()
+      : photoPath && id
+        ? `${api.API_Base_URL}/Profile/Photo/${id}`
+        : fallback.image || NoPhotoAvatar;
   return {
     ...fallback,
     id,
@@ -80,8 +88,10 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
     mapsUrl: `https://maps.google.com/?q=${encodeURIComponent(city || clinicName || "India")}`,
     inClinic,
     tele,
+    feeCurrency,
     available: isOnline ? "today" : "tomorrow",
-    image: photoPath && id ? `${api.API_Base_URL}/Profile/Photo/${id}` : fallback.image || NoPhotoAvatar,
+    image,
+    photoUrl: typeof photoUrl === "string" && photoUrl.trim() ? photoUrl.trim() : null,
     verified,
     verificationStatus: row?.verificationStatus ?? row?.VerificationStatus ?? (verified ? "Verified" : "Pending"),
     rankingSummary,
@@ -595,6 +605,8 @@ export const buildInstantQueueOfferView = (apiResult) => {
       doctorId: null,
       instantConsultRequestId: null,
       message: "",
+      patientAppId: null,
+      teleSessionId: null,
     };
   }
   const status = apiResult.status ?? apiResult.Status ?? "";
@@ -617,6 +629,8 @@ export const buildInstantQueueOfferView = (apiResult) => {
     message,
     doctorName: apiResult.doctorName ?? apiResult.DoctorName ?? "",
     canCancel: apiResult.canCancel ?? isInstantConsultWaiting(status),
+    patientAppId: apiResult.patientAppId ?? apiResult.PatientAppId ?? null,
+    teleSessionId: apiResult.teleSessionId ?? apiResult.TeleSessionId ?? null,
   };
 };
 
@@ -701,6 +715,9 @@ export const acceptInstantDoctorOffer = async (requestId, accessToken) => {
       status,
       ""
     ),
+    patientAppId: payload.patientAppId ?? payload.PatientAppId ?? null,
+    teleSessionId: payload.teleSessionId ?? payload.TeleSessionId ?? null,
+    roomId: payload.roomId ?? payload.RoomId ?? null,
   };
 };
 

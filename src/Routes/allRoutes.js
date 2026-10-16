@@ -163,7 +163,6 @@ import AnatomyPage from "../pages/AnatomyPage";
 import DoctorTeleconsultPage from "../pages/Doctor/Teleconsult/DoctorTeleconsultPage";
 import AccountDashboard from "../pages/Account/Dashboard";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
-import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
 import FamilyMembers from "../pages/Family/FamilyMembers";
 import CaregiverAccess from "../pages/Family/CaregiverAccess";
 import ReceptionDashboard from "../pages/Reception/Dashboard";
@@ -676,8 +675,8 @@ const authProtectedRoutes = [
   { path: "pharmacy/onboard", component: <PharmacyWorkspacePage mode="onboarding" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/orders", component: <PharmacyWorkspacePage mode="orders" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/quotes", component: <PharmacyWorkspacePage mode="quotes" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/inventory", component: <PharmacyWorkspacePage mode="stock" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/prescriptions", component: <PharmacyWorkspacePage mode="prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   // Pharmacy Side End //
 
   { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },

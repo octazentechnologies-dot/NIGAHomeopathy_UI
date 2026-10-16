@@ -20,6 +20,7 @@ import { getPublicFee, unwrapS4 } from "../../../helpers/s4Week4Api";
 import { apiMessage, readReceptionDoctorId, unwrap } from "../receptionSession";
 import { paymentStatusMeta } from "../../../helpers/paymentStatusBadge";
 import AppointmentPatientViewModal from "./AppointmentPatientViewModal";
+import { readStoredVitals } from "./ReceptionCheckInFlow";
 
 const genderLabel = (gender) => {
   if (gender === 0 || gender === "0" || gender === "M") return "Male";
@@ -105,7 +106,7 @@ const mapQueueRow = (apiRow, doctorFallback, feeByType) => {
       emergencyContact: "—",
       patientId: patientId ? String(patientId) : "—",
     },
-    vitals: {},
+    vitals: readStoredVitals(patientAppId) || {},
     paymentDetails: {
       amount: pay.label === "Paid" ? formatRupees(fee) : "₹ 0",
       gst: "GST applied by API on collection",
@@ -133,7 +134,13 @@ const matchesSearch = (row, needle) => {
   return haystack.includes(needle);
 };
 
-const AppointmentActionButtons = ({ row, onView, onEdit }) => (
+const AppointmentActionButtons = ({
+  row,
+  onView,
+  onEdit,
+  onUpdateTime,
+  editLabel = "Update time",
+}) => (
   <div className="d-inline-flex align-items-center gap-1">
     <button
       id={`reception-appt-view-${row.id}`}
@@ -151,18 +158,43 @@ const AppointmentActionButtons = ({ row, onView, onEdit }) => (
       id={`reception-appt-edit-${row.id}`}
       type="button"
       className="btn btn-sm btn-soft-success edit-item-btn"
-      aria-label="Update appointment time"
+      aria-label={editLabel}
       onClick={() => onEdit?.(row)}
     >
       <i className="ri-pencil-fill" />
     </button>
     <UncontrolledTooltip placement="top" target={`reception-appt-edit-${row.id}`}>
-      Update time
+      {editLabel}
     </UncontrolledTooltip>
+    {onUpdateTime ? (
+      <>
+        <button
+          id={`reception-appt-time-${row.id}`}
+          type="button"
+          className="btn btn-sm btn-soft-secondary"
+          aria-label="Update appointment time"
+          onClick={() => onUpdateTime(row)}
+        >
+          <i className="ri-time-line" />
+        </button>
+        <UncontrolledTooltip placement="top" target={`reception-appt-time-${row.id}`}>
+          Update time
+        </UncontrolledTooltip>
+      </>
+    ) : null}
   </div>
 );
 
-const AppointmentTable = ({ rows, searchTerm, emptyMessage, loading, onView, onEdit }) => (
+const AppointmentTable = ({
+  rows,
+  searchTerm,
+  emptyMessage,
+  loading,
+  onView,
+  onEdit,
+  onUpdateTime,
+  editLabel,
+}) => (
   <div className="table-responsive">
     <table className="table table-hover mb-0 dashboard-patient-table reception-appointment-data-table">
       <thead>
@@ -200,7 +232,13 @@ const AppointmentTable = ({ rows, searchTerm, emptyMessage, loading, onView, onE
                   </span>
                 </td>
                 <td className="text-end">
-                  <AppointmentActionButtons row={row} onView={onView} onEdit={onEdit} />
+                  <AppointmentActionButtons
+                    row={row}
+                    onView={onView}
+                    onEdit={onEdit}
+                    onUpdateTime={onUpdateTime}
+                    editLabel={editLabel}
+                  />
                 </td>
               </tr>
             ))}
@@ -241,7 +279,12 @@ const applyPaymentPatch = (row, patch) => {
   };
 };
 
-const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, paymentPatch = null }) => {
+const TodaysAppointments = ({
+  onEditAppointment,
+  onCheckInEdit,
+  refreshKey = 0,
+  paymentPatch = null,
+}) => {
   const doctorId = readReceptionDoctorId();
   const [activeTab, setActiveTab] = useState("1");
   const [searchTerm, setSearchTerm] = useState("");
@@ -318,18 +361,28 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, paymentPatch = 
   );
 
   const handleView = (row) => {
-    setSelectedAppointment(row);
+    const stored = readStoredVitals(row.patientAppId || row.id);
+    setSelectedAppointment(stored ? { ...row, vitals: stored } : row);
     setViewOpen(true);
   };
 
   const handleEdit = (row) => {
+    if (onCheckInEdit) {
+      onCheckInEdit(row);
+      return;
+    }
     onEditAppointment?.(row);
   };
+
+  const handleUpdateTime =
+    onCheckInEdit && onEditAppointment ? (row) => onEditAppointment(row) : undefined;
 
   const handleCloseView = () => {
     setViewOpen(false);
     setSelectedAppointment(null);
   };
+
+  const editLabel = onCheckInEdit ? "Check-in steps" : "Update time";
 
   return (
     <Row className="mt-3">
@@ -394,6 +447,8 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, paymentPatch = 
                   loading={loading}
                   onView={handleView}
                   onEdit={handleEdit}
+                  onUpdateTime={handleUpdateTime}
+                  editLabel={editLabel}
                   emptyMessage={{
                     search: "No appointments found matching your search",
                     empty: "No waiting patients in the queue for this date",
@@ -407,6 +462,8 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, paymentPatch = 
                   loading={loading}
                   onView={handleView}
                   onEdit={handleEdit}
+                  onUpdateTime={handleUpdateTime}
+                  editLabel={editLabel}
                   emptyMessage={{
                     search: "No appointments found matching your search",
                     empty: "No appointments for this date",

@@ -144,6 +144,15 @@ const InstantQueueOfferPage = () => {
             setOffers((prev) =>
                 prev.filter((o) => o.instantConsultRequestId !== offerRequestId)
             );
+            if (accepted.teleSessionId) {
+                const visit = accepted.patientAppId
+                    ? `&patientAppId=${encodeURIComponent(accepted.patientAppId)}`
+                    : "";
+                navigate(
+                    `/doctor/mobile/videoroom?sessionId=${encodeURIComponent(accepted.teleSessionId)}${visit}`
+                );
+                return;
+            }
             setView(
                 buildInstantQueueOfferView({
                     instantConsultRequestId: accepted.instantConsultRequestId,
@@ -152,6 +161,8 @@ const InstantQueueOfferPage = () => {
                     statusLabel: accepted.statusLabel,
                     queuePosition: null,
                     doctorId: null,
+                    patientAppId: accepted.patientAppId,
+                    teleSessionId: accepted.teleSessionId,
                 })
             );
         } catch (err) {
@@ -239,6 +250,21 @@ const InstantQueueOfferPage = () => {
                                     <p className="mb-0 text-muted">
                                         No doctor is online right now. We keep checking and offer your
                                         request as soon as one comes online.
+                                    </p>
+                                ) : null}
+                                {view.teleSessionId ? (
+                                    <p className="mb-0 mt-3">
+                                        <Link
+                                            className="btn btn-primary btn-sm"
+                                            to={`${landingPath("tele/waiting", view.teleSessionId)}${
+                                                searchParams.get("accessToken")
+                                                    ? `?accessToken=${encodeURIComponent(searchParams.get("accessToken"))}`
+                                                    : ""
+                                            }`}
+                                            data-testid="instant-join-waiting"
+                                        >
+                                            Join waiting room
+                                        </Link>
                                     </p>
                                 ) : null}
                                 {waiting && lastChecked ? (
