@@ -33,15 +33,19 @@ const DoctorWaitlistPage = () => {
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Waitlist</h2>
-        <p className="clinic-page-subtitle">Patients waiting for an offered slot. Joining does not reserve time.</p>
-        {error ? <Alert color="danger">{error}</Alert> : null}
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">Waitlist</h2>
+            <p className="clinic-page-subtitle mb-0">Patients waiting for an offered slot. Joining does not reserve time.</p>
+          </div>
+        </div>
+        {error ? <Alert color="danger" className="py-2 small">{error}</Alert> : null}
         <Card className="admin-dash-card">
           <CardBody>
             {loading ? (
-              <Spinner size="sm" />
+              <div className="py-3 text-muted"><Spinner size="sm" className="me-2" /> Loading…</div>
             ) : (
-              <Table responsive className="table-nowrap align-middle mb-0">
+              <Table responsive className="table-nowrap align-middle mb-0 clinic-data-table">
                 <thead>
                   <tr>
                     <th>Id</th>
@@ -52,15 +56,21 @@ const DoctorWaitlistPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.bookingWaitlistId || row.BookingWaitlistId}>
-                      <td>{row.bookingWaitlistId || row.BookingWaitlistId}</td>
-                      <td>{row.contactName || row.ContactName}</td>
-                      <td>{row.contactMobile || row.ContactMobile}</td>
-                      <td>{row.requestedDate || row.RequestedDate}</td>
-                      <td>{row.status || row.Status}</td>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-muted py-4">No waitlist entries.</td>
                     </tr>
-                  ))}
+                  ) : (
+                    rows.map((row) => (
+                      <tr key={row.bookingWaitlistId || row.BookingWaitlistId}>
+                        <td>{row.bookingWaitlistId || row.BookingWaitlistId}</td>
+                        <td className="fw-medium">{row.contactName || row.ContactName}</td>
+                        <td>{row.contactMobile || row.ContactMobile}</td>
+                        <td>{row.requestedDate || row.RequestedDate}</td>
+                        <td>{row.status || row.Status}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </Table>
             )}

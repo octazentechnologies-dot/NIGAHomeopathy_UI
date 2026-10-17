@@ -192,6 +192,9 @@ import SupportWorkspacePage from "../pages/Support/SupportWorkspacePage";
 import HelpAdminPage from "../pages/Admin/HelpAdminPage";
 import DoctorWaitlistPage from "../pages/Doctor/Waitlist/DoctorWaitlistPage";
 import DoctorSchedulePage from "../pages/Doctor/Schedule/DoctorSchedulePage";
+import DoctorCareLinkPage from "../pages/Doctor/Clinic/DoctorCareLinkPage";
+import DoctorAppointmentRequestsPage from "../pages/Doctor/Clinic/DoctorAppointmentRequestsPage";
+import DoctorPharmacyQueriesPage from "../pages/Doctor/Clinic/DoctorPharmacyQueriesPage";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -639,6 +642,9 @@ const authProtectedRoutes = [
   { path: "doctor/erx", component: <DoctorErxPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/waitlist", component: <DoctorWaitlistPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/schedule", component: <DoctorSchedulePage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/carelink", component: <DoctorCareLinkPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/appointment-requests", component: <DoctorAppointmentRequestsPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/pharmacy-queries", component: <DoctorPharmacyQueriesPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/support", component: <SupportWorkspacePage mode="mine" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "reception", component: <ReceptionHome />, allowedRoles: RECEPTION_ROUTE_ROLES },
   { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: RECEPTION_ROUTE_ROLES },

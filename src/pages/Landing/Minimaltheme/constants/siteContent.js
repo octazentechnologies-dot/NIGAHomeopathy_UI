@@ -3,7 +3,7 @@ import { landingPath } from "../../../../constants/landingRoutes";
 export const SITE = {
     name: "Homeocentrum",
     tagline: "Easy Homeopathy | Easy Practice | Easy Remedy Hunting",
-    phone: "+91-973 059 6019",
+    phone: "7768046064",
     email: "nigaHomeocentrum@gmail.com",
     emailAlt: "jamdarnikhil@gmail.com",
     supportEmail: "support@Homeocentrum.com",

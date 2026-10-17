@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Alert, Button, Card, CardBody, Container, Input, Label } from "reactstrap";
+import { Alert, Card, CardBody, Container, Input, Label, Spinner, Table } from "reactstrap";
 import { getAppointmentSlots, getDailySchedule } from "../../helpers/realbackend_helper";
 import { apiMessage, readReceptionDoctorId, unwrap } from "./receptionSession";
 
@@ -73,32 +73,58 @@ const ReceptionSchedule = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content admin-dashboard-page reception-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h4>Doctor schedule</h4>
-        <p className="text-muted mb-3">
-          Read-only view of the doctor&apos;s working day. Edit is only on the doctor schedule screen.
-        </p>
-        <Card>
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">Doctor schedule</h2>
+            <p className="clinic-page-subtitle mb-0">
+              Read-only view of the doctor&apos;s working day. Edit is only on the doctor schedule screen.
+            </p>
+          </div>
+          <Link to="/reception" className="btn btn-sm btn-soft-secondary clinic-action-btn">
+            <i className="ri-arrow-left-line" aria-hidden="true" />
+            Reception home
+          </Link>
+        </div>
+
+        <Card className="admin-dash-card">
           <CardBody>
-            <Label>Date</Label>
-            <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-            <Button
-              className="mt-3"
-              color="primary"
-              onClick={load}
-              disabled={!doctorId || !date || loading}
-            >
-              {loading ? "Loading…" : "Show"}
-            </Button>
+            <div className="d-flex flex-wrap align-items-end gap-2 mb-3">
+              <div style={{ minWidth: 200 }}>
+                <Label className="form-label">Date</Label>
+                <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm clinic-primary-btn"
+                onClick={load}
+                disabled={!doctorId || !date || loading}
+              >
+                {loading ? <Spinner size="sm" className="me-1" /> : <i className="ri-search-line" aria-hidden="true" />}
+                {loading ? "Loading…" : "Show"}
+              </button>
+            </div>
+
             {!doctorId ? (
-              <Alert className="mt-3" color="warning">Doctor context is missing for this reception login.</Alert>
+              <Alert color="warning" className="py-2 small">
+                Doctor context is missing for this reception login.
+              </Alert>
             ) : null}
-            {error ? <Alert className="mt-3" color="warning">{String(error)}</Alert> : null}
-            {note ? <Alert className="mt-3" color="info">{note}</Alert> : null}
+            {error ? (
+              <Alert color="warning" className="py-2 small">
+                {String(error)}
+              </Alert>
+            ) : null}
+            {note ? (
+              <Alert color="info" className="py-2 small">
+                {note}
+              </Alert>
+            ) : null}
+
             {schedule ? (
-              <div className="mt-3" data-testid="reception-schedule-readonly">
-                <p className="mb-2">
+              <div className="mb-3" data-testid="reception-schedule-readonly">
+                <p className="mb-1">
                   <strong>Hours:</strong> {schedule.workStartTime || schedule.WorkStartTime} –{" "}
                   {schedule.workEndTime || schedule.WorkEndTime}
                   {" · "}
@@ -113,25 +139,32 @@ const ReceptionSchedule = () => {
                 <p className="text-muted small mb-0">No Save or edit controls on this page.</p>
               </div>
             ) : null}
+
             {slots.length ? (
-              <ul className="mt-3 mb-0">
-                {slots.map((row) => {
-                  const time = row.time || row.Time;
-                  const label = row.label || row.Label || time;
-                  const status = row.status || row.Status;
-                  const name = row.patientName || row.PatientName;
-                  return (
-                    <li key={time}>
-                      {label} · {status}
-                      {name ? ` · ${name}` : ""}
-                    </li>
-                  );
-                })}
-              </ul>
+              <Table responsive size="sm" className="align-middle mb-0 clinic-data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Label</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {slots.map((row) => {
+                    const time = row.time || row.Time;
+                    const label = row.label || row.Label || time;
+                    const status = row.status || row.Status || row.availability || row.Availability || "—";
+                    return (
+                      <tr key={`${time}-${label}`}>
+                        <td>{time}</td>
+                        <td>{label}</td>
+                        <td>{status}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </Table>
             ) : null}
-            <div className="mt-3">
-              <Link to="/reception">Back</Link>
-            </div>
           </CardBody>
         </Card>
       </Container>

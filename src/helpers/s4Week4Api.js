@@ -69,6 +69,7 @@ export const getClinicCollections = (params) =>
   nigahomeoAPI.get("/Account/ClinicCollections", params || {});
 /** DMO-10.02 — doctor mobile earnings summary */
 export const earningsSummary = (params) => nigahomeoAPI.get("/Earnings/Summary", params || {});
+export const earningsPayouts = (params) => nigahomeoAPI.get("/Earnings/Payouts", params || {});
 export const accountDoctorEarnings = (params) => nigahomeoAPI.get("/Account/DoctorEarnings", params || {});
 
 /* Pharmacy / medicine */
@@ -118,6 +119,8 @@ export const rankingExplain = (doctorId) => nigahomeoAPI.get(`/Doctors/RankingEx
 
 /* eRx (ERX) */
 export const erxPotencies = () => nigahomeoAPI.get("/Erx/Potencies", null);
+export const erxRemedies = (search, take = 40) =>
+  nigahomeoAPI.get("/Erx/Remedies", { search: search || undefined, take });
 export const updateErxRemedyLine = (id, payload) => nigahomeoAPI.put(`/Erx/RemedyLines/${id}`, payload);
 export const erxByAppointment = (id) => nigahomeoAPI.get(`/Erx/ByAppointment/${id}`, null);
 export const signErx = (payload) => nigahomeoAPI.post("/Erx/Sign", payload);

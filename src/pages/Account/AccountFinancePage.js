@@ -667,38 +667,52 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   return (
     <div className="page-content admin-dashboard-page account-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div className="clinic-page-header">
           <div>
             <h2 className="clinic-page-title account-page-title">{meta.title}</h2>
             <p className="clinic-page-subtitle account-page-subtitle mb-0">{meta.subtitle}</p>
           </div>
-          <div className="d-flex flex-wrap gap-2">
-            <Link to="/accountdashboard" className="btn btn-sm btn-soft-secondary">
+          <div className="clinic-table-actions">
+            <Link to="/accountdashboard" className="btn btn-sm btn-soft-secondary clinic-action-btn">
+              <i className="ri-home-4-line" aria-hidden="true" />
               Account home
             </Link>
-            <Button size="sm" className="account-primary-btn" onClick={load} disabled={loading}>
+            <button type="button" className="btn btn-sm clinic-primary-btn" onClick={load} disabled={loading}>
+              <i className="ri-refresh-line" aria-hidden="true" />
               Refresh
-            </Button>
+            </button>
             {section === "consult-recon" || section === "reports" ? (
-              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportReconciliation, "reconciliation.csv")}>
+              <button
+                type="button"
+                className="btn btn-sm btn-soft-secondary clinic-action-btn"
+                onClick={() => runReportExport(exportReconciliation, "reconciliation.csv")}
+              >
                 Export reconciliation
-              </Button>
+              </button>
             ) : null}
             {section === "settlements" || section === "reports" ? (
-              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportSettlements, "settlements.csv")}>
+              <button
+                type="button"
+                className="btn btn-sm btn-soft-secondary clinic-action-btn"
+                onClick={() => runReportExport(exportSettlements, "settlements.csv")}
+              >
                 Export settlements
-              </Button>
+              </button>
             ) : null}
             {section === "payouts" || section === "reports" ? (
-              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportPayouts, "payouts.csv")}>
+              <button
+                type="button"
+                className="btn btn-sm btn-soft-secondary clinic-action-btn"
+                onClick={() => runReportExport(exportPayouts, "payouts.csv")}
+              >
                 Export payouts
-              </Button>
+              </button>
             ) : null}
           </div>
         </div>
 
-        {error ? <Alert color="danger">{error}</Alert> : null}
-        {note ? <Alert color="success">{note}</Alert> : null}
+        {error ? <Alert color="danger" className="py-2 small">{error}</Alert> : null}
+        {note ? <Alert color="success" className="py-2 small">{note}</Alert> : null}
 
         {section === "tax" ? (
           <Card className="admin-dash-card mb-3">
@@ -1444,7 +1458,14 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                         <td>{pick(row, "pan", "Pan") || "—"}</td>
                         <td>{pick(row, "kycStatus", "KycStatus") || "—"}</td>
                         <td>
-                          <Button size="sm" color="soft-info" onClick={() => startPayeeEdit(row)}>Edit</Button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-soft-primary clinic-action-btn"
+                            onClick={() => startPayeeEdit(row)}
+                          >
+                            <i className="ri-pencil-line" aria-hidden="true" />
+                            Edit
+                          </button>
                         </td>
                       </tr>
                     ))}

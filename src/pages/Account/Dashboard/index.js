@@ -92,9 +92,15 @@ const AccountDashboard = () => {
 
   return (
     <React.Fragment>
-      <div className="page-content admin-dashboard-page account-dashboard-page">
+      <div className="page-content admin-dashboard-page account-dashboard-page clinic-workspace-page">
         <Container fluid>
-          {error ? <Alert color="warning">Some numbers could not load: {error}</Alert> : null}
+          <div className="clinic-page-header">
+            <div>
+              <h2 className="clinic-page-title">Account</h2>
+              <p className="clinic-page-subtitle mb-0">Clinic finance overview for this login.</p>
+            </div>
+          </div>
+          {error ? <Alert color="warning" className="py-2 small">Some numbers could not load: {error}</Alert> : null}
           <SummaryWidgets values={values} loading={loading} />
         </Container>
       </div>

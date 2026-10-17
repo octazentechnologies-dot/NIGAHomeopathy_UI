@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
-import { Alert, Col, Container, Input, Row, Spinner } from "reactstrap";
+import { Alert, Card, CardBody, Col, Container, Input, Row, Spinner } from "reactstrap";
 import Swal from "sweetalert2";
 import moment from "moment"; 
 
@@ -9,6 +9,7 @@ import {
   erxByAppointment,
   erxHistory,
   erxPdf,
+  erxRemedies,
   listErxRefills,
   rejectErxRefill,
   s4Message,
@@ -118,6 +119,9 @@ const DoctorErxPage = () => {
   const [refillsLoading, setRefillsLoading] = useState(true);
   const [busyRefillId, setBusyRefillId] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [remedyQuery, setRemedyQuery] = useState("");
+  const [remedyHits, setRemedyHits] = useState([]);
+  const [remedySearching, setRemedySearching] = useState(false);
   const [unsignedVisitId, setUnsignedVisitId] = useState("");
 
   const doctorName = useMemo(getDoctorName, []);
@@ -400,6 +404,25 @@ const DoctorErxPage = () => {
 
   const pendingRefills = refills.filter((row) => !/approved|rejected/i.test(pick(row, "status", "Status") || ""));
 
+  const searchCatalogue = async () => {
+    const q = remedyQuery.trim();
+    if (!q) {
+      setRemedyHits([]);
+      return;
+    }
+    setRemedySearching(true);
+    try {
+      const response = await erxRemedies(q, 20);
+      const rows = asList(response);
+      setRemedyHits(rows);
+    } catch (err) {
+      setError(s4Message(err));
+      setRemedyHits([]);
+    } finally {
+      setRemedySearching(false);
+    }
+  };
+
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page erx-page">
       <Container fluid>
@@ -453,6 +476,35 @@ const DoctorErxPage = () => {
             {error}
           </Alert>
         ) : null}
+
+        <Card className="admin-dash-card mb-2">
+          <CardBody className="py-2">
+            <div className="d-flex flex-wrap gap-2 align-items-center">
+              <span className="text-muted small me-1">Remedy catalogue</span>
+              <Input
+                bsSize="sm"
+                style={{ maxWidth: 220 }}
+                value={remedyQuery}
+                placeholder="Search e.g. Sulph"
+                onChange={(e) => setRemedyQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") searchCatalogue();
+                }}
+              />
+              <button type="button" className="btn btn-sm btn-soft-primary" disabled={remedySearching} onClick={searchCatalogue}>
+                {remedySearching ? <Spinner size="sm" /> : "Search"}
+              </button>
+              {remedyHits.length > 0 ? (
+                <span className="small text-muted">
+                  {remedyHits
+                    .slice(0, 8)
+                    .map((r) => `${r.name || r.Name} (#${r.remedyId ?? r.RemedyId})`)
+                    .join(" · ")}
+                </span>
+              ) : null}
+            </div>
+          </CardBody>
+        </Card>
 
         {visitLoaded ? (
           <div className="erx-page__patient">

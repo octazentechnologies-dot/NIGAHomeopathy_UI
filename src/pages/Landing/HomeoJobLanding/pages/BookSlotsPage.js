@@ -38,13 +38,26 @@ const BookSlotsPage = () => {
         return d;
     });
     const skipSlotLoadingFlash = useRef(false);
+    const dateFromQuery = Boolean(searchParams.get("date"));
 
     useEffect(() => {
         document.title = `${SITE.name} | Book slots`;
         let cancelled = false;
         getPublicDoctor(doctorId)
             .then((row) => {
-                if (!cancelled) setDoctor(mapPublicDoctorCard(row));
+                if (cancelled) return;
+                const mapped = mapPublicDoctorCard(row);
+                setDoctor(mapped);
+                // When no ?date= was chosen, jump to the doctor's next open day if it is after today.
+                if (!dateFromQuery && mapped.nextAvailableAt) {
+                    const next = new Date(mapped.nextAvailableAt);
+                    if (!Number.isNaN(next.getTime())) {
+                        next.setHours(0, 0, 0, 0);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        if (next.getTime() > today.getTime()) setBookingDate(next);
+                    }
+                }
             })
             .catch(() => {
                 if (!cancelled) setLoadError("Doctor not found or not verified for directory.");
@@ -52,7 +65,7 @@ const BookSlotsPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [doctorId]);
+    }, [doctorId, dateFromQuery]);
 
     useEffect(() => {
         const id = Number(doctorId);

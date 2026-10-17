@@ -6166,7 +6166,8 @@ const PatientBoard = () => {
         flex:unset;
       }
       .pb-main-toolbar .pb-tab,
-      .pb-main-toolbar .pb-prescription-tab-btn {
+      .pb-main-toolbar .pb-prescription-tab-btn,
+      .pb-main-toolbar .pb-tab--tool {
         width:100%;
         min-width:0;
         justify-content:center;
@@ -6212,19 +6213,31 @@ const PatientBoard = () => {
       box-shadow:0 2px 8px rgba(15, 23, 42, 0.12);
       position:relative;
     }
-    /* Body Parts → Deep Analysis — lighter blue gradient */
+    /* Body Parts → Deep Analysis (+ right tools) — lighter blue gradient */
     .pb-tab--body-parts,
     .pb-tab--questions,
     .pb-tab--clinical,
     .pb-tab--repertory,
     .pb-tab--materia,
     .pb-tab--adverse,
-    .pb-tab--deep {
+    .pb-tab--deep,
+    .pb-tab--tool {
       color:#0369a1 !important;
       background:linear-gradient(180deg, #fbfdff 0%, #f5fbff 55%, #eef8ff 100%) !important;
       background-image:linear-gradient(180deg, #fbfdff 0%, #f5fbff 55%, #eef8ff 100%) !important;
       border-color:#d7eefc !important;
       box-shadow:0 1px 2px rgba(14, 165, 233, 0.06);
+    }
+    button.pb-tab--tool {
+      font:inherit;
+      appearance:none;
+      -webkit-appearance:none;
+      margin:0;
+    }
+    button.pb-tab--tool:disabled {
+      opacity:0.45;
+      cursor:not-allowed;
+      box-shadow:none;
     }
     .pb-tab--body-parts:hover:not(.active),
     .pb-tab--questions:hover:not(.active),
@@ -6232,7 +6245,8 @@ const PatientBoard = () => {
     .pb-tab--repertory:hover:not(.active),
     .pb-tab--materia:hover:not(.active),
     .pb-tab--adverse:hover:not(.active),
-    .pb-tab--deep:hover:not(.active) {
+    .pb-tab--deep:hover:not(.active),
+    .pb-tab--tool:hover:not(:disabled) {
       color:#0c4a6e !important;
       background:linear-gradient(180deg, #f5fbff 0%, #eef8ff 55%, #e0f2fe 100%) !important;
       background-image:linear-gradient(180deg, #f5fbff 0%, #eef8ff 55%, #e0f2fe 100%) !important;
@@ -13330,21 +13344,53 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
-              <Button type="button" className="btn btn-sm me-1" onClick={openComplaints} disabled={!patientId} title={patientId ? 'Chief complaints for this patient' : 'Choose a patient first'}>
+              <button
+                type="button"
+                className="pb-tab pb-tab--tool"
+                onClick={openComplaints}
+                disabled={!patientId}
+                title={patientId ? 'Chief complaints for this patient' : 'Choose a patient first'}
+              >
+                <i className="ri-heart-pulse-line" aria-hidden="true" />
                 Complaints
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={openCaseDetails} title="Symptoms and grades for this case">
+              </button>
+              <button
+                type="button"
+                className="pb-tab pb-tab--tool"
+                onClick={openCaseDetails}
+                title="Symptoms and grades for this case"
+              >
+                <i className="ri-file-list-2-line" aria-hidden="true" />
                 Case details
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleOpenVisitHistory} disabled={!patientId} title={patientId ? 'Past visits and prescriptions' : 'Choose a patient first'}>
+              </button>
+              <button
+                type="button"
+                className="pb-tab pb-tab--tool"
+                onClick={handleOpenVisitHistory}
+                disabled={!patientId}
+                title={patientId ? 'Past visits and prescriptions' : 'Choose a patient first'}
+              >
+                <i className="ri-history-line" aria-hidden="true" />
                 History
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasePdf} title="Export case PDF">
+              </button>
+              <button
+                type="button"
+                className="pb-tab pb-tab--tool"
+                onClick={handleExportCasePdf}
+                title="Export case PDF"
+              >
+                <i className="ri-file-pdf-2-line" aria-hidden="true" />
                 Export PDF
-              </Button>
-              <Button type="button" className="btn btn-sm me-1" onClick={handleExportCasesExcel} title="Export this doctor cases to Excel">
+              </button>
+              <button
+                type="button"
+                className="pb-tab pb-tab--tool"
+                onClick={handleExportCasesExcel}
+                title="Export this doctor cases to Excel"
+              >
+                <i className="ri-file-excel-2-line" aria-hidden="true" />
                 Export Excel
-              </Button>
+              </button>
               {activeTab === 'Repertorize' && (
                 <Button
                   type="button"

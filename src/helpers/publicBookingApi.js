@@ -50,9 +50,23 @@ export const slotToHHmm = (slot) => {
   return `${String(hour).padStart(2, "0")}:${minute}`;
 };
 
+/** Prefer First + Middle + Last; fall back to displayName. */
+export const formatDoctorFullName = (row, fallbackName = "") => {
+  const first = String(row?.firstName ?? row?.FirstName ?? "").trim();
+  const middle = String(row?.middleName ?? row?.MiddleName ?? "").trim();
+  const last = String(row?.lastName ?? row?.LastName ?? "").trim();
+  const fromParts = [first, middle, last].filter(Boolean).join(" ");
+  if (fromParts) return fromParts;
+  const display = String(row?.displayName ?? row?.DisplayName ?? fallbackName ?? "").trim();
+  return display || "Doctor";
+};
+
 export const mapPublicDoctorCard = (row, fallback = {}) => {
   const id = row?.doctorId ?? row?.DoctorId ?? fallback.id;
-  const name = row?.displayName ?? row?.DisplayName ?? fallback.name ?? "Doctor";
+  const firstName = String(row?.firstName ?? row?.FirstName ?? "").trim() || null;
+  const middleName = String(row?.middleName ?? row?.MiddleName ?? "").trim() || null;
+  const lastName = String(row?.lastName ?? row?.LastName ?? "").trim() || null;
+  const name = formatDoctorFullName(row, fallback.name);
   const qualification = row?.qualification ?? row?.Qualification ?? fallback.degree ?? "BHMS";
   const city = row?.city ?? row?.City ?? fallback.location ?? "";
   const clinicName = row?.clinicName ?? row?.ClinicName ?? fallback.clinicName ?? "";
@@ -65,6 +79,7 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
   const photoPath = row?.photoPath ?? row?.PhotoPath;
   const photoUrl = row?.photoUrl ?? row?.PhotoUrl;
   const feeCurrency = row?.feeCurrency ?? row?.FeeCurrency ?? null;
+  const nextAvailableAt = row?.nextAvailableAt ?? row?.NextAvailableAt ?? null;
   const image =
     (typeof photoUrl === "string" && photoUrl.trim())
       ? photoUrl.trim()
@@ -74,6 +89,9 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
   return {
     ...fallback,
     id,
+    firstName,
+    middleName,
+    lastName,
     name,
     degree: qualification,
     credentials: qualification,
@@ -108,6 +126,7 @@ export const mapPublicDoctorCard = (row, fallback = {}) => {
     expertise: fallback.expertise || [qualification || "Homeopathy"],
     phone: fallback.phone || "",
     isOnline,
+    nextAvailableAt,
   };
 };
 

@@ -402,7 +402,10 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
             <CardBody>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <h5 className="mb-0">Submitted pharmacies</h5>
-                <Button size="sm" color="soft-secondary" onClick={loadMine}>Refresh</Button>
+                <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={loadMine}>
+                  <i className="ri-refresh-line" aria-hidden="true" />
+                  Refresh
+                </button>
               </div>
               <p className="text-muted small">Pending means submitted and waiting for admin. Active means activated.</p>
               {mine.length === 0 ? (
@@ -453,9 +456,9 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       const otp = String(otpById[id] || "");
       return (
         <div className="d-flex flex-wrap gap-1 align-items-center">
-          <Button size="sm" color="soft-secondary" disabled={busy} onClick={() => requestOtp(id)}>
+          <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" disabled={busy} onClick={() => requestOtp(id)}>
             {otpSentById[id] ? "Resend OTP" : "Send OTP"}
-          </Button>
+          </button>
           <Input
             bsSize="sm"
             style={{ width: 90 }}
@@ -466,12 +469,12 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
             disabled={busy || !otpSentById[id]}
             onChange={(e) => setOtpById({ ...otpById, [id]: e.target.value.replace(/\D/g, "").slice(0, 6) })}
           />
-          <Button size="sm" color="soft-success" disabled={busy || otp.length !== 6} onClick={() => acceptOrder(id)}>
+          <button type="button" className="btn btn-sm btn-soft-success clinic-action-btn" disabled={busy || otp.length !== 6} onClick={() => acceptOrder(id)}>
             Accept
-          </Button>
-          <Button size="sm" color="soft-danger" disabled={busy} onClick={() => rejectOrder(id)}>
+          </button>
+          <button type="button" className="btn btn-sm btn-soft-danger clinic-action-btn" disabled={busy} onClick={() => rejectOrder(id)}>
             Reject
-          </Button>
+          </button>
         </div>
       );
     }
@@ -489,13 +492,18 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
             disabled={busy}
             onChange={(e) => setQuoteById({ ...quoteById, [id]: e.target.value })}
           />
-          <Button size="sm" color="soft-primary" disabled={busy || !(Number(quoteById[id]) > 0)} onClick={() => saveQuote(id)}>
+          <button
+            type="button"
+            className="btn btn-sm btn-soft-primary clinic-action-btn"
+            disabled={busy || !(Number(quoteById[id]) > 0)}
+            onClick={() => saveQuote(id)}
+          >
             Send quote
-          </Button>
+          </button>
           {!isQuotes ? (
-            <Button size="sm" color="soft-danger" disabled={busy} onClick={() => rejectOrder(id)}>
+            <button type="button" className="btn btn-sm btn-soft-danger clinic-action-btn" disabled={busy} onClick={() => rejectOrder(id)}>
               Reject
-            </Button>
+            </button>
           ) : null}
         </div>
       );
@@ -593,10 +601,10 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   return (
     <div className="page-content admin-dashboard-page pharmacy-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="clinic-page-header">
           <div>
-            <h2 className="pharmacy-page-title mb-1">{pageTitle}</h2>
-            <p className="pharmacy-page-subtitle mb-0">
+            <h2 className="clinic-page-title pharmacy-page-title">{pageTitle}</h2>
+            <p className="clinic-page-subtitle pharmacy-page-subtitle mb-0">
               {isQuotes
                 ? "Accepted orders waiting for a price, and quotes waiting for the patient."
                 : isStock
@@ -606,12 +614,18 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     : "Send the OTP and accept or reject new offers, quote a price, then mark ready and dispatch after the patient pays."}
             </p>
           </div>
-          <Button size="sm" color="soft-secondary" onClick={loadOrders} disabled={loading}>
+          <button
+            type="button"
+            className="btn btn-sm btn-soft-secondary clinic-action-btn"
+            onClick={loadOrders}
+            disabled={loading}
+          >
+            <i className="ri-refresh-line" aria-hidden="true" />
             {loading ? "Loading…" : "Refresh"}
-          </Button>
+          </button>
         </div>
-        {error ? <Alert color="danger" toggle={() => setError("")}>{error}</Alert> : null}
-        {note ? <Alert color="success" toggle={() => setNote("")}>{note}</Alert> : null}
+        {error ? <Alert color="danger" className="py-2 small" toggle={() => setError("")}>{error}</Alert> : null}
+        {note ? <Alert color="success" className="py-2 small" toggle={() => setNote("")}>{note}</Alert> : null}
         <Card className="admin-dash-card">
           <CardBody>
             {loading ? (

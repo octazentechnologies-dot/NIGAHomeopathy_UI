@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import moment from "moment";
 import Swal from "sweetalert2";
 import { followUpReport, updateFollowUpTask } from "../../../helpers/s5Week5Api";
+import { completeDoctorFollowUp, reopenDoctorFollowUp } from "../../../helpers/doctorClinicApi";
 import {
   Card,
   ChartLegend,
@@ -85,6 +86,26 @@ const FollowUpAnalysisPage = () => {
     } catch (err) {
       Swal.fire({ icon: "error", title: "Not saved", text: errorText(err) });
       return false;
+    }
+  };
+
+  const markComplete = async (id) => {
+    try {
+      await completeDoctorFollowUp(id);
+      Swal.fire({ icon: "success", title: "Follow-up completed", timer: 1400, showConfirmButton: false });
+      await reload();
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Not saved", text: errorText(err) });
+    }
+  };
+
+  const markReopen = async (id) => {
+    try {
+      await reopenDoctorFollowUp(id);
+      Swal.fire({ icon: "success", title: "Follow-up reopened", timer: 1400, showConfirmButton: false });
+      await reload();
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Not saved", text: errorText(err) });
     }
   };
 
@@ -237,7 +258,14 @@ const FollowUpAnalysisPage = () => {
                             icon: "ri-check-double-line",
                             tone: "done",
                             disabled: r.done,
-                            onClick: () => saveTask(r.id, { status: "DONE" }, "Follow-up completed"),
+                            onClick: () => markComplete(r.id),
+                          },
+                          {
+                            label: "Reopen",
+                            icon: "ri-restart-line",
+                            tone: "edit",
+                            disabled: !r.done,
+                            onClick: () => markReopen(r.id),
                           },
                           {
                             label: "Cancel follow-up",
