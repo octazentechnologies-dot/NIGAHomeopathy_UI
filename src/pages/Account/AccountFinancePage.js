@@ -62,6 +62,7 @@ const REPORT_LINKS = [
   { to: "/account/settlements", label: "Settlements", icon: "ri-shake-hands-line", hint: "Settlement runs and their lines." },
   { to: "/account/exceptions", label: "Exceptions", icon: "ri-error-warning-line", hint: "Open payment exceptions to resolve." },
   { to: "/account/payees", label: "Payees", icon: "ri-bank-line", hint: "Bank and KYC records." },
+  { to: "/account/trail", label: "Account trail", icon: "ri-route-line", hint: "Orders and exceptions for one doctor, visit, or payment." },
 ];
 
 const money = (value) => {

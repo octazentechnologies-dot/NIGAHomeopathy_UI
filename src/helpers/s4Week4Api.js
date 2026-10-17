@@ -46,6 +46,7 @@ export const previewRefundPolicy = (paymentOrderId) =>
 
 /* Account finance */
 export const getLedger = (params) => nigahomeoAPI.get("/Account/Ledger", params || {});
+export const getAccountTrail = (params) => nigahomeoAPI.get("/Account/Trail", params || {});
 export const exportLedger = (params) => nigahomeoAPI.get("/Account/Ledger/Export", params || {});
 export const getReconciliation = (params) => nigahomeoAPI.get("/Account/Reconciliation", params || {});
 export const getMedicineLedger = (params) => nigahomeoAPI.get("/Account/MedicineLedger", params || {});

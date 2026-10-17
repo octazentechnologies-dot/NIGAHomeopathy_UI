@@ -40,6 +40,10 @@ export const listPharmacyQueries = () => api.get("/Doctor/PharmacyQueries", null
 export const createPharmacyQuery = (payload) => api.post("/Doctor/PharmacyQueries", payload);
 export const replyPharmacyQuery = (id, reply) => api.post(`/Doctor/PharmacyQueries/${id}/Reply`, { reply });
 
+export const listDoctorTimeOff = () => api.get("/Doctor/TimeOff", null);
+export const saveDoctorTimeOff = (payload) => api.post("/Doctor/TimeOff", payload);
+export const deleteDoctorTimeOff = (id) => api.delete(`/Doctor/TimeOff/${id}`);
+
 /* Follow-ups (doctor mutations) */
 export const listDoctorFollowUps = (params) => api.get("/Doctor/FollowUps", params || {});
 export const completeDoctorFollowUp = (id, note) =>
@@ -59,3 +63,7 @@ export const teleRunningLate = (teleSessionId, minutes) =>
 
 /* Public config */
 export const getPublicAppConfig = () => api.get("/Public/AppConfig", null);
+
+export const getPracticeStats = () => api.get("/Doctor/PracticeStats", null);
+export const getPracticeInsights = () => api.get("/Doctor/Insights", null);
+export const getDoctorActivity = () => api.get("/Doctor/Activity", null);

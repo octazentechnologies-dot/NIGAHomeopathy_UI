@@ -1636,6 +1636,7 @@ const Navdata = () => {
                     { id: "account-payees", label: "Payees", icon: "ri-bank-line", link: "/account/payees" },
                     { id: "account-collections", label: "Clinic collections", icon: "ri-store-2-line", link: "/account/clinic-collections" },
                     { id: "account-reports", label: "Reports", icon: "ri-bar-chart-line", link: "/account/reports" },
+                    { id: "account-trail", label: "Account trail", icon: "ri-route-line", link: "/account/trail" },
                 ]}
             </React.Fragment>
         );

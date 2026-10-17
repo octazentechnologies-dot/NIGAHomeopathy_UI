@@ -191,6 +191,7 @@ export const LayoutMenuProvider = ({ children }) => {
           '/doctor/carelink',
           '/doctor/appointment-requests',
           '/doctor/pharmacy-queries',
+          '/doctor/practice',
           '/doctor/support',
           '/doctor/mobile/videoroom',
           '/doctor/mobile/refill',

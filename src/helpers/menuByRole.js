@@ -174,6 +174,9 @@ export const ADMIN_WEEK4_MENU = [
   { id: "admin-sms", label: "SMS templates", icon: "ri-message-2-line", link: "/admin/sms" },
   { id: "medicine-report", label: "Medicine report", icon: "ri-capsule-line", link: "/admin/medicine-report" },
   { id: "security-posture", label: "Security posture", icon: "ri-shield-keyhole-line", link: "/admin/security" },
+  { id: "security-audit", label: "Security audit", icon: "ri-file-shield-2-line", link: "/admin/security-audit" },
+  { id: "consent-audit", label: "Consent audit", icon: "ri-file-list-3-line", link: "/admin/consent-audit" },
+  { id: "package-topups", label: "Package top-ups", icon: "ri-add-box-line", link: "/admin/package-topups" },
 ];
 
 export const splitAdminApiNavItems = (items) => {
@@ -271,6 +274,7 @@ export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-sms", label: "SMS events", icon: "ri-message-2-line", link: "/doctor/sms" },
   { id: "doctor-followup", label: "Follow-up analysis", icon: "ri-calendar-check-line", link: "/doctor/follow-up-analysis" },
   { id: "doctor-performance", label: "Clinic performance", icon: "ri-bar-chart-grouped-line", link: "/doctor/clinic-performance" },
+  { id: "doctor-practice", label: "Practice", icon: "ri-pulse-line", link: "/doctor/practice" },
   { id: "doctor-erx", label: "eRx", icon: "ri-file-text-line", link: "/doctor/erx" },
   { id: "doctor-waitlist", label: "Waitlist", icon: "ri-time-line", link: "/doctor/waitlist" },
   { id: "doctor-schedule", label: "Schedule", icon: "ri-calendar-2-line", link: "/doctor/schedule" },
@@ -297,6 +301,11 @@ export const PATIENT_FALLBACK_MENU = [
   { id: "patient-rejoin", label: "Rejoin call", icon: "ri-refresh-line", link: "/patient/rejoin" },
   { id: "patient-meds", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
   { id: "patient-erx", label: "Digital Prescription", icon: "ri-file-list-3-line", link: "/patient/prescriptions" },
+  { id: "patient-addresses", label: "Delivery addresses", icon: "ri-map-pin-line", link: "/patient/addresses" },
+  { id: "patient-reminders", label: "Reminders", icon: "ri-alarm-line", link: "/patient/reminders" },
+  { id: "patient-requests", label: "Appointment requests", icon: "ri-mail-send-line", link: "/patient/appointment-requests" },
+  { id: "patient-waitlist", label: "Waitlist offers", icon: "ri-time-line", link: "/patient/waitlist" },
+  { id: "patient-checkin", label: "Check in", icon: "ri-checkbox-circle-line", link: "/patient/check-in" },
   { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },
   { id: "patient-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
