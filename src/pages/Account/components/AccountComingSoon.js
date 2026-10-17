@@ -17,13 +17,13 @@ const AccountComingSoon = ({ title }) => {
   document.title = `${pageTitle} | Niga Homeocentrum`;
 
   return (
-    <div className="page-content admin-dashboard-page account-dashboard-page">
+    <div className="page-content admin-dashboard-page account-dashboard-page clinic-workspace-page">
       <Container fluid>
         <Row className="justify-content-center">
           <Col lg={7} xl={6}>
             <Card className="admin-dash-card account-notice-card mb-0">
               <CardBody className="text-center py-5">
-                <h2 className="account-page-title mb-2">{pageTitle}</h2>
+                <h2 className="clinic-page-title account-page-title mb-2">{pageTitle}</h2>
                 <p className="account-page-subtitle mb-4">
                   This screen will be built in M08. Do not add tables yet.
                 </p>

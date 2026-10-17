@@ -135,7 +135,7 @@ const maskBank = (value) => {
 
 const LedgerLinesTable = ({ rows }) => (
   <div className="table-responsive">
-    <Table className="table-nowrap align-middle mb-0" size="sm">
+    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
       <thead>
         <tr>
           <th>When</th>
@@ -168,7 +168,7 @@ const LedgerLinesTable = ({ rows }) => (
 
 const OrderLinesTable = ({ rows, rowKey = "ord" }) => (
   <div className="table-responsive">
-    <Table className="table-nowrap align-middle mb-0" size="sm">
+    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
       <thead>
         <tr>
           <th>When</th>
@@ -792,7 +792,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 <CardBody>
                   <h5 className="mb-3">By doctor</h5>
                   <div className="table-responsive">
-                    <Table className="table-nowrap align-middle mb-0" size="sm">
+                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                       <thead>
                         <tr>
                           <th>Doctor</th>
@@ -1122,7 +1122,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               <LedgerLinesTable rows={rows} />
             ) : section === "settlements" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Run</th>
@@ -1160,7 +1160,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <p className="text-muted">No online consult collections in this range.</p>
                 ) : (
                   <div className="table-responsive mb-4">
-                    <Table className="table-nowrap align-middle mb-0" size="sm">
+                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                       <thead>
                         <tr>
                           <th>Order</th>
@@ -1194,7 +1194,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <p className="text-muted mb-0">No clinic collections in this range.</p>
                 ) : (
                   <div className="table-responsive">
-                    <Table className="table-nowrap align-middle mb-0" size="sm">
+                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                       <thead>
                         <tr>
                           <th>Order</th>
@@ -1225,7 +1225,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "payouts" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Payout</th>
@@ -1324,7 +1324,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "exceptions" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Exception</th>
@@ -1397,7 +1397,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "refunds" || section === "invoices" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Refund</th>
@@ -1426,7 +1426,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "payees" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Payee</th>
@@ -1483,7 +1483,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   {pick(detail.run || detail, "status", "Status") || "—"}
                 </div>
                 {Array.isArray(detail.lines) && detail.lines.length > 0 ? (
-                  <Table className="table-nowrap mb-0" size="sm">
+                  <Table className="table-nowrap mb-0 clinic-data-table" size="sm">
                     <thead>
                       <tr>
                         <th>Payee</th>

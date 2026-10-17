@@ -25,6 +25,16 @@ export const getAuthUserId = () => {
           user?.data?.DoctorUserId
       );
       if (Number.isFinite(doctorUserId) && doctorUserId > 0) return doctorUserId;
+      try {
+        const token = user?.token || user?.Token || user?.data?.token;
+        if (token && token.includes(".")) {
+          const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+          const fromToken = Number(payload.DoctorUserID || payload.doctorUserId || payload.DoctorUserId || 0);
+          if (Number.isFinite(fromToken) && fromToken > 0) return fromToken;
+        }
+      } catch {
+        /* token is optional; fall through to the signed-in user id */
+      }
     }
     const raw =
       user?.userId ??

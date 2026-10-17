@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
 import { CardHeader, Card, CardBody, Col, Container, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -7,6 +8,7 @@ import { setNewsDetailsSuccess, setNewsDetailsError } from '../../../../slices/a
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import Swal from 'sweetalert2';
 import { exportListTableCsv } from '../../../../helpers/listExport';
+import { recordMatchesQuery } from '../../../../helpers/recordSearch';
 
 const ListNews = () => {
   const dispatch = useDispatch();
@@ -28,31 +30,21 @@ const ListNews = () => {
     dispatch(getAllNews({
       PageNumber: currentPage,
       PageSize: pageSize,
+      queryString: searchQuery,
     }));
-  }, [dispatch, currentPage]);
+  }, [dispatch, currentPage, searchQuery]);
 
-  const filteredNews = useMemo(() => {
-    const term = searchQuery.trim().toLowerCase();
-    if (!term) return newsList || [];
-    return (newsList || []).filter((news) => {
-      const heading = (news.newsHeading || '').toLowerCase();
-      const subHeading = (news.newsSubHeading || '').toLowerCase();
-      const category = (news.newsCategory || '').toLowerCase();
-      return heading.includes(term) || subHeading.includes(term) || category.includes(term);
-    });
-  }, [newsList, searchQuery]);
+  const filteredNews = useMemo(
+    () => (newsList || []).filter((news) => recordMatchesQuery(news, searchQuery)),
+    [newsList, searchQuery]
+  );
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-  };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-  };
 
   const onClickDelete = (news) => {
     setNewsToDelete(news);
@@ -81,6 +73,7 @@ const ListNews = () => {
       dispatch(getAllNews({
         PageNumber: currentPage,
         PageSize: pageSize,
+        queryString: searchQuery,
       }));
     }
     if (newsDetailsError) {
@@ -94,7 +87,7 @@ const ListNews = () => {
         dispatch(setNewsDetailsError(null));
       }, 2000);
     }
-  }, [newsDetailsSuccess, newsDetailsError, dispatch, currentPage, pageSize]);
+  }, [newsDetailsSuccess, newsDetailsError, dispatch, currentPage, pageSize, searchQuery]);
 
   const rowStart = (currentPage - 1) * pageSize;
 
@@ -209,42 +202,11 @@ const ListNews = () => {
                         ? 'Loading...'
                         : `Showing ${filteredNews.length} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
                     </div>
-                    <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
-                          Previous
-                        </button>
-                      </li>
-                      {[...Array(totalPages)].map((_, index) => {
-                        const pageNumber = index + 1;
-                        if (
-                          pageNumber === 1 ||
-                          pageNumber === totalPages ||
-                          (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                        ) {
-                          return (
-                            <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
-                              <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
-                                {pageNumber}
-                              </button>
-                            </li>
-                          );
-                        }
-                        if (pageNumber === 2 || pageNumber === totalPages - 1) {
-                          return (
-                            <li key={index} className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          );
-                        }
-                        return null;
-                      })}
-                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
-                          Next
-                        </button>
-                      </li>
-                    </ul>
+                                        <AdminListPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPage={setCurrentPage}
+                    />
                   </div>
                 </CardBody>
               </Card>

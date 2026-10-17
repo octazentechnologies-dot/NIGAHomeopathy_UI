@@ -206,6 +206,7 @@ export const collectPatientBoardSnapshot = (state) => ({
   questionSubGroupsMap: state.questionSubGroupsMap ?? {},
   questionsRubricList: Array.isArray(state.questionsRubricList) ? state.questionsRubricList : [],
   questionsRubricPage: state.questionsRubricPage ?? 1,
+  questionsRubricTotalCount: state.questionsRubricTotalCount ?? 0,
   questionsRubricHasMore: Boolean(state.questionsRubricHasMore),
 
   differentialMainTab: state.differentialMainTab ?? 'COMMON',
@@ -304,6 +305,7 @@ export const applyPatientBoardSnapshot = (snapshot, setters) => {
     setters.setQuestionsRubricList(Array.isArray(snapshot.questionsRubricList) ? snapshot.questionsRubricList : []);
   }
   if (setters.setQuestionsRubricPage) setters.setQuestionsRubricPage(snapshot.questionsRubricPage ?? 1);
+  if (setters.setQuestionsRubricTotalCount) setters.setQuestionsRubricTotalCount(snapshot.questionsRubricTotalCount ?? 0);
   if (setters.setQuestionsRubricHasMore) setters.setQuestionsRubricHasMore(Boolean(snapshot.questionsRubricHasMore));
 
   if (setters.setDifferentialMainTab) setters.setDifferentialMainTab(snapshot.differentialMainTab ?? 'COMMON');

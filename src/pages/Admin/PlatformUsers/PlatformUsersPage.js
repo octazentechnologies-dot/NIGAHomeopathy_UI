@@ -15,6 +15,7 @@ import {
   getUserList,
   updateUser,
 } from "../../../helpers/realbackend_helper";
+import { recordMatchesQuery } from "../../../helpers/recordSearch";
 import {
   ConfirmUserModal,
   ImportUsersModal,
@@ -144,8 +145,7 @@ const PlatformUsersPage = () => {
     return users.filter((u) => {
       if (typeTab !== "all" && u.type !== typeTab) return false;
       if (statusFilter !== "all" && u.status !== statusFilter) return false;
-      if (!query) return true;
-      return [u.name, u.email, u.phone, u.userName, userCode(u)].join(" ").toLowerCase().includes(query);
+      return recordMatchesQuery(u, query);
     });
   }, [users, typeTab, statusFilter, search]);
 

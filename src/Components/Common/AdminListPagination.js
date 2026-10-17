@@ -1,86 +1,104 @@
-import React from "react";
+import React, { useState } from "react";
+import { Button, Input, InputGroup, InputGroupText } from "reactstrap";
+import Swal from "sweetalert2";
 
-/**
- * Shared pagination footer used by admin list pages (matches Language list pattern).
- */
-const AdminListPagination = ({ currentPage, totalPages, setCurrentPage, onPageChange }) => {
-  const goToPage = (page) => {
-    if (page < 1 || page > totalPages || page === currentPage) return;
-    if (onPageChange) onPageChange(page);
-    else setCurrentPage(page);
+/** Same page bar as /admin/listsubsection, including Go to page. */
+const AdminListPagination = ({ currentPage, totalPages, onPage }) => {
+  const [goToPageInput, setGoToPageInput] = useState("");
+  const pages = Math.max(1, Math.floor(Number(totalPages) || 1));
+  const page = Math.min(Math.max(1, Math.floor(Number(currentPage) || 1)), pages);
+
+  const goTo = (next) => {
+    if (typeof onPage === "function") onPage(next);
   };
 
-  const handlePrev = () => {
-    if (currentPage > 1) goToPage(currentPage - 1);
+  const handleGoToPageInputChange = (event) => {
+    setGoToPageInput(String(event.target.value || "").replace(/[^\d]/g, ""));
   };
 
-  const handleNext = () => {
-    if (currentPage < totalPages) goToPage(currentPage + 1);
+  const handleGoToPage = () => {
+    const target = Number.parseInt(goToPageInput, 10);
+    if (!Number.isFinite(target) || Number.isNaN(target)) {
+      Swal.fire({
+        title: "Invalid page number",
+        text: `Please enter a page number between 1 and ${pages}.`,
+        icon: "warning",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+    if (target < 1 || target > pages) {
+      Swal.fire({
+        title: "Invalid page number",
+        text: `Page number must be between 1 and ${pages}.`,
+        icon: "warning",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+    goTo(target);
+    setGoToPageInput("");
   };
 
   return (
-    <div className="align-items-center g-3 text-center text-sm-start row mt-3">
-      <div className="col-sm">
-        <div className="text-muted">
-          Showing <span className="fw-semibold ms-1">{currentPage}</span> of{" "}
-          <span className="fw-semibold">{totalPages}</span> Pages
-        </div>
-      </div>
-      <div className="col-sm-auto">
-        <ul className="pagination pagination-separated pagination-md justify-content-center justify-content-sm-start mb-0">
-          <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-            <button type="button" className="page-link" onClick={handlePrev}>
-              Previous
-            </button>
-          </li>
-          {currentPage > 3 && (
-            <>
-              <li className="page-item">
-                <button type="button" className="page-link" onClick={() => goToPage(1)}>
-                  1
+    <div className="d-flex align-items-center gap-2 flex-wrap">
+      <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
+        <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
+          <button type="button" className="page-link page-link--nav" onClick={() => page > 1 && goTo(page - 1)}>
+            Previous
+          </button>
+        </li>
+        {[...Array(pages)].map((_, index) => {
+          const pageNumber = index + 1;
+          if (
+            pageNumber === 1 ||
+            pageNumber === pages ||
+            (pageNumber >= page - 1 && pageNumber <= page + 1)
+          ) {
+            return (
+              <li key={pageNumber} className={`page-item ${page === pageNumber ? "active" : ""}`}>
+                <button type="button" className="page-link" onClick={() => goTo(pageNumber)}>
+                  {pageNumber}
                 </button>
               </li>
-              {currentPage > 4 && (
-                <li className="page-item disabled">
-                  <span className="page-link">...</span>
-                </li>
-              )}
-            </>
-          )}
-          {[...Array(totalPages)].map((_, index) => {
-            const page = index + 1;
-            if (page === currentPage || page === currentPage - 1 || page === currentPage + 1) {
-              return (
-                <li key={page} className={`page-item ${currentPage === page ? "active" : ""}`}>
-                  <button type="button" className="page-link" onClick={() => goToPage(page)}>
-                    {page}
-                  </button>
-                </li>
-              );
+            );
+          }
+          if (pageNumber === 2 || pageNumber === pages - 1) {
+            return (
+              <li key={pageNumber} className="page-item disabled">
+                <span className="page-link">...</span>
+              </li>
+            );
+          }
+          return null;
+        })}
+        <li className={`page-item ${page === pages ? "disabled" : ""}`}>
+          <button type="button" className="page-link page-link--nav" onClick={() => page < pages && goTo(page + 1)}>
+            Next
+          </button>
+        </li>
+      </ul>
+      <InputGroup size="sm" style={{ width: "190px" }}>
+        <InputGroupText>Go to</InputGroupText>
+        <Input
+          value={goToPageInput}
+          onChange={handleGoToPageInputChange}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              handleGoToPage();
             }
-            return null;
-          })}
-          {currentPage < totalPages - 2 && (
-            <>
-              {currentPage < totalPages - 3 && (
-                <li className="page-item disabled">
-                  <span className="page-link">...</span>
-                </li>
-              )}
-              <li className="page-item">
-                <button type="button" className="page-link" onClick={() => goToPage(totalPages)}>
-                  {totalPages}
-                </button>
-              </li>
-            </>
-          )}
-          <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-            <button type="button" className="page-link" onClick={handleNext}>
-              Next
-            </button>
-          </li>
-        </ul>
-      </div>
+          }}
+          placeholder="Page #"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          aria-label="Go to page number"
+          disabled={pages <= 1}
+        />
+        <Button color="primary" outline onClick={handleGoToPage} disabled={pages <= 1}>
+          Go
+        </Button>
+      </InputGroup>
     </div>
   );
 };

@@ -380,6 +380,46 @@ const getQuestionSectionIcon = (sectionName) => {
   return keywordMatch?.[1] ?? 'ri-list-check-2';
 };
 
+/** Keep a remedy name (strong) and the paragraphs under it when the name matches. */
+const filterTherapeuticsByRemedy = (html, query) => {
+  const source = String(html || '');
+  const needle = String(query || '').trim().toLowerCase();
+  if (!needle) return source;
+
+  const doc = new DOMParser().parseFromString(`<div id="tx-root">${source}</div>`, 'text/html');
+  const root = doc.getElementById('tx-root');
+  if (!root) return '';
+
+  const blocks = [];
+  let current = null;
+  const flush = () => {
+    if (current) blocks.push(current);
+    current = null;
+  };
+
+  Array.from(root.childNodes).forEach((node) => {
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName;
+    if (tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'H4' || tag === 'H5' || tag === 'H6') {
+      flush();
+      return;
+    }
+    const strong = node.matches?.('strong') ? node : node.querySelector?.('strong');
+    if (strong) {
+      flush();
+      current = { name: strong.textContent || '', html: [node.outerHTML] };
+      return;
+    }
+    if (current) current.html.push(node.outerHTML);
+  });
+  flush();
+
+  return blocks
+    .filter((block) => block.name.toLowerCase().includes(needle))
+    .map((block) => block.html.join(''))
+    .join('');
+};
+
 /** Icons for Clinical Pattern → CLINICAL SECTION tabs. */
 const CLINICAL_SECTION_ICON_BY_TAB = {
   'Symptoms': 'ri-heart-pulse-line',
@@ -1942,6 +1982,7 @@ const PatientBoard = () => {
   const [activeKeyword, setActiveKeyword] = useState(null);
   const [activeKeywordSectionIds, setActiveKeywordSectionIds] = useState(null);
   const [clinicalPatternRubricPage, setClinicalPatternRubricPage] = useState(1);
+  const [clinicalPatternRubricTotalCount, setClinicalPatternRubricTotalCount] = useState(0);
   const [clinicalPatternRubricHasMore, setClinicalPatternRubricHasMore] = useState(false);
   const [clinicalPatternRubricLoadingMore, setClinicalPatternRubricLoadingMore] = useState(false);
   const clinicalPatternRubricInFlightRef = useRef(false);
@@ -1949,6 +1990,11 @@ const PatientBoard = () => {
   const [selectedRubricRemedy, setSelectedRubricRemedy] = useState(null);
   const [selectedQuestionRubric, setSelectedQuestionRubric] = useState(null);
   const [therapeuticsFontSize, setTherapeuticsFontSize] = useState(11);
+  const [therapeuticsSearch, setTherapeuticsSearch] = useState('');
+  const filteredTherapeuticsHtml = useMemo(
+    () => filterTherapeuticsByRemedy(threpoticByDiagnosisId?.diagnosisTherapeutics, therapeuticsSearch),
+    [threpoticByDiagnosisId?.diagnosisTherapeutics, therapeuticsSearch]
+  );
   const [selectedSubSection, setSelectedSubSection] = useState(null);
   const [crossRefFlashId, setCrossRefFlashId] = useState(null);
   const crossRefFlashTimeoutRef = useRef(null);
@@ -2019,10 +2065,6 @@ const PatientBoard = () => {
   const [hoveredRemedyAbbrev, setHoveredRemedyAbbrev] = useState(null);
   const hoveredRemedyAbbrevIdRef = useRef(null);
   // ###### Dj UI Code End - Remedy Abbreviation Hover Tooltip State ######
-  // ###### Dj UI Code Start - Repertorization Rubric Modal State ######
-  const [repertorizationRubricModalOpen, setRepertorizationRubricModalOpen] = useState(false);
-  const [selectedRepertorizationRubric, setSelectedRepertorizationRubric] = useState(null);
-  // ###### Dj UI Code End - Repertorization Rubric Modal State ######
   // Prescription Modal State
   const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
   const [complaintsModalOpen, setComplaintsModalOpen] = useState(false);
@@ -3061,6 +3103,7 @@ const PatientBoard = () => {
   const [questionsRubricList, setQuestionsRubricList] = useState([]);
   const [questionsRubricLoading, setQuestionsRubricLoading] = useState(false);
   const [questionsRubricPage, setQuestionsRubricPage] = useState(1);
+  const [questionsRubricTotalCount, setQuestionsRubricTotalCount] = useState(0);
   const [questionsRubricHasMore, setQuestionsRubricHasMore] = useState(false);
   const [questionsRubricLoadingMore, setQuestionsRubricLoadingMore] = useState(false);
   const questionsRubricFetchSeqRef = useRef(0);
@@ -3076,6 +3119,7 @@ const PatientBoard = () => {
     setSelectedSubGroupId(null);
     setRubricSearch('');
     setQuestionsRubricPage(1);
+    setQuestionsRubricTotalCount(0);
     setQuestionsRubricHasMore(false);
     setQuestionsRubricLoading(false);
     setQuestionsRubricLoadingMore(false);
@@ -3220,6 +3264,7 @@ const PatientBoard = () => {
       if (!append) {
         setQuestionsRubricList([]);
         setQuestionsRubricPage(1);
+        setQuestionsRubricTotalCount(0);
         setQuestionsRubricHasMore(false);
       }
       return null;
@@ -3266,6 +3311,7 @@ const PatientBoard = () => {
       }
 
       setQuestionsRubricPage(paged.pageNumber ?? pageNumber);
+      setQuestionsRubricTotalCount(Number(paged.totalCount) || 0);
       setQuestionsRubricHasMore(paged.hasMore ?? false);
       return paged;
     } catch (error) {
@@ -3273,6 +3319,7 @@ const PatientBoard = () => {
       if (!append && requestSeq === questionsRubricFetchSeqRef.current) {
         setQuestionsRubricList([]);
         setQuestionsRubricPage(1);
+        setQuestionsRubricTotalCount(0);
         setQuestionsRubricHasMore(false);
         Swal.fire({
           icon: 'error',
@@ -3318,6 +3365,7 @@ const PatientBoard = () => {
       setQuestionsRubricList([]);
       setRubricSearch('');
       setQuestionsRubricPage(1);
+      setQuestionsRubricTotalCount(0);
       setQuestionsRubricHasMore(false);
       setQuestionsRubricLoadingMore(false);
       setQuestionsRubricLoading(true);
@@ -3372,7 +3420,7 @@ const PatientBoard = () => {
   const handleQuestionRubricClick = async (rubric) => {
     try {
       setSelectedQuestionRubric(rubric);
-      setShowRemedyInfo(true);
+      setShowRemedyInfo(false);
       // Call API to get rubric details with remedies
       await dispatch(getRubricDetails({ subSectionId: rubric.subsectionId }));
       // Open the modal
@@ -4044,8 +4092,8 @@ const PatientBoard = () => {
 
   // ###### Dj UI Code Start - Handle Accordion Item Click ######
   const handleRemedyAccordionClick = async (remedy, isCommon) => {
+    setSelectedRemedyFromCommonUncommon(remedy);
     if (!isKeynoteMethodActive && !isSmallRubricsActive) {
-      setSelectedRemedyFromCommonUncommon(remedy);
       return;
     }
 
@@ -4884,6 +4932,7 @@ const PatientBoard = () => {
     // Reset all Clinical Pattern tab data (also when dropdown is cleared)
     dispatch(setRubricByKeywordIdList([]));
     setClinicalPatternRubricPage(1);
+    setClinicalPatternRubricTotalCount(0);
     setClinicalPatternRubricHasMore(false);
     setClinicalPatternRubricLoadingMore(false);
     dispatch(setThrepoticByDiagnosisIdList(null));
@@ -4895,6 +4944,7 @@ const PatientBoard = () => {
     setDiagnosisData(null);
     setKeywordSearch('');
     setRubricRemedySearch('');
+    setTherapeuticsSearch('');
 
     // Call diagnosisSearch API with selected value
     if (selectedOption && selectedOption.value) {
@@ -4928,6 +4978,7 @@ const PatientBoard = () => {
     // Clear keyword-based rubrics, keywords, and active keyword when changing tab
     dispatch(setRubricByKeywordIdList([]));
     setClinicalPatternRubricPage(1);
+    setClinicalPatternRubricTotalCount(0);
     setClinicalPatternRubricHasMore(false);
     setClinicalPatternRubricLoadingMore(false);
     setActiveKeyword(null);
@@ -4983,6 +5034,7 @@ const PatientBoard = () => {
     // Clear keyword-based rubrics when changing pattern type tab
     dispatch(setRubricByKeywordIdList(null));
     setClinicalPatternRubricPage(1);
+    setClinicalPatternRubricTotalCount(0);
     setClinicalPatternRubricHasMore(false);
     setClinicalPatternRubricLoadingMore(false);
     setActiveKeyword(null);
@@ -5028,7 +5080,7 @@ const PatientBoard = () => {
   const handleRubricRemedyClick = async (rubricRemedy, subSectionId) => {
     console.log('Rubric Remedy clicked:', rubricRemedy, 'subSectionId:', subSectionId);
     setSelectedRubricRemedy(rubricRemedy);
-    setShowRemedyInfo(true);
+    setShowRemedyInfo(false);
     setRubricRemedyModalOpen(true);
 
     if (subSectionId) {
@@ -5053,6 +5105,7 @@ const PatientBoard = () => {
     setActiveKeywordSectionIds(sectionIds);
     dispatch(setRubricByKeywordIdList([]));
     setClinicalPatternRubricPage(1);
+    setClinicalPatternRubricTotalCount(0);
     setClinicalPatternRubricHasMore(false);
     setClinicalPatternRubricLoadingMore(false);
     clinicalPatternRubricInFlightRef.current = false;
@@ -5075,6 +5128,7 @@ const PatientBoard = () => {
       }));
       if (result?.payload) {
         setClinicalPatternRubricPage(result.payload.pageNumber ?? 1);
+        setClinicalPatternRubricTotalCount(Number(result.payload.totalCount) || 0);
         setClinicalPatternRubricHasMore(result.payload.hasMore ?? false);
       }
     } catch (error) {
@@ -5114,6 +5168,7 @@ const PatientBoard = () => {
       }));
       if (result?.payload) {
         setClinicalPatternRubricPage(result.payload.pageNumber ?? nextPage);
+        setClinicalPatternRubricTotalCount(Number(result.payload.totalCount) || 0);
         setClinicalPatternRubricHasMore(result.payload.hasMore ?? false);
       } else {
         clinicalPatternRubricLoadFailedRef.current = true;
@@ -5192,6 +5247,7 @@ const PatientBoard = () => {
     questionSubGroupsMap,
     questionsRubricList,
     questionsRubricPage,
+    questionsRubricTotalCount,
     questionsRubricHasMore,
     differentialMainTab,
     selectedDifferentialAuthorId,
@@ -5273,6 +5329,7 @@ const PatientBoard = () => {
     questionSubGroupsMap,
     questionsRubricList,
     questionsRubricPage,
+    questionsRubricTotalCount,
     questionsRubricHasMore,
     differentialMainTab,
     selectedDifferentialAuthorId,
@@ -5354,6 +5411,7 @@ const PatientBoard = () => {
     setQuestionSubGroupsMap,
     setQuestionsRubricList,
     setQuestionsRubricPage,
+    setQuestionsRubricTotalCount,
     setQuestionsRubricHasMore,
     setDifferentialMainTab,
     setSelectedDifferentialAuthorId,
@@ -5567,6 +5625,18 @@ const PatientBoard = () => {
   const filteredRubricRemedies = rubricRemedies.filter(r => r && r.subSectionName && r.subSectionName.toLowerCase().includes(rubricRemedySearch.toLowerCase()));
 
   const filteredRubrics = rubrics.filter(r => r && r.subsectionName && r.subsectionName.toLowerCase().includes(rubricSearch.toLowerCase()));
+
+  const questionsRubricTotal = questionsRubricTotalCount > 0 ? questionsRubricTotalCount : rubrics.length;
+  const questionsRubricTotalPages = Math.max(
+    questionsRubricPage,
+    questionsRubricTotal > 0 ? Math.ceil(questionsRubricTotal / CLINICAL_PATTERN_RUBRIC_PAGE_SIZE) : 1
+  );
+  const questionsRubricShownCount = rubricSearch.trim() ? filteredRubrics.length : rubrics.length;
+  const clinicalRubricTotal = clinicalPatternRubricTotalCount > 0 ? clinicalPatternRubricTotalCount : rubricRemedies.length;
+  const clinicalRubricTotalPages = clinicalPatternRubricTotalCount > 0
+    ? Math.max(clinicalPatternRubricPage, Math.ceil(clinicalRubricTotal / CLINICAL_PATTERN_RUBRIC_PAGE_SIZE))
+    : 1;
+  const clinicalRubricShownCount = rubricRemedySearch.trim() ? filteredRubricRemedies.length : rubricRemedies.length;
 
   // Handle drug selection
   const handleDrugSelection = (selectedOption) => {
@@ -9208,7 +9278,8 @@ const PatientBoard = () => {
       display:block;
     }
     .pb-tab-panel--clinical .pb-clinical-keywords-card .pb-questions-search-box .pb-questions-search-input,
-    .pb-tab-panel--clinical .pb-clinical-rubrics-card .pb-questions-search-box .pb-questions-search-input {
+    .pb-tab-panel--clinical .pb-clinical-rubrics-card .pb-questions-search-box .pb-questions-search-input,
+    .pb-tab-panel--clinical .pb-clinical-therapeutics-card .pb-questions-search-box .pb-questions-search-input {
       border-radius:5px !important;
       border:1px solid #d0d7de !important;
       background:#ffffff !important;
@@ -9223,7 +9294,8 @@ const PatientBoard = () => {
       box-shadow:none !important;
     }
     .pb-tab-panel--clinical .pb-clinical-keywords-card .pb-questions-search-box .pb-questions-search-input:focus,
-    .pb-tab-panel--clinical .pb-clinical-rubrics-card .pb-questions-search-box .pb-questions-search-input:focus {
+    .pb-tab-panel--clinical .pb-clinical-rubrics-card .pb-questions-search-box .pb-questions-search-input:focus,
+    .pb-tab-panel--clinical .pb-clinical-therapeutics-card .pb-questions-search-box .pb-questions-search-input:focus {
       background:#ffffff !important;
       border-color:#94a3b8 !important;
       box-shadow:none !important;
@@ -10730,6 +10802,17 @@ const PatientBoard = () => {
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-row:hover {
       background:#f5faff;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-rubric-row--related {
+      background:#e7f5fd !important;
+      box-shadow:inset 3px 0 0 #25a0e2;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-rubric-row--related:hover {
+      background:#d9effb !important;
+    }
+    .pb-tab-panel--repertorize .pb-repertorization-rubric-row--related .pb-repertorization-rubric-label {
+      font-weight:700 !important;
+      color:#0b5cab !important;
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-label {
       flex:1 1 0 !important;
@@ -12744,6 +12827,7 @@ const PatientBoard = () => {
       // Close modals if open
       setRubricRemedyModalOpen(false);
       setQuestionRubricModalOpen(false);
+      setShowRemedyInfo(false);
     }
   };
 
@@ -13640,6 +13724,20 @@ const PatientBoard = () => {
                               </div>
                             )}
                           </InfiniteScrollContainer>
+                          {!rubricByKeywordIdLoading && rubricRemedies.length > 0 && (
+                            <div className="pb-questions-rubrics-footer">
+                              <span>
+                                Showing <strong>{clinicalRubricShownCount}</strong>
+                                {' of '}
+                                <strong>{clinicalRubricTotal}</strong>
+                              </span>
+                              <span>
+                                {clinicalPatternRubricLoadingMore
+                                  ? 'Loading page...'
+                                  : `Page ${clinicalPatternRubricPage} of ${clinicalRubricTotalPages}`}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -13654,48 +13752,61 @@ const PatientBoard = () => {
                             </span>
                             THERAPEUTICS
                           </div>
-                          <div className="d-inline-flex gap-2 align-items-center pb-clinical-zoom-tools">
-                            <Button
-                              id="therapeutics-zoom-in"
-                              type="button"
-                              size="sm"
-                              className="btn btn-icon waves-effect waves-light"
-                              style={{
-                                width: '32px',
-                                height: '32px',
-                                padding: 0,
-                                backgroundColor: '#e8f7f1',
-                                border: '1px solid #0ab39c',
-                                color: '#0ab39c',
-                              }}
-                              onClick={() => {
-                                setTherapeuticsFontSize((s) => Math.min(s + 1, 20));
-                              }}
-                            >
-                              <i className="ri-zoom-in-line" style={{ fontSize: '16px' }} />
-                            </Button>
-                            <UncontrolledTooltip placement="top" target="therapeutics-zoom-in">Zoom In</UncontrolledTooltip>
-                            <span className="text-muted" style={{ fontSize: '12px', minWidth: '34px', textAlign: 'center' }}>{therapeuticsFontSize}px</span>
-                            <Button
-                              id="therapeutics-zoom-out"
-                              type="button"
-                              size="sm"
-                              className="btn btn-icon waves-effect waves-light"
-                              style={{
-                                width: '32px',
-                                height: '32px',
-                                padding: 0,
-                                backgroundColor: '#fff4e8',
-                                border: '1px solid #f7b84b',
-                                color: '#f7b84b',
-                              }}
-                              onClick={() => {
-                                setTherapeuticsFontSize((s) => Math.max(s - 1, 10));
-                              }}
-                            >
-                              <i className="ri-zoom-out-line" style={{ fontSize: '16px' }} />
-                            </Button>
-                            <UncontrolledTooltip placement="top" target="therapeutics-zoom-out">Zoom Out</UncontrolledTooltip>
+                          <div className="d-flex align-items-center gap-2 flex-nowrap justify-content-end flex-grow-1 min-w-0">
+                            <div className="pb-questions-search-wrap" style={{ minWidth: 180, maxWidth: 320, flex: '1 1 220px' }}>
+                              {renderQuestionsSearchInput(
+                                therapeuticsSearch,
+                                setTherapeuticsSearch,
+                                {
+                                  disabled: !threpoticByDiagnosisId?.diagnosisTherapeutics,
+                                  placeholder: 'Search remedy...',
+                                  onClear: () => setTherapeuticsSearch(''),
+                                }
+                              )}
+                            </div>
+                            <div className="d-inline-flex gap-2 align-items-center pb-clinical-zoom-tools flex-shrink-0">
+                              <Button
+                                id="therapeutics-zoom-in"
+                                type="button"
+                                size="sm"
+                                className="btn btn-icon waves-effect waves-light"
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  padding: 0,
+                                  backgroundColor: '#e8f7f1',
+                                  border: '1px solid #0ab39c',
+                                  color: '#0ab39c',
+                                }}
+                                onClick={() => {
+                                  setTherapeuticsFontSize((s) => Math.min(s + 1, 20));
+                                }}
+                              >
+                                <i className="ri-zoom-in-line" style={{ fontSize: '14px' }} />
+                              </Button>
+                              <UncontrolledTooltip placement="top" target="therapeutics-zoom-in">Zoom In</UncontrolledTooltip>
+                              <span className="text-muted" style={{ fontSize: '11px', minWidth: '30px', textAlign: 'center' }}>{therapeuticsFontSize}px</span>
+                              <Button
+                                id="therapeutics-zoom-out"
+                                type="button"
+                                size="sm"
+                                className="btn btn-icon waves-effect waves-light"
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  padding: 0,
+                                  backgroundColor: '#fff4e8',
+                                  border: '1px solid #f7b84b',
+                                  color: '#f7b84b',
+                                }}
+                                onClick={() => {
+                                  setTherapeuticsFontSize((s) => Math.max(s - 1, 10));
+                                }}
+                              >
+                                <i className="ri-zoom-out-line" style={{ fontSize: '14px' }} />
+                              </Button>
+                              <UncontrolledTooltip placement="top" target="therapeutics-zoom-out">Zoom Out</UncontrolledTooltip>
+                            </div>
                           </div>
                         </div>
                         <div className="pb-tab-card-divider"></div>
@@ -13708,9 +13819,13 @@ const PatientBoard = () => {
                           }}
                         >
                           {threpoticByDiagnosisId?.diagnosisTherapeutics ? (
-                            <div style={{ fontSize: `${therapeuticsFontSize}px`, color: '#000' }}>
-                              {ReactHtmlParser(threpoticByDiagnosisId.diagnosisTherapeutics)}
-                            </div>
+                            filteredTherapeuticsHtml ? (
+                              <div style={{ fontSize: `${therapeuticsFontSize}px`, color: '#000' }}>
+                                {ReactHtmlParser(filteredTherapeuticsHtml)}
+                              </div>
+                            ) : (
+                              <p className="mb-0" style={{ color: '#000' }}>No remedy matches your search</p>
+                            )
                           ) : (
                             <p className="mb-0" style={{ color: '#000' }}>No data available</p>
                           )}
@@ -14686,28 +14801,30 @@ const PatientBoard = () => {
                           </div>
                         ) : (
                           repertorizationRubrics.map((rubric, i) => {
-                            // Check if this rubric should be bold (only if a remedy is selected and this rubric is in its presentSubSection)
-                            const shouldBold = selectedRemedyFromCommonUncommon &&
-                              selectedRemedyFromCommonUncommon.presentSubSection &&
-                              Array.isArray(selectedRemedyFromCommonUncommon.presentSubSection) &&
-                              selectedRemedyFromCommonUncommon.presentSubSection.includes(rubric.rubricId);
-
+                            const presentSubSectionIds = selectedRemedyFromCommonUncommon?.presentSubSection
+                              ?? selectedRemedyFromCommonUncommon?.PresentSubSection
+                              ?? [];
                             const rubricKey = rubric.rubricId ?? rubric.subsectionId ?? rubric.subSectionId ?? i;
+                            const isRelated = Array.isArray(presentSubSectionIds)
+                              && presentSubSectionIds.some((id) => String(id) === String(rubricKey));
                             const isFilled = filledPyramidIcons.has(rubricKey);
 
                             return (
                               <div
                                 key={rubric.rubricId}
-                                className="pb-rubric-row pb-repertorization-rubric-row d-flex align-items-center p-2 border-bottom"
+                                className={`pb-rubric-row pb-repertorization-rubric-row d-flex align-items-center p-2 border-bottom${isRelated ? ' pb-repertorization-rubric-row--related' : ''}`}
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => {
-                                  setSelectedRepertorizationRubric(rubric);
-                                  setRepertorizationRubricModalOpen(true);
+                                  const subsectionId = rubric.rubricId ?? rubric.subsectionId ?? rubric.subSectionId;
+                                  if (subsectionId == null) return;
+                                  handleQuestionRubricClick({
+                                    subsectionId,
+                                    subsectionName: rubric.rubricName,
+                                  });
                                 }}
                               >
                                 <span
                                   className="pb-repertorization-rubric-label"
-                                  style={{ fontWeight: shouldBold ? 'bold' : 'normal' }}
                                   title={`${rubric.rubricName} [${rubric.remedyCount || 0}]`}
                                 >
                                   {rubric.rubricName} [{rubric.remedyCount || 0}]
@@ -15570,16 +15687,14 @@ const PatientBoard = () => {
                           {selectedSubGroupName && !questionsRubricLoading && rubrics.length > 0 && (
                             <div className="pb-questions-rubrics-footer">
                               <span>
-                                Showing <strong>{filteredRubrics.length}</strong>
-                                {rubricSearch.trim() ? ` of ${rubrics.length}` : ''} loaded
-                                {questionsRubricHasMore ? '+' : ''}
+                                Showing <strong>{questionsRubricShownCount}</strong>
+                                {' of '}
+                                <strong>{questionsRubricTotal}</strong>
                               </span>
                               <span>
                                 {questionsRubricLoadingMore
                                   ? 'Loading page...'
-                                  : questionsRubricHasMore
-                                    ? `Page ${questionsRubricPage} · more available`
-                                    : `Page ${questionsRubricPage} · end`}
+                                  : `Page ${questionsRubricPage} of ${questionsRubricTotalPages}`}
                               </span>
                             </div>
                           )}
@@ -15627,7 +15742,10 @@ const PatientBoard = () => {
       {/* Rubric Remedy Details Modal (Clinical Pattern) */}
       <Modal
         isOpen={rubricRemedyModalOpen}
-        toggle={() => setRubricRemedyModalOpen(false)}
+        toggle={() => {
+          setRubricRemedyModalOpen(false);
+          setShowRemedyInfo(false);
+        }}
         size="xl"
         className="pb-rubric-remedy-modal"
         contentClassName="pb-rubric-remedy-modal__content"
@@ -15726,14 +15844,20 @@ const PatientBoard = () => {
           </div>
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">
-          <ModalActionButton action="cancel" onClick={() => setRubricRemedyModalOpen(false)} />
+          <ModalActionButton action="cancel" onClick={() => {
+            setRubricRemedyModalOpen(false);
+            setShowRemedyInfo(false);
+          }} />
         </ModalFooter>
       </Modal>
 
       {/* Questions Rubric Details Modal */}
       <Modal
         isOpen={questionRubricModalOpen}
-        toggle={() => setQuestionRubricModalOpen(false)}
+        toggle={() => {
+          setQuestionRubricModalOpen(false);
+          setShowRemedyInfo(false);
+        }}
         size="xl"
         className="pb-rubric-remedy-modal"
         contentClassName="pb-rubric-remedy-modal__content"
@@ -15832,7 +15956,10 @@ const PatientBoard = () => {
           </div>
         </ModalBody>
         <ModalFooter className="pb-rubric-remedy-modal__footer">
-          <ModalActionButton action="cancel" onClick={() => setQuestionRubricModalOpen(false)} />
+          <ModalActionButton action="cancel" onClick={() => {
+            setQuestionRubricModalOpen(false);
+            setShowRemedyInfo(false);
+          }} />
         </ModalFooter>
       </Modal>
 

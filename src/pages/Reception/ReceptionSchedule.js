@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Alert, Card, CardBody, Container, Input, Label, Spinner, Table } from "reactstrap";
 import { getAppointmentSlots, getDailySchedule } from "../../helpers/realbackend_helper";
@@ -12,6 +12,36 @@ const toApiDate = (value) => {
   if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
   return raw;
 };
+
+const pick = (row, ...keys) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value != null && value !== "") return value;
+  }
+  return null;
+};
+
+const clock = (value) => {
+  if (value == null || value === "") return "—";
+  const text = String(value);
+  const match = text.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return text;
+  const hour = Number(match[1]);
+  const minute = match[2];
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minute} ${suffix}`;
+};
+
+const SCHEDULE_ROWS = [
+  { label: "Date", keys: ["scheduleDate", "ScheduleDate"], format: (value) => String(value).slice(0, 10) },
+  { label: "Work starts", keys: ["workStartTime", "WorkStartTime"], format: clock },
+  { label: "Work ends", keys: ["workEndTime", "WorkEndTime"], format: clock },
+  { label: "Slot interval", keys: ["slotIntervalMinutes", "SlotIntervalMinutes"], format: (value) => `${value} min` },
+  { label: "Break starts", keys: ["breakStartTime", "BreakStartTime"], format: clock },
+  { label: "Break ends", keys: ["breakEndTime", "BreakEndTime"], format: clock },
+  { label: "Locked", keys: ["isLocked", "IsLocked"], format: (value) => (value ? "Yes" : "No") },
+];
 
 /** REC-11.01 — /reception/schedule read-only over GetDailySchedule (no Save / edit). */
 const ReceptionSchedule = () => {
@@ -27,7 +57,7 @@ const ReceptionSchedule = () => {
     document.title = "Schedule | Homeocentrum";
   }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setError("");
     setNote("");
     setSchedule(null);
@@ -46,7 +76,7 @@ const ReceptionSchedule = () => {
         ScheduleDate: scheduleDate,
       });
       if (!response) {
-        setNote("No daily schedule is configured for this date.");
+        setNote("No working day is saved for this date.");
       } else {
         const body = unwrap(response);
         setSchedule(body.data || body.Data || body);
@@ -62,7 +92,20 @@ const ReceptionSchedule = () => {
       });
       const body = unwrap(slotRes);
       const data = body.data || body.Data || body;
-      setSlots(Array.isArray(data.slots || data.Slots) ? (data.slots || data.Slots) : []);
+      const list = data.slots || data.Slots;
+      setSlots(Array.isArray(list) ? list : []);
+      setSchedule((current) => {
+        const hours = {
+          scheduleDate: pick(current, "scheduleDate", "ScheduleDate") || scheduleDate,
+          workStartTime: pick(current, "workStartTime", "WorkStartTime") || pick(data, "workStartTime", "WorkStartTime"),
+          workEndTime: pick(current, "workEndTime", "WorkEndTime") || pick(data, "workEndTime", "WorkEndTime"),
+          slotIntervalMinutes: pick(current, "slotIntervalMinutes", "SlotIntervalMinutes") || pick(data, "intervalMinutes", "IntervalMinutes"),
+          breakStartTime: pick(current, "breakStartTime", "BreakStartTime"),
+          breakEndTime: pick(current, "breakEndTime", "BreakEndTime"),
+          isLocked: pick(current, "isLocked", "IsLocked"),
+        };
+        return { ...(current || {}), ...hours };
+      });
     } catch (err) {
       if (!scheduleFailed) {
         setError(apiMessage(err, "Could not load slots."));
@@ -70,7 +113,11 @@ const ReceptionSchedule = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [date, doctorId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <div className="page-content admin-dashboard-page reception-dashboard-page clinic-workspace-page">
@@ -122,49 +169,65 @@ const ReceptionSchedule = () => {
               </Alert>
             ) : null}
 
-            {schedule ? (
-              <div className="mb-3" data-testid="reception-schedule-readonly">
-                <p className="mb-1">
-                  <strong>Hours:</strong> {schedule.workStartTime || schedule.WorkStartTime} –{" "}
-                  {schedule.workEndTime || schedule.WorkEndTime}
-                  {" · "}
-                  <strong>Interval:</strong> {schedule.slotIntervalMinutes || schedule.SlotIntervalMinutes} min
-                  {" · "}
-                  <strong>Break:</strong>{" "}
-                  {schedule.breakStartTime || schedule.BreakStartTime || "none"}
-                  {(schedule.breakEndTime || schedule.BreakEndTime)
-                    ? ` – ${schedule.breakEndTime || schedule.BreakEndTime}`
-                    : ""}
-                </p>
-                <p className="text-muted small mb-0">No Save or edit controls on this page.</p>
-              </div>
-            ) : null}
+            <h6 className="mb-2">Working day</h6>
+            <Table responsive size="sm" className="align-middle mb-3 clinic-data-table" data-testid="reception-schedule-readonly">
+              <thead>
+                <tr>
+                  <th style={{ width: "40%" }}>Field</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SCHEDULE_ROWS.map((row) => {
+                  const raw = schedule ? pick(schedule, ...row.keys) : null;
+                  const shown = raw == null || raw === "" ? "—" : row.format(raw);
+                  return (
+                    <tr key={row.label}>
+                      <td>{row.label}</td>
+                      <td>{shown}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+            <p className="text-muted small">Reception can read this day. The doctor edits it on the doctor schedule.</p>
 
-            {slots.length ? (
-              <Table responsive size="sm" className="align-middle mb-0 clinic-data-table">
-                <thead>
+            <h6 className="mb-2">Slots</h6>
+            <Table responsive size="sm" className="align-middle mb-0 clinic-data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Label</th>
+                  <th>Status</th>
+                  <th>Patient</th>
+                </tr>
+              </thead>
+              <tbody>
+                {slots.length ? slots.map((row) => {
+                  const time = pick(row, "time", "Time");
+                  const label = pick(row, "label", "Label") || time;
+                  const statusRaw = pick(row, "status", "Status", "availability", "Availability");
+                  const status = statusRaw
+                    ? String(statusRaw).charAt(0).toUpperCase() + String(statusRaw).slice(1).toLowerCase()
+                    : "—";
+                  const patient = pick(row, "patientName", "PatientName") || "—";
+                  return (
+                    <tr key={`${time}-${label}`}>
+                      <td>{clock(time)}</td>
+                      <td>{label || "—"}</td>
+                      <td>{status}</td>
+                      <td>{patient}</td>
+                    </tr>
+                  );
+                }) : (
                   <tr>
-                    <th>Time</th>
-                    <th>Label</th>
-                    <th>Status</th>
+                    <td colSpan={4} className="text-muted">
+                      {loading ? "Loading slots…" : "No slots for this date."}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {slots.map((row) => {
-                    const time = row.time || row.Time;
-                    const label = row.label || row.Label || time;
-                    const status = row.status || row.Status || row.availability || row.Availability || "—";
-                    return (
-                      <tr key={`${time}-${label}`}>
-                        <td>{time}</td>
-                        <td>{label}</td>
-                        <td>{status}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-            ) : null}
+                )}
+              </tbody>
+            </Table>
           </CardBody>
         </Card>
       </Container>

@@ -40,6 +40,7 @@ import {
     getPatientEmailForEdit,
 } from '../../../helpers/patient_payload_helper';
 import { extractApiList } from '../../../helpers/patient_history_helper';
+import { recordMatchesQuery } from '../../../helpers/recordSearch';
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT, DOB_INDIAN_DISPLAY_FORMAT, APPOINTMENT_INDIAN_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import {
     buildPatientSelectOption,
@@ -153,7 +154,7 @@ const PatientListModalTitle = ({ icon, title, subtitle, variant = 'boxed', iconC
     );
 };
 
-const PatientListModalSearch = ({ value, onChange, placeholder = 'Search...' }) => (
+const PatientListModalSearch = ({ value, onChange, placeholder = 'Name, mobile, email, address' }) => (
     <div className="patient-list-modal__search">
         <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
         <Input
@@ -853,20 +854,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
         setCurrentPage(1);
     }, [isOpen, dispatch]);
 
-    const filtered = patientList.filter((patient) => {
-        const needle = searchTerm.trim().toLowerCase();
-        if (!needle) return true;
-
-        const patientName = patient.patientName?.toLowerCase() || '';
-        const mobileNo = patient.mobileNo?.toString() || '';
-        const address = patient.address?.toLowerCase() || '';
-
-        return (
-            patientName.includes(needle) ||
-            mobileNo.includes(needle) ||
-            address.includes(needle)
-        );
-    });
+    const filtered = patientList.filter((patient) => recordMatchesQuery(patient, searchTerm));
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);

@@ -535,12 +535,11 @@ const ReceptionHome = () => {
           </Col>
           ) : null}
           {deskPanel === "appointment" ? (
-          <Col md={6} id="reception-assisted">
+          <Col lg={8} id="reception-assisted">
             <Card className="admin-dash-card"><CardBody>
-              {/* SUP-07.03 — assisted-book wizard + open AssistedRequest queue */}
-              <h5>Assisted booking</h5>
+              <h5>New appointment</h5>
               <p className="text-muted small">
-                Book on behalf of a patient who asked for help. Payment is not taken on this screen.
+                Search the patient by name or mobile, then pick a date and an open slot. Payment stays at the desk.
               </p>
               <AssistedBookWizard
                 doctorId={doctorId}
