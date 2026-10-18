@@ -12,24 +12,9 @@ import CasePaperModal from "./CasePaperModal";
 
 const vitalsKey = (patientAppId) => `reception.vitals.${patientAppId}`;
 
-export const readStoredVitals = (patientAppId) => {
-  if (!patientAppId) return null;
-  try {
-    const raw = sessionStorage.getItem(vitalsKey(patientAppId));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+export const readStoredVitals = () => null;
 
-const writeStoredVitals = (patientAppId, vitals) => {
-  if (!patientAppId || !vitals) return;
-  try {
-    sessionStorage.setItem(vitalsKey(patientAppId), JSON.stringify(vitals));
-  } catch {
-    /* ignore quota */
-  }
-};
+const writeStoredVitals = () => {};
 
 const patientFromRow = (row) => {
   if (!row) return null;
@@ -243,8 +228,8 @@ const ReceptionCheckInFlow = ({
         isOpen={vitalsOpen}
         toggle={() => setVitalsOpen(false)}
         selectedPatient={selectedPatient}
-        initialVitals={vitalsDetails || readStoredVitals(patientAppId)}
-        editMode={Boolean(vitalsDetails || readStoredVitals(patientAppId))}
+        initialVitals={vitalsDetails}
+        editMode={Boolean(vitalsDetails)}
         onVitalsConfirmed={(details) => {
           const stored = {
             ...details,
