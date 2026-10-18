@@ -207,11 +207,12 @@ const Register = () => {
         .nullable(),
       city: Yup.number()
         .transform((value, originalValue) =>
-          originalValue === "" || originalValue === null || originalValue === undefined ? null : value
+          originalValue === "" || originalValue === null || originalValue === undefined ? undefined : value
         )
-        .nullable(),
+        .required("Please select city"),
       addressLine1: Yup.string()
         .trim()
+        .required("Please enter address line 1")
         .test("address-line-1", "Please enter a valid address line", (value) => meaningfulTest(value)),
       addressLine2: Yup.string()
         .trim()
