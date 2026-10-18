@@ -27,6 +27,15 @@ export const loginUser = (user, history) => async (dispatch) => {
       clearSignedOut();
       dispatch(loginSuccess(authUser));
 
+      // FCM: register Website device token (best-effort; needs REACT_APP_FIREBASE_VAPID_KEY).
+      try {
+        const uid = authUser.userId || authUser.UserId;
+        const { registerWebFcmToken } = await import("../../../helpers/fcm_helper");
+        registerWebFcmToken(uid).catch(() => {});
+      } catch {
+        /* push optional */
+      }
+
       const role = authUser.role || authUser.Role;
 
       if (role === UserRole.ADMIN) {

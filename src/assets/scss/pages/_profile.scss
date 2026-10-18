@@ -634,47 +634,6 @@ $value in $theme-colors {
         font-size: 0.75rem !important;
     }
 
-    .user-profile-page__hours-apply {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        margin-top: 0.9rem;
-        padding-top: 0.85rem;
-        border-top: 1px solid #eef2f7;
-    }
-
-    .user-profile-page__hours-apply-label {
-        font-size: 0.8125rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .user-profile-page__hours-apply-days {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.65rem 0.85rem;
-        flex: 1 1 auto;
-    }
-
-    .user-profile-page__hours-apply-day {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        margin: 0;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #334155;
-        cursor: pointer;
-
-        .form-check-input {
-            margin-top: 0;
-            cursor: pointer;
-        }
-    }
-
     .user-profile-page__hours-mode {
         display: flex;
         align-items: center;

@@ -129,11 +129,16 @@ const CaregiverAccess = () => {
       const data = raw?.data ?? raw;
       const challengeId = data?.otpChallengeId ?? data?.OtpChallengeId;
       setOtpChallengeId(challengeId || null);
-      setDevCode(data?.devCode ?? data?.DevCode ?? null);
+      // Real Twilio OTP: API omits devCode. Only show if server returned one (SMS not live).
+      const code = data?.devCode ?? data?.DevCode ?? null;
+      setDevCode(code || null);
       const name = found.displayName ?? found.DisplayName;
+      const delivered = data?.delivered ?? data?.Delivered;
       setMessage(
         data?.message ||
-          `OTP sent to your login contact. Grant access for ${name || "this caregiver"} after you enter the code.`
+          (delivered === false
+            ? "OTP was created but SMS did not confirm. Check the phone or try again."
+            : `OTP sent to your login contact. Enter the code from SMS to grant access for ${name || "this caregiver"}.`)
       );
     } catch (err) {
       setError(typeof err === "string" ? err : "OTP request failed.");
@@ -263,7 +268,9 @@ const CaregiverAccess = () => {
                 {message ? <Alert color="success">{message}</Alert> : null}
                 {error ? <Alert color="danger">{error}</Alert> : null}
                 {devCode ? (
-                  <Alert color="warning">Development OTP: {devCode}</Alert>
+                  <Alert color="warning">
+                    Development OTP (SMS not live): {devCode}
+                  </Alert>
                 ) : null}
                 {ownerName ? (
                   <p className="text-muted small mb-3">
