@@ -40,6 +40,7 @@ import {
     getPatientEmailForEdit,
 } from '../../../helpers/patient_payload_helper';
 import { extractApiList } from '../../../helpers/patient_history_helper';
+import { recordMatchesQuery } from '../../../helpers/recordSearch';
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT, DOB_INDIAN_DISPLAY_FORMAT, APPOINTMENT_INDIAN_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import {
     buildPatientSelectOption,
@@ -62,6 +63,8 @@ import {
     getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentSlots,
     getDailySchedule,
+    getDirectoryVisibility,
+    setDirectoryVisibility,
     updateAvailabilityMe,
 } from '../../../helpers/realbackend_helper';
 import { } from "../../../slices/doctor/dashboard/reducer";
@@ -151,7 +154,7 @@ const PatientListModalTitle = ({ icon, title, subtitle, variant = 'boxed', iconC
     );
 };
 
-const PatientListModalSearch = ({ value, onChange, placeholder = 'Search...' }) => (
+const PatientListModalSearch = ({ value, onChange, placeholder = 'Name, mobile, email, address' }) => (
     <div className="patient-list-modal__search">
         <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
         <Input
@@ -851,20 +854,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
         setCurrentPage(1);
     }, [isOpen, dispatch]);
 
-    const filtered = patientList.filter((patient) => {
-        const needle = searchTerm.trim().toLowerCase();
-        if (!needle) return true;
-
-        const patientName = patient.patientName?.toLowerCase() || '';
-        const mobileNo = patient.mobileNo?.toString() || '';
-        const address = patient.address?.toLowerCase() || '';
-
-        return (
-            patientName.includes(needle) ||
-            mobileNo.includes(needle) ||
-            address.includes(needle)
-        );
-    });
+    const filtered = patientList.filter((patient) => recordMatchesQuery(patient, searchTerm));
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);
@@ -1938,6 +1928,9 @@ const Widgets = () => {
     const subscriptionError = useSelector((state) => state?.DoctorDashboard?.subscriptionError);
     const [selectedPackage, setSelectedPackage] = useState(null);
     const [availabilityBusy, setAvailabilityBusy] = useState(false);
+    const [directoryVisible, setDirectoryVisibleState] = useState(false);
+    const [directoryCanPublish, setDirectoryCanPublish] = useState(true);
+    const [directoryBusy, setDirectoryBusy] = useState(false);
     const [todaySlotCount, setTodaySlotCount] = useState(null);
     const razorpayInstanceRef = useRef(null);
     const selectedPackageRef = useRef(null);
@@ -2280,6 +2273,26 @@ const Widgets = () => {
             }
         })();
     }, [counts?.isOnline, counts?.IsOnline]);
+
+    useEffect(() => {
+        let cancelled = false;
+        getDirectoryVisibility()
+            .then((raw) => {
+                if (cancelled) return;
+                const data = raw?.data ?? raw?.Data ?? raw;
+                setDirectoryVisibleState(!!(data?.directoryVisible ?? data?.DirectoryVisible));
+                const can =
+                    data?.canPublish ?? data?.CanPublish ??
+                    String(data?.verificationStatus ?? data?.VerificationStatus ?? "").toLowerCase() === "verified";
+                setDirectoryCanPublish(can !== false);
+            })
+            .catch(() => {
+                if (!cancelled) setDirectoryVisibleState(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         const doctorId = getAuthDoctorId();
@@ -3097,6 +3110,77 @@ const Widgets = () => {
                             <div className="flex-grow-1">
                                 <h5 className="fs-15 doctor-kpi-count">{availabilityBusy ? 'Saving…' : ((counts?.isOnline || counts?.IsOnline) ? 'Online' : 'Offline')}</h5>
                                 <p className="mb-0 text-muted doctor-kpi-label">AVAILABILITY</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    className="col-6 col-md-4 col-lg-2"
+                    role="button"
+                    tabIndex={0}
+                    title={
+                        directoryCanPublish
+                            ? "Click to show or hide your profile in Find a Doctor"
+                            : "Verify credentials before publishing in Find a Doctor"
+                    }
+                    onClick={async (event) => {
+                        event.preventDefault();
+                        if (directoryBusy) return;
+                        const next = !directoryVisible;
+                        if (next && !directoryCanPublish) {
+                            Swal.fire({
+                                icon: "info",
+                                title: "Not verified yet",
+                                text: "Complete credential verification before publishing your profile in Find a Doctor.",
+                            });
+                            return;
+                        }
+                        try {
+                            setDirectoryBusy(true);
+                            const raw = await setDirectoryVisibility({ directoryVisible: next });
+                            const data = raw?.data ?? raw?.Data ?? raw;
+                            setDirectoryVisibleState(!!(data?.directoryVisible ?? data?.DirectoryVisible ?? next));
+                            if (data?.canPublish != null || data?.CanPublish != null) {
+                                setDirectoryCanPublish(!!(data?.canPublish ?? data?.CanPublish));
+                            }
+                        } catch (err) {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Discovery update failed",
+                                text:
+                                    typeof err === "string"
+                                        ? err
+                                        : err?.message || "Could not change Find a Doctor visibility",
+                            });
+                        } finally {
+                            setDirectoryBusy(false);
+                        }
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.currentTarget.click();
+                        }
+                    }}
+                >
+                    <div className="card-animate card mb-2 doctor-kpi-card">
+                        <div className="card-body d-flex gap-3 align-items-center">
+                            <div className="avatar-sm">
+                                <div
+                                    className={`avatar-title border rounded-2 fs-17 doctor-kpi-icon ${
+                                        directoryVisible
+                                            ? "bg-primary-subtle border-primary"
+                                            : "bg-secondary-subtle border-secondary"
+                                    }`}
+                                >
+                                    <i className="ri-search-eye-line fs-24"></i>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1">
+                                <h5 className="fs-15 doctor-kpi-count">
+                                    {directoryBusy ? "Saving…" : directoryVisible ? "Visible" : "Hidden"}
+                                </h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">FIND A DOCTOR</p>
                             </div>
                         </div>
                     </div>

@@ -6,6 +6,7 @@ import { deletePackage, getPackageList } from '../../../../slices/admin/packages
 import { setPackageError, setPackageSuccess } from '../../../../slices/admin/packages/reducer';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import { exportListTableCsv } from '../../../../helpers/listExport';
+import { recordMatchesQuery } from '../../../../helpers/recordSearch';
 
 const ListPackage = () => {
   const dispatch = useDispatch();
@@ -34,15 +35,7 @@ const ListPackage = () => {
   }, [success, error, dispatch]);
 
   const filteredList = useMemo(() => {
-    const term = searchQuery.trim().toLowerCase();
-    if (!term) return packages;
-    return packages.filter((item) => {
-      const name = (item.packageName || item.PackageName || '').toLowerCase();
-      const amount = String(item.amount ?? item.Amount ?? '');
-      const cases = String(item.caseCount ?? item.CaseCount ?? '');
-      const validity = String(item.validityInDays ?? item.ValidityInDays ?? '');
-      return name.includes(term) || amount.includes(term) || cases.includes(term) || validity.includes(term);
-    });
+    return packages.filter((item) => recordMatchesQuery(item, searchQuery));
   }, [packages, searchQuery]);
 
   const onClickDelete = (item) => {

@@ -256,7 +256,7 @@ export const PatientChatPage = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="btn btn-sm btn-soft-secondary clinic-action-btn"
                   onClick={() => load(selected.sessionId)}
                   disabled={loading}
                 >
@@ -337,7 +337,7 @@ export const PatientRejoinPage = () => {
                 {loading ? <Spinner size="sm" /> : "Rejoin"}
               </button>
             ) : null}
-            <button type="button" className="btn btn-outline-secondary" onClick={reload} disabled={visitsLoading}>
+            <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={reload} disabled={visitsLoading}>
               Refresh
             </button>
           </div>
@@ -357,7 +357,7 @@ export const PatientRejoinPage = () => {
                     Try again
                   </button>
                 ) : null}
-                <a className="btn btn-sm btn-outline-secondary" href={fallback.supportPath || "/patient/support"}>
+                <a className="btn btn-sm btn-soft-secondary clinic-action-btn" href={fallback.supportPath || "/patient/support"}>
                   Contact support
                 </a>
               </div>

@@ -8,6 +8,7 @@ import {
   sweepPharmacyLicences,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
+import { recordMatchesQuery } from "../../../helpers/recordSearch";
 import PharmacyConfigForm from "../../Pharmacy/components/PharmacyConfigForm";
 import "./pharmacyConfig.css";
 
@@ -84,8 +85,7 @@ const AdminPharmacyPartnersPage = () => {
     return partners.filter((row) => {
       if (tab === "active" && row.status !== "ACTIVE") return false;
       if (tab === "pending" && row.status === "ACTIVE") return false;
-      if (!query) return true;
-      return [row.id, row.name, row.area].join(" ").toLowerCase().includes(query);
+      return recordMatchesQuery(row, query);
     });
   }, [partners, search, tab]);
 

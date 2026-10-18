@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner, Table } from "reactstrap";
+import { Alert, Card, CardBody, Col, Container, Input, Label, Row, Spinner, Table } from "reactstrap";
 import {
   listSmsEvents,
   listSmsTemplates,
@@ -77,19 +77,23 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">{isAdmin ? "SMS templates" : "SMS events"}</h2>
-        <p className="clinic-page-subtitle">
-          {isAdmin
-            ? "Clinic message text. Provider keys stay in server configuration."
-            : "Turn each clinic event on or off for your patients. Opted-out mobiles are still blocked."}
-        </p>
-        {error ? <Alert color="danger">{error}</Alert> : null}
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">{isAdmin ? "SMS templates" : "SMS events"}</h2>
+            <p className="clinic-page-subtitle mb-0">
+              {isAdmin
+                ? "Clinic message text. Provider keys stay in server configuration."
+                : "Turn each clinic event on or off for your patients. Opted-out mobiles are still blocked."}
+            </p>
+          </div>
+        </div>
+        {error ? <Alert color="danger" className="py-2 small">{error}</Alert> : null}
         {loading ? (
-          <Spinner size="sm" />
+          <div className="py-3 text-muted"><Spinner size="sm" className="me-2" /> Loading…</div>
         ) : (
           <Card className="admin-dash-card">
             <CardBody>
-              <Table responsive className="mb-0">
+              <Table responsive className="mb-0 clinic-data-table">
                 <thead>
                   <tr>
                     <th>Event</th>
@@ -111,14 +115,14 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                         <td>{row.body || row.Body}</td>
                         <td>
                           {isAdmin ? (active ? "Yes" : "No") : (
-                            <Button
-                              size="sm"
-                              color={active ? "success" : "secondary"}
+                            <button
+                              type="button"
+                              className={`btn btn-sm clinic-action-btn ${active ? "btn-soft-success" : "btn-soft-secondary"}`}
                               disabled={busy === code}
                               onClick={() => toggleEvent(row)}
                             >
                               {active ? "On" : "Off"}
-                            </Button>
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -142,9 +146,9 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                   <Input value={draft.body} maxLength={500} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
                 </Col>
                 <Col md={3} className="d-flex align-items-end">
-                  <Button className="account-primary-btn" disabled={busy === "save"} onClick={saveTemplate}>
+                  <button type="button" className="btn clinic-primary-btn" disabled={busy === "save"} onClick={saveTemplate}>
                     Save template
-                  </Button>
+                  </button>
                 </Col>
               </Row>
             </CardBody>

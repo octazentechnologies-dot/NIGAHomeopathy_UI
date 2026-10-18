@@ -12,6 +12,14 @@ export const saveSmsPreference = (payload) => nigahomeoAPI.put("/Sms/Preferences
 export const listNotifications = () => nigahomeoAPI.get("/Notifications", null);
 export const patchNotification = (id, isRead = true) =>
   nigahomeoAPI.patch(`/Notifications/${id}?isRead=${isRead ? "true" : "false"}`, {});
+export const markAllNotificationsRead = () => nigahomeoAPI.post("/Notifications/MarkAllRead", {});
+export const getNotificationPreferences = () => nigahomeoAPI.get("/Notifications/Preferences", null);
+export const saveNotificationPreferences = (payload) => nigahomeoAPI.put("/Notifications/Preferences", payload);
+export const listSecurityAudit = (params) => nigahomeoAPI.get("/Admin/SecurityAudit", params || {});
+export const verifySecurityAudit = () => nigahomeoAPI.get("/Admin/SecurityAudit/Verify", null);
+export const listConsentAudit = (take = 100) => nigahomeoAPI.get("/Consent/AdminAudit", { take });
+export const listPackageTopups = (params) => nigahomeoAPI.get("/package/GetPackageTopups", params || {});
+export const savePackageTopup = (payload) => nigahomeoAPI.post("/package/SavePackageTopup", payload);
 export const adminOverview = () => nigahomeoAPI.get("/AdminDashboard/Overview", null);
 export const adminDashboardSummary = (params) => nigahomeoAPI.get("/AdminDashboard/Summary", params || {});
 export const followUpDue = () => nigahomeoAPI.get("/Reports/FollowUpDue", null);

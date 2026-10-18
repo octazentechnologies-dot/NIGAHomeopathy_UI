@@ -14,6 +14,7 @@ import {
 } from "../../../helpers/s4Week4Api";
 import { downloadDoctorCredentialDocument } from "../../../helpers/realbackend_helper";
 import { listPublicDoctors } from "../../../helpers/publicBookingApi";
+import { recordMatchesQuery } from "../../../helpers/recordSearch";
 import { listAdminReviews, setAdminReviewStatus } from "../../../helpers/s5Week5Api";
 import "./trustVerification.css";
 
@@ -267,8 +268,7 @@ const TrustQueuePage = () => {
     const query = doctorSearch.trim().toLowerCase();
     return doctors.filter((row) => {
       if (doctorTab !== "all" && row.status !== doctorTab) return false;
-      if (!query) return true;
-      return [row.name, row.qualification, row.email].join(" ").toLowerCase().includes(query);
+      return recordMatchesQuery(row, query);
     });
   }, [doctors, doctorSearch, doctorTab]);
 

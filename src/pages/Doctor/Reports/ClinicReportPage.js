@@ -55,10 +55,14 @@ const ClinicReportPage = ({ mode = "followup" }) => {
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">{title}</h2>
-        <p className="clinic-page-subtitle">{subtitle}</p>
-        {error ? <Alert color="danger">{error}</Alert> : null}
-        {loading ? <Spinner size="sm" /> : null}
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">{title}</h2>
+            <p className="clinic-page-subtitle mb-0">{subtitle}</p>
+          </div>
+        </div>
+        {error ? <Alert color="danger" className="py-2 small">{error}</Alert> : null}
+        {loading ? <div className="py-3 text-muted"><Spinner size="sm" className="me-2" /> Loading…</div> : null}
         {mode === "followup" && !loading ? (
           <Row className="g-3">
             <Col md={4}>
@@ -72,7 +76,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
             </Col>
             <Col md={8}>
               <Card className="admin-dash-card"><CardBody>
-                <Table responsive className="mb-0">
+                <Table responsive className="mb-0 clinic-data-table">
                   <thead><tr><th>Due</th><th>Title</th><th>Patient</th><th>Status</th></tr></thead>
                   <tbody>
                     {(due || []).length === 0 ? (

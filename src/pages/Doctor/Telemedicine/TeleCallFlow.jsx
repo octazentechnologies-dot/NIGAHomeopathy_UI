@@ -17,6 +17,7 @@ import {
   startTeleSession,
 } from "../../../helpers/realbackend_helper";
 import { erxByAppointment, postFollowUp } from "../../../helpers/s4Week4Api";
+import { teleRunningLate } from "../../../helpers/doctorClinicApi";
 import { apiHelpers } from "../../../helpers/api_helper";
 import { mapChatMessage } from "./teleApi";
 import "./teleCallFlow.css";
@@ -256,7 +257,7 @@ const ConsentStep = ({ agreed, onAgreeChange, onCancel, onContinue }) => (
   </Modal>
 );
 
-const WaitingRoomStep = ({ onLeave, patientName, doctorName, sessionId }) => (
+const WaitingRoomStep = ({ onLeave, patientName, doctorName, sessionId, onRunningLate, lateBusy }) => (
   <Modal
     isOpen
     toggle={onLeave}
@@ -290,7 +291,17 @@ const WaitingRoomStep = ({ onLeave, patientName, doctorName, sessionId }) => (
         </div>
       </div>
     </ModalBody>
-    <ModalFooter className="justify-content-center">
+    <ModalFooter className="justify-content-center gap-2">
+      {sessionId ? (
+        <ModalActionButton
+          action="confirm"
+          iconClassName="ri-time-line"
+          loading={lateBusy}
+          onClick={onRunningLate}
+        >
+          Running late (10 min)
+        </ModalActionButton>
+      ) : null}
       <ModalActionButton
         action="close"
         iconClassName="ri-logout-box-r-line"
@@ -1049,8 +1060,32 @@ const TeleCallFlow = ({ isOpen, patient, onClose, onSessionChanged }) => {
   const [erx, setErx] = useState(null);
   const [erxLoading, setErxLoading] = useState(false);
   const [caseNotes, setCaseNotes] = useState("");
+  const [lateBusy, setLateBusy] = useState(false);
   const mediaStreamRef = useRef(null);
   const doctorName = useMemo(() => readDoctorName(), []);
+
+  const handleRunningLate = useCallback(async () => {
+    if (!sessionId || lateBusy) return;
+    setLateBusy(true);
+    try {
+      await teleRunningLate(sessionId, 10);
+      await Swal.fire({
+        icon: "success",
+        title: "Patient notified",
+        text: "Running late by about 10 minutes.",
+        timer: 2200,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      await Swal.fire({
+        icon: "error",
+        title: "Could not notify",
+        text: err?.message || err?.response?.data?.message || "Try again.",
+      });
+    } finally {
+      setLateBusy(false);
+    }
+  }, [sessionId, lateBusy]);
 
   const clearPreviewStream = () => {
     stopMediaStream(mediaStreamRef.current);
@@ -1391,6 +1426,8 @@ const TeleCallFlow = ({ isOpen, patient, onClose, onSessionChanged }) => {
         patientName={patient.patient}
         doctorName={doctorName}
         sessionId={sessionId}
+        onRunningLate={handleRunningLate}
+        lateBusy={lateBusy}
       />
     );
   }

@@ -89,6 +89,21 @@ const formatBookingDate = (date) => {
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} (${weekdays[date.getDay()]})`;
 };
 
+const startOfDay = (value) => {
+    const d = value instanceof Date ? new Date(value) : new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+
+/** Prefer the doctor's next open day when today has no schedule. */
+const resolveInitialBookingDate = (nextAvailableAt) => {
+    const today = startOfDay(new Date());
+    const next = startOfDay(nextAvailableAt);
+    if (next && today && next.getTime() > today.getTime()) return next;
+    return today || new Date();
+};
+
 const DoctorDetailPage = () => {
     const { doctorId } = useParams();
     const navigate = useNavigate();
@@ -99,11 +114,9 @@ const DoctorDetailPage = () => {
     const [consultMode, setConsultMode] = useState("clinic");
     const [slots, setSlots] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState("");
-    const [bookingDate, setBookingDate] = useState(() => {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        return d;
-    });
+    const [bookingDate, setBookingDate] = useState(() => startOfDay(new Date()) || new Date());
+    const [slotsLoading, setSlotsLoading] = useState(false);
+    const [bookHint, setBookHint] = useState("");
     const [loadError, setLoadError] = useState("");
     const [articles, setArticles] = useState([]);
     const [reviews, setReviews] = useState([]);
@@ -113,6 +126,7 @@ const DoctorDetailPage = () => {
         window.scrollTo(0, 0);
         let cancelled = false;
         setLoadError("");
+        setBookHint("");
         getPublicDoctor(doctorId)
             .then(async (row) => {
                 if (cancelled) return;
@@ -127,6 +141,7 @@ const DoctorDetailPage = () => {
                     // profile already has rankingSummary
                 }
                 setDoctor(mapped);
+                setBookingDate(resolveInitialBookingDate(mapped.nextAvailableAt));
                 try {
                     const reviewRows = await listPublicDoctorReviews(doctorId);
                     if (!cancelled) setReviews(Array.isArray(reviewRows) ? reviewRows : []);
@@ -157,10 +172,13 @@ const DoctorDetailPage = () => {
     useEffect(() => {
         if (!doctor?.id) return undefined;
         let cancelled = false;
+        setSlotsLoading(true);
+        setBookHint("");
         getPublicDoctorSlots(doctor.id, bookingDate)
             .then((payload) => {
                 if (cancelled) return;
-                const list = (payload.slots || payload.Slots || []).filter((slot) => {
+                const nested = payload?.data ?? payload?.Data ?? payload;
+                const list = (nested.slots || nested.Slots || payload.slots || payload.Slots || []).filter((slot) => {
                     const status = String(slot.status || slot.Status || "available").toLowerCase();
                     return status === "available";
                 });
@@ -169,11 +187,18 @@ const DoctorDetailPage = () => {
                     if (prev && list.some((slot) => (slot.time || slot.label) === prev)) return prev;
                     return list[0]?.time || list[0]?.label || "";
                 });
+                if (!list.length) {
+                    setBookHint("No open slots on this date. Pick another day, join the waitlist, or open the full slot page.");
+                }
             })
             .catch(() => {
                 if (cancelled) return;
                 setSlots([]);
                 setSelectedSlot("");
+                setBookHint("Could not load slots. Try another date or open the full slot page.");
+            })
+            .finally(() => {
+                if (!cancelled) setSlotsLoading(false);
             });
         return () => {
             cancelled = true;
@@ -181,7 +206,12 @@ const DoctorDetailPage = () => {
     }, [doctor?.id, bookingDate]);
 
     const handleBook = () => {
-        if (!selectedSlot || !doctor?.id) return;
+        if (!doctor?.id) return;
+        if (!selectedSlot) {
+            setBookHint("Select an available time slot first. If none are listed, choose another date.");
+            return;
+        }
+        setBookHint("");
         const params = new URLSearchParams({
             date: toIsoDate(bookingDate),
             slot: selectedSlot,
@@ -313,7 +343,10 @@ const DoctorDetailPage = () => {
                                         <i className="ri-user-3-fill" />
                                     </span>
                                     <div>
-                                        <strong>₹ {doctor.inClinic}</strong>
+                                        <strong>
+                                            {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                            {doctor.inClinic}
+                                        </strong>
                                         <span>In-Clinic Consultation</span>
                                     </div>
                                 </div>
@@ -322,7 +355,10 @@ const DoctorDetailPage = () => {
                                         <i className="ri-vidicon-fill" />
                                     </span>
                                     <div>
-                                        <strong>₹ {doctor.tele}</strong>
+                                        <strong>
+                                            {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                            {doctor.tele}
+                                        </strong>
                                         <span>Tele Consultation</span>
                                     </div>
                                 </div>
@@ -533,14 +569,16 @@ const DoctorDetailPage = () => {
                                         className={consultMode === "clinic" ? "is-active" : undefined}
                                         onClick={() => setConsultMode("clinic")}
                                     >
-                                        In-Clinic | ₹ {doctor.inClinic}
+                                        In-Clinic | {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                        {doctor.inClinic}
                                     </button>
                                     <button
                                         type="button"
                                         className={consultMode === "tele" ? "is-active" : undefined}
                                         onClick={() => setConsultMode("tele")}
                                     >
-                                        Tele Consultation | ₹ {doctor.tele}
+                                        Tele Consultation | {doctor.feeCurrency ? `${doctor.feeCurrency} ` : ""}
+                                        {doctor.tele}
                                     </button>
                                 </div>
 
@@ -588,7 +626,9 @@ const DoctorDetailPage = () => {
                                     </div>
                                 </div>
 
-                                {slots.length === 0 ? (
+                                {slotsLoading ? (
+                                    <p className="text-muted small mb-2">Loading available slots…</p>
+                                ) : slots.length === 0 ? (
                                     <WaitlistJoinPanel
                                         doctorId={doctor.id}
                                         requestedDate={bookingDate}
@@ -597,15 +637,22 @@ const DoctorDetailPage = () => {
                                 ) : (
                                 <div className="homeojob-doctor-detail__available">
                                     <i className="ri-checkbox-circle-fill" aria-hidden="true" />
-                                    Doctor available today
+                                    Slots available on {formatBookingDate(bookingDate)}
                                 </div>
                                 )}
+
+                                {bookHint ? (
+                                    <p className="homeojob-doctor-detail__book-hint" role="status">
+                                        {bookHint}
+                                    </p>
+                                ) : null}
 
                                 <button
                                     type="button"
                                     className="homeojob-doctor-detail__book"
                                     onClick={handleBook}
-                                    disabled={!selectedSlot}
+                                    disabled={slotsLoading || !selectedSlot}
+                                    aria-disabled={slotsLoading || !selectedSlot}
                                 >
                                     Book Appointment
                                     <i className="ri-arrow-right-line" aria-hidden="true" />

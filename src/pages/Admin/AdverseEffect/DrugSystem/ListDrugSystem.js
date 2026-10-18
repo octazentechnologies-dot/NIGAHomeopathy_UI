@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
 import { Card, CardBody, CardHeader, Col, Container, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -57,13 +58,7 @@ const DrugSystemList = () => {
     }
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-  };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-  };
 
   const rowStart = (currentPage - 1) * pageSize;
 
@@ -172,42 +167,11 @@ const DrugSystemList = () => {
                         ? 'Loading...'
                         : `Showing ${drugSystems.length} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
                     </div>
-                    <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
-                          Previous
-                        </button>
-                      </li>
-                      {[...Array(totalPages)].map((_, index) => {
-                        const pageNumber = index + 1;
-                        if (
-                          pageNumber === 1 ||
-                          pageNumber === totalPages ||
-                          (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                        ) {
-                          return (
-                            <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
-                              <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
-                                {pageNumber}
-                              </button>
-                            </li>
-                          );
-                        }
-                        if (pageNumber === 2 || pageNumber === totalPages - 1) {
-                          return (
-                            <li key={index} className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          );
-                        }
-                        return null;
-                      })}
-                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
-                          Next
-                        </button>
-                      </li>
-                    </ul>
+                                        <AdminListPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPage={setCurrentPage}
+                    />
                   </div>
                 </CardBody>
               </Card>

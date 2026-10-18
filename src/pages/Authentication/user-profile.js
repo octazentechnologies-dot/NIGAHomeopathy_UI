@@ -31,6 +31,7 @@ import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import PatientProfileFields from "./PatientProfileFields";
 import DoctorReviewsPanel from "./DoctorReviewsPanel";
+import { rankingExplain } from "../../helpers/s4Week4Api";
 import defaultAvatar from "../../assets/images/users/user-dummy-img.jpg";
 import { notifyProfilePhotoChanged } from "../../helpers/profilePhotoEvents";
 import {
@@ -47,8 +48,13 @@ import {
   getAvailabilityMe,
   updateAvailabilityMe,
   confirmMobileAgainstProfile,
+  getRegistrationCountries,
   getRegistrationStates,
+  getRegistrationDistricts,
+  getRegistrationCities,
+  getRegistrationPinCodes,
 } from "../../helpers/realbackend_helper";
+import { clinicMessage, deleteDoctorTimeOff, listDoctorTimeOff, saveDoctorTimeOff, unwrapClinic } from "../../helpers/doctorClinicApi";
 
 const PROFILE_TABS = [
   { id: "profile", label: "Profile" },
@@ -269,10 +275,31 @@ const DEFAULT_CLINIC_FORM = {
   city: "",
   state: "",
   pincode: "",
+  countryId: "",
+  stateId: "",
+  districtId: "",
+  cityId: "",
+  pinCodeId: "",
   contactNumber: "",
   email: "",
   googleMapsLink: "",
 };
+
+const masterOptions = (rows, idKeys, nameKeys) =>
+  (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      id: Number(idKeys.map((key) => row?.[key]).find((value) => value != null && value !== "")),
+      name: String(nameKeys.map((key) => row?.[key]).find(Boolean) || "").trim(),
+    }))
+    .filter((row) => Number.isFinite(row.id) && row.id > 0 && row.name);
+
+const pinOptions = (rows) =>
+  (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      id: Number(row.pinCodeId ?? row.PinCodeId ?? 0),
+      name: String(row.pinCode ?? row.PinCode ?? "").trim(),
+    }))
+    .filter((row) => Number.isFinite(row.id) && row.id > 0 && row.name);
 
 const DEFAULT_FEES_FORM = {
   inClinic: {
@@ -327,6 +354,7 @@ const DEFAULT_BANK_FORM = {
   ifscCode: "",
   branchName: "",
   accountType: "",
+  pan: "",
 };
 
 const DEGREE_OPTIONS = ["BHMS", "MD", "BAMS", "DHMS", "MBBS", "PhD", "Other"];
@@ -343,7 +371,7 @@ const EMPTY_QUALIFICATION_FORM = {
 const mapQualificationDoc = (doc) => ({
   id: doc.doctorCredentialDocumentId ?? doc.DoctorCredentialDocumentId,
   degree: doc.degree || doc.Degree || "",
-  specialization: doc.specialization || doc.Specialization || "—",
+  specialization: doc.specialization || doc.Specialization || "",
   institution: doc.institution || doc.Institution || "",
   year: toFieldText(doc.passingYear ?? doc.PassingYear),
   documentName: doc.fileName || doc.FileName || "",
@@ -507,31 +535,31 @@ const UserProfile = () => {
   const [idx, setidx] = useState("");
   const [userName, setUserName] = useState("");
   const [doctorMobile, setDoctorMobile] = useState("");
-  const [personalForm, setPersonalForm] = useState({ firstName: "", lastName: "", email: "", mobileNo: "" });
+  const [personalForm, setPersonalForm] = useState({
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    mobileNo: "",
+    registrationNo: "",
+    casePaperValidity: "",
+    practiceActivated: false,
+  });
+  const [ranking, setRanking] = useState(null);
+  const [bookingRules, setBookingRules] = useState({ gapMinutes: "", horizonDays: "" });
   const [personalSaving, setPersonalSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("clinic");
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
   const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
-  const [stateNames, setStateNames] = useState([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getRegistrationStates(INDIA_COUNTRY_ID)
-      .then((list) => {
-        if (cancelled) return;
-        const names = (Array.isArray(list) ? list : [])
-          .map((s) => String(s.stateName ?? s.StateName ?? "").trim())
-          .filter(Boolean);
-        setStateNames([...new Set(names)].sort((a, b) => a.localeCompare(b)));
-      })
-      .catch(() => {
-        if (!cancelled) setStateNames([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [countries, setCountries] = useState([]);
+  const [locationStates, setLocationStates] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [pinCodes, setPinCodes] = useState([]);
+  const [timeOffRows, setTimeOffRows] = useState([]);
+  const [timeOffForm, setTimeOffForm] = useState({ start: "", end: "", reason: "" });
+  const [timeOffBusy, setTimeOffBusy] = useState(false);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
   const [profilePhoto, setProfilePhoto] = useState(defaultAvatar);
   const [photoFileInputKey, setPhotoFileInputKey] = useState(0);
@@ -576,8 +604,9 @@ const UserProfile = () => {
 
         if (userInfo) {
           setUserData(userInfo);
-          setUserName(userInfo.displayName || userInfo.userName || "");
+          setUserName(userInfo.displayName || [userInfo.firstName, userInfo.lastName].filter(Boolean).join(" ") || userInfo.userName || "");
           setemail(userInfo.email || userInfo.emailId || userInfo.EmailId || "");
+          setDoctorMobile(userInfo.mobileNo || userInfo.MobileNo || "");
           setidx(userInfo.userId || userInfo._id || "");
 
           if (!isEmpty(user)) {
@@ -620,6 +649,32 @@ const UserProfile = () => {
       })
       .catch(() => {});
 
+  const loadClinicMasters = ({ countryId, stateId, districtId, cityId }) => {
+    getRegistrationCountries()
+      .then((rows) => setCountries(masterOptions(rows, ["countryId", "CountryId"], ["countryName", "CountryName"])))
+      .catch(() => setCountries([]));
+    if (countryId) {
+      getRegistrationStates(countryId)
+        .then((rows) => setLocationStates(masterOptions(rows, ["stateId", "StateId"], ["stateName", "StateName"])))
+        .catch(() => setLocationStates([]));
+    }
+    if (stateId) {
+      getRegistrationDistricts(stateId)
+        .then((rows) => setDistricts(masterOptions(rows, ["districtId", "DistrictId"], ["districtName", "DistrictName"])))
+        .catch(() => setDistricts([]));
+    }
+    if (districtId) {
+      getRegistrationCities(districtId)
+        .then((rows) => setCities(masterOptions(rows, ["cityId", "CityId"], ["cityName", "CityName"])))
+        .catch(() => setCities([]));
+    }
+    if (cityId) {
+      getRegistrationPinCodes(cityId)
+        .then((rows) => setPinCodes(pinOptions(rows)))
+        .catch(() => setPinCodes([]));
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     let role = "";
@@ -636,38 +691,59 @@ const UserProfile = () => {
         if (cancelled) return;
         const me = payload?.data ?? payload?.Data ?? payload;
         if (!me) return;
-        const fullName = [me.firstName, me.lastName].filter(Boolean).join(" ").trim();
+        const fullName = [me.firstName, me.middleName, me.lastName].filter(Boolean).join(" ").trim();
         if (fullName) setUserName(fullName);
         setemail(me.emailId || "");
         setDoctorMobile(me.mobileNo || "");
         setPersonalForm({
           firstName: me.firstName || "",
+          middleName: me.middleName || "",
           lastName: me.lastName || "",
           email: me.emailId || "",
           mobileNo: me.mobileNo || "",
+          registrationNo: me.registrationNo || me.passingCertNo || "",
+          casePaperValidity: me.casePaperValidity != null ? String(me.casePaperValidity) : "",
+          practiceActivated: Boolean(me.practiceActivated),
         });
+        const countryId = me.countryId || INDIA_COUNTRY_ID;
         setClinicForm({
           clinicName: me.clinicName || "",
           addressLine1: me.addressLine1 || "",
           addressLine2: me.addressLine2 || "",
-          city: me.city || "",
+          city: me.cityName || me.city || "",
           state: me.state || "",
           pincode: me.pincode || "",
+          countryId: String(countryId),
+          stateId: me.stateId ? String(me.stateId) : "",
+          districtId: me.districtId ? String(me.districtId) : "",
+          cityId: me.cityId ? String(me.cityId) : "",
+          pinCodeId: me.pinCodeId ? String(me.pinCodeId) : "",
           contactNumber: me.mobileNo || "",
           email: me.emailId || "",
           googleMapsLink: me.googleMapsLink || "",
         });
+        loadClinicMasters({
+          countryId,
+          stateId: me.stateId,
+          districtId: me.districtId,
+          cityId: me.cityId,
+        });
         setUserData((prev) => ({
           ...prev,
           firstName: me.firstName || "",
+          middleName: me.middleName || "",
           lastName: me.lastName || "",
           email: me.emailId || "",
           mobileNo: me.mobileNo || "",
+          loginId: me.loginId || prev?.loginId || "",
+          role: me.roleName || prev?.role,
           doctorId: me.doctorId,
           verificationStatus: me.verificationStatus || "",
-          userName: fullName || prev?.userName,
+          packageName: me.packageName || "",
+          registrationNo: me.registrationNo || me.passingCertNo || "",
+          practiceActivated: Boolean(me.practiceActivated),
         }));
-        const currency = me.feeCurrency || "INR";
+        const currency = me.feeCurrency || "";
         const teleOn = me.consultFeeTele != null;
         setFeesForm({
           inClinic: {
@@ -698,6 +774,7 @@ const UserProfile = () => {
           ifscCode: kyc.ifsc || "",
           branchName: kyc.branchName || "",
           accountType: kyc.accountType || "",
+          pan: kyc.pan || "",
         });
         if (me.photoPath && me.doctorId) {
           getDoctorPhotoBlob(me.doctorId)
@@ -715,6 +792,10 @@ const UserProfile = () => {
       .then((payload) => {
         if (cancelled) return;
         const me = payload?.data ?? payload;
+        setBookingRules({
+          gapMinutes: me?.gapMinutes ?? me?.GapMinutes ?? "",
+          horizonDays: me?.bookingHorizonDays ?? me?.BookingHorizonDays ?? "",
+        });
         const rows = me?.weekSchedules ?? me?.WeekSchedules ?? [];
         if (!Array.isArray(rows) || rows.length === 0) return;
         setHoursSchedule((prev) => {
@@ -727,15 +808,27 @@ const UserProfile = () => {
             if (!id) return;
             const start = hmsToAmPm(row.workStartTime || row.WorkStartTime);
             const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
+            const breakFrom = hmsToAmPm(row.breakStartTime || row.BreakStartTime);
+            const breakTo = hmsToAmPm(row.breakEndTime || row.BreakEndTime);
             next[id] = {
               ...createDefaultHoursDay(),
               available: true,
               startTime: start,
               endTime: end,
+              breakEnabled: Boolean(breakFrom && breakTo),
+              breakFrom,
+              breakTo,
             };
           });
           return next;
         });
+      })
+      .catch(() => {});
+    listDoctorTimeOff()
+      .then((payload) => {
+        if (cancelled) return;
+        const rows = unwrapClinic(payload);
+        setTimeOffRows(Array.isArray(rows) ? rows : []);
       })
       .catch(() => {});
     return () => {
@@ -743,12 +836,36 @@ const UserProfile = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const id = Number(userData?.doctorId);
+    if (!id || userData?.role !== UserRole.DOCTOR) return undefined;
+    let cancelled = false;
+    rankingExplain(id)
+      .then((payload) => {
+        if (cancelled) return;
+        const body = payload?.data ?? payload;
+        const inner = body?.score != null || body?.Score != null ? body : (body?.data ?? body);
+        setRanking(inner && typeof inner === "object" ? {
+          score: inner.score ?? inner.Score,
+          parts: inner.parts || inner.Parts || null,
+        } : null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userData?.doctorId, userData?.role]);
+
   const handleSavePersonal = async (event) => {
     event.preventDefault();
     const firstName = personalForm.firstName.trim();
+    const middleName = personalForm.middleName.trim();
     const lastName = personalForm.lastName.trim();
     const emailValue = personalForm.email.trim();
     const mobileValue = personalForm.mobileNo.trim();
+    const registrationNo = personalForm.registrationNo.trim();
+    const validityRaw = String(personalForm.casePaperValidity || "").trim();
+    const casePaperValidity = validityRaw === "" ? null : Number(validityRaw);
     if (!firstName || !lastName) {
       showSaveResult(false, "First name and last name are required.");
       return;
@@ -761,15 +878,37 @@ const UserProfile = () => {
       showSaveResult(false, "Enter a valid mobile number (at least 10 digits).");
       return;
     }
+    if (validityRaw !== "" && (!Number.isInteger(casePaperValidity) || casePaperValidity < 1)) {
+      showSaveResult(false, "Case paper validity must be a whole number of days.");
+      return;
+    }
     setPersonalSaving(true);
     try {
-      await updateDoctorProfileMe({ firstName, lastName, emailId: emailValue, mobileNo: mobileValue });
-      const fullName = `${firstName} ${lastName}`.trim();
+      await updateDoctorProfileMe({
+        firstName,
+        middleName,
+        lastName,
+        emailId: emailValue,
+        mobileNo: mobileValue,
+        passingCertNo: registrationNo,
+        casePaperValidity: validityRaw === "" ? 0 : casePaperValidity,
+        practiceActivated: Boolean(personalForm.practiceActivated),
+      });
+      const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
       setUserName(fullName);
+      setUserData((prev) => ({ ...prev, practiceActivated: Boolean(personalForm.practiceActivated) }));
       setemail(emailValue);
       setDoctorMobile(mobileValue);
       setClinicForm((prev) => ({ ...prev, email: emailValue, contactNumber: mobileValue }));
-      setUserData((prev) => ({ ...prev, firstName, lastName, email: emailValue, mobileNo: mobileValue }));
+      setUserData((prev) => ({
+        ...prev,
+        firstName,
+        middleName,
+        lastName,
+        email: emailValue,
+        mobileNo: mobileValue,
+        registrationNo,
+      }));
       try {
         const stored = JSON.parse(sessionStorage.getItem("authUser") || "{}");
         const target = stored.data || stored;
@@ -801,6 +940,131 @@ const UserProfile = () => {
     setClinicForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const chooseCountry = async (countryId) => {
+    setClinicForm((prev) => ({
+      ...prev,
+      countryId,
+      stateId: "",
+      state: "",
+      districtId: "",
+      cityId: "",
+      city: "",
+      pinCodeId: "",
+      pincode: "",
+    }));
+    setDistricts([]);
+    setCities([]);
+    setPinCodes([]);
+    if (!countryId) {
+      setLocationStates([]);
+      return;
+    }
+    const rows = await getRegistrationStates(countryId).catch(() => []);
+    setLocationStates(masterOptions(rows, ["stateId", "StateId"], ["stateName", "StateName"]));
+  };
+
+  const chooseState = async (stateId) => {
+    const state = locationStates.find((row) => String(row.id) === String(stateId));
+    setClinicForm((prev) => ({
+      ...prev,
+      stateId,
+      state: state?.name || "",
+      districtId: "",
+      cityId: "",
+      city: "",
+      pinCodeId: "",
+      pincode: "",
+    }));
+    setCities([]);
+    setPinCodes([]);
+    if (!stateId) {
+      setDistricts([]);
+      return;
+    }
+    const rows = await getRegistrationDistricts(stateId).catch(() => []);
+    setDistricts(masterOptions(rows, ["districtId", "DistrictId"], ["districtName", "DistrictName"]));
+  };
+
+  const chooseDistrict = async (districtId) => {
+    setClinicForm((prev) => ({
+      ...prev,
+      districtId,
+      cityId: "",
+      city: "",
+      pinCodeId: "",
+      pincode: "",
+    }));
+    setPinCodes([]);
+    if (!districtId) {
+      setCities([]);
+      return;
+    }
+    const rows = await getRegistrationCities(districtId).catch(() => []);
+    setCities(masterOptions(rows, ["cityId", "CityId"], ["cityName", "CityName"]));
+  };
+
+  const chooseCity = async (cityId) => {
+    const city = cities.find((row) => String(row.id) === String(cityId));
+    setClinicForm((prev) => ({
+      ...prev,
+      cityId,
+      city: city?.name || "",
+      pinCodeId: "",
+      pincode: "",
+    }));
+    if (!cityId) {
+      setPinCodes([]);
+      return;
+    }
+    const rows = await getRegistrationPinCodes(cityId).catch(() => []);
+    setPinCodes(pinOptions(rows));
+  };
+
+  const choosePin = (pinCodeId) => {
+    const pin = pinCodes.find((row) => String(row.id) === String(pinCodeId));
+    setClinicForm((prev) => ({ ...prev, pinCodeId, pincode: pin?.name || "" }));
+  };
+
+  const refreshTimeOff = async () => {
+    const rows = unwrapClinic(await listDoctorTimeOff());
+    setTimeOffRows(Array.isArray(rows) ? rows : []);
+  };
+
+  const handleAddTimeOff = async (event) => {
+    event.preventDefault();
+    if (!timeOffForm.start || !timeOffForm.end) {
+      showSaveResult(false, "Choose the leave start and end dates.");
+      return;
+    }
+    setTimeOffBusy(true);
+    try {
+      const rows = unwrapClinic(await saveDoctorTimeOff({
+        startsAt: `${timeOffForm.start}T00:00:00`,
+        endsAt: `${timeOffForm.end}T23:59:00`,
+        reason: timeOffForm.reason.trim() || null,
+      }));
+      setTimeOffRows(Array.isArray(rows) ? rows : []);
+      setTimeOffForm({ start: "", end: "", reason: "" });
+      showSaveResult(true, "Leave dates have been saved.");
+    } catch (err) {
+      showSaveResult(false, clinicMessage(err));
+    } finally {
+      setTimeOffBusy(false);
+    }
+  };
+
+  const handleDeleteTimeOff = async (id) => {
+    setTimeOffBusy(true);
+    try {
+      await deleteDoctorTimeOff(id);
+      await refreshTimeOff();
+    } catch (err) {
+      showSaveResult(false, clinicMessage(err));
+    } finally {
+      setTimeOffBusy(false);
+    }
+  };
+
   const updateFeesSection = (section, field, value) => {
     if (field === "currency") {
       setFeesForm((prev) => ({
@@ -824,9 +1088,10 @@ const UserProfile = () => {
     if (
       !clinicForm.clinicName.trim() ||
       !clinicForm.addressLine1.trim() ||
-      !clinicForm.city.trim() ||
-      !clinicForm.state.trim() ||
-      !clinicForm.pincode.trim()
+      !clinicForm.stateId ||
+      !clinicForm.districtId ||
+      !clinicForm.cityId ||
+      !clinicForm.pinCodeId
     ) {
       Swal.fire({
         title: "Missing details",
@@ -848,6 +1113,11 @@ const UserProfile = () => {
         addressLine2: clinicForm.addressLine2.trim(),
         state: clinicForm.state.trim(),
         pincode: clinicForm.pincode.trim(),
+        countryId: Number(clinicForm.countryId) || INDIA_COUNTRY_ID,
+        stateId: Number(clinicForm.stateId),
+        districtId: Number(clinicForm.districtId),
+        cityId: Number(clinicForm.cityId),
+        pinCodeId: Number(clinicForm.pinCodeId),
         emailId: clinicForm.email.trim(),
         mobileNo: clinicForm.contactNumber.trim(),
         googleMapsLink: (clinicForm.googleMapsLink || "").trim(),
@@ -1301,16 +1571,42 @@ const UserProfile = () => {
       return;
     }
     const sourceDay = WEEK_DAYS.map((day) => hoursSchedule[day.id]).find((row) => row?.available && row.startTime && row.endTime) || hoursSchedule.monday;
-    const days = WEEK_DAYS.filter((day) => hoursSchedule[day.id]?.available && hoursSchedule[day.id].startTime && hoursSchedule[day.id].endTime).map((day) => ({
-      scheduleDate: nextDateForWeekday(day.id),
-      workStartTime: amPmToHms(hoursSchedule[day.id].startTime),
-      workEndTime: amPmToHms(hoursSchedule[day.id].endTime),
-      slotIntervalMinutes: 15,
-    }));
+    const incompleteBreak = WEEK_DAYS.some((day) => {
+      const row = hoursSchedule[day.id];
+      return row?.available && row.breakEnabled && (!row.breakFrom || !row.breakTo);
+    });
+    if (incompleteBreak) {
+      showSaveResult(false, "Choose both break times, or turn the break off.");
+      return;
+    }
+    const gapMinutes = bookingRules.gapMinutes === "" ? null : Number(bookingRules.gapMinutes);
+    const horizonDays = bookingRules.horizonDays === "" ? null : Number(bookingRules.horizonDays);
+    if (gapMinutes != null && (!Number.isInteger(gapMinutes) || gapMinutes < 0 || gapMinutes > 240)) {
+      showSaveResult(false, "Gap between appointments must be a whole number from 0 to 240 minutes.");
+      return;
+    }
+    if (horizonDays != null && (!Number.isInteger(horizonDays) || horizonDays < 1 || horizonDays > 90)) {
+      showSaveResult(false, "Booking window must be a whole number from 1 to 90 days.");
+      return;
+    }
+    const days = WEEK_DAYS.filter((day) => hoursSchedule[day.id]?.available && hoursSchedule[day.id].startTime && hoursSchedule[day.id].endTime).map((day) => {
+      const row = hoursSchedule[day.id];
+      return {
+        scheduleDate: nextDateForWeekday(day.id),
+        workStartTime: amPmToHms(row.startTime),
+        workEndTime: amPmToHms(row.endTime),
+        slotIntervalMinutes: 15,
+        includeBreak: true,
+        breakStartTime: row.breakEnabled ? amPmToHms(row.breakFrom) : null,
+        breakEndTime: row.breakEnabled ? amPmToHms(row.breakTo) : null,
+      };
+    });
     try {
       await updateAvailabilityMe({
         isOnline: Boolean(consultationMode.teleconsultation || consultationMode.both),
         workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
+        gapMinutes,
+        bookingHorizonDays: horizonDays,
         days,
       });
       await updateDoctorProfileMe({
@@ -1366,6 +1662,7 @@ const UserProfile = () => {
           ifsc: bankForm.ifscCode.trim().toUpperCase(),
           branchName: (bankForm.branchName || "").trim(),
           accountType: bankForm.accountType.trim(),
+          pan: (bankForm.pan || "").trim().toUpperCase(),
         },
       });
       showSaveResult(true, "Bank details have been updated.");
@@ -1384,7 +1681,7 @@ const UserProfile = () => {
       onChange={(e) => updateHoursDay(dayId, field, e.target.value)}
     >
       <option value="">{disabled ? "--" : "Select"}</option>
-      {HOUR_TIME_OPTIONS.map((time) => (
+      {(value && !HOUR_TIME_OPTIONS.includes(value) ? [value, ...HOUR_TIME_OPTIONS] : HOUR_TIME_OPTIONS).map((time) => (
         <option key={`${dayId}-${field}-${time}`} value={time}>
           {time}
         </option>
@@ -1473,15 +1770,17 @@ const UserProfile = () => {
                       <span>Email: {email || "Not set"}</span>
                     </p>
                     {doctorMobile ? (
-                      <p className="user-profile-page__summary-meta">
+                      <p className="user-profile-page__summary-meta mb-0">
                         <i className="ri-phone-line" aria-hidden="true" />
                         <span>Mobile: {doctorMobile}</span>
                       </p>
                     ) : null}
-                    <p className="user-profile-page__summary-meta mb-0">
-                      <i className="ri-hashtag" aria-hidden="true" />
-                      <span>User ID: {idx || "—"}</span>
-                    </p>
+                    {userData?.role !== UserRole.DOCTOR ? (
+                      <p className="user-profile-page__summary-meta mb-0">
+                        <i className="ri-hashtag" aria-hidden="true" />
+                        <span>User ID: {idx || "—"}</span>
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1516,7 +1815,7 @@ const UserProfile = () => {
                         </h5>
                         <Row className="g-3 new-patient-modal__fields user-profile-page__info-grid">
                           <ProfileInfoField icon="ri-user-line" label="Full Name">
-                            {[userData.firstName, userData.lastName].filter(Boolean).join(" ") || userData.displayName || userData.userName || "—"}
+                            {[userData.firstName, userData.middleName, userData.lastName].filter(Boolean).join(" ") || userData.displayName || userData.userName || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-user-3-line" label="First Name">
                             {userData.firstName || "—"}
@@ -1531,17 +1830,21 @@ const UserProfile = () => {
                             {doctorMobile || userData.mobileNo || userData.mobile || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-user-settings-line" label="Login ID">
-                            {userData.userName || "—"}
+                            {userData.loginId || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-shield-user-line" label="Role">
                             <ProfileBadge tone="info">{roleLabel}</ProfileBadge>
                           </ProfileInfoField>
-                          <ProfileInfoField icon="ri-key-line" label="Role ID">
-                            {userData.roleId || "—"}
-                          </ProfileInfoField>
-                          <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
-                            {userData.userId || "—"}
-                          </ProfileInfoField>
+                          {userData.role !== UserRole.DOCTOR ? (
+                            <ProfileInfoField icon="ri-key-line" label="Role ID">
+                              {userData.roleId || "—"}
+                            </ProfileInfoField>
+                          ) : null}
+                          {userData.role !== UserRole.DOCTOR ? (
+                            <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
+                              {userData.userId || "—"}
+                            </ProfileInfoField>
+                          ) : null}
                           {userData.verificationStatus ? (
                             <ProfileInfoField icon="ri-shield-check-line" label="Verification">
                               <ProfileBadge tone={/approved/i.test(userData.verificationStatus) ? "success" : "warning"}>
@@ -1566,6 +1869,24 @@ const UserProfile = () => {
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
+                          {userData.packageName ? (
+                            <ProfileInfoField icon="ri-vip-diamond-line" label="Package">
+                              {userData.packageName}
+                            </ProfileInfoField>
+                          ) : null}
+                          {userData.role === UserRole.DOCTOR ? (
+                            <ProfileInfoField icon="ri-hospital-line" label="Practice activated">
+                              <ProfileBadge tone={userData.practiceActivated ? "success" : "neutral"}>
+                                {userData.practiceActivated ? "Yes" : "No"}
+                              </ProfileBadge>
+                            </ProfileInfoField>
+                          ) : null}
+                          {userData.role === UserRole.DOCTOR && ranking?.score != null ? (
+                            <ProfileInfoField icon="ri-bar-chart-line" label="Find a Doctor score">
+                              {ranking.score}
+                              {ranking.parts ? ` · verified ${ranking.parts.verified ?? "—"}, rating ${ranking.parts.averageRating ?? "—"}, fee factor ${ranking.parts.feeFactor ?? "—"}` : ""}
+                            </ProfileInfoField>
+                          ) : null}
                           {userData.firmIds ? (
                             <ProfileInfoField icon="ri-building-line" label="Firm IDs">
                               {userData.firmIds}
@@ -1585,7 +1906,7 @@ const UserProfile = () => {
                               Personal Details
                             </h5>
                             <Row className="g-3 new-patient-modal__fields">
-                              <Col md={6} xs={12}>
+                              <Col md={4} xs={12}>
                                 <Label htmlFor="profileFirstName" className="form-label new-patient-modal__label">
                                   First Name
                                   <RequiredMark />
@@ -1597,7 +1918,18 @@ const UserProfile = () => {
                                   onChange={(e) => setPersonalForm((prev) => ({ ...prev, firstName: e.target.value }))}
                                 />
                               </Col>
-                              <Col md={6} xs={12}>
+                              <Col md={4} xs={12}>
+                                <Label htmlFor="profileMiddleName" className="form-label new-patient-modal__label">
+                                  Middle Name
+                                </Label>
+                                <Input
+                                  id="profileMiddleName"
+                                  type="text"
+                                  value={personalForm.middleName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, middleName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={4} xs={12}>
                                 <Label htmlFor="profileLastName" className="form-label new-patient-modal__label">
                                   Last Name
                                   <RequiredMark />
@@ -1634,6 +1966,39 @@ const UserProfile = () => {
                                     setPersonalForm((prev) => ({ ...prev, mobileNo: e.target.value.replace(/[^\d+]/g, "") }))
                                   }
                                 />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label htmlFor="profileRegistrationNo" className="form-label new-patient-modal__label">
+                                  Registration / certificate number
+                                </Label>
+                                <Input
+                                  id="profileRegistrationNo"
+                                  type="text"
+                                  value={personalForm.registrationNo}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, registrationNo: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label htmlFor="profileCasePaperValidity" className="form-label new-patient-modal__label">
+                                  Case paper validity (days)
+                                </Label>
+                                <Input
+                                  id="profileCasePaperValidity"
+                                  type="number"
+                                  min="1"
+                                  value={personalForm.casePaperValidity}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, casePaperValidity: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12} className="d-flex align-items-end">
+                                <Label check className="mb-2">
+                                  <Input
+                                    type="checkbox"
+                                    checked={Boolean(personalForm.practiceActivated)}
+                                    onChange={(e) => setPersonalForm((prev) => ({ ...prev, practiceActivated: e.target.checked }))}
+                                  />{" "}
+                                  Practice activated
+                                </Label>
                               </Col>
                             </Row>
                           </div>
@@ -1699,36 +2064,56 @@ const UserProfile = () => {
                         </Col>
 
                         <Col lg={4} md={6} xs={12}>
-                          <Label htmlFor="clinicCity" className="form-label new-patient-modal__label">
-                            City
+                          <Label htmlFor="clinicCountry" className="form-label new-patient-modal__label">
+                            Country
                             <RequiredMark />
                           </Label>
-                          <Input
-                            id="clinicCity"
-                            type="text"
-                            value={clinicForm.city}
-                            onChange={(e) => updateClinicField("city", e.target.value)}
-                          />
+                          <Input id="clinicCountry" type="select" value={clinicForm.countryId} onChange={(e) => chooseCountry(e.target.value)}>
+                            <option value="">Select country</option>
+                            {countries.map((row) => (
+                              <option key={row.id} value={row.id}>{row.name}</option>
+                            ))}
+                          </Input>
                         </Col>
                         <Col lg={4} md={6} xs={12}>
                           <Label htmlFor="clinicState" className="form-label new-patient-modal__label">
                             State
                             <RequiredMark />
                           </Label>
-                          <Input
-                            id="clinicState"
-                            type="select"
-                            value={clinicForm.state}
-                            onChange={(e) => updateClinicField("state", e.target.value)}
-                          >
+                          <Input id="clinicState" type="select" value={clinicForm.stateId} onChange={(e) => chooseState(e.target.value)}>
                             <option value="">Select state</option>
-                            {clinicForm.state && !stateNames.includes(clinicForm.state) ? (
-                              <option value={clinicForm.state}>{clinicForm.state}</option>
+                            {clinicForm.stateId && !locationStates.some((row) => String(row.id) === String(clinicForm.stateId)) ? (
+                              <option value={clinicForm.stateId}>{clinicForm.state || "Saved state"}</option>
                             ) : null}
-                            {stateNames.map((state) => (
-                              <option key={state} value={state}>
-                                {state}
-                              </option>
+                            {locationStates.map((row) => (
+                              <option key={row.id} value={row.id}>{row.name}</option>
+                            ))}
+                          </Input>
+                        </Col>
+                        <Col lg={4} md={6} xs={12}>
+                          <Label htmlFor="clinicDistrict" className="form-label new-patient-modal__label">
+                            District
+                            <RequiredMark />
+                          </Label>
+                          <Input id="clinicDistrict" type="select" value={clinicForm.districtId} onChange={(e) => chooseDistrict(e.target.value)}>
+                            <option value="">Select district</option>
+                            {districts.map((row) => (
+                              <option key={row.id} value={row.id}>{row.name}</option>
+                            ))}
+                          </Input>
+                        </Col>
+                        <Col lg={4} md={6} xs={12}>
+                          <Label htmlFor="clinicCity" className="form-label new-patient-modal__label">
+                            City
+                            <RequiredMark />
+                          </Label>
+                          <Input id="clinicCity" type="select" value={clinicForm.cityId} onChange={(e) => chooseCity(e.target.value)}>
+                            <option value="">Select city</option>
+                            {clinicForm.cityId && !cities.some((row) => String(row.id) === String(clinicForm.cityId)) ? (
+                              <option value={clinicForm.cityId}>{clinicForm.city || "Saved city"}</option>
+                            ) : null}
+                            {cities.map((row) => (
+                              <option key={row.id} value={row.id}>{row.name}</option>
                             ))}
                           </Input>
                         </Col>
@@ -1737,12 +2122,15 @@ const UserProfile = () => {
                             Pincode
                             <RequiredMark />
                           </Label>
-                          <Input
-                            id="clinicPincode"
-                            type="text"
-                            value={clinicForm.pincode}
-                            onChange={(e) => updateClinicField("pincode", e.target.value)}
-                          />
+                          <Input id="clinicPincode" type="select" value={clinicForm.pinCodeId} onChange={(e) => choosePin(e.target.value)}>
+                            <option value="">Select pincode</option>
+                            {clinicForm.pinCodeId && !pinCodes.some((row) => String(row.id) === String(clinicForm.pinCodeId)) ? (
+                              <option value={clinicForm.pinCodeId}>{clinicForm.pincode || "Saved pincode"}</option>
+                            ) : null}
+                            {pinCodes.map((row) => (
+                              <option key={row.id} value={row.id}>{row.name}</option>
+                            ))}
+                          </Input>
                         </Col>
 
                         <Col lg={4} md={6} xs={12}>
@@ -1841,6 +2229,7 @@ const UserProfile = () => {
                               value={feesForm.inClinic.currency}
                               onChange={(e) => updateFeesSection("inClinic", "currency", e.target.value)}
                             >
+                              <option value="">Select currency</option>
                               {CURRENCY_OPTIONS.map((option) => (
                                 <option key={option.value} value={option.value}>
                                   {option.label}
@@ -1924,6 +2313,7 @@ const UserProfile = () => {
                               value={feesForm.tele.currency}
                               onChange={(e) => updateFeesSection("tele", "currency", e.target.value)}
                             >
+                              <option value="">Select currency</option>
                               {CURRENCY_OPTIONS.map((option) => (
                                 <option key={option.value} value={option.value}>
                                   {option.label}
@@ -2340,6 +2730,102 @@ const UserProfile = () => {
                       {!isReceptionUser ? (
                         <div className="user-profile-page__hours-card">
                           <h5 className="user-profile-page__section-title">
+                            <i className="ri-calendar-close-line" aria-hidden="true" />
+                            Time off
+                          </h5>
+                          <Row className="g-3 new-patient-modal__fields mb-3">
+                            <Col md={3} xs={12}>
+                              <Label htmlFor="timeOffStart" className="form-label new-patient-modal__label">From</Label>
+                              <Input id="timeOffStart" type="date" value={timeOffForm.start} onChange={(e) => setTimeOffForm((prev) => ({ ...prev, start: e.target.value }))} />
+                            </Col>
+                            <Col md={3} xs={12}>
+                              <Label htmlFor="timeOffEnd" className="form-label new-patient-modal__label">To</Label>
+                              <Input id="timeOffEnd" type="date" value={timeOffForm.end} onChange={(e) => setTimeOffForm((prev) => ({ ...prev, end: e.target.value }))} />
+                            </Col>
+                            <Col md={4} xs={12}>
+                              <Label htmlFor="timeOffReason" className="form-label new-patient-modal__label">Reason</Label>
+                              <Input id="timeOffReason" type="text" value={timeOffForm.reason} onChange={(e) => setTimeOffForm((prev) => ({ ...prev, reason: e.target.value }))} />
+                            </Col>
+                            <Col md={2} xs={12} className="d-flex align-items-end">
+                              <ModalActionButton action="add" type="button" disabled={timeOffBusy} onClick={handleAddTimeOff}>
+                                {timeOffBusy ? "Saving..." : "Add"}
+                              </ModalActionButton>
+                            </Col>
+                          </Row>
+                          {timeOffRows.length ? (
+                            <div className="table-responsive">
+                              <table className="table align-middle mb-0">
+                                <thead>
+                                  <tr>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Reason</th>
+                                    <th />
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {timeOffRows.map((row) => {
+                                    const id = row.doctorTimeOffId ?? row.DoctorTimeOffId;
+                                    const from = String(row.startsAt ?? row.StartsAt ?? "").slice(0, 10);
+                                    const to = String(row.endsAt ?? row.EndsAt ?? "").slice(0, 10);
+                                    return (
+                                      <tr key={id}>
+                                        <td>{from}</td>
+                                        <td>{to}</td>
+                                        <td>{row.reason || row.Reason || ""}</td>
+                                        <td className="text-end">
+                                          <button type="button" className="btn btn-sm btn-soft-danger" disabled={timeOffBusy} onClick={() => handleDeleteTimeOff(id)}>
+                                            Remove
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted mb-0">No leave dates saved.</p>
+                          )}
+                        </div>
+                      ) : null}
+
+                      {!isReceptionUser ? (
+                        <div className="user-profile-page__hours-card mb-3">
+                          <h5 className="user-profile-page__section-title">
+                            <i className="ri-timer-line" aria-hidden="true" />
+                            Booking rules
+                          </h5>
+                          <Row className="g-3">
+                            <Col md={4}>
+                              <Label htmlFor="bookingGap">Gap between appointments (minutes)</Label>
+                              <Input
+                                id="bookingGap"
+                                type="number"
+                                min="0"
+                                max="240"
+                                value={bookingRules.gapMinutes}
+                                onChange={(e) => setBookingRules((prev) => ({ ...prev, gapMinutes: e.target.value }))}
+                              />
+                            </Col>
+                            <Col md={4}>
+                              <Label htmlFor="bookingHorizon">Days ahead a patient can book</Label>
+                              <Input
+                                id="bookingHorizon"
+                                type="number"
+                                min="1"
+                                max="90"
+                                value={bookingRules.horizonDays}
+                                onChange={(e) => setBookingRules((prev) => ({ ...prev, horizonDays: e.target.value }))}
+                              />
+                            </Col>
+                          </Row>
+                        </div>
+                      ) : null}
+
+                      {!isReceptionUser ? (
+                        <div className="user-profile-page__hours-card">
+                          <h5 className="user-profile-page__section-title">
                             <i className="ri-stethoscope-line" aria-hidden="true" />
                             Consultation Mode
                           </h5>
@@ -2414,6 +2900,9 @@ const UserProfile = () => {
                             onChange={(e) => updateBankField("bankName", e.target.value)}
                           >
                             <option value="">Select bank</option>
+                            {bankForm.bankName && !BANK_NAME_OPTIONS.includes(bankForm.bankName) ? (
+                              <option value={bankForm.bankName}>{bankForm.bankName}</option>
+                            ) : null}
                             {BANK_NAME_OPTIONS.map((bank) => (
                               <option key={bank} value={bank}>
                                 {bank}
@@ -2470,6 +2959,18 @@ const UserProfile = () => {
                             type="text"
                             value={bankForm.branchName}
                             onChange={(e) => updateBankField("branchName", e.target.value)}
+                          />
+                        </Col>
+                        <Col lg={4} md={6} xs={12}>
+                          <Label htmlFor="bankPan" className="form-label new-patient-modal__label">
+                            PAN
+                          </Label>
+                          <Input
+                            id="bankPan"
+                            type="text"
+                            maxLength={10}
+                            value={bankForm.pan}
+                            onChange={(e) => updateBankField("pan", e.target.value.toUpperCase())}
                           />
                         </Col>
                         <Col lg={4} md={6} xs={12}>

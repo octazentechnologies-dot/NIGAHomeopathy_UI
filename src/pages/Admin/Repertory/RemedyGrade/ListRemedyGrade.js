@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
 import { Card, CardBody, CardHeader, Col, Container, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -6,6 +7,7 @@ import { getRemedyGradesList, deleteRemedyGrade } from '../../../../slices/thunk
 import Swal from 'sweetalert2';
 import { getAuditUserName } from "../../../../helpers/api_helper";
 import { exportListTableCsv } from '../../../../helpers/listExport';
+import { recordMatchesQuery } from '../../../../helpers/recordSearch';
 
 const RemedyGradeList = () => {
   const dispatch = useDispatch();
@@ -16,30 +18,33 @@ const RemedyGradeList = () => {
 
   const remedyGradesLoading = useSelector((state) => state?.RemedyGrade?.loading || false);
   const remedyGradesList = useSelector((state) => state?.RemedyGrade?.remedyGradesList);
-  const remedyGrades = Array.isArray(remedyGradesList)
+  const allRemedyGrades = Array.isArray(remedyGradesList)
     ? remedyGradesList
     : (remedyGradesList?.resultObject || []);
-  const totalPages = useSelector((state) => state?.RemedyGrade?.remedyGradesList?.totalPageCount || 1);
-  const totalRecords = useSelector(
-    (state) => state?.RemedyGrade?.remedyGradesList?.totalRecordCount || remedyGrades.length || 0
+  const filteredRemedyGrades = useMemo(
+    () => allRemedyGrades.filter((item) => recordMatchesQuery(item, searchQuery)),
+    [allRemedyGrades, searchQuery]
   );
+  const totalRecords = filteredRemedyGrades.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize) || 1);
+  const remedyGrades = filteredRemedyGrades.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => {
-    dispatch(getRemedyGradesList({ PageNumber: currentPage, PageSize: pageSize, queryString: searchQuery }));
-  }, [currentPage, searchQuery, dispatch]);
+    dispatch(getRemedyGradesList({}));
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleSearchChange = (event) => {
     setSearchQuery(event.target.value);
     setCurrentPage(1);
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-  };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-  };
 
   const handleDelete = (remedyGrade) => {
     Swal.fire({
@@ -186,42 +191,11 @@ const RemedyGradeList = () => {
                         ? 'Loading...'
                         : `Showing ${remedyGrades.length} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
                     </div>
-                    <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
-                          Previous
-                        </button>
-                      </li>
-                      {[...Array(totalPages)].map((_, index) => {
-                        const pageNumber = index + 1;
-                        if (
-                          pageNumber === 1 ||
-                          pageNumber === totalPages ||
-                          (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                        ) {
-                          return (
-                            <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
-                              <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
-                                {pageNumber}
-                              </button>
-                            </li>
-                          );
-                        }
-                        if (pageNumber === 2 || pageNumber === totalPages - 1) {
-                          return (
-                            <li key={index} className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          );
-                        }
-                        return null;
-                      })}
-                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
-                          Next
-                        </button>
-                      </li>
-                    </ul>
+                                        <AdminListPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPage={setCurrentPage}
+                    />
                   </div>
                 </CardBody>
               </Card>

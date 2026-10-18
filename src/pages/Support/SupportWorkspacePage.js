@@ -122,14 +122,18 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">{isAdmin ? "Support tickets" : "My support tickets"}</h2>
-        <p className="clinic-page-subtitle">
-          {isAdmin
-            ? "Assign status and reply on clinic issues."
-            : "Open a ticket and follow the thread with clinic staff."}
-        </p>
-        {error ? <Alert color="danger">{error}</Alert> : null}
-        {note ? <Alert color="success">{note}</Alert> : null}
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">{isAdmin ? "Support tickets" : "My support tickets"}</h2>
+            <p className="clinic-page-subtitle mb-0">
+              {isAdmin
+                ? "Assign status and reply on clinic issues."
+                : "Open a ticket and follow the thread with clinic staff."}
+            </p>
+          </div>
+        </div>
+        {error ? <Alert color="danger" className="py-2 small">{error}</Alert> : null}
+        {note ? <Alert color="success" className="py-2 small">{note}</Alert> : null}
         <Row className="g-3">
           <Col lg={5}>
             {!isAdmin ? (
@@ -154,9 +158,10 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                     value={form.body}
                     onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
                   />
-                  <Button className="clinic-primary-btn" onClick={createTicket}>
+                  <button type="button" className="btn clinic-primary-btn" onClick={createTicket}>
+                    <i className="ri-add-line" aria-hidden="true" />
                     Create ticket
-                  </Button>
+                  </button>
                 </CardBody>
               </Card>
             ) : null}
@@ -165,7 +170,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                 {loading ? (
                   <Spinner size="sm" />
                 ) : (
-                  <Table responsive size="sm">
+                  <Table responsive size="sm" className="align-middle mb-0 clinic-data-table">
                     <thead>
                       <tr>
                         <th>Id</th>

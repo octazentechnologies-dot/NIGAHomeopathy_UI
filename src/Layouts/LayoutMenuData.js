@@ -1636,6 +1636,7 @@ const Navdata = () => {
                     { id: "account-payees", label: "Payees", icon: "ri-bank-line", link: "/account/payees" },
                     { id: "account-collections", label: "Clinic collections", icon: "ri-store-2-line", link: "/account/clinic-collections" },
                     { id: "account-reports", label: "Reports", icon: "ri-bar-chart-line", link: "/account/reports" },
+                    { id: "account-trail", label: "Account trail", icon: "ri-route-line", link: "/account/trail" },
                 ]}
             </React.Fragment>
         );
@@ -1650,7 +1651,7 @@ const Navdata = () => {
                     { id: "pharmacy-onboarding", label: "Onboarding", icon: "ri-user-add-line", link: "/pharmacy/onboarding" },
                     { id: "pharmacy-orders", label: "Orders", icon: "ri-shopping-bag-line", link: "/pharmacy/orders" },
                     { id: "pharmacy-quotes", label: "Quotes", icon: "ri-file-list-2-line", link: "/pharmacy/quotes" },
-                    { id: "pharmacy-inventory", label: "Inventory", icon: "ri-archive-line", link: "/pharmacy/inventory" },
+                    { id: "pharmacy-inventory", label: "Stock confirmation", icon: "ri-archive-line", link: "/pharmacy/inventory" },
                     { id: "pharmacy-prescriptions", label: "Prescriptions", icon: "ri-file-paper-2-line", link: "/pharmacy/prescriptions" },
                 ]}
             </React.Fragment>

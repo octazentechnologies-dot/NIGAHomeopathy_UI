@@ -9,6 +9,7 @@ import {
 } from "../../helpers/realbackend_helper";
 import { formatApiDate, normalizeAppointmentSlotsResponse } from "../../helpers/appointmentSlotHelper";
 import { getAuthUserId } from "../../helpers/menuByRole";
+import { recordMatchesQuery } from "../../helpers/recordSearch";
 import { listPublicDoctors, mapPublicDoctorCard } from "../../helpers/publicBookingApi";
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from "./DateOfBirthPicker";
 
@@ -36,6 +37,20 @@ export const mobileFromAssistanceBody = (body) => {
   const text = String(body || "");
   const match = text.match(/ContactMobile\s*=\s*([0-9+\-\s]{8,15})/i);
   return match ? match[1].replace(/\s+/g, "") : "";
+};
+
+/** One readable line for a booking request. Drops PatientId= and other ticket keys. */
+const requestDetail = (body) => {
+  const text = String(body || "").trim();
+  const note = text.split("|")[0].trim();
+  const mobile = mobileFromAssistanceBody(text);
+  const dateMatch = text.match(/PreferredDate\s*=\s*(\d{4}-\d{2}-\d{2})/i);
+  const date = dateMatch ? moment(dateMatch[1], "YYYY-MM-DD").format("D MMM YYYY") : "";
+  const parts = [];
+  if (note && note.length > 3 && !/=/.test(note)) parts.push(note);
+  if (date) parts.push(date);
+  if (mobile) parts.push(mobile);
+  return parts.join(" · ");
 };
 
 const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
@@ -281,21 +296,9 @@ const AssistedBookWizard = ({
   }, [patients, book.patientId]);
 
   const filteredPatients = useMemo(() => {
-    const q = String(patientSearch || "").trim().toLowerCase();
-    const qDigits = digitsOnly(q);
+    const q = String(patientSearch || "").trim();
     if (!q) return patients.slice(0, 8);
-    return patients
-      .filter((row) => {
-        const name = String(nameOf(row) || "").toLowerCase();
-        const mobile = String(mobileOf(row) || "").toLowerCase();
-        const mobileDigits = digitsOnly(mobile);
-        return (
-          name.includes(q) ||
-          mobile.includes(q) ||
-          (qDigits.length >= 3 && mobileDigits.includes(qDigits))
-        );
-      })
-      .slice(0, 20);
+    return patients.filter((row) => recordMatchesQuery(row, q)).slice(0, 20);
   }, [patients, patientSearch]);
 
   const filteredDoctors = useMemo(() => {
@@ -406,45 +409,8 @@ const AssistedBookWizard = ({
 
   return (
     <div data-testid="assisted-book-wizard">
-      {error ? <Alert color="danger">{error}</Alert> : null}
-      {note ? <Alert color="success">{note}</Alert> : null}
-
-      {showRequestQueue ? (
-        <div className="mb-3" data-testid="assisted-request-queue">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <h6 className="mb-0">Open assistance requests</h6>
-            <Button size="sm" color="light" type="button" onClick={loadRequests}>
-              Refresh
-            </Button>
-          </div>
-          {requests.length === 0 ? (
-            <p className="text-muted small mb-0">No open AssistedRequest tickets.</p>
-          ) : (
-            <ListGroup flush>
-              {requests.map((row) => {
-                const id = row.supportTicketId || row.SupportTicketId;
-                const subject = row.subject || row.Subject || "Assisted booking request";
-                return (
-                  <ListGroupItem
-                    key={id}
-                    action
-                    tag="button"
-                    type="button"
-                    className="px-0"
-                    onClick={() => applyRequest(row)}
-                    data-testid={`assisted-request-${id}`}
-                  >
-                    <strong>{id}</strong> · {subject}
-                    <div className="text-muted small text-truncate">
-                      {row.body || row.Body || ""}
-                    </div>
-                  </ListGroupItem>
-                );
-              })}
-            </ListGroup>
-          )}
-        </div>
-      ) : null}
+      {error ? <Alert color="danger" className="py-2">{error}</Alert> : null}
+      {note ? <Alert color="success" className="py-2">{note}</Alert> : null}
 
       {allowDoctorPick ? (
         <div className="mb-2" data-testid="assisted-doctor-pick">
@@ -517,7 +483,7 @@ const AssistedBookWizard = ({
         id="assisted-patient-search"
         value={patientSearch}
         onChange={(e) => setPatientSearch(e.target.value)}
-        placeholder="Type name or mobile"
+        placeholder="Name, mobile, or email"
         autoComplete="off"
         data-testid="assisted-patient-search"
       />
@@ -525,7 +491,7 @@ const AssistedBookWizard = ({
         <small className="text-muted">
           {patientsLoading
             ? "Loading clinic patients…"
-            : `${patients.length} patients — pick one, or use Book for… on the queue`}
+            : `${patients.length} patients. Search, then pick one.`}
         </small>
         <Button color="link" size="sm" className="p-0" type="button" onClick={loadPatients} disabled={patientsLoading}>
           Refresh
@@ -559,97 +525,136 @@ const AssistedBookWizard = ({
         </ListGroup>
       ) : null}
       {!patientsLoading && patientSearch && filteredPatients.length === 0 ? (
-        <p className="text-muted small">No match. Try another name/mobile, or register the patient first.</p>
+        <p className="text-muted small">No match. Try another name or mobile, or register the patient first.</p>
       ) : null}
 
       {selectedLabel ? (
         <Alert color="info" className="py-2" data-testid="assisted-patient-selected">
-          Selected: <strong>{selectedLabel}</strong>
+          Patient: <strong>{selectedLabel}</strong>
         </Alert>
       ) : (
-        <p className="text-muted small mb-0">Search by name or mobile, then pick the patient.</p>
+        <p className="text-muted small mb-0">Search by name, mobile, or email, then pick the patient.</p>
       )}
 
-      <Label className="mt-2" htmlFor="assisted-date">
-        Date
-      </Label>
-      <div className="assisted-date-picker">
-        <DateOfBirthPicker
-          name="assisted-date"
-          value={
-            book.appointmentDate
-              ? moment(book.appointmentDate, "YYYY-MM-DD").format(DOB_DISPLAY_FORMAT)
-              : ""
-          }
-          minDate="today"
-          maxDate={moment().add(1, "year").format("YYYY-MM-DD")}
-          placeholder="Pick today or later"
-          onChange={(display) => {
-            const iso = formatApiDate(display);
-            if (!iso) return;
-            if (moment(iso).isBefore(moment().startOf("day"))) {
-              setError("Appointment date must be today or later.");
-              return;
-            }
-            setError("");
-            setBook((prev) => ({ ...prev, appointmentDate: iso, appointmentTime: "" }));
-          }}
-        />
-      </div>
-      <small className="text-muted d-block mb-1">Today and later dates only.</small>
-
-      <Label className="mt-2">Time</Label>
-      <Input
-        type="select"
-        value={book.appointmentTime}
-        onChange={(e) => setBook({ ...book, appointmentTime: e.target.value })}
-        disabled={!book.appointmentDate || !doctorId || slotsLoading || !slots.length}
-        data-testid="assisted-time"
-      >
-        <option value="">
-          {slotsLoading
-            ? "Loading slots…"
-            : book.appointmentDate
-              ? slots.length
-                ? "Select an open slot"
-                : "No open slots — pick another date"
-              : "Choose a date first"}
-        </option>
-        {(slots.length ? slots : slotChoices).map((row) => {
-          const time = row.time || row.Time;
-          const label = row.label || row.Label || time;
-          const status = String(row.status || "").toLowerCase();
-          const open = status === "available" || !status;
-          const suffix = open || !status ? "" : ` (${status})`;
-          return (
-            <option key={`${time}-${status || "open"}`} value={time} disabled={!open}>
-              {label}{suffix}
+      <div className="row g-2 mt-1">
+        <div className="col-md-4">
+          <Label htmlFor="assisted-date">Date</Label>
+          <div className="assisted-date-picker">
+            <DateOfBirthPicker
+              name="assisted-date"
+              value={
+                book.appointmentDate
+                  ? moment(book.appointmentDate, "YYYY-MM-DD").format(DOB_DISPLAY_FORMAT)
+                  : ""
+              }
+              minDate="today"
+              maxDate={moment().add(1, "year").format("YYYY-MM-DD")}
+              placeholder="Today or later"
+              onChange={(display) => {
+                const iso = formatApiDate(display);
+                if (!iso) return;
+                if (moment(iso).isBefore(moment().startOf("day"))) {
+                  setError("Appointment date must be today or later.");
+                  return;
+                }
+                setError("");
+                setBook((prev) => ({ ...prev, appointmentDate: iso, appointmentTime: "" }));
+              }}
+            />
+          </div>
+        </div>
+        <div className="col-md-4">
+          <Label>Time</Label>
+          <Input
+            type="select"
+            value={book.appointmentTime}
+            onChange={(e) => setBook({ ...book, appointmentTime: e.target.value })}
+            disabled={!book.appointmentDate || !doctorId || slotsLoading || !slots.length}
+            data-testid="assisted-time"
+          >
+            <option value="">
+              {slotsLoading
+                ? "Loading slots…"
+                : book.appointmentDate
+                  ? slots.length
+                    ? "Open slot"
+                    : "No open slots"
+                  : "Choose a date first"}
             </option>
-          );
-        })}
-      </Input>
+            {(slots.length ? slots : slotChoices).map((row) => {
+              const time = row.time || row.Time;
+              const label = row.label || row.Label || time;
+              const status = String(row.status || row.Status || "").toLowerCase();
+              const open = status === "available" || !status;
+              const patient = row.patientName || row.PatientName;
+              const suffix = patient ? ` · ${patient}` : open || !status ? "" : ` (${status})`;
+              return (
+                <option key={`${time}-${status || "open"}`} value={time} disabled={!open}>
+                  {label}{suffix}
+                </option>
+              );
+            })}
+          </Input>
+        </div>
+        <div className="col-md-4">
+          <Label>Visit</Label>
+          <Input
+            type="select"
+            value={book.consultMode}
+            onChange={(e) => setBook({ ...book, consultMode: e.target.value })}
+            data-testid="assisted-consult"
+          >
+            <option value="InClinic">In-clinic</option>
+            <option value="Tele">Video</option>
+          </Input>
+        </div>
+      </div>
       {slotsNote ? <p className="text-muted small mb-0 mt-1">{slotsNote}</p> : null}
 
-      <Label className="mt-2">Consult</Label>
-      <Input
-        type="select"
-        value={book.consultMode}
-        onChange={(e) => setBook({ ...book, consultMode: e.target.value })}
-        data-testid="assisted-consult"
-      >
-        <option value="InClinic">In-clinic</option>
-        <option value="Tele">Tele</option>
-      </Input>
-
       <Button
-        className="mt-3 reception-primary-btn"
-        color="primary"
+        className="mt-3 clinic-primary-btn"
         onClick={saveAssisted}
         disabled={saving || !doctorId || !book.patientId || !book.appointmentDate || !book.appointmentTime}
         data-testid="assisted-book-submit"
       >
-        {saving ? "Booking…" : "Book for patient"}
+        {saving ? "Booking…" : "Book appointment"}
       </Button>
+
+      {showRequestQueue ? (
+        <div className="mt-4" data-testid="assisted-request-queue">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h6 className="mb-0">People who asked for a booking</h6>
+            <Button size="sm" color="light" type="button" onClick={loadRequests}>
+              Refresh
+            </Button>
+          </div>
+          {requests.length === 0 ? (
+            <p className="text-muted small mb-0">No open requests.</p>
+          ) : (
+            <ListGroup flush>
+              {requests.map((row) => {
+                const id = row.supportTicketId || row.SupportTicketId;
+                const subject = String(row.subject || row.Subject || "Booking request").replace(/\s*\|.*$/, "").trim();
+                const detail = requestDetail(row.body || row.Body || "");
+                return (
+                  <ListGroupItem
+                    key={id}
+                    action
+                    tag="button"
+                    type="button"
+                    className="px-0"
+                    onClick={() => applyRequest(row)}
+                    data-testid={`assisted-request-${id}`}
+                  >
+                    <strong>{subject || "Booking request"}</strong>
+                    {detail ? <div className="text-muted small text-truncate">{detail}</div> : null}
+                  </ListGroupItem>
+                );
+              })}
+            </ListGroup>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 };

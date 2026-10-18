@@ -569,6 +569,9 @@ export const acceptInstantConsult = (requestId) => {
 };
 export const setTeleAvailability = (data) => nigahomeoAPI.post(url.TELE_AVAILABILITY, data);
 export const getTeleAvailability = () => nigahomeoAPI.get(url.TELE_AVAILABILITY, null);
+/** Discovery visibility (Find a Doctor) — separate from Online. */
+export const getDirectoryVisibility = () => nigahomeoAPI.get(url.DOCTOR_DIRECTORY_VISIBILITY, null);
+export const setDirectoryVisibility = (data) => nigahomeoAPI.put(url.DOCTOR_DIRECTORY_VISIBILITY, data);
 /** PAT-26.02 — device check stub (TOKEN = no). Phone checks camera/mic itself. */
 export const getTeleDeviceCheck = () => nigahomeoAPI.get(url.TELE_DEVICE_CHECK, null);
 /** PAT-29.02 — recording consent; recordAllowed from API only (both sides must accept). */
