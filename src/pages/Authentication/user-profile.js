@@ -393,33 +393,20 @@ const WEEK_DAYS = [
   { id: "sunday", label: "Sunday", short: "Sun" },
 ];
 
-const HOUR_TIME_OPTIONS = [
-  "08:00 AM",
-  "08:30 AM",
-  "09:00 AM",
-  "09:30 AM",
-  "10:00 AM",
-  "10:30 AM",
-  "11:00 AM",
-  "11:30 AM",
-  "12:00 PM",
-  "12:30 PM",
-  "01:00 PM",
-  "01:30 PM",
-  "02:00 PM",
-  "02:30 PM",
-  "03:00 PM",
-  "03:30 PM",
-  "04:00 PM",
-  "04:30 PM",
-  "05:00 PM",
-  "05:30 PM",
-  "06:00 PM",
-  "06:30 PM",
-  "07:00 PM",
-  "07:30 PM",
-  "08:00 PM",
-];
+/** Full day in 30-minute steps (12:00 AM → 11:30 PM) for Hours start/end/break selects. */
+const HOUR_TIME_OPTIONS = (() => {
+  const opts = [];
+  for (let minutes = 0; minutes < 24 * 60; minutes += 30) {
+    const h24 = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    const period = h24 >= 12 ? "PM" : "AM";
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    opts.push(
+      `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`
+    );
+  }
+  return opts;
+})();
 
 const createDefaultHoursDay = (overrides = {}) => ({
   available: true,
@@ -491,7 +478,12 @@ const nextDateForWeekday = (dayId) => {
 };
 
 const weekdayIdFromDate = (value) => {
-  const d = new Date(value);
+  // Date-only strings must be local calendar days (UTC parse shifts the weekday).
+  const raw = String(value || "").trim();
+  const ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const d = ymd
+    ? new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]))
+    : new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
   return ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][d.getDay()];
 };
@@ -572,9 +564,6 @@ const UserProfile = () => {
   const [qualificationFileKey, setQualificationFileKey] = useState(0);
   const qualificationFileRef = useRef(null);
   const [hoursSchedule, setHoursSchedule] = useState(INITIAL_HOURS_SCHEDULE);
-  const [applyToDays, setApplyToDays] = useState(() =>
-    WEEK_DAYS.reduce((acc, day) => ({ ...acc, [day.id]: day.id !== "sunday" }), {})
-  );
   const [consultationMode, setConsultationMode] = useState(INITIAL_CONSULTATION_MODE);
   const [bankForm, setBankForm] = useState(DEFAULT_BANK_FORM);
 
@@ -1482,52 +1471,119 @@ const UserProfile = () => {
     });
   };
 
-  const toggleApplyDay = (dayId) => {
-    setApplyToDays((prev) => ({ ...prev, [dayId]: !prev[dayId] }));
+  const buildHoursSavePayload = (schedule) => {
+    const incompleteBreak = WEEK_DAYS.some((day) => {
+      const row = schedule[day.id];
+      return row?.available && row.breakEnabled && (!row.breakFrom || !row.breakTo);
+    });
+    if (incompleteBreak) {
+      return { error: "Choose both break times, or turn the break off." };
+    }
+    const gapMinutes = bookingRules.gapMinutes === "" ? null : Number(bookingRules.gapMinutes);
+    const horizonDays = bookingRules.horizonDays === "" ? null : Number(bookingRules.horizonDays);
+    if (gapMinutes != null && (!Number.isInteger(gapMinutes) || gapMinutes < 0 || gapMinutes > 240)) {
+      return { error: "Gap between appointments must be a whole number from 0 to 240 minutes." };
+    }
+    if (horizonDays != null && (!Number.isInteger(horizonDays) || horizonDays < 1 || horizonDays > 90)) {
+      return { error: "Booking window must be a whole number from 1 to 90 days." };
+    }
+    const sourceDay =
+      WEEK_DAYS.map((day) => schedule[day.id]).find((row) => row?.available && row.startTime && row.endTime) ||
+      schedule.monday ||
+      createDefaultHoursDay();
+    const days = WEEK_DAYS.filter(
+      (day) => schedule[day.id]?.available && schedule[day.id].startTime && schedule[day.id].endTime
+    ).map((day) => {
+      const row = schedule[day.id];
+      return {
+        scheduleDate: nextDateForWeekday(day.id),
+        workStartTime: amPmToHms(row.startTime),
+        workEndTime: amPmToHms(row.endTime),
+        slotIntervalMinutes: 15,
+        includeBreak: Boolean(row.breakEnabled),
+        breakStartTime: row.breakEnabled ? amPmToHms(row.breakFrom) : null,
+        breakEndTime: row.breakEnabled ? amPmToHms(row.breakTo) : null,
+      };
+    });
+    const clearScheduleDates = WEEK_DAYS.filter((day) => !schedule[day.id]?.available).map((day) =>
+      nextDateForWeekday(day.id)
+    );
+    return {
+      payload: {
+        isOnline: Boolean(consultationMode.teleconsultation || consultationMode.both),
+        workingHoursNote: `Mon-Sat ${sourceDay.startTime || "09:00 AM"}-${sourceDay.endTime || "01:00 PM"}`,
+        gapMinutes,
+        bookingHorizonDays: horizonDays,
+        days,
+        clearScheduleDates,
+      },
+      workingHoursNote: `Mon-Sat ${sourceDay.startTime || "09:00 AM"}-${sourceDay.endTime || "01:00 PM"}`,
+    };
   };
 
-  const handleApplyHoursToSelectedDays = () => {
-    const selectedDayIds = WEEK_DAYS.map((day) => day.id).filter((dayId) => applyToDays[dayId]);
-    if (selectedDayIds.length === 0) {
-      Swal.fire({
-        title: "Select days",
-        text: "Please select at least one day to apply.",
-        icon: "warning",
-        timer: 1600,
-        showConfirmButton: false,
-      });
-      return;
+  const persistHoursSchedule = async (schedule, successText) => {
+    if (
+      !isReceptionUser &&
+      !consultationMode.inClinic &&
+      !consultationMode.teleconsultation
+    ) {
+      showSaveResult(false, "Please enable In-Clinic, Teleconsultation, or Both.");
+      return false;
     }
-
-    const sourceDay =
-      hoursSchedule.monday?.available
-        ? hoursSchedule.monday
-        : WEEK_DAYS.map((day) => hoursSchedule[day.id]).find((day) => day?.available) ||
-          createDefaultHoursDay();
-
-    setHoursSchedule((prev) => {
-      const next = { ...prev };
-      selectedDayIds.forEach((dayId) => {
-        next[dayId] = {
-          ...sourceDay,
-          available: true,
-          startTime: sourceDay.startTime || "09:00 AM",
-          endTime: sourceDay.endTime || "01:00 PM",
-          breakEnabled: Boolean(sourceDay.breakEnabled),
-          breakFrom: sourceDay.breakEnabled ? sourceDay.breakFrom || "01:00 PM" : "",
-          breakTo: sourceDay.breakEnabled ? sourceDay.breakTo || "02:00 PM" : "",
-        };
+    if (isReceptionUser) {
+      showSaveResult(true, `Working hours have been updated for ${profileSubjectName}.`);
+      return true;
+    }
+    const built = buildHoursSavePayload(schedule);
+    if (built.error) {
+      showSaveResult(false, built.error);
+      return false;
+    }
+    try {
+      const saved = await updateAvailabilityMe(built.payload);
+      await updateDoctorProfileMe({
+        workingHoursNote: built.workingHoursNote,
       });
-      return next;
-    });
-
-    Swal.fire({
-      title: "Applied",
-      text: "Selected days were updated from the Monday schedule.",
-      icon: "success",
-      timer: 1400,
-      showConfirmButton: false,
-    });
+      const me = saved?.data ?? saved;
+      if (me) {
+        setBookingRules({
+          gapMinutes: me?.gapMinutes ?? me?.GapMinutes ?? bookingRules.gapMinutes,
+          horizonDays: me?.bookingHorizonDays ?? me?.BookingHorizonDays ?? bookingRules.horizonDays,
+        });
+        const rows = me?.weekSchedules ?? me?.WeekSchedules ?? [];
+        if (Array.isArray(rows)) {
+          setHoursSchedule(() => {
+            const next = WEEK_DAYS.reduce(
+              (acc, day) => ({ ...acc, [day.id]: { ...UNAVAILABLE_DAY } }),
+              {}
+            );
+            rows.forEach((row) => {
+              const id = weekdayIdFromDate(row.scheduleDate || row.ScheduleDate);
+              if (!id) return;
+              const start = hmsToAmPm(row.workStartTime || row.WorkStartTime);
+              const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
+              const breakFrom = hmsToAmPm(row.breakStartTime || row.BreakStartTime);
+              const breakTo = hmsToAmPm(row.breakEndTime || row.BreakEndTime);
+              next[id] = {
+                ...createDefaultHoursDay(),
+                available: true,
+                startTime: start,
+                endTime: end,
+                breakEnabled: Boolean(breakFrom && breakTo),
+                breakFrom,
+                breakTo,
+              };
+            });
+            return next;
+          });
+        }
+      }
+      showSaveResult(true, successText);
+      return true;
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Hours save failed.");
+      return false;
+    }
   };
 
   const updateConsultationMode = (field) => {
@@ -1551,71 +1607,7 @@ const UserProfile = () => {
 
   const handleSaveHours = async (event) => {
     event.preventDefault();
-    if (
-      !isReceptionUser &&
-      !consultationMode.inClinic &&
-      !consultationMode.teleconsultation
-    ) {
-      Swal.fire({
-        title: "Select consultation mode",
-        text: "Please enable In-Clinic, Teleconsultation, or Both.",
-        icon: "warning",
-        timer: 1800,
-        showConfirmButton: false,
-      });
-      return;
-    }
-
-    if (isReceptionUser) {
-      showSaveResult(true, `Working hours have been updated for ${profileSubjectName}.`);
-      return;
-    }
-    const sourceDay = WEEK_DAYS.map((day) => hoursSchedule[day.id]).find((row) => row?.available && row.startTime && row.endTime) || hoursSchedule.monday;
-    const incompleteBreak = WEEK_DAYS.some((day) => {
-      const row = hoursSchedule[day.id];
-      return row?.available && row.breakEnabled && (!row.breakFrom || !row.breakTo);
-    });
-    if (incompleteBreak) {
-      showSaveResult(false, "Choose both break times, or turn the break off.");
-      return;
-    }
-    const gapMinutes = bookingRules.gapMinutes === "" ? null : Number(bookingRules.gapMinutes);
-    const horizonDays = bookingRules.horizonDays === "" ? null : Number(bookingRules.horizonDays);
-    if (gapMinutes != null && (!Number.isInteger(gapMinutes) || gapMinutes < 0 || gapMinutes > 240)) {
-      showSaveResult(false, "Gap between appointments must be a whole number from 0 to 240 minutes.");
-      return;
-    }
-    if (horizonDays != null && (!Number.isInteger(horizonDays) || horizonDays < 1 || horizonDays > 90)) {
-      showSaveResult(false, "Booking window must be a whole number from 1 to 90 days.");
-      return;
-    }
-    const days = WEEK_DAYS.filter((day) => hoursSchedule[day.id]?.available && hoursSchedule[day.id].startTime && hoursSchedule[day.id].endTime).map((day) => {
-      const row = hoursSchedule[day.id];
-      return {
-        scheduleDate: nextDateForWeekday(day.id),
-        workStartTime: amPmToHms(row.startTime),
-        workEndTime: amPmToHms(row.endTime),
-        slotIntervalMinutes: 15,
-        includeBreak: true,
-        breakStartTime: row.breakEnabled ? amPmToHms(row.breakFrom) : null,
-        breakEndTime: row.breakEnabled ? amPmToHms(row.breakTo) : null,
-      };
-    });
-    try {
-      await updateAvailabilityMe({
-        isOnline: Boolean(consultationMode.teleconsultation || consultationMode.both),
-        workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
-        gapMinutes,
-        bookingHorizonDays: horizonDays,
-        days,
-      });
-      await updateDoctorProfileMe({
-        workingHoursNote: `Mon-Sat ${sourceDay.startTime}-${sourceDay.endTime}`,
-      });
-      showSaveResult(true, "Clinic hours have been updated.");
-    } catch (err) {
-      showSaveResult(false, typeof err === "string" ? err : err?.message || "Hours save failed.");
-    }
+    await persistHoursSchedule(hoursSchedule, "Clinic hours have been updated.");
   };
 
   const updateBankField = (field, value) => {
@@ -2698,33 +2690,6 @@ const UserProfile = () => {
                           </table>
                         </div>
 
-                        <div className="user-profile-page__hours-apply">
-                          <span className="user-profile-page__hours-apply-label">Apply to All Days</span>
-                          <div className="user-profile-page__hours-apply-days">
-                            {WEEK_DAYS.map((day) => (
-                              <Label
-                                key={`apply-${day.id}`}
-                                check
-                                className="user-profile-page__hours-apply-day"
-                              >
-                                <Input
-                                  type="checkbox"
-                                  checked={Boolean(applyToDays[day.id])}
-                                  onChange={() => toggleApplyDay(day.id)}
-                                />
-                                <span>{day.short}</span>
-                              </Label>
-                            ))}
-                          </div>
-                          <ModalActionButton
-                            action="update"
-                            type="button"
-                            iconClassName="ri-check-line"
-                            onClick={handleApplyHoursToSelectedDays}
-                          >
-                            Apply
-                          </ModalActionButton>
-                        </div>
                       </div>
 
                       {!isReceptionUser ? (

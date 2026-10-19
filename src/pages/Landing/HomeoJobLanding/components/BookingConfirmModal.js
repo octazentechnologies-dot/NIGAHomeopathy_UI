@@ -260,9 +260,16 @@ const BookingConfirmModal = ({
         try {
             const otp = await requestPatientAuthOtp(patient.phone.trim());
             const hintParts = [`OTP sent to ${otp.destinationMasked || "your mobile"}`];
-            if (otp.devCode) hintParts.push(`Dev code: ${otp.devCode}`);
+            // Real Twilio: no auto-fill / no on-screen code. Enter OTP from SMS.
+            if (otp.devCode) {
+                hintParts.push(`Dev code (SMS not live): ${otp.devCode}`);
+                setOtpCode(String(otp.devCode));
+            } else if (otp.delivered === false) {
+                hintParts.push("SMS did not confirm — check the number or try again.");
+            } else {
+                hintParts.push("Enter the code sent to your phone.");
+            }
             setOtpHint(hintParts.join(". "));
-            if (otp.devCode) setOtpCode(String(otp.devCode));
             setStep(2);
         } catch (err) {
             setBookingError(typeof err === "string" ? err : err?.message || "Could not send OTP.");
