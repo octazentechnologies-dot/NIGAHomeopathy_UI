@@ -577,7 +577,7 @@ const rxSummaryText = (erx) => {
 
 const openErxPage = (patientAppId) => {
   if (!patientAppId) return;
-  window.open(`/doctor/erx?patientAppId=${patientAppId}`, "_blank", "noopener");
+  window.location.assign(`/doctor/erx?patientAppId=${patientAppId}`);
 };
 
 const InCallStep = ({

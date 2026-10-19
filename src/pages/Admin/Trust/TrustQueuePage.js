@@ -229,6 +229,13 @@ const TrustQueuePage = () => {
           name: doctorName(row),
           qualification: row.qualification || row.Qualification || qualificationById[id] || "",
           email: row.emailId || row.EmailId || "",
+          mobile: row.mobileNo || row.MobileNo || "",
+          city: row.city || row.City || "",
+          clinicName: row.clinicName || row.ClinicName || "",
+          isDiscoverable: Boolean(row.directoryVisible ?? row.DirectoryVisible ?? row.isDiscoverable ?? row.IsDiscoverable),
+          practiceActivated: Boolean(row.practiceActivated ?? row.PracticeActivated),
+          isOnline: Boolean(row.isOnline ?? row.IsOnline),
+          feeInClinic: row.consultFeeInClinic ?? row.ConsultFeeInClinic ?? null,
           status: doctorStatusKey(row.verificationStatus || row.VerificationStatus || row.status || row.Status),
         };
       });
@@ -514,7 +521,7 @@ const TrustQueuePage = () => {
                       className="form-control"
                       value={doctorSearch}
                       onChange={(e) => setDoctorSearch(e.target.value)}
-                      placeholder="Search doctor or qualification"
+                      placeholder="Search doctor, clinic, city, mobile…"
                     />
                   </div>
                 </div>
@@ -536,27 +543,35 @@ const TrustQueuePage = () => {
                   <colgroup>
                     <col />
                     <col className="tv-col-qual" />
+                    <col className="tv-col-contact" />
+                    <col className="tv-col-clinic" />
                     <col className="tv-col-status" />
+                    <col className="tv-col-discover" />
+                    <col className="tv-col-flags" />
                     <col className="tv-col-actions" />
                   </colgroup>
                   <thead>
                     <tr>
                       <th>Name</th>
                       <th>Qualification</th>
+                      <th>Contact</th>
+                      <th>Clinic / City</th>
                       <th>Status</th>
+                      <th>Discoverable</th>
+                      <th>Practice</th>
                       <th className="text-end">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={4} className="tv-empty">
+                        <td colSpan={8} className="tv-empty">
                           <Spinner size="sm" />
                         </td>
                       </tr>
                     ) : filteredDoctors.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="tv-empty">
+                        <td colSpan={8} className="tv-empty">
                           No doctors in this filter.
                         </td>
                       </tr>
@@ -579,8 +594,47 @@ const TrustQueuePage = () => {
                               <td className="tv-qual" title={doctor.qualification}>
                                 {doctor.qualification || "—"}
                               </td>
+                              <td className="tv-contact">
+                                <div className="tv-stack" title={[doctor.email, doctor.mobile].filter(Boolean).join(" · ")}>
+                                  <span>{doctor.email || "—"}</span>
+                                  {doctor.mobile ? <span className="tv-muted">{doctor.mobile}</span> : null}
+                                </div>
+                              </td>
+                              <td className="tv-clinic">
+                                <div className="tv-stack" title={[doctor.clinicName, doctor.city].filter(Boolean).join(" · ")}>
+                                  <span>{doctor.clinicName || "—"}</span>
+                                  {doctor.city ? <span className="tv-muted">{doctor.city}</span> : null}
+                                  {doctor.feeInClinic != null && doctor.feeInClinic !== "" ? (
+                                    <span className="tv-muted">
+                                      Fee ₹ {Number(doctor.feeInClinic).toLocaleString("en-IN")}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </td>
                               <td>
                                 <span className={`tv-chip tv-chip--${status.tone}`}>{status.label}</span>
+                              </td>
+                              <td>
+                                <span
+                                  className={`tv-chip ${doctor.isDiscoverable ? "tv-chip--verified" : "tv-chip--pending"}`}
+                                  title={
+                                    doctor.isDiscoverable
+                                      ? "Listed in Find a Doctor when verified"
+                                      : "Hidden from patient Find a Doctor"
+                                  }
+                                >
+                                  {doctor.isDiscoverable ? "Yes" : "No"}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="tv-stack tv-stack--flags">
+                                  <span className={`tv-chip ${doctor.practiceActivated ? "tv-chip--verified" : "tv-chip--pending"}`}>
+                                    {doctor.practiceActivated ? "Activated" : "Not activated"}
+                                  </span>
+                                  {doctor.isOnline ? (
+                                    <span className="tv-chip tv-chip--info">Online</span>
+                                  ) : null}
+                                </div>
                               </td>
                               <td>
                                 <div className="tv-actions">
@@ -625,7 +679,7 @@ const TrustQueuePage = () => {
                             </tr>
                             {docs ? (
                               <tr className="tv-docs-row">
-                                <td colSpan={4}>
+                                <td colSpan={8}>
                                   {docs.length === 0 ? (
                                     <span className="tv-docs-empty">No credential files uploaded for this doctor.</span>
                                   ) : (

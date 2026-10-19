@@ -15,12 +15,15 @@ import {
 } from "reactstrap";
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from "../../../Components/Common/DateOfBirthPicker";
 import moment from "moment";
-import { getAppointmentQueue } from "../../../helpers/realbackend_helper";
+import {
+  getAppointmentQueue,
+  getReceptionPatientCard,
+  getReceptionVitals,
+} from "../../../helpers/realbackend_helper";
 import { getPublicFee, unwrapS4 } from "../../../helpers/s4Week4Api";
 import { apiMessage, readReceptionDoctorId, unwrap } from "../receptionSession";
 import { paymentStatusMeta } from "../../../helpers/paymentStatusBadge";
 import AppointmentPatientViewModal from "./AppointmentPatientViewModal";
-import { readStoredVitals } from "./ReceptionCheckInFlow";
 
 const genderLabel = (gender) => {
   if (gender === 0 || gender === "0" || gender === "M") return "Male";
@@ -106,7 +109,7 @@ const mapQueueRow = (apiRow, doctorFallback, feeByType) => {
       emergencyContact: "—",
       patientId: patientId ? String(patientId) : "—",
     },
-    vitals: readStoredVitals(patientAppId) || {},
+    vitals: {},
     paymentDetails: {
       amount: pay.label === "Paid" ? formatRupees(fee) : "₹ 0",
       gst: "GST applied by API on collection",
@@ -139,6 +142,8 @@ const AppointmentActionButtons = ({
   onView,
   onEdit,
   onUpdateTime,
+  onReschedule,
+  onCancel,
   editLabel = "Update time",
 }) => (
   <div className="d-inline-flex align-items-center gap-1">
@@ -182,6 +187,38 @@ const AppointmentActionButtons = ({
         </UncontrolledTooltip>
       </>
     ) : null}
+    {onReschedule ? (
+      <>
+        <button
+          id={`reception-appt-reschedule-${row.id}`}
+          type="button"
+          className="btn btn-sm btn-soft-warning"
+          aria-label="Reschedule"
+          onClick={() => onReschedule(row)}
+        >
+          <i className="ri-calendar-event-line" />
+        </button>
+        <UncontrolledTooltip placement="top" target={`reception-appt-reschedule-${row.id}`}>
+          Reschedule
+        </UncontrolledTooltip>
+      </>
+    ) : null}
+    {onCancel ? (
+      <>
+        <button
+          id={`reception-appt-cancel-${row.id}`}
+          type="button"
+          className="btn btn-sm btn-soft-danger"
+          aria-label="Cancel appointment"
+          onClick={() => onCancel(row)}
+        >
+          <i className="ri-close-circle-line" />
+        </button>
+        <UncontrolledTooltip placement="top" target={`reception-appt-cancel-${row.id}`}>
+          Cancel
+        </UncontrolledTooltip>
+      </>
+    ) : null}
   </div>
 );
 
@@ -193,6 +230,8 @@ const AppointmentTable = ({
   onView,
   onEdit,
   onUpdateTime,
+  onReschedule,
+  onCancel,
   editLabel,
 }) => (
   <div className="table-responsive">
@@ -237,6 +276,8 @@ const AppointmentTable = ({
                     onView={onView}
                     onEdit={onEdit}
                     onUpdateTime={onUpdateTime}
+                    onReschedule={onReschedule}
+                    onCancel={onCancel}
                     editLabel={editLabel}
                   />
                 </td>
@@ -282,6 +323,8 @@ const applyPaymentPatch = (row, patch) => {
 const TodaysAppointments = ({
   onEditAppointment,
   onCheckInEdit,
+  onReschedule,
+  onCancel,
   refreshKey = 0,
   paymentPatch = null,
 }) => {
@@ -360,10 +403,59 @@ const TodaysAppointments = ({
     [allSource, needle]
   );
 
-  const handleView = (row) => {
-    const stored = readStoredVitals(row.patientAppId || row.id);
-    setSelectedAppointment(stored ? { ...row, vitals: stored } : row);
+  const handleView = async (row) => {
+    setSelectedAppointment(row);
     setViewOpen(true);
+    const patientId = Number(row.patientId);
+    const appId = row.patientAppId || row.id;
+    try {
+      const [cardRes, vitalsRes] = await Promise.all([
+        patientId ? getReceptionPatientCard(patientId).catch(() => null) : Promise.resolve(null),
+        appId ? getReceptionVitals(appId).catch(() => null) : Promise.resolve(null),
+      ]);
+      const cardBody = unwrap(cardRes);
+      const card = cardBody?.data || cardBody?.Data || cardBody;
+      const vitalsBody = unwrap(vitalsRes);
+      const vitalsRaw = vitalsBody?.data || vitalsBody?.Data || vitalsBody;
+      const vitals =
+        vitalsRaw && typeof vitalsRaw === "object"
+          ? {
+              bloodPressure: vitalsRaw.bloodPressure || vitalsRaw.BloodPressure || "",
+              pulse: vitalsRaw.pulse || vitalsRaw.Pulse || "",
+              temperature: vitalsRaw.temperature || vitalsRaw.Temperature || "",
+              weight: vitalsRaw.weight || vitalsRaw.Weight || "",
+              height: vitalsRaw.height || vitalsRaw.Height || "",
+              spo2: vitalsRaw.spo2 || vitalsRaw.Spo2 || "",
+              respiratoryRate: vitalsRaw.respiratoryRate || vitalsRaw.RespiratoryRate || "",
+              bloodSugar: vitalsRaw.bloodSugar || vitalsRaw.BloodSugar || "",
+              notes: vitalsRaw.notes || vitalsRaw.Notes || "",
+            }
+          : {};
+      const dob = card?.dateOfBirth || card?.DateOfBirth;
+      setSelectedAppointment((prev) => {
+        if (!prev || String(prev.id) !== String(row.id)) return prev;
+        return {
+          ...prev,
+          patientDetails: {
+            ...prev.patientDetails,
+            fullName: card?.fullName || card?.FullName || prev.patientDetails?.fullName,
+            ageSex: card?.ageSex || card?.AgeSex || prev.patientDetails?.ageSex,
+            mobile: card?.mobile || card?.Mobile || prev.patientDetails?.mobile,
+            email: card?.email || card?.Email || prev.patientDetails?.email,
+            dateOfBirth: dob ? moment(dob).format("DD/MM/YYYY") : prev.patientDetails?.dateOfBirth,
+            address: card?.address || card?.Address || prev.patientDetails?.address,
+            place: card?.place || card?.Place || prev.patientDetails?.place,
+            emergencyContact:
+              card?.emergencyContact || card?.EmergencyContact || prev.patientDetails?.emergencyContact,
+            bloodGroup: card?.bloodGroup || card?.BloodGroup || prev.patientDetails?.bloodGroup || "—",
+            patientId: String(card?.patientId || card?.PatientId || prev.patientDetails?.patientId || "—"),
+          },
+          vitals,
+        };
+      });
+    } catch {
+      /* keep queue row fields */
+    }
   };
 
   const handleEdit = (row) => {
@@ -448,6 +540,8 @@ const TodaysAppointments = ({
                   onView={handleView}
                   onEdit={handleEdit}
                   onUpdateTime={handleUpdateTime}
+                  onReschedule={onReschedule}
+                  onCancel={onCancel}
                   editLabel={editLabel}
                   emptyMessage={{
                     search: "No appointments found matching your search",
@@ -463,6 +557,8 @@ const TodaysAppointments = ({
                   onView={handleView}
                   onEdit={handleEdit}
                   onUpdateTime={handleUpdateTime}
+                  onReschedule={onReschedule}
+                  onCancel={onCancel}
                   editLabel={editLabel}
                   emptyMessage={{
                     search: "No appointments found matching your search",

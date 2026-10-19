@@ -343,15 +343,59 @@
 }
 
 .tv-col-qual {
-  width: 24%;
+  width: 9%;
+}
+
+.tv-col-contact {
+  width: 16%;
+}
+
+.tv-col-clinic {
+  width: 14%;
 }
 
 .tv-col-status {
-  width: 17%;
+  width: 9%;
+}
+
+.tv-col-discover {
+  width: 8%;
+}
+
+.tv-col-flags {
+  width: 10%;
 }
 
 .tv-col-actions {
   width: 8.5rem;
+}
+
+.tv-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.tv-stack--flags {
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.tv-stack > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-muted {
+  color: var(--tv-muted);
+  font-size: 0.68rem;
+}
+
+.tv-page .tv-table > tbody td.tv-contact,
+.tv-page .tv-table > tbody td.tv-clinic {
+  white-space: normal;
 }
 
 .tv-page .tv-table > thead th {

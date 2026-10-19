@@ -154,7 +154,7 @@ const NotificationDropdown = () => {
                         message: `${rows.length} open follow-up ${rows.length === 1 ? 'task is' : 'tasks are'} due today or overdue.`,
                         icon: 'ri-user-follow-line',
                         iconClass: 'bg-primary-subtle text-primary',
-                        to: '/doctor/follow-up-analysis',
+                        to: '/doctor/follow-ups',
                         linkText: 'View follow-ups',
                     });
                 }

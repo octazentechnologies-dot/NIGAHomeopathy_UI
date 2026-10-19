@@ -18,7 +18,6 @@ import {
     canOpenPatientSession,
     showPatientSessionLimitAlert,
 } from '../../../helpers/patientBoardSessionHelper';
-import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
 import { openReceptionPatientRow } from '../../Reception/receptionSession';
 import { paymentStatusMeta } from '../../../helpers/paymentStatusBadge';
 import CaseTakingModeModal from '../../../Components/CaseTaking/CaseTakingModeModal';
@@ -36,7 +35,6 @@ import { buildPatientApiPayload, getPatientAuthContext, getPatientEmailForEdit }
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
-import AppointmentChangeActions from './AppointmentChangeActions';
 import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from '../../../helpers/appointmentStatus';
 import { recordMatchesQuery } from '../../../helpers/recordSearch';
 import {
@@ -51,7 +49,10 @@ import {
     exportPatients,
     downloadPatientImportTemplate,
     importPatients,
+    cancelAppointment,
 } from '../../../helpers/realbackend_helper';
+import { CANCEL_REASONS } from '../../../Components/Common/CancelAppointmentModal';
+import RescheduleModal from '../../../Components/Common/RescheduleModal';
 import {
     extractApiList,
     extractPrescriptionResultObject,
@@ -158,12 +159,7 @@ const RESCHEDULE_REASON_OPTIONS = [
 
 const CANCELLATION_REASON_OPTIONS = [
     { value: '', label: 'Select reason' },
-    { value: 'Patient request', label: 'Patient request' },
-    { value: 'Doctor unavailable', label: 'Doctor unavailable' },
-    { value: 'Schedule conflict', label: 'Schedule conflict' },
-    { value: 'Feeling better', label: 'Feeling better' },
-    { value: 'Emergency', label: 'Emergency' },
-    { value: 'Other', label: 'Other' },
+    ...CANCEL_REASONS,
 ];
 
 const AppointmentTimeCell = ({
@@ -193,6 +189,7 @@ const AppointmentTimeCell = ({
     const [additionalNote, setAdditionalNote] = useState('');
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
+    const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
     const [cancellationReason, setCancellationReason] = useState('');
     const [cancellationNote, setCancellationNote] = useState('');
     const [cancelling, setCancelling] = useState(false);
@@ -207,6 +204,7 @@ const AppointmentTimeCell = ({
             setAdditionalNote('');
             setSelectedSlot(null);
             setCancelModalOpen(false);
+            setRescheduleModalOpen(false);
             setCancellationReason('');
             setCancellationNote('');
         }
@@ -336,33 +334,62 @@ const AppointmentTimeCell = ({
             });
             return;
         }
+        if (cancellationReason === 'Other' && !cancellationNote.trim()) {
+            Swal.fire({
+                title: 'Details required',
+                text: 'Add a note when the reason is Other.',
+                icon: 'info',
+                timer: 1800,
+                showConfirmButton: false,
+            });
+            return;
+        }
 
         setCancelling(true);
         try {
-            await dispatch(updateAppointmentStatus({
-                patientAppId,
-                status: 'CANCELLED',
-                cancellationReason,
-                additionalNote: cancellationNote.trim() || undefined,
-            }));
+            // Must use CancelAppointment (ReasonCode), not UpdateAppointmentStatus.
+            const response = await cancelAppointment({
+                patientAppId: Number(patientAppId),
+                reasonCode: cancellationReason,
+                reasonText: cancellationNote.trim() || undefined,
+            });
+            const failed =
+                response?.success === false ||
+                response?.Success === false ||
+                (response?.statusCode != null && Number(response.statusCode) >= 400) ||
+                (response?.StatusCode != null && Number(response.StatusCode) >= 400);
+            if (failed) {
+                throw new Error(
+                    response?.message ||
+                        response?.Message ||
+                        'Failed to cancel appointment'
+                );
+            }
             setCancelModalOpen(false);
+            setCancellationReason('');
+            setCancellationNote('');
             onCancelEdit();
             onTimeUpdated?.();
             Swal.fire({
                 title: 'Cancelled!',
-                text: 'Appointment has been cancelled.',
+                text: response?.message || response?.Message || 'Appointment has been cancelled.',
                 icon: 'success',
                 timer: 1500,
                 showConfirmButton: false,
             });
         } catch (error) {
-            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to cancel appointment';
+            const errorMessage =
+                (typeof error === 'string' && error) ||
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
+                error?.message ||
+                'Failed to cancel appointment';
             Swal.fire({
                 title: 'Error!',
                 text: errorMessage,
                 icon: 'error',
-                timer: 2000,
-                showConfirmButton: false,
+                timer: 2800,
+                showConfirmButton: true,
             });
         } finally {
             setCancelling(false);
@@ -409,13 +436,13 @@ const AppointmentTimeCell = ({
                         onClick={onStartEdit}
                         disabled={isLocked}
                         style={isLocked ? { pointerEvents: 'none' } : undefined}
-                        aria-label="Edit appointment time"
+                        aria-label="Edit appointment"
                     >
                         <i className="ri-pencil-fill" aria-hidden="true" />
                     </button>
                 </span>
                 <UncontrolledTooltip placement="top" target={editButtonId}>
-                    {isLocked ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : 'Edit appointment time'}
+                    {isLocked ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : 'Edit appointment — update time, reschedule, or cancel'}
                 </UncontrolledTooltip>
             </div>
 
@@ -429,8 +456,8 @@ const AppointmentTimeCell = ({
             >
                 <ModalHeader className="patient-list-modal__header" toggle={onCancelEdit}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-time-line" style={{ color: '#25a0e2', fontSize: 15 }} />
-                        <span className="patient-list-modal__title-text">Update Appointment Time</span>
+                        <i className="ri-calendar-event-line" style={{ color: '#25a0e2', fontSize: 15 }} />
+                        <span className="patient-list-modal__title-text">Edit Appointment</span>
                     </span>
                 </ModalHeader>
                 <ModalBody>
@@ -439,7 +466,7 @@ const AppointmentTimeCell = ({
                         <span>{patientName}</span>
                     </div>
                     <p className="text-muted small mb-3">
-                        This adjusts the time on the day list only. It does not notify the patient. Reschedule is the patient-notified path.
+                        Update the slot on this day list, reschedule with patient notice, or cancel the visit.
                     </p>
                     <div className="row g-3 mb-3">
                         <div className="col-md-6">
@@ -524,10 +551,10 @@ const AppointmentTimeCell = ({
                         </div>
                     )}
                     <div className="text-muted mt-2" style={{ fontSize: '0.875rem' }}>
-                        Select an available slot, then click Update time. This does not notify the patient.
+                        Select an available slot, then click Update time (no patient notice). Use Reschedule to move the visit and notify the patient.
                     </div>
                 </ModalBody>
-                <ModalFooter className="appointment-time-edit-modal__footer">
+                <ModalFooter className="appointment-time-edit-modal__footer appointment-time-edit-modal__footer--actions">
                     <button
                         type="button"
                         className="btn btn-soft-danger modal-action-btn"
@@ -535,7 +562,16 @@ const AppointmentTimeCell = ({
                         disabled={saving || cancelling}
                     >
                         <i className="ri-calendar-close-line align-middle" aria-hidden />
-                        <span>Cancel Appointment</span>
+                        <span>Cancel</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-soft-info modal-action-btn"
+                        onClick={() => setRescheduleModalOpen(true)}
+                        disabled={saving || cancelling || !patientAppId}
+                    >
+                        <i className="ri-calendar-schedule-line align-middle" aria-hidden />
+                        <span>Reschedule</span>
                     </button>
                     <ModalActionButton
                         action="update"
@@ -548,6 +584,20 @@ const AppointmentTimeCell = ({
                     </ModalActionButton>
                 </ModalFooter>
             </Modal>
+
+            <RescheduleModal
+                isOpen={rescheduleModalOpen}
+                toggle={() => setRescheduleModalOpen(false)}
+                patientAppId={patientAppId}
+                doctorId={doctorId}
+                appointmentDate={appointmentDate}
+                appointmentTime={rawTime}
+                onSaved={() => {
+                    setRescheduleModalOpen(false);
+                    onCancelEdit();
+                    onTimeUpdated?.();
+                }}
+            />
 
             <Modal
                 isOpen={cancelModalOpen}
@@ -2012,7 +2062,7 @@ const BestSellingProducts = () => {
         }
     };
 
-    // Helper function to render table rows (Today tab shows Appointment Time + Connect + New Appointment)
+    // Helper function to render table rows (Today tab shows Appointment Time + History + F/U)
     const renderTableRows = (pageData, startIndex, idPrefix, isTodayTab = false) => {
         return pageData.map((patient, index) => {
             const rowAppId = getPatientAppIdFromRow(patient);
@@ -2142,18 +2192,6 @@ const BestSellingProducts = () => {
                             : '—'}
                     </td>
                 )}
-                {isTodayTab ? (
-                    <td className="dashboard-patient-col-manage" data-testid="appointment-manage-actions">
-                        <AppointmentChangeActions
-                            patientAppId={getPatientAppointmentId(patient)}
-                            doctorId={patient.doctorId || patient.doctorID}
-                            appointmentDate={patient.appointmentDate || patient.AppointmentDate || selectedAppointmentDate}
-                            appointmentTime={patient.appointmentTime || patient.AppointmentTime}
-                            status={patient.appStatus}
-                            onChanged={() => loadAppointmentListForDate(selectedAppointmentDate)}
-                        />
-                    </td>
-                ) : null}
                 <td className="dashboard-patient-col-actions-combined">
                     <div className="dashboard-patient-actions">
                         <div className="dashboard-patient-actions-bar">
@@ -2196,88 +2234,6 @@ const BestSellingProducts = () => {
                             </PatientDashboardActionGroup>
                         </div>
                         ) : null}
-                        <div className="dashboard-patient-actions-section dashboard-patient-actions-section--connect">
-                            <PatientDashboardActionGroup>
-                            <PatientDashboardActionButton
-                                id={`${idPrefix}-chat-${patient.id}`}
-                                icon="ri-whatsapp-line"
-                                label="WhatsApp"
-                                btnClass="btn-soft-success"
-                                tooltip="Chat on WhatsApp"
-                                onClick={() => {
-                                    const number = patientDialNumber(patient.mobileNo);
-                                    Swal.fire({
-                                        title: `WhatsApp ${number}`,
-                                        text: 'Are you sure want to connect with whatsapp chat?',
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonColor: '#0ab39c',
-                                        cancelButtonColor: '#3085d6',
-                                        confirmButtonText: 'Yes, connect!',
-                                        cancelButtonText: 'Cancel',
-                                        showClass: { popup: 'animate__animated animate__fadeInDown' },
-                                        hideClass: { popup: 'animate__animated animate__fadeOutUp' }
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            window.open(patientWhatsAppHref(patient.mobileNo), '_blank', 'noopener,noreferrer');
-                                        }
-                                    });
-                                }}
-                            />
-                            <PatientDashboardActionButton
-                                id={`${idPrefix}-call-${patient.id}`}
-                                icon="ri-phone-line"
-                                label="Call"
-                                btnClass="btn-soft-info"
-                                tooltip="Call Patient"
-                                onClick={() => {
-                                    const number = patientDialNumber(patient.mobileNo);
-                                    Swal.fire({
-                                        title: number,
-                                        text: 'Are you sure to call person directly?',
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonColor: '#d33',
-                                        cancelButtonColor: '#3085d6',
-                                        confirmButtonText: 'Yes, call!',
-                                        cancelButtonText: 'Cancel',
-                                        showClass: { popup: 'animate__animated animate__fadeInDown' },
-                                        hideClass: { popup: 'animate__animated animate__fadeOutUp' }
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            window.location.href = patientCallHref(patient.mobileNo);
-                                        }
-                                    });
-                                }}
-                            />
-                            <PatientDashboardActionButton
-                                id={`${idPrefix}-video-${patient.id}`}
-                                icon="ri-vidicon-line"
-                                label="Video"
-                                btnClass="btn-soft-dark"
-                                tooltip="WhatsApp Video Call"
-                                onClick={() => {
-                                    const number = patientDialNumber(patient.mobileNo);
-                                    Swal.fire({
-                                        title: `WhatsApp video ${number}`,
-                                        text: 'Are you sure want to connect with whatsapp video call?',
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonColor: '#299cdb',
-                                        cancelButtonColor: '#3085d6',
-                                        confirmButtonText: 'Yes, connect!',
-                                        cancelButtonText: 'Cancel',
-                                        showClass: { popup: 'animate__animated animate__fadeInDown' },
-                                        hideClass: { popup: 'animate__animated animate__fadeOutUp' }
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            window.open(patientWhatsAppHref(patient.mobileNo), '_blank', 'noopener,noreferrer');
-                                        }
-                                    });
-                                }}
-                            />
-                            </PatientDashboardActionGroup>
-                        </div>
                         <div className="dashboard-patient-actions-section dashboard-patient-actions-section--followup">
                             <PatientDashboardActionGroup>
                             {isTodayTab ? (
@@ -2511,33 +2467,31 @@ const BestSellingProducts = () => {
                     padding-right: 0.35rem !important;
                     white-space: nowrap;
                 }
-                .dashboard-patient-col-manage {
-                    width: 8.25rem;
-                    min-width: 8.25rem;
-                    max-width: 8.25rem;
-                    vertical-align: middle;
-                    white-space: nowrap;
-                    padding-left: 1rem !important;
-                    padding-right: 0.5rem !important;
+                .appointment-time-edit-modal__footer--actions {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    justify-content: flex-end;
+                    align-items: center;
                 }
-                .dashboard-patient-col-manage .dashboard-appointment-change-actions {
+                .appointment-time-edit-modal__footer--actions .modal-action-btn {
                     display: inline-flex;
                     align-items: center;
                     flex-wrap: nowrap;
                     gap: 0.25rem;
                 }
                 .dashboard-patient-col-actions-combined {
-                    min-width: 15.5rem;
-                    width: 15.5rem;
+                    min-width: 9.5rem;
+                    width: 9.5rem;
                     vertical-align: middle;
                 }
                 .dashboard-patient-table--reception .dashboard-patient-col-actions-combined {
-                    min-width: 9.5rem;
-                    width: 9.5rem;
+                    min-width: 3.5rem;
+                    width: 3.5rem;
                 }
                 .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-col-actions-combined {
-                    min-width: 18rem;
-                    width: 18rem;
+                    min-width: 12rem;
+                    width: 12rem;
                 }
                 .dashboard-patient-actions {
                     display: flex;
@@ -2547,7 +2501,7 @@ const BestSellingProducts = () => {
                 .dashboard-patient-actions-header,
                 .dashboard-patient-actions-bar {
                     display: grid;
-                    grid-template-columns: 5.75rem 5.75rem 2.75rem;
+                    grid-template-columns: 5.75rem 2.75rem;
                     column-gap: 0.65rem;
                     align-items: center;
                     width: max-content;
@@ -2555,11 +2509,11 @@ const BestSellingProducts = () => {
                 }
                 .dashboard-patient-table--reception .dashboard-patient-actions-header,
                 .dashboard-patient-table--reception .dashboard-patient-actions-bar {
-                    grid-template-columns: 5.75rem 2.75rem;
+                    grid-template-columns: 2.75rem;
                 }
                 .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-actions-header,
                 .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-actions-bar {
-                    grid-template-columns: 5.75rem 5.75rem 5.75rem;
+                    grid-template-columns: 5.75rem 5.75rem;
                 }
                 .dashboard-patient-actions-header span {
                     text-align: center;
@@ -2949,13 +2903,11 @@ const BestSellingProducts = () => {
                                                 <th scope="col" className="dashboard-patient-col-mobile">Mobile</th>
                                                 <th scope="col" className="dashboard-patient-col-status">App.Status</th>
                                                 <th scope="col" className="dashboard-patient-col-apptime">App.Time</th>
-                                                <th scope="col" className="dashboard-patient-col-manage" />
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
                                                     <div className="dashboard-patient-actions-header">
                                                         {!isReceptionUser ? (
                                                             <span className="dashboard-patient-actions-header__history">History</span>
                                                         ) : null}
-                                                        <span className="dashboard-patient-actions-header__connect">Connect</span>
                                                         <span className="dashboard-patient-actions-header__followup">F/U</span>
                                                     </div>
                                                 </th>
@@ -2964,7 +2916,7 @@ const BestSellingProducts = () => {
                                         <tbody>
                                             {appointmentListLoading ? (
                                                 <tr>
-                                                    <td colSpan={9} className='text-center text-muted'>
+                                                    <td colSpan={8} className='text-center text-muted'>
                                                         <div className="d-flex justify-content-center align-items-center">
                                                             <div className="spinner-border spinner-border-sm me-2" role="status">
                                                                 <span className="visually-hidden">Loading...</span>
@@ -2978,7 +2930,7 @@ const BestSellingProducts = () => {
                                                     {renderTableRows(todayPageData, todayStartIndex, 'today', true)}
                                                     {todayPageData.length === 0 && !appointmentListLoading && (
                                                         <tr>
-                                                            <td colSpan={9} className='text-center text-muted'>
+                                                            <td colSpan={8} className='text-center text-muted'>
                                                                 {searchTerm ? 'No appointments found matching your search' : 'No appointments available'}
                                                             </td>
                                                         </tr>
@@ -3005,7 +2957,6 @@ const BestSellingProducts = () => {
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
                                                     <div className="dashboard-patient-actions-header">
                                                         <span className="dashboard-patient-actions-header__history">History</span>
-                                                        <span className="dashboard-patient-actions-header__connect">Connect</span>
                                                         <span className="dashboard-patient-actions-header__followup">F/U</span>
                                                     </div>
                                                 </th>

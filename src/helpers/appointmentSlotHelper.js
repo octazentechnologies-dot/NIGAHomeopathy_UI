@@ -125,7 +125,7 @@ export const getMaxSlotsPerHour = (slots = []) => {
 };
 
 export const getSlotStatusSummary = (slots = []) => {
-  const summary = { available: 0, booked: 0, past: 0, current: 0, total: slots.length };
+  const summary = { available: 0, booked: 0, past: 0, current: 0, break: 0, total: slots.length };
   slots.forEach((slot) => {
     const status = (slot.status || 'available').toLowerCase();
     if (summary[status] != null) {

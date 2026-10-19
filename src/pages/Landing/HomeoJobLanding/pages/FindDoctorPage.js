@@ -5,7 +5,6 @@ import { Col, Container, Row } from "reactstrap";
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
 import {
-    listCareCategories,
     listPublicDoctors,
     mapPublicDoctorCard,
 } from "../../../../helpers/publicBookingApi";
@@ -27,7 +26,6 @@ const MAP_PIN_SLOTS = [
 const FindDoctorPage = () => {
     const [searchParams] = useSearchParams();
     const [query, setQuery] = useState(searchParams.get("q") || "");
-    const [specialization, setSpecialization] = useState(searchParams.get("concern") || "");
     const [city, setCity] = useState("");
     const [onlineOnly, setOnlineOnly] = useState(false);
     const [teleOnly, setTeleOnly] = useState(false);
@@ -40,21 +38,16 @@ const FindDoctorPage = () => {
     const [totalRecords, setTotalRecords] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState("");
-    const [categories, setCategories] = useState([]);
     const cityInputRef = useRef(null);
 
     useEffect(() => {
         document.title = `${SITE.name} | Find a Doctor`;
-        listCareCategories()
-            .then((list) => setCategories(Array.isArray(list) ? list : []))
-            .catch(() => setCategories([]));
     }, []);
 
     const instantMode = searchParams.get("mode") === "instant";
 
     useEffect(() => {
         setQuery(searchParams.get("q") || "");
-        setSpecialization(searchParams.get("concern") || "");
         if (searchParams.get("mode") === "instant") {
             setTeleOnly(true);
             setOnlineOnly(true);
@@ -66,9 +59,8 @@ const FindDoctorPage = () => {
         let cancelled = false;
         setLoading(true);
         setLoadError("");
-        const q = [query, specialization].filter((part) => String(part).trim()).join(" ").trim();
         listPublicDoctors({
-            q: q || undefined,
+            q: query.trim() || undefined,
             city: city.trim() || undefined,
             isOnline: onlineOnly ? true : undefined,
             teleOnly: teleOnly ? true : undefined,
@@ -93,7 +85,7 @@ const FindDoctorPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [query, specialization, city, onlineOnly, teleOnly]);
+    }, [query, city, onlineOnly, teleOnly]);
 
     const filtered = useMemo(() => {
         let list = [...doctors];
@@ -120,7 +112,6 @@ const FindDoctorPage = () => {
 
     const resetFilters = () => {
         setQuery("");
-        setSpecialization("");
         setCity("");
         setOnlineOnly(false);
         setTeleOnly(false);
@@ -225,25 +216,6 @@ const FindDoctorPage = () => {
                         Reset Filters
                     </button>
                 </div>
-                {categories.length > 0 && (
-                    <div className="homeojob-find-doctor__filters mt-2">
-                        {categories.slice(0, 12).map((cat) => (
-                            <button
-                                key={cat.id ?? cat.name}
-                                type="button"
-                                className={`homeojob-find-doctor__filter${
-                                    specialization === (cat.name || "") ? " is-active" : ""
-                                }`}
-                                onClick={() => {
-                                    setSpecialization(cat.name || "");
-                                    setPage(1);
-                                }}
-                            >
-                                {cat.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
 
                 <div className="homeojob-find-doctor__results-head">
                     <p className="homeojob-find-doctor__count">

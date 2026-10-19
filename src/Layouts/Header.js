@@ -165,7 +165,9 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                         Help &amp; Support
                                     </UncontrolledTooltip>
                                 </div>
-                                <WebAppsDropdown />
+                                {userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGEMENT ? (
+                                  <WebAppsDropdown />
+                                ) : null}
                                 <FullScreenDropdown />
                             </div>
 

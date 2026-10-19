@@ -2090,6 +2090,18 @@ body.admin-mobile-topbar {
       background: #f0f8ff;
     }
 
+    &.has-schedule:not(.is-selected)::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0.2rem;
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: #25a0e2;
+      transform: translateX(-50%);
+    }
+
     &.is-selected {
       color: #0b5cab;
       background: #e8f5ff;
@@ -2100,6 +2112,31 @@ body.admin-mobile-topbar {
         border-bottom: 2px solid #25a0e2;
       }
     }
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  &__synced {
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  &__summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #64748b;
   }
 
   &__loading {
@@ -2155,8 +2192,11 @@ body.admin-mobile-topbar {
     min-height: 38px;
     border-radius: 10px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.1rem;
+    padding: 0.25rem 0.45rem;
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.01em;
@@ -2174,9 +2214,15 @@ body.admin-mobile-topbar {
     }
 
     &--break {
-      background: #ffe4e6;
-      color: #be123c;
-      border: 1px solid #fecdd3;
+      background: #e8f1ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    &--past {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
     }
 
     &--empty {
@@ -2184,6 +2230,16 @@ body.admin-mobile-topbar {
       border: 0;
       min-height: 38px;
     }
+  }
+
+  &__slot-patient {
+    font-size: 0.65rem;
+    font-weight: 600;
+    opacity: 0.9;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__empty-note {
@@ -2230,6 +2286,11 @@ body.admin-mobile-topbar {
     &.break {
       background: #60a5fa;
       border-color: #3b82f6;
+    }
+
+    &.past {
+      background: #94a3b8;
+      border-color: #64748b;
     }
   }
 }

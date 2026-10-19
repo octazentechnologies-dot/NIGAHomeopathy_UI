@@ -42,7 +42,6 @@ const DoctorSchedulePage = () => {
         <div className="clinic-page-header">
           <div>
             <h2 className="clinic-page-title">Clinic schedule</h2>
-            <p className="clinic-page-subtitle mb-0">Set slot interval and work hours per day. Same SaveDailySchedule API as the dashboard modal.</p>
           </div>
           <div className="clinic-table-actions">
             <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={() => shiftWeek(-1)}>

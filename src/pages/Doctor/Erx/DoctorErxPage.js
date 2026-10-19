@@ -97,6 +97,13 @@ const ErxCard = ({ icon, title, extra, children }) => (
 );
 
 const NOT_SIGNED_PATTERN = /not (been )?signed|no (signed )?erx|not found/i;
+const ERX_DOWNLOAD_FORMAT = "PDF (.pdf)";
+
+const FormatBadge = ({ label = ERX_DOWNLOAD_FORMAT }) => (
+  <span className="erx-format-badge" title={`File format: ${label}`}>
+    {label}
+  </span>
+);
 
 /**
  * ERX — prescription lines, dosage, notes, sign & lock, record, print / download, history and refill inbox.
@@ -119,10 +126,12 @@ const DoctorErxPage = () => {
   const [refillsLoading, setRefillsLoading] = useState(true);
   const [busyRefillId, setBusyRefillId] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingHistoryId, setDownloadingHistoryId] = useState(null);
   const [remedyQuery, setRemedyQuery] = useState("");
   const [remedyHits, setRemedyHits] = useState([]);
   const [remedySearching, setRemedySearching] = useState(false);
   const [unsignedVisitId, setUnsignedVisitId] = useState("");
+  const [unsignedHint, setUnsignedHint] = useState("");
 
   const doctorName = useMemo(getDoctorName, []);
 
@@ -139,6 +148,7 @@ const DoctorErxPage = () => {
       setLoading(true);
       setError("");
       setUnsignedVisitId("");
+      setUnsignedHint("");
       try {
         const response = await erxByAppointment(id);
         const next = asSnapshot(unwrapS4(response));
@@ -147,8 +157,10 @@ const DoctorErxPage = () => {
       } catch (err) {
         setSnapshot(null);
         const message = s4Message(err);
-        if (NOT_SIGNED_PATTERN.test(message)) setUnsignedVisitId(String(id));
-        else setError(message);
+        if (NOT_SIGNED_PATTERN.test(message)) {
+          setUnsignedVisitId(String(id));
+          setUnsignedHint(message);
+        } else setError(message);
       } finally {
         setLoading(false);
       }
@@ -257,19 +269,105 @@ const DoctorErxPage = () => {
     }
   };
 
+  const missingPotencyRows = items.filter((row) => !pick(row, "potencyCode", "PotencyCode"));
+  const signRequirements = useMemo(() => {
+    const visitOk = Number(patientAppId) > 0;
+    const hasLines = items.length > 0 || Boolean(isUnsigned);
+    const potencyOk = items.length === 0 ? !/missing potency/i.test(unsignedHint || "") : missingPotencyRows.length === 0;
+    const notYetSigned = !isLocked;
+    return [
+      {
+        id: "visit",
+        label: "Visit selected",
+        ok: visitOk,
+        detail: visitOk ? `Visit ${patientAppId}` : "Select or enter a visit id",
+      },
+      {
+        id: "remedy",
+        label: "At least one remedy",
+        ok: hasLines && !/add at least one remedy/i.test(unsignedHint || ""),
+        detail: hasLines
+          ? items.length
+            ? `${items.length} remed${items.length === 1 ? "y" : "ies"} on this visit`
+            : "Remedies come from Patient Board when you sign"
+          : "Add remedies on Patient Board before signing",
+      },
+      {
+        id: "potency",
+        label: "Potency on every remedy",
+        ok: potencyOk,
+        detail: potencyOk
+          ? "All remedies have a potency"
+          : missingPotencyRows.length
+            ? `Missing on: ${missingPotencyRows
+                .map((row) => pick(row, "remedyName", "RemedyName", "remedyCode", "RemedyCode"))
+                .filter(Boolean)
+                .join(", ")}`
+            : unsignedHint || "Set potency on Patient Board for each remedy",
+      },
+      {
+        id: "lock",
+        label: "Not already signed",
+        ok: notYetSigned,
+        detail: notYetSigned ? "Ready to sign & lock" : "Already signed — download the PDF below",
+      },
+    ];
+  }, [patientAppId, items, isUnsigned, isLocked, missingPotencyRows, unsignedHint]);
+
+  const canSign = signRequirements.every((row) => row.ok) && !signing;
+
+  const downloadPdfById = async (id, fileBase) => {
+    const response = await erxPdf(id);
+    const blob = response?.data instanceof Blob ? response.data : response;
+    if (!(blob instanceof Blob)) throw new Error("The server did not return a PDF file.");
+    if (blob.type && blob.type.includes("json")) {
+      const payload = JSON.parse(await blob.text());
+      const url = pick(payload?.data || payload, "url", "Url", "pdfUrl", "PdfUrl", "fileUrl", "FileUrl");
+      if (!url) throw new Error(payload?.message || "The server did not return a PDF file.");
+      window.open(url, "_blank", "noopener");
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${fileBase || `eRx-${id}`}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
+
   const onSign = async () => {
     const id = Number(patientAppId);
-    const missingPotency = items.filter((row) => !pick(row, "potencyCode", "PotencyCode"));
-    if (missingPotency.length) {
-      Swal.fire({ title: "Potency missing", text: "Every remedy needs a potency before signing.", icon: "warning" });
+    if (!id) {
+      Swal.fire({ title: "Visit required", text: "Select a visit before signing.", icon: "warning" });
+      return;
+    }
+    if (missingPotencyRows.length) {
+      Swal.fire({
+        title: "Required fields missing",
+        text: "Every remedy needs a potency before you can Sign. Fix potency on Patient Board or save dosage here.",
+        icon: "warning",
+      });
+      return;
+    }
+    const unmet = signRequirements.filter((row) => !row.ok);
+    if (unmet.length) {
+      Swal.fire({
+        title: "Required fields missing",
+        html: `<ul style="text-align:left;margin:0;padding-left:1.2rem">${unmet
+          .map((row) => `<li><strong>${escapeHtml(row.label)}</strong> — ${escapeHtml(row.detail)}</li>`)
+          .join("")}</ul>`,
+        icon: "warning",
+      });
       return;
     }
     const result = await Swal.fire({
       title: "Sign & lock this prescription?",
-      text: "After signing, the prescription cannot be edited.",
+      text: "After signing, the prescription cannot be edited. You can download the PDF (.pdf) file.",
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Sign & Lock",
+      confirmButtonText: "Sign",
       confirmButtonColor: "#25a0e2",
     });
     if (!result.isConfirmed) return;
@@ -281,39 +379,46 @@ const DoctorErxPage = () => {
       await load();
       loadHistory();
     } catch (err) {
-      setError(s4Message(err));
+      const message = s4Message(err);
+      setError(message);
+      setUnsignedHint(message);
+      Swal.fire({ title: "Could not sign", text: message, icon: "error" });
     } finally {
       setSigning(false);
     }
   };
 
   const onDownload = async () => {
-    if (!erxId) return;
+    if (!erxId) {
+      Swal.fire({
+        title: "Sign first",
+        text: `Download is available after Sign. File format: ${ERX_DOWNLOAD_FORMAT}.`,
+        icon: "info",
+      });
+      return;
+    }
     setDownloading(true);
     setError("");
     try {
-      const response = await erxPdf(erxId);
-      const blob = response?.data instanceof Blob ? response.data : response;
-      if (!(blob instanceof Blob)) throw new Error("The server did not return a PDF.");
-      if (blob.type && blob.type.includes("json")) {
-        const payload = JSON.parse(await blob.text());
-        const url = pick(payload?.data || payload, "url", "Url", "pdfUrl", "PdfUrl", "fileUrl", "FileUrl");
-        if (!url) throw new Error(payload?.message || "The server did not return a PDF.");
-        window.open(url, "_blank", "noopener");
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `eRx-${erxId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      await downloadPdfById(erxId, `eRx-${erxId}`);
     } catch (err) {
       setError(s4Message(err));
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const onDownloadHistory = async (row) => {
+    const id = pick(row, "erxSnapshotId", "ErxSnapshotId");
+    if (!id) return;
+    setDownloadingHistoryId(id);
+    setError("");
+    try {
+      await downloadPdfById(id, `eRx-${id}`);
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setDownloadingHistoryId(null);
     }
   };
 
@@ -429,7 +534,9 @@ const DoctorErxPage = () => {
         <div className="erx-page__header">
           <div>
             <h2 className="clinic-page-title mb-1">Digital Prescription</h2>
-            <p className="clinic-page-subtitle mb-0">Review remedies, set dosage, sign & lock, then print or download the eRx.</p>
+            <p className="clinic-page-subtitle mb-0">
+              Complete required fields, Sign the prescription, then download the file as PDF (.pdf).
+            </p>
           </div>
           <div className="erx-page__picker">
             <Input
@@ -632,26 +739,61 @@ const DoctorErxPage = () => {
                     </span>
                   )}
                 </div>
+
+                {!isLocked ? (
+                  <div className="erx-required">
+                    <div className="erx-required__title">Required before Sign</div>
+                    <ul className="erx-required__list">
+                      {signRequirements.map((row) => (
+                        <li key={row.id} className={row.ok ? "is-ok" : "is-missing"}>
+                          <i
+                            className={row.ok ? "ri-checkbox-circle-fill" : "ri-error-warning-fill"}
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <strong>{row.label}</strong>
+                            <small>{row.detail}</small>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
                 {isLocked ? (
-                  <span className="erx-lock-badge">
-                    <i className="ri-lock-line" aria-hidden="true" />
-                    Locked
-                  </span>
+                  <>
+                    <span className="erx-lock-badge">
+                      <i className="ri-lock-line" aria-hidden="true" />
+                      Signed &amp; Locked
+                    </span>
+                    <button
+                      type="button"
+                      className="btn erx-btn erx-btn--primary w-100 mt-2"
+                      disabled={!erxId || downloading}
+                      onClick={onDownload}
+                    >
+                      {downloading ? <Spinner size="sm" /> : <i className="ri-download-2-line" aria-hidden="true" />}
+                      Download PDF
+                    </button>
+                    <p className="erx-card__note mb-0 mt-2">
+                      File format: <FormatBadge />
+                    </p>
+                  </>
                 ) : (
                   <button
                     type="button"
                     className="btn erx-btn erx-btn--primary w-100"
-                    disabled={!visitLoaded || signing}
+                    disabled={!visitLoaded || !canSign}
                     onClick={onSign}
                   >
-                    {signing ? <Spinner size="sm" /> : <i className="ri-lock-line" aria-hidden="true" />}
-                    Sign & Lock
+                    {signing ? <Spinner size="sm" /> : <i className="ri-quill-pen-line" aria-hidden="true" />}
+                    Sign
                   </button>
                 )}
                 <p className="erx-card__note mb-0">
                   {isLocked
                     ? "This prescription is locked. Remedies and dosage can no longer change."
-                    : "Signing locks remedies and dosage. Every remedy needs a potency."}
+                    : "Sign locks the file. After Sign you can download the PDF (.pdf)."}
                 </p>
               </div>
             </ErxCard>
@@ -727,12 +869,20 @@ const DoctorErxPage = () => {
                   <i className="ri-printer-line" aria-hidden="true" />
                   Print
                 </button>
-                <button type="button" className="erx-action" disabled={!erxId || downloading} onClick={onDownload}>
+                <button
+                  type="button"
+                  className="erx-action"
+                  disabled={!erxId || downloading}
+                  onClick={onDownload}
+                  title={`Download signed prescription as ${ERX_DOWNLOAD_FORMAT}`}
+                >
                   {downloading ? <Spinner size="sm" /> : <i className="ri-download-2-line" aria-hidden="true" />}
-                  Download
+                  Download PDF
                 </button>
               </div>
-              <p className="erx-card__note mb-0">Download saves the signed PDF. Print opens a printable copy.</p>
+              <p className="erx-card__note mb-0">
+                Download file format: <FormatBadge /> · Available after Sign.
+              </p>
             </ErxCard>
           </Col>
 
@@ -773,6 +923,32 @@ const DoctorErxPage = () => {
                           <i className={signed ? "ri-checkbox-circle-line" : "ri-time-line"} aria-hidden="true" />
                           {signed ? "Signed" : rowStatus}
                         </span>
+                        {signed ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm erx-btn erx-btn--soft"
+                            disabled={downloadingHistoryId === pick(row, "erxSnapshotId", "ErxSnapshotId")}
+                            title={`Download ${ERX_DOWNLOAD_FORMAT}`}
+                            onClick={() => onDownloadHistory(row)}
+                          >
+                            {downloadingHistoryId === pick(row, "erxSnapshotId", "ErxSnapshotId") ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              <i className="ri-download-2-line" aria-hidden="true" />
+                            )}
+                            PDF
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-sm erx-btn erx-btn--primary"
+                            onClick={() => openFromHistory(row)}
+                            title="Open visit to Sign"
+                          >
+                            <i className="ri-quill-pen-line" aria-hidden="true" />
+                            Sign
+                          </button>
+                        )}
                         <button type="button" className="btn btn-sm erx-btn erx-btn--soft" onClick={() => openFromHistory(row)}>
                           View
                         </button>

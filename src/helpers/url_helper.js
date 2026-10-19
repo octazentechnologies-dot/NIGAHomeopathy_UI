@@ -489,6 +489,8 @@ export const CALL_NEXT_APPOINTMENT = "/PatientAppointment/CallNext";
 export const RECEPTION_PROFILE = "/Reception/Profile";
 export const RECEPTION_CASE_PAPER = "/Reception/CasePaper";
 export const RECEPTION_PATIENT_OPEN = "/Reception/PatientOpen";
+export const RECEPTION_PATIENT_CARD = "/Reception/PatientCard";
+export const RECEPTION_VITALS = "/Reception/Vitals";
 /** TEL-02.04 — poll tele waiting queue (not SignalR in S3). */
 export const TELE_QUEUE = "/Tele/Queue";
 /** TEL-04.01 — client-agnostic session join token (web + mobile same URL/JSON). */

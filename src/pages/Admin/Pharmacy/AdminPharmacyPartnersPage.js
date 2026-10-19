@@ -125,7 +125,7 @@ const AdminPharmacyPartnersPage = () => {
             <div>
               <h2 className="clinic-page-title mb-1">Pharmacy partners &amp; configuration</h2>
               <p className="clinic-page-subtitle mb-0">
-                Activate HomeoMeds partners and configure their operating hours, service areas and delivery charges.
+                Activate HomeoMeds partners and review their operating hours, service areas and delivery charges.
               </p>
             </div>
             <div className="phc-page__actions">
@@ -266,13 +266,13 @@ const AdminPharmacyPartnersPage = () => {
                                 <button
                                   type="button"
                                   className={`phc-icon-btn${partner.id === selectedId ? " is-active" : ""}`}
-                                  title="Configure"
+                                  title="View configuration"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedId(partner.id);
                                   }}
                                 >
-                                  <i className="ri-settings-3-line" aria-hidden="true" />
+                                  <i className="ri-eye-line" aria-hidden="true" />
                                 </button>
                               </div>
                             </td>
@@ -289,15 +289,16 @@ const AdminPharmacyPartnersPage = () => {
             <section className="phc-card">
               <header className="phc-card__head">
                 <span className="phc-card__title">
-                  <i className="ri-settings-3-line" aria-hidden="true" />
+                  <i className="ri-eye-line" aria-hidden="true" />
                   Pharmacy Configuration
                 </span>
+                <span className="phc-card__meta">View only</span>
               </header>
               {!selected ? (
                 <div className="phc-card__body">
                   <div className="phc-empty-state">
                     <i className="ri-store-2-line" aria-hidden="true" />
-                    <span>Select a pharmacy to configure it.</span>
+                    <span>Select a pharmacy to view its configuration.</span>
                   </div>
                 </div>
               ) : (
@@ -318,11 +319,7 @@ const AdminPharmacyPartnersPage = () => {
                     </span>
                   </div>
 
-                  <PharmacyConfigForm
-                    partner={selected}
-                    onSaved={() => setNotice(`Configuration saved for ${selected.name}.`)}
-                    onError={setError}
-                  />
+                  <PharmacyConfigForm partner={selected} readOnly onError={setError} />
                 </div>
               )}
             </section>

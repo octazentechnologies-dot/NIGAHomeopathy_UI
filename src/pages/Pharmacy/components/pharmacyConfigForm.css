@@ -296,6 +296,48 @@
   animation: phc-config-spin 0.8s linear infinite;
 }
 
+.phc-config__value {
+  color: #1e293b;
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.phc-config__value--muted {
+  color: var(--phc-soft);
+  font-weight: 400;
+}
+
+.phc-config__days--readonly span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 26px;
+  padding: 0 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--phc-muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.phc-config__days--readonly span.is-on {
+  border-color: var(--phc-blue);
+  background: #eaf5fd;
+  color: var(--phc-blue-dark);
+}
+
+.phc-config__readonly-note {
+  color: var(--phc-muted);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.phc-config--readonly .phc-config__footer {
+  flex-wrap: wrap;
+}
+
 @keyframes phc-config-spin {
   to {
     transform: rotate(360deg);

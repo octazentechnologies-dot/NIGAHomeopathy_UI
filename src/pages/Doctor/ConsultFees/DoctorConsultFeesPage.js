@@ -1,21 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner } from "reactstrap";
 import { getAuthDoctorId } from "../../../helpers/appointmentSlotHelper";
+import { getDoctorProfileMe } from "../../../helpers/realbackend_helper";
 import { feeHistory, getPublicFee, saveFee, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
 
 /**
- * PAY-01.03 — doctor consult fee tab (in-clinic / tele / pay-at-clinic).
- * Amounts feed public booking and CreateConsultOrder; Razorpay keys stay on the server.
+ * Doctor consult fees — Present (in-clinic / profile) + Tele only.
+ * Saves through /Fees and mirrors onto doctor profile ConsultFee* columns.
  */
 const DoctorConsultFeesPage = () => {
   const doctorId = Number(getAuthDoctorId() || 0);
   const [form, setForm] = useState({
-    inClinicFee: "",
+    presentFee: "",
     teleFee: "",
-    instantSurcharge: "0",
     currency: "INR",
-    payAtClinicEnabled: true,
-    effectiveFrom: new Date().toISOString().slice(0, 10),
   });
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +23,7 @@ const DoctorConsultFeesPage = () => {
 
   document.title = "Consult fees | Niga Homeocentrum";
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!doctorId) {
       setLoading(false);
       setError("Open this page while signed in as a doctor.");
@@ -34,67 +32,79 @@ const DoctorConsultFeesPage = () => {
     setLoading(true);
     setError("");
     try {
+      let present = "";
+      let tele = "";
+      let currency = "INR";
+
+      try {
+        const profile = await getDoctorProfileMe();
+        const me = profile?.data ?? profile?.Data ?? profile;
+        if (me) {
+          present = String(me.consultFeeInClinic ?? me.ConsultFeeInClinic ?? "");
+          tele = String(me.consultFeeTele ?? me.ConsultFeeTele ?? "");
+          currency = me.feeCurrency || me.FeeCurrency || currency;
+        }
+      } catch {
+        // Fall through to fee config / public fee.
+      }
+
       const response = await feeHistory(doctorId);
       const rows = unwrapS4(response);
       const list = Array.isArray(rows) ? rows : Array.isArray(rows?.data) ? rows.data : [];
       setHistory(list);
       const latest = list[0];
       if (latest) {
-        setForm({
-          inClinicFee: String(latest.inClinicFee ?? latest.InClinicFee ?? ""),
-          teleFee: String(latest.teleFee ?? latest.TeleFee ?? ""),
-          instantSurcharge: String(latest.instantSurcharge ?? latest.InstantSurcharge ?? 0),
-          currency: latest.currency || latest.Currency || "INR",
-          payAtClinicEnabled: Boolean(latest.payAtClinicEnabled ?? latest.PayAtClinicEnabled ?? true),
-          effectiveFrom: String(latest.effectiveFrom || latest.EffectiveFrom || new Date().toISOString()).slice(0, 10),
-        });
-      } else {
+        present = String(latest.inClinicFee ?? latest.InClinicFee ?? present);
+        tele = String(latest.teleFee ?? latest.TeleFee ?? tele);
+        currency = latest.currency || latest.Currency || currency;
+      } else if (!present && !tele) {
         const published = unwrapS4(await getPublicFee(doctorId));
         const fee = published?.data && typeof published.data === "object" ? published.data : published;
         if (fee) {
-          setForm((current) => ({
-            ...current,
-            inClinicFee: String(fee.inClinicFee ?? fee.InClinicFee ?? current.inClinicFee),
-            teleFee: String(fee.teleFee ?? fee.TeleFee ?? current.teleFee),
-            instantSurcharge: String(fee.instantSurcharge ?? fee.InstantSurcharge ?? current.instantSurcharge),
-            currency: fee.currency || fee.Currency || current.currency,
-            payAtClinicEnabled: Boolean(fee.payAtClinicEnabled ?? fee.PayAtClinicEnabled ?? current.payAtClinicEnabled),
-          }));
+          present = String(fee.inClinicFee ?? fee.InClinicFee ?? present);
+          tele = String(fee.teleFee ?? fee.TeleFee ?? tele);
+          currency = fee.currency || fee.Currency || currency;
         }
       }
+
+      setForm({
+        presentFee: present === "null" || present === "undefined" ? "" : present,
+        teleFee: tele === "null" || tele === "undefined" ? "" : tele,
+        currency: currency || "INR",
+      });
     } catch (err) {
       setError(s4Message(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [doctorId]);
 
   useEffect(() => {
     load();
-  }, [doctorId]);
+  }, [load]);
 
   const onSave = async () => {
     setSaving(true);
     setError("");
     setNote("");
-    const inClinic = Number(form.inClinicFee);
+    const present = Number(form.presentFee);
     const tele = Number(form.teleFee);
-    if (!Number.isFinite(inClinic) || inClinic <= 0 || !Number.isFinite(tele) || tele <= 0) {
+    if (!Number.isFinite(present) || present <= 0 || !Number.isFinite(tele) || tele <= 0) {
       setSaving(false);
-      setError("Enter in-clinic and tele fees greater than 0.");
+      setError("Enter Present and Tele fees greater than 0.");
       return;
     }
     try {
       await saveFee({
         doctorId,
-        inClinicFee: inClinic,
+        inClinicFee: present,
         teleFee: tele,
-        instantSurcharge: Number(form.instantSurcharge || 0),
+        instantSurcharge: 0,
         currency: form.currency || "INR",
-        payAtClinicEnabled: Boolean(form.payAtClinicEnabled),
-        effectiveFrom: form.effectiveFrom,
+        payAtClinicEnabled: true,
+        effectiveFrom: new Date().toISOString().slice(0, 10),
       });
-      setNote("Consult fees saved. Public booking and checkout will use these amounts.");
+      setNote("Fees saved. Present fee syncs with your doctor profile.");
       await load();
     } catch (err) {
       setError(s4Message(err));
@@ -110,26 +120,28 @@ const DoctorConsultFeesPage = () => {
           <div>
             <h2 className="clinic-page-title">Consult fees</h2>
             <p className="clinic-page-subtitle mb-0">
-              Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the API.
+              Present fee matches your profile in-clinic fee. Tele fee is for online visits.
             </p>
           </div>
         </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
         {loading ? (
-          <div className="py-4"><Spinner size="sm" /> Loading…</div>
+          <div className="py-4">
+            <Spinner size="sm" /> Loading…
+          </div>
         ) : (
           <Row className="g-3">
             <Col lg={6}>
               <Card className="admin-dash-card">
                 <CardBody>
                   <FormGroup>
-                    <Label>In-clinic fee</Label>
+                    <Label>Present</Label>
                     <Input
                       type="number"
                       min={0}
-                      value={form.inClinicFee}
-                      onChange={(e) => setForm({ ...form, inClinicFee: e.target.value })}
+                      value={form.presentFee}
+                      onChange={(e) => setForm({ ...form, presentFee: e.target.value })}
                     />
                   </FormGroup>
                   <FormGroup>
@@ -141,35 +153,12 @@ const DoctorConsultFeesPage = () => {
                       onChange={(e) => setForm({ ...form, teleFee: e.target.value })}
                     />
                   </FormGroup>
-                  <FormGroup>
-                    <Label>Instant surcharge</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.instantSurcharge}
-                      onChange={(e) => setForm({ ...form, instantSurcharge: e.target.value })}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Effective from</Label>
-                    <Input
-                      type="date"
-                      value={form.effectiveFrom}
-                      onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value })}
-                    />
-                  </FormGroup>
-                  <FormGroup check className="mb-3">
-                    <Input
-                      id="pay-at-clinic"
-                      type="checkbox"
-                      checked={form.payAtClinicEnabled}
-                      onChange={(e) => setForm({ ...form, payAtClinicEnabled: e.target.checked })}
-                    />
-                    <Label check htmlFor="pay-at-clinic">
-                      Allow pay at clinic
-                    </Label>
-                  </FormGroup>
-                  <button type="button" className="btn clinic-primary-btn" disabled={saving || !doctorId} onClick={onSave}>
+                  <button
+                    type="button"
+                    className="btn clinic-primary-btn"
+                    disabled={saving || !doctorId}
+                    onClick={onSave}
+                  >
                     {saving ? "Saving…" : "Save fees"}
                   </button>
                 </CardBody>
@@ -188,12 +177,11 @@ const DoctorConsultFeesPage = () => {
                         return (
                           <li key={id} className="border-bottom py-2">
                             <div className="fw-medium">
-                              In-clinic ₹{row.inClinicFee ?? row.InClinicFee} · Tele ₹{row.teleFee ?? row.TeleFee}
+                              Present ₹{row.inClinicFee ?? row.InClinicFee} · Tele ₹
+                              {row.teleFee ?? row.TeleFee}
                             </div>
                             <div className="text-muted small">
                               From {String(row.effectiveFrom || row.EffectiveFrom || "").slice(0, 10)}
-                              {" · "}
-                              {(row.payAtClinicEnabled ?? row.PayAtClinicEnabled) ? "Pay at clinic on" : "Pay at clinic off"}
                             </div>
                           </li>
                         );

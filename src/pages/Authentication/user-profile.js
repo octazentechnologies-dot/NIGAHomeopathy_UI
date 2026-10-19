@@ -31,9 +31,11 @@ import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import PatientProfileFields from "./PatientProfileFields";
 import DoctorReviewsPanel from "./DoctorReviewsPanel";
-import { rankingExplain } from "../../helpers/s4Week4Api";
+import { rankingExplain, saveFee } from "../../helpers/s4Week4Api";
+import { getAuthDoctorId } from "../../helpers/appointmentSlotHelper";
 import defaultAvatar from "../../assets/images/users/user-dummy-img.jpg";
 import { notifyProfilePhotoChanged } from "../../helpers/profilePhotoEvents";
+import { dispatchDoctorScheduleChanged } from "../../helpers/dashboard_helper";
 import {
   getDoctorProfileMe,
   updateDoctorProfileMe,
@@ -53,6 +55,8 @@ import {
   getRegistrationDistricts,
   getRegistrationCities,
   getRegistrationPinCodes,
+  getUserById,
+  updateUser,
 } from "../../helpers/realbackend_helper";
 import { clinicMessage, deleteDoctorTimeOff, listDoctorTimeOff, saveDoctorTimeOff, unwrapClinic } from "../../helpers/doctorClinicApi";
 
@@ -540,6 +544,7 @@ const UserProfile = () => {
   const [ranking, setRanking] = useState(null);
   const [bookingRules, setBookingRules] = useState({ gapMinutes: "", horizonDays: "" });
   const [personalSaving, setPersonalSaving] = useState(false);
+  const [editingStaffProfile, setEditingStaffProfile] = useState(false);
   const [activeTab, setActiveTab] = useState("clinic");
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
   const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
@@ -597,6 +602,14 @@ const UserProfile = () => {
           setemail(userInfo.email || userInfo.emailId || userInfo.EmailId || "");
           setDoctorMobile(userInfo.mobileNo || userInfo.MobileNo || "");
           setidx(userInfo.userId || userInfo._id || "");
+          setPersonalForm((prev) => ({
+            ...prev,
+            firstName: userInfo.firstName || "",
+            middleName: userInfo.middleName || "",
+            lastName: userInfo.lastName || "",
+            email: userInfo.email || userInfo.emailId || userInfo.EmailId || "",
+            mobileNo: userInfo.mobileNo || userInfo.MobileNo || "",
+          }));
 
           if (!isEmpty(user)) {
             const updatedObj = { ...obj };
@@ -845,6 +858,96 @@ const UserProfile = () => {
     };
   }, [userData?.doctorId, userData?.role]);
 
+  const applyPersonalToSession = (fullName, emailValue, mobileValue, extra = {}) => {
+    setUserName(fullName);
+    setemail(emailValue);
+    setDoctorMobile(mobileValue);
+    setUserData((prev) => ({
+      ...prev,
+      ...extra,
+      firstName: extra.firstName ?? prev?.firstName,
+      middleName: extra.middleName ?? prev?.middleName,
+      lastName: extra.lastName ?? prev?.lastName,
+      email: emailValue,
+      emailId: emailValue,
+      mobileNo: mobileValue,
+      displayName: fullName,
+    }));
+    try {
+      const stored = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+      const target = stored.data || stored;
+      target.email = emailValue;
+      target.emailId = emailValue;
+      target.displayName = fullName;
+      target.firstName = extra.firstName ?? target.firstName;
+      target.middleName = extra.middleName ?? target.middleName;
+      target.lastName = extra.lastName ?? target.lastName;
+      target.mobileNo = mobileValue;
+      sessionStorage.setItem("authUser", JSON.stringify(stored));
+    } catch (_) {
+      /* session copy is display-only */
+    }
+  };
+
+  const handleSaveStaffProfile = async (event) => {
+    event?.preventDefault?.();
+    const firstName = personalForm.firstName.trim();
+    const middleName = personalForm.middleName.trim();
+    const lastName = personalForm.lastName.trim();
+    const emailValue = personalForm.email.trim();
+    const mobileValue = personalForm.mobileNo.trim();
+    if (!firstName || !lastName) {
+      showSaveResult(false, "First name and last name are required.");
+      return;
+    }
+    if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      showSaveResult(false, "Enter a valid email address.");
+      return;
+    }
+    if (mobileValue && mobileValue.replace(/\D/g, "").length < 10) {
+      showSaveResult(false, "Enter a valid mobile number (at least 10 digits).");
+      return;
+    }
+    const userId = Number(userData?.userId || userData?.UserId || idx || 0);
+    if (!userId) {
+      showSaveResult(false, "Your user account could not be loaded for save.");
+      return;
+    }
+    setPersonalSaving(true);
+    try {
+      const existingRaw = await getUserById(userId);
+      const existing =
+        existingRaw?.resultObject ??
+        existingRaw?.ResultObject ??
+        existingRaw?.data ??
+        existingRaw?.Data ??
+        existingRaw ??
+        {};
+      await updateUser({
+        ...existing,
+        userId,
+        firstName,
+        lastName,
+        middleName: middleName || existing.middleName || existing.MiddleName || "",
+        emailId: emailValue,
+        mobileNo: mobileValue,
+        userName: existing.userName || existing.UserName || userData?.loginId || userData?.userName,
+        roleId: existing.roleId ?? existing.RoleId ?? userData?.roleId,
+        userStatus: existing.userStatus ?? existing.UserStatus ?? true,
+        deleteStatus: false,
+        enteredBy: existing.enteredBy || existing.EnteredBy || userData?.loginId || "self",
+      });
+      const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
+      applyPersonalToSession(fullName, emailValue, mobileValue, { firstName, middleName, lastName });
+      setEditingStaffProfile(false);
+      showSaveResult(true, "Profile details have been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Save failed.");
+    } finally {
+      setPersonalSaving(false);
+    }
+  };
+
   const handleSavePersonal = async (event) => {
     event.preventDefault();
     const firstName = personalForm.firstName.trim();
@@ -884,29 +987,14 @@ const UserProfile = () => {
         practiceActivated: Boolean(personalForm.practiceActivated),
       });
       const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
-      setUserName(fullName);
-      setUserData((prev) => ({ ...prev, practiceActivated: Boolean(personalForm.practiceActivated) }));
-      setemail(emailValue);
-      setDoctorMobile(mobileValue);
-      setClinicForm((prev) => ({ ...prev, email: emailValue, contactNumber: mobileValue }));
-      setUserData((prev) => ({
-        ...prev,
+      applyPersonalToSession(fullName, emailValue, mobileValue, {
         firstName,
         middleName,
         lastName,
-        email: emailValue,
-        mobileNo: mobileValue,
         registrationNo,
-      }));
-      try {
-        const stored = JSON.parse(sessionStorage.getItem("authUser") || "{}");
-        const target = stored.data || stored;
-        target.email = emailValue;
-        target.displayName = fullName;
-        sessionStorage.setItem("authUser", JSON.stringify(stored));
-      } catch (_) {
-        /* session copy is display-only */
-      }
+        practiceActivated: Boolean(personalForm.practiceActivated),
+      });
+      setClinicForm((prev) => ({ ...prev, email: emailValue, contactNumber: mobileValue }));
       showSaveResult(true, "Personal details have been updated.");
     } catch (err) {
       showSaveResult(false, typeof err === "string" ? err : err?.message || "Save failed.");
@@ -1137,7 +1225,7 @@ const UserProfile = () => {
     if (!String(feesForm.inClinic.consultationFee || "").trim()) {
       Swal.fire({
         title: "Missing details",
-        text: "Please enter the in-clinic consultation fee.",
+        text: "Please enter the Present fee.",
         icon: "warning",
         timer: 1800,
         showConfirmButton: false,
@@ -1157,16 +1245,35 @@ const UserProfile = () => {
 
     try {
       const teleOn = Boolean(feesForm.tele.enabled);
+      const presentFee = Number(feesForm.inClinic.consultationFee);
+      const teleFee = teleOn ? Number(feesForm.tele.consultationFee) : presentFee;
+      const currency = feesForm.inClinic.currency || "INR";
       await updateDoctorProfileMe({
-        consultFeeInClinic: Number(feesForm.inClinic.consultationFee),
-        consultFeeTele: teleOn ? Number(feesForm.tele.consultationFee) : null,
+        consultFeeInClinic: presentFee,
+        consultFeeTele: teleOn ? teleFee : null,
         followUpFeeInClinic: toOptionalNumber(feesForm.inClinic.followUpFee),
         followUpFeeTele: teleOn ? toOptionalNumber(feesForm.tele.followUpFee) : null,
         freeFollowUpDaysInClinic: toOptionalNumber(feesForm.inClinic.freeFollowUpDays),
         freeFollowUpDaysTele: teleOn ? toOptionalNumber(feesForm.tele.freeFollowUpDays) : null,
-        feeCurrency: feesForm.inClinic.currency || "INR",
+        feeCurrency: currency,
         teleDisabled: !teleOn,
       });
+      const doctorId = Number(getAuthDoctorId() || 0);
+      if (doctorId > 0 && Number.isFinite(teleFee) && teleFee > 0) {
+        try {
+          await saveFee({
+            doctorId,
+            inClinicFee: presentFee,
+            teleFee,
+            instantSurcharge: 0,
+            currency,
+            payAtClinicEnabled: true,
+            effectiveFrom: new Date().toISOString().slice(0, 10),
+          });
+        } catch {
+          // Profile row already saved; fee history sync is best-effort.
+        }
+      }
       showSaveResult(true, "Consultation fees have been updated.");
     } catch (err) {
       showSaveResult(false, typeof err === "string" ? err : err?.message || "Fee save failed.");
@@ -1578,6 +1685,7 @@ const UserProfile = () => {
           });
         }
       }
+      dispatchDoctorScheduleChanged({ source: "profile-hours" });
       showSaveResult(true, successText);
       return true;
     } catch (err) {
@@ -1769,8 +1877,8 @@ const UserProfile = () => {
                     ) : null}
                     {userData?.role !== UserRole.DOCTOR ? (
                       <p className="user-profile-page__summary-meta mb-0">
-                        <i className="ri-hashtag" aria-hidden="true" />
-                        <span>User ID: {idx || "—"}</span>
+                        <i className="ri-user-settings-line" aria-hidden="true" />
+                        <span>Login: {userData?.loginId || userData?.userName || "—"}</span>
                       </p>
                     ) : null}
                   </div>
@@ -1801,10 +1909,130 @@ const UserProfile = () => {
                   <TabPane tabId="profile">
                     {isReceptionProfile ? <ReceptionProfileFields /> : userData ? (
                       <>
-                        <h5 className="user-profile-page__section-title">
-                          <i className="ri-information-line" aria-hidden="true" />
-                          User Information
-                        </h5>
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                          <h5 className="user-profile-page__section-title mb-0">
+                            <i className="ri-information-line" aria-hidden="true" />
+                            User Information
+                          </h5>
+                          {userData.role !== UserRole.DOCTOR ? (
+                            <div className="d-flex gap-2">
+                              {editingStaffProfile ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-soft-secondary"
+                                    disabled={personalSaving}
+                                    onClick={() => {
+                                      setPersonalForm((prev) => ({
+                                        ...prev,
+                                        firstName: userData.firstName || "",
+                                        middleName: userData.middleName || "",
+                                        lastName: userData.lastName || "",
+                                        email: email || userData.email || userData.emailId || "",
+                                        mobileNo: doctorMobile || userData.mobileNo || "",
+                                      }));
+                                      setEditingStaffProfile(false);
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm clinic-primary-btn"
+                                    disabled={personalSaving}
+                                    onClick={handleSaveStaffProfile}
+                                  >
+                                    {personalSaving ? "Saving…" : "Save"}
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-soft-primary"
+                                  onClick={() => {
+                                    setPersonalForm((prev) => ({
+                                      ...prev,
+                                      firstName: userData.firstName || "",
+                                      middleName: userData.middleName || "",
+                                      lastName: userData.lastName || "",
+                                      email: email || userData.email || userData.emailId || "",
+                                      mobileNo: doctorMobile || userData.mobileNo || "",
+                                    }));
+                                    setEditingStaffProfile(true);
+                                  }}
+                                >
+                                  <i className="ri-pencil-line me-1" aria-hidden="true" />
+                                  Edit
+                                </button>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                        {editingStaffProfile && userData.role !== UserRole.DOCTOR ? (
+                          <Form onSubmit={handleSaveStaffProfile}>
+                            <Row className="g-3 new-patient-modal__fields">
+                              <Col md={4} xs={12}>
+                                <Label className="form-label new-patient-modal__label">
+                                  First Name
+                                  <RequiredMark />
+                                </Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.firstName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={4} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Middle Name</Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.middleName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, middleName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={4} xs={12}>
+                                <Label className="form-label new-patient-modal__label">
+                                  Last Name
+                                  <RequiredMark />
+                                </Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.lastName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Email</Label>
+                                <Input
+                                  type="email"
+                                  value={personalForm.email}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, email: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Mobile</Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.mobileNo}
+                                  onChange={(e) =>
+                                    setPersonalForm((prev) => ({
+                                      ...prev,
+                                      mobileNo: e.target.value.replace(/[^\d+]/g, ""),
+                                    }))
+                                  }
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Login ID</Label>
+                                <Input value={userData.loginId || userData.userName || "—"} disabled />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Role</Label>
+                                <Input value={roleLabel} disabled />
+                              </Col>
+                            </Row>
+                          </Form>
+                        ) : (
                         <Row className="g-3 new-patient-modal__fields user-profile-page__info-grid">
                           <ProfileInfoField icon="ri-user-line" label="Full Name">
                             {[userData.firstName, userData.middleName, userData.lastName].filter(Boolean).join(" ") || userData.displayName || userData.userName || "—"}
@@ -1822,19 +2050,14 @@ const UserProfile = () => {
                             {doctorMobile || userData.mobileNo || userData.mobile || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-user-settings-line" label="Login ID">
-                            {userData.loginId || "—"}
+                            {userData.loginId || userData.userName || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-shield-user-line" label="Role">
                             <ProfileBadge tone="info">{roleLabel}</ProfileBadge>
                           </ProfileInfoField>
                           {userData.role !== UserRole.DOCTOR ? (
-                            <ProfileInfoField icon="ri-key-line" label="Role ID">
-                              {userData.roleId || "—"}
-                            </ProfileInfoField>
-                          ) : null}
-                          {userData.role !== UserRole.DOCTOR ? (
-                            <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
-                              {userData.userId || "—"}
+                            <ProfileInfoField icon="ri-account-circle-line" label="User name">
+                              {userData.userName || userData.loginId || userData.displayName || "—"}
                             </ProfileInfoField>
                           ) : null}
                           {userData.verificationStatus ? (
@@ -1879,12 +2102,13 @@ const UserProfile = () => {
                               {ranking.parts ? ` · verified ${ranking.parts.verified ?? "—"}, rating ${ranking.parts.averageRating ?? "—"}, fee factor ${ranking.parts.feeFactor ?? "—"}` : ""}
                             </ProfileInfoField>
                           ) : null}
-                          {userData.firmIds ? (
-                            <ProfileInfoField icon="ri-building-line" label="Firm IDs">
-                              {userData.firmIds}
+                          {(userData.firmNames || userData.firmName) ? (
+                            <ProfileInfoField icon="ri-building-line" label="Firms">
+                              {userData.firmNames || userData.firmName}
                             </ProfileInfoField>
                           ) : null}
                         </Row>
+                        )}
                       </>
                     ) : null}
 
@@ -2188,7 +2412,7 @@ const UserProfile = () => {
                         <Row className="g-3 new-patient-modal__fields">
                           <Col lg={4} md={6} xs={12}>
                             <Label htmlFor="inClinicConsultationFee" className="form-label new-patient-modal__label">
-                              Consultation Fee
+                              Present
                               <RequiredMark />
                             </Label>
                             <Input

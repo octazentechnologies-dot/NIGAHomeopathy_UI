@@ -13,7 +13,7 @@ const splitAreas = (raw) =>
     .filter(Boolean);
 
 /** Operating hours, working days, service areas, delivery charges and capacity for one pharmacy partner. */
-const PharmacyConfigForm = ({ partner, onSaved, onLoaded, onError, disabled = false }) => {
+const PharmacyConfigForm = ({ partner, onSaved, onLoaded, onError, disabled = false, readOnly = false }) => {
   const [config, setConfig] = useState(EMPTY_PHARMACY_CONFIG);
   const [loaded, setLoaded] = useState(EMPTY_PHARMACY_CONFIG);
   const [loading, setLoading] = useState(false);
@@ -126,7 +126,98 @@ const PharmacyConfigForm = ({ partner, onSaved, onLoaded, onError, disabled = fa
     }
   };
 
-  const locked = disabled || saving || loading || !partner;
+const locked = disabled || saving || loading || !partner || readOnly;
+
+  const daysLabel =
+    config.days.length === 7 ? "All days" : config.days.length ? config.days.join(", ") : "None set";
+  const deliveryLabel =
+    Number(config.deliveryCharge) > 0 ? `₹ ${Number(config.deliveryCharge)}` : "Free";
+  const freeAboveLabel =
+    config.freeAbove !== "" && config.freeAbove != null && Number(config.freeAbove) > 0
+      ? `₹ ${Number(config.freeAbove)}`
+      : "—";
+  const capacityLabel = config.capacity ? `${config.capacity} orders / day` : "—";
+  const statusLine = loading
+    ? "Loading configuration…"
+    : config.updatedAt
+      ? `Last saved ${moment(config.updatedAt).fromNow()}`
+      : config.configured
+        ? ""
+        : "Not configured yet";
+
+  if (readOnly) {
+    return (
+      <div className="phc-config phc-config--readonly">
+        <div className="phc-config__form">
+          <div className="phc-config__row">
+            <span className="phc-config__label">Operating Hours</span>
+            <div className="phc-config__control phc-config__value">
+              {loading
+                ? "…"
+                : `${formatConfigTime(config.openTime)} – ${formatConfigTime(config.closeTime)}`}
+            </div>
+          </div>
+          <div className="phc-config__row">
+            <span className="phc-config__label">Working Days</span>
+            <div className="phc-config__control phc-config__days phc-config__days--readonly">
+              {WEEK_DAYS.map((day) => (
+                <span key={day} className={config.days.includes(day) ? "is-on" : undefined}>
+                  {day}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="phc-config__row phc-config__row--top">
+            <span className="phc-config__label">Service Areas</span>
+            <div className="phc-config__control">
+              {loading ? (
+                <span className="phc-config__value">…</span>
+              ) : config.areas.length ? (
+                <div className="phc-config__tags is-disabled">
+                  {config.areas.map((area) => (
+                    <span key={area} className="phc-config__tag">
+                      {area}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="phc-config__value phc-config__value--muted">No service areas set</span>
+              )}
+            </div>
+          </div>
+          <div className="phc-config__row">
+            <span className="phc-config__label">Delivery Charges</span>
+            <div className="phc-config__control phc-config__value">
+              {loading ? "…" : `${deliveryLabel}${freeAboveLabel !== "—" ? ` · Free above ${freeAboveLabel}` : ""}`}
+            </div>
+          </div>
+          <div className="phc-config__row">
+            <span className="phc-config__label">Daily Capacity</span>
+            <div className="phc-config__control phc-config__value">{loading ? "…" : capacityLabel}</div>
+          </div>
+        </div>
+
+        <div className="phc-config__summary">
+          <i className="ri-information-line" aria-hidden="true" />
+          <span>
+            Open {formatConfigTime(config.openTime)} – {formatConfigTime(config.closeTime)} on{" "}
+            {daysLabel.toLowerCase()} ·{" "}
+            {Number(config.deliveryCharge) > 0 ? `₹${Number(config.deliveryCharge)} delivery` : "Free delivery"}
+            {Number(config.freeAbove) > 0 && Number(config.deliveryCharge) > 0
+              ? `, free above ₹${Number(config.freeAbove)}`
+              : ""}
+          </span>
+        </div>
+
+        {formError ? <p className="phc-config__error">{formError}</p> : null}
+
+        <div className="phc-config__footer">
+          <span className="phc-config__saved">{statusLine}</span>
+          <span className="phc-config__readonly-note">View only — partners edit this on their pharmacy dashboard.</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="phc-config">
@@ -275,15 +366,7 @@ const PharmacyConfigForm = ({ partner, onSaved, onLoaded, onError, disabled = fa
       {formError ? <p className="phc-config__error">{formError}</p> : null}
 
       <div className="phc-config__footer">
-        <span className="phc-config__saved">
-          {loading
-            ? "Loading configuration…"
-            : config.updatedAt
-              ? `Last saved ${moment(config.updatedAt).fromNow()}`
-              : config.configured
-                ? ""
-                : "Not configured yet"}
-        </span>
+        <span className="phc-config__saved">{statusLine}</span>
         <div>
           <button
             type="button"

@@ -451,6 +451,11 @@ export const getReceptionCasePapers = (patientId) =>
   nigahomeoAPI.get(url.RECEPTION_CASE_PAPER + "?patientId=" + patientId, null);
 export const getReceptionPatientOpen = (patientId) =>
   nigahomeoAPI.get(url.RECEPTION_PATIENT_OPEN + "?patientId=" + patientId, null);
+export const getReceptionPatientCard = (patientId) =>
+  nigahomeoAPI.get(url.RECEPTION_PATIENT_CARD, { patientId });
+export const saveReceptionVitals = (data) => nigahomeoAPI.post(url.RECEPTION_VITALS, data);
+export const getReceptionVitals = (patientAppId) =>
+  nigahomeoAPI.get(url.RECEPTION_VITALS, { patientAppId });
 /** TEL-02.04 — single poll of today's tele queue (treating doctor JWT). */
 export const getTeleQueue = () => nigahomeoAPI.get(url.TELE_QUEUE, null);
 /** TEL-04.01 — same Token POST for web and mobile (no clientType body). */
@@ -887,6 +892,7 @@ export const downloadDoctorCredentialDocument = (id) =>
 export const getAvailabilityMe = () => nigahomeoAPI.get("/Availability/Me", null);
 export const updateAvailabilityMe = (data) => nigahomeoAPI.put("/Availability/Me", data);
 export const getEnquiries = (params) => nigahomeoAPI.get("/Enquiry", params);
+export const updateEnquiry = (enquiryId, data) => nigahomeoAPI.put(`/Enquiry/${enquiryId}`, data);
 export const getReceptionStaffList = (params) =>
   nigahomeoAPI.get("/ReceptionStaff/GetReceptionStaffList", params);
 export const addReceptionStaff = (data) => nigahomeoAPI.post("/ReceptionStaff/AddReceptionStaff", data);
@@ -894,6 +900,8 @@ export const updateReceptionStaff = (data) =>
   nigahomeoAPI.post("/ReceptionStaff/UpdateReceptionStaff", data);
 export const deleteReceptionStaff = (data) =>
   nigahomeoAPI.post("/ReceptionStaff/DeleteReceptionStaff", data);
+export const setReceptionStaffActive = (data) =>
+  nigahomeoAPI.post("/ReceptionStaff/SetReceptionStaffActive", data);
 export const runCenterOfGravity = (data) =>
   nigahomeoAPI.post("/Repertorization/CenterOfGravity", data);
 export const exportCaseToPdf = (patientId, caseId) =>

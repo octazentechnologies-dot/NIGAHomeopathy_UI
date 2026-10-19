@@ -22,7 +22,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import usePatientBoardSessionPersistence from '../../../hooks/usePatientBoardSessionPersistence';
 import useContainerInfiniteLoad, { isElementScrollable } from '../../../hooks/useContainerInfiniteLoad';
 import { collectPatientBoardSnapshot, buildPatientBoardKey, canOpenPatientSession, showPatientSessionLimitAlert } from '../../../helpers/patientBoardSessionHelper';
-import { patientCallHref, patientDialNumber, patientWhatsAppHref } from '../../../helpers/patientPhone';
 import AudioCasePanel from '../../../Components/CaseTaking/AudioCasePanel';
 import { buildSummaryHistoryNoteText } from '../../../helpers/audioCaseTakingHelper';
 import { completePatientBoardSession } from '../../../slices/doctor/patientBoardSession/reducer';
@@ -89,7 +88,6 @@ import {
   getMateriaMedicaHeadingByAuthorId as getMateriaMedicaHeadingByAuthorIdApi,
   runCenterOfGravity,
   exportCaseToPdf,
-  exportCasesToExcel,
   getPatientComplaints,
   savePatientComplaints,
   getPatientCaseDetails,
@@ -104,7 +102,6 @@ import {
   getAppointmentIdFromRow,
   isVisitOnOrBeforeToday,
 } from '../../../helpers/patient_history_helper';
-import { getAuthUserId } from '../../../helpers/appointmentSlotHelper';
 import {
   buildSubSectionSearchTree,
   getSubSectionSearchSuggestions,
@@ -12908,27 +12905,6 @@ const PatientBoard = () => {
     }
   };
 
-  const handleExportCasesExcel = async () => {
-    const userId = getAuthUserId();
-    if (!userId) {
-      Swal.fire({ icon: 'warning', title: 'Missing doctor', text: 'Sign in as a doctor to export cases.', confirmButtonColor: '#000000' });
-      return;
-    }
-    try {
-      Swal.fire({ title: 'Exporting cases Excel…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const response = await exportCasesToExcel(userId);
-      await saveExportFile(response, `cases-${userId}.xlsx`);
-      Swal.close();
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Export failed',
-        text: typeof err === 'string' ? err : err?.message || 'Excel export failed',
-        confirmButtonColor: '#000000',
-      });
-    }
-  };
-
   const readCaseDetailRow = (row) => ({
     caseDetailId: row.caseDetailId ?? row.CaseDetailId ?? 0,
     subsectionId: row.subsectionId ?? row.SubsectionId ?? null,
@@ -13249,63 +13225,6 @@ const PatientBoard = () => {
                 )}
               </div>
               <div className="pb-info__actions">
-                <Button size="sm" color="success" className="btn btn-soft-success btn-icon" onClick={() => {
-                  const number = patientDialNumber(patientDetails?.mobileNo);
-                  Swal.fire({
-                    title: `WhatsApp ${number}`,
-                    text: 'Are you sure want to connect with whatsapp chat?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#0ab39c',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, connect!',
-                    cancelButtonText: 'Cancel',
-                    showClass: { popup: 'animate__animated animate__fadeInDown' },
-                    hideClass: { popup: 'animate__animated animate__fadeOutUp' }
-                  }).then((result) => {
-                    if (result.isConfirmed) {
-                      window.open(patientWhatsAppHref(patientDetails?.mobileNo), '_blank', 'noopener,noreferrer');
-                    }
-                  });
-                }}><i className="ri-chat-1-line" /></Button>
-                <Button size="sm" color="danger" className="btn btn-soft-danger btn-icon" onClick={() => {
-                  const number = patientDialNumber(patientDetails?.mobileNo);
-                  Swal.fire({
-                    title: number,
-                    text: 'Are you sure to call person directly?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, call!',
-                    cancelButtonText: 'Cancel',
-                    showClass: { popup: 'animate__animated animate__fadeInDown' },
-                    hideClass: { popup: 'animate__animated animate__fadeOutUp' }
-                  }).then((result) => {
-                    if (result.isConfirmed) {
-                      window.location.href = patientCallHref(patientDetails?.mobileNo);
-                    }
-                  });
-                }}><i className="ri-phone-fill" /></Button>
-                <Button size="sm" color="info" className="btn btn-soft-info btn-icon" onClick={() => {
-                  const number = patientDialNumber(patientDetails?.mobileNo);
-                  Swal.fire({
-                    title: `WhatsApp video ${number}`,
-                    text: 'Are you sure want to connect with whatsapp video call?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#299cdb',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, connect!',
-                    cancelButtonText: 'Cancel',
-                    showClass: { popup: 'animate__animated animate__fadeInDown' },
-                    hideClass: { popup: 'animate__animated animate__fadeOutUp' }
-                  }).then((result) => {
-                    if (result.isConfirmed) {
-                      window.open(patientWhatsAppHref(patientDetails?.mobileNo), '_blank', 'noopener,noreferrer');
-                    }
-                  });
-                }}><i className="ri-vidicon-2-fill" /></Button>
                 <Button
                   size="sm"
                   color="primary"
@@ -13322,6 +13241,7 @@ const PatientBoard = () => {
               isOpen={continuityModalOpen}
               toggle={() => setContinuityModalOpen(false)}
               patientName={resolvedPatientName || patientDetails?.patientName}
+              patientId={patientId}
             />
             <div className="pb-info__aside">
               <span className={`pb-info__chip pb-appointment-date${formattedAppointmentDate ? '' : ' pb-info__chip--placeholder'}`}>
@@ -13465,15 +13385,6 @@ const PatientBoard = () => {
               >
                 <i className="ri-file-pdf-2-line" aria-hidden="true" />
                 Export PDF
-              </button>
-              <button
-                type="button"
-                className="pb-tab pb-tab--tool"
-                onClick={handleExportCasesExcel}
-                title="Export this doctor cases to Excel"
-              >
-                <i className="ri-file-excel-2-line" aria-hidden="true" />
-                Export Excel
               </button>
               {activeTab === 'Repertorize' && (
                 <Button

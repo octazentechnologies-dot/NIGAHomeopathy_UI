@@ -135,8 +135,9 @@ export const approveErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills
 export const rejectErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Reject`, payload);
 
 /* Continuity (CON) */
-export const getPatientTimeline = () => nigahomeoAPI.get("/Patient/Timeline", null);
-export const getPatientVisits = () => nigahomeoAPI.get("/Patient/Visits", null);
+export const getPatientTimeline = (patientId) =>
+  nigahomeoAPI.get("/Patient/Timeline", patientId ? { patientId } : null);
+export const getPatientVisits = (params) => nigahomeoAPI.get("/Patient/Visits", params || null);
 export const getConsultNote = (patientAppId) =>
   nigahomeoAPI.get(`/Patient/Consultations/${patientAppId}/Note`, null);
 export const uploadPatientDocument = (payload) => {
@@ -153,12 +154,15 @@ export const postTeleChat = (payload) => nigahomeoAPI.post("/Tele/Chat", payload
 export const rejoinTeleSession = (sessionId) => nigahomeoAPI.post(`/Tele/Sessions/${sessionId}/Rejoin`, null);
 export const getConsultationSummary = (patientAppId) => nigahomeoAPI.get(`/Tele/Summary/${patientAppId}`, null);
 export const postFollowUp = (payload) => nigahomeoAPI.post("/Patient/FollowUps", payload);
-export const getPatientFollowUps = () => nigahomeoAPI.get("/Patient/FollowUps", null);
+export const getPatientFollowUps = (patientId) =>
+  nigahomeoAPI.get("/Patient/FollowUps", patientId ? { patientId } : null);
 export const completeFollowUp = (taskId) => nigahomeoAPI.post(`/Patient/FollowUps/${taskId}/Complete`, null);
 export const postDiaryEntry = (payload) => nigahomeoAPI.post("/Patient/Diary", payload);
-export const getPatientDiary = () => nigahomeoAPI.get("/Patient/Diary", null);
+export const getPatientDiary = (patientId) =>
+  nigahomeoAPI.get("/Patient/Diary", patientId ? { patientId } : null);
 export const updateDiaryEntry = (id, payload) => nigahomeoAPI.put(`/Patient/Diary/${id}`, payload);
-export const getPatientProgress = () => nigahomeoAPI.get("/Patient/Progress", null);
+export const getPatientProgress = (patientId) =>
+  nigahomeoAPI.get("/Patient/Progress", patientId ? { patientId } : null);
 export const getPatientConsents = () => nigahomeoAPI.get("/Patient/Consents", null);
 export const withdrawConsent = (id) => nigahomeoAPI.post(`/Patient/Consents/${id}/Withdraw`, null);
 export const grantPatientConsent = (consentTypeId) =>

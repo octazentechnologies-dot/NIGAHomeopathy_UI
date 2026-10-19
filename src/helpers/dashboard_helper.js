@@ -65,6 +65,8 @@ export const getHomeDashboardPath = (role) => {
 export const DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT = "doctor-dashboard:open-new-appointment";
 export const DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT = "doctor-dashboard:open-billing-list";
 export const DOCTOR_DASHBOARD_OPEN_SCHEDULE_CALENDAR_EVENT = "doctor-dashboard:open-schedule-calendar";
+/** Fired after profile hours, daily schedule, or booking changes that affect appointment slots. */
+export const DOCTOR_SCHEDULE_CHANGED_EVENT = "doctor-schedule:changed";
 
 export const buildPatientSelectOption = (patient) => {
   if (!patient) {
@@ -99,4 +101,11 @@ export const dispatchOpenDoctorScheduleCalendar = () => {
     return;
   }
   window.dispatchEvent(new CustomEvent(DOCTOR_DASHBOARD_OPEN_SCHEDULE_CALENDAR_EVENT));
+};
+
+export const dispatchDoctorScheduleChanged = (detail = null) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(DOCTOR_SCHEDULE_CHANGED_EVENT, { detail }));
 };

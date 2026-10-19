@@ -220,13 +220,6 @@ const Navdata = () => {
         },
 
         {
-            id: "enquiries",
-            label: "Enquiries",
-            icon: "ri-mail-line",
-            link: "/admin/enquiries",
-        },
-
-        {
             id: "assisted-booking",
             label: "Assisted booking",
             icon: "ri-calendar-check-line",
@@ -259,6 +252,13 @@ const Navdata = () => {
             label: "Consult payments",
             icon: "ri-secure-payment-line",
             link: "/admin/consult-payments",
+        },
+
+        {
+            id: "admin-reports",
+            label: "Reports",
+            icon: "ri-bar-chart-line",
+            link: "/admin/reports",
         },
 
         {
@@ -550,12 +550,6 @@ const Navdata = () => {
                     id: "crm",
                     label: "Roles",
                     link: "/admin/listrole",
-                    parentId: "businessmanagement",
-                },
-                {
-                    id: "crm",
-                    label: "Users",
-                    link: "/admin/listusers",
                     parentId: "businessmanagement",
                 },
                 {

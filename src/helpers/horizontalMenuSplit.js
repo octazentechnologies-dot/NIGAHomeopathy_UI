@@ -203,6 +203,20 @@ export const getHorizontalMenuSplit = (navChildren) => {
       return;
     }
 
+    // Enquiries is opened from Help & Support in the admin header — skip More duplicates.
+    const label = String(value.label || '').trim().toLowerCase();
+    const link = String(value.link || '').split('?')[0].toLowerCase();
+    if (
+      value.id === 'enquiries' ||
+      label === 'enquiries' ||
+      label === 'enquiry' ||
+      label === 'enquiry inbox' ||
+      link === '/enquiries' ||
+      link === '/admin/enquiries'
+    ) {
+      return;
+    }
+
     moreMenuItems.push(toMoreItem(value));
   });
 

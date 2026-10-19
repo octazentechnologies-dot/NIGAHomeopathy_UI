@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner, Table } from "reactstrap";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
   accountDoctorEarnings,
@@ -30,11 +30,12 @@ import {
   unwrapS4,
 } from "../../helpers/s4Week4Api";
 import {
-  downloadCsvEnvelope,
   exportPayouts,
   exportReconciliation,
   exportSettlements,
 } from "../../helpers/s5Week5Api";
+import { downloadExport, matrixFromCsvText } from "../../helpers/exportFormats";
+import ExportFormatButton from "../../Components/Common/ExportFormatButton";
 import "./components/accountDashboard.css";
 
 const SECTIONS = {
@@ -53,16 +54,18 @@ const SECTIONS = {
   refunds: { title: "Refunds", subtitle: "Refunds against original payment orders." },
 };
 
-const REPORT_LINKS = [
-  { to: "/account/ledger", label: "Ledger", icon: "ri-book-line", hint: "All ledger lines by stream, with CSV export." },
-  { to: "/account/consult-recon", label: "Consultation recon", icon: "ri-exchange-line", hint: "Online vs clinic consult collections." },
-  { to: "/account/doctor-earnings", label: "Doctor earnings", icon: "ri-money-dollar-circle-line", hint: "Per-doctor visit totals." },
-  { to: "/account/medicine-ledger", label: "Medicine ledger", icon: "ri-capsule-line", hint: "Medicine money kept apart from consults." },
-  { to: "/account/tax", label: "GST & tax", icon: "ri-percent-line", hint: "GST rate, totals and CSV." },
-  { to: "/account/settlements", label: "Settlements", icon: "ri-shake-hands-line", hint: "Settlement runs and their lines." },
-  { to: "/account/exceptions", label: "Exceptions", icon: "ri-error-warning-line", hint: "Open payment exceptions to resolve." },
-  { to: "/account/payees", label: "Payees", icon: "ri-bank-line", hint: "Bank and KYC records." },
-  { to: "/account/trail", label: "Account trail", icon: "ri-route-line", hint: "Orders and exceptions for one doctor, visit, or payment." },
+const ACCOUNT_REPORT_LINKS = [
+  { path: "ledger", label: "Ledger", icon: "ri-book-line", hint: "All ledger lines by stream, with download." },
+  { path: "consult-recon", label: "Consultation recon", icon: "ri-exchange-line", hint: "Online vs clinic consult collections by doctor." },
+  { path: "doctor-earnings", label: "Doctor earnings", icon: "ri-money-dollar-circle-line", hint: "Per-doctor visit totals." },
+  { path: "medicine-ledger", label: "Medicine ledger", icon: "ri-capsule-line", hint: "Medicine money kept apart from consults." },
+  { path: "tax", label: "GST & tax", icon: "ri-percent-line", hint: "GST rate, totals and download." },
+  { path: "settlements", label: "Settlements", icon: "ri-shake-hands-line", hint: "Settlement runs and their lines." },
+  { path: "exceptions", label: "Exceptions", icon: "ri-error-warning-line", hint: "Open payment exceptions to resolve." },
+  { path: "payees", label: "Payees", icon: "ri-bank-line", hint: "Bank and KYC records." },
+  { path: "clinic-collections", label: "Clinic collections", icon: "ri-store-2-line", hint: "Cash and UPI collected at reception." },
+  { path: "payouts", label: "Payouts", icon: "ri-hand-coin-line", hint: "OTP-approved releases to doctors and pharmacies." },
+  { path: "trail", label: "Account trail", icon: "ri-route-line", hint: "Orders and exceptions for one doctor, visit, or payment." },
 ];
 
 const money = (value) => {
@@ -167,7 +170,29 @@ const LedgerLinesTable = ({ rows }) => (
   </div>
 );
 
-const OrderLinesTable = ({ rows, rowKey = "ord" }) => (
+const RECON_EXPORT_COLUMNS = [
+  { key: "when", label: "When", value: (row) => formatWhen(pick(row, "createdAt", "CreatedAt", "at", "At")) },
+  { key: "order", label: "Order", value: (row) => pick(row, "paymentOrderId", "PaymentOrderId") || "" },
+  { key: "visit", label: "Visit", value: (row) => pick(row, "patientAppId", "PatientAppId") || "" },
+  { key: "patient", label: "Patient", value: (row) => pick(row, "patientId", "PatientId") || "" },
+  { key: "doctor", label: "Doctor", value: (row) => pick(row, "doctorId", "DoctorId") || "" },
+  { key: "amount", label: "Amount", value: (row) => pick(row, "amount", "Amount") ?? "" },
+  { key: "status", label: "Status", value: (row) => pick(row, "status", "Status") || "" },
+  { key: "channel", label: "Channel", value: (row) => channelLabel(row) },
+];
+
+const LEDGER_EXPORT_COLUMNS = [
+  { key: "when", label: "When", value: (row) => formatWhen(pick(row, "at", "At", "createdAt", "CreatedAt")) },
+  { key: "stream", label: "Stream", value: (row) => pick(row, "stream", "Stream") || "" },
+  { key: "direction", label: "Direction", value: (row) => pick(row, "direction", "Direction") || "" },
+  { key: "amount", label: "Amount", value: (row) => pick(row, "amount", "Amount") ?? "" },
+  { key: "gst", label: "GST", value: (row) => pick(row, "gst", "Gst") ?? "" },
+  { key: "type", label: "Type", value: (row) => pick(row, "entityType", "EntityType") || "" },
+  { key: "ref", label: "Reference", value: (row) => pick(row, "entityId", "EntityId") || "" },
+  { key: "order", label: "Order", value: (row) => pick(row, "paymentOrderId", "PaymentOrderId") || "" },
+];
+
+const OrderLinesTable = ({ rows, rowKey = "ord", hideDoctor = false }) => (
   <div className="table-responsive">
     <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
       <thead>
@@ -176,7 +201,7 @@ const OrderLinesTable = ({ rows, rowKey = "ord" }) => (
           <th>Order</th>
           <th>Visit</th>
           <th>Patient</th>
-          <th>Doctor</th>
+          {hideDoctor ? null : <th>Doctor</th>}
           <th>Amount</th>
           <th>Status</th>
           <th>Channel</th>
@@ -189,7 +214,7 @@ const OrderLinesTable = ({ rows, rowKey = "ord" }) => (
             <td>{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
             <td>{pick(row, "patientAppId", "PatientAppId") || "—"}</td>
             <td>{pick(row, "patientId", "PatientId") || "—"}</td>
-            <td>{pick(row, "doctorId", "DoctorId") || "—"}</td>
+            {hideDoctor ? null : <td>{pick(row, "doctorId", "DoctorId") || "—"}</td>}
             <td>{money(pick(row, "amount", "Amount"))}</td>
             <td>{pick(row, "status", "Status") || "—"}</td>
             <td>{channelLabel(row)}</td>
@@ -200,8 +225,95 @@ const OrderLinesTable = ({ rows, rowKey = "ord" }) => (
   </div>
 );
 
+const doctorKeyOf = (row) => {
+  const id = pick(row, "doctorId", "DoctorId");
+  return id == null || id === "" ? "unknown" : String(id);
+};
+
+const patientKeyOf = (row) => {
+  const id = pick(row, "patientId", "PatientId");
+  return id == null || id === "" ? "unknown" : String(id);
+};
+
+const sumOrderAmount = (list) =>
+  list.reduce((acc, row) => acc + (Number(pick(row, "amount", "Amount")) || 0), 0);
+
+/** Group consult-recon orders by doctor, with online/clinic split. */
+const groupReconByDoctor = (list) => {
+  const map = new Map();
+  list.forEach((row) => {
+    const key = doctorKeyOf(row);
+    if (!map.has(key)) {
+      map.set(key, {
+        doctorId: key === "unknown" ? null : key,
+        doctorName: pick(row, "doctorName", "DoctorName") || null,
+        orders: [],
+        online: [],
+        clinic: [],
+      });
+    }
+    const bucket = map.get(key);
+    bucket.orders.push(row);
+    if (isClinicCollection(row)) bucket.clinic.push(row);
+    else bucket.online.push(row);
+    if (!bucket.doctorName) {
+      bucket.doctorName = pick(row, "doctorName", "DoctorName") || bucket.doctorName;
+    }
+  });
+  return Array.from(map.values())
+    .map((bucket) => ({
+      ...bucket,
+      count: bucket.orders.length,
+      onlineCount: bucket.online.length,
+      clinicCount: bucket.clinic.length,
+      total: sumOrderAmount(bucket.orders),
+      onlineTotal: sumOrderAmount(bucket.online),
+      clinicTotal: sumOrderAmount(bucket.clinic),
+    }))
+    .sort((a, b) => b.total - a.total || String(a.doctorId).localeCompare(String(b.doctorId)));
+};
+
+/** Group orders by patient for one doctor. */
+const groupReconByPatient = (list) => {
+  const map = new Map();
+  list.forEach((row) => {
+    const key = patientKeyOf(row);
+    if (!map.has(key)) {
+      map.set(key, {
+        patientId: key === "unknown" ? null : key,
+        patientName: pick(row, "patientName", "PatientName") || null,
+        orders: [],
+      });
+    }
+    const bucket = map.get(key);
+    bucket.orders.push(row);
+    if (!bucket.patientName) {
+      bucket.patientName = pick(row, "patientName", "PatientName") || bucket.patientName;
+    }
+  });
+  return Array.from(map.values())
+    .map((bucket) => ({
+      ...bucket,
+      count: bucket.orders.length,
+      total: sumOrderAmount(bucket.orders),
+    }))
+    .sort((a, b) => b.total - a.total || String(a.patientId).localeCompare(String(b.patientId)));
+};
+
 const AccountFinancePage = ({ section = "ledger" }) => {
   const meta = SECTIONS[section] || SECTIONS.ledger;
+  const location = useLocation();
+  const adminReportsBase = location.pathname.startsWith("/admin");
+  const reportsHome = adminReportsBase ? "/admin/reports" : "/account/reports";
+  const dashboardHome = adminReportsBase ? "/dashboard" : "/accountdashboard";
+  const reportLinks = useMemo(
+    () =>
+      ACCOUNT_REPORT_LINKS.map((item) => ({
+        ...item,
+        to: adminReportsBase ? `/admin/reports/${item.path}` : `/account/${item.path}`,
+      })),
+    [adminReportsBase]
+  );
   const [rows, setRows] = useState([]);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -240,6 +352,8 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     pan: "",
     otp: "",
   });
+  const [reconDoctorId, setReconDoctorId] = useState(null);
+  const [reconPatientId, setReconPatientId] = useState(null);
 
   document.title = `${meta.title} | Niga Homeocentrum`;
 
@@ -344,36 +458,76 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     setNote("");
     setError("");
     setDetail(null);
+    setReconDoctorId(null);
+    setReconPatientId(null);
   }, [section]);
 
   const clinicOrders = useMemo(() => rows.filter(isClinicCollection), [rows]);
   const onlineOrders = useMemo(() => rows.filter((row) => !isClinicCollection(row)), [rows]);
-  const sumAmount = (list) => list.reduce((acc, row) => acc + (Number(pick(row, "amount", "Amount")) || 0), 0);
+  const sumAmount = (list) => sumOrderAmount(list);
 
-  const runLedgerExport = async () => {
+  const reconDoctors = useMemo(
+    () => (section === "consult-recon" ? groupReconByDoctor(rows) : []),
+    [section, rows]
+  );
+
+  const reconDoctor = useMemo(
+    () =>
+      reconDoctorId == null
+        ? null
+        : reconDoctors.find((d) => String(d.doctorId ?? "unknown") === String(reconDoctorId)) || null,
+    [reconDoctors, reconDoctorId]
+  );
+
+  const reconPatients = useMemo(
+    () => (reconDoctor ? groupReconByPatient(reconDoctor.orders) : []),
+    [reconDoctor]
+  );
+
+  const reconPatient = useMemo(
+    () =>
+      reconPatientId == null
+        ? null
+        : reconPatients.find((p) => String(p.patientId ?? "unknown") === String(reconPatientId)) || null,
+    [reconPatients, reconPatientId]
+  );
+
+  const runLedgerExport = async (format) => {
     setBusyId("ledger-export");
     setError("");
     try {
-      const response = await exportLedger({
-        from: ledgerFrom,
-        to: ledgerTo,
-        stream: ledgerStream || undefined,
-      });
-      const envelope = unwrapS4(response) || response;
-      const csv = envelope.csv || envelope.Csv || "";
-      if (!csv) {
-        setError("No CSV returned for this date range.");
-        return;
+      if (format === "csv") {
+        const response = await exportLedger({
+          from: ledgerFrom,
+          to: ledgerTo,
+          stream: ledgerStream || undefined,
+        });
+        const envelope = unwrapS4(response) || response;
+        const csv = envelope.csv || envelope.Csv || "";
+        if (csv) {
+          const parsed = matrixFromCsvText(csv);
+          downloadExport({
+            format: "csv",
+            fileBase: (envelope.fileName || envelope.FileName || "ledger").replace(/\.csv$/i, ""),
+            columns: parsed.columns,
+            rows: parsed.rows,
+            title: "Ledger",
+          });
+          return true;
+        }
       }
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = envelope.fileName || envelope.FileName || "ledger.csv";
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadExport({
+        format,
+        fileBase: "ledger",
+        title: "Ledger",
+        columns: LEDGER_EXPORT_COLUMNS,
+        rows,
+      });
+      return true;
     } catch (err) {
-      setError(s4Message(err));
+      if (err?.code === "EMPTY") setError("Nothing to export for this date range.");
+      else setError(s4Message(err));
+      return true;
     } finally {
       setBusyId(null);
     }
@@ -615,27 +769,15 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     }
   };
 
-  const exportClinicCsv = () => {
-    const header = "When,Order,Visit,Patient,Doctor,Amount,Status,Channel";
-    const lines = rows.map((row) =>
-      [
-        formatWhen(pick(row, "createdAt", "CreatedAt")),
-        pick(row, "paymentOrderId", "PaymentOrderId") || "",
-        pick(row, "patientAppId", "PatientAppId") || "",
-        pick(row, "patientId", "PatientId") || "",
-        pick(row, "doctorId", "DoctorId") || "",
-        pick(row, "amount", "Amount") || "",
-        pick(row, "status", "Status") || "",
-        channelLabel(row),
-      ].join(",")
-    );
-    const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "clinic-collections.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportClinicFile = (format) => {
+    downloadExport({
+      format,
+      fileBase: "clinic-collections",
+      title: "Clinic collections",
+      columns: RECON_EXPORT_COLUMNS,
+      rows,
+    });
+    return true;
   };
 
   const openSettlement = async (id) => {
@@ -652,17 +794,65 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     }
   };
 
-  const runReportExport = async (call, fallbackName) => {
+  const runReportExport = async (format, call, fallbackName, clientColumns, clientRows, title) => {
     setError("");
     try {
-      const response = await call();
-      const envelope = response?.csv || response?.Csv ? response : (response?.data || response);
-      if (!downloadCsvEnvelope(envelope, fallbackName)) {
-        setError("The export did not include a CSV file.");
+      if (format === "csv" && call) {
+        const response = await call();
+        const envelope = response?.csv || response?.Csv ? response : response?.data || response;
+        const csv = envelope?.csv || envelope?.Csv || "";
+        if (csv) {
+          const parsed = matrixFromCsvText(csv);
+          downloadExport({
+            format: "csv",
+            fileBase: String(fallbackName || "report").replace(/\.csv$/i, ""),
+            columns: parsed.columns,
+            rows: parsed.rows,
+            title: title || "Report",
+          });
+          return true;
+        }
       }
+      downloadExport({
+        format,
+        fileBase: String(fallbackName || "report").replace(/\.csv$/i, ""),
+        title: title || "Report",
+        columns: clientColumns,
+        rows: clientRows,
+      });
+      return true;
     } catch (err) {
-      setError(s4Message(err));
+      if (err?.code === "EMPTY") setError("Nothing to export.");
+      else setError(s4Message(err) || err?.message || "Export failed.");
+      return true;
     }
+  };
+
+  const exportTaxFile = (format) => {
+    const csv = detail?.csv || detail?.Csv || "";
+    if (csv) {
+      const parsed = matrixFromCsvText(csv);
+      downloadExport({
+        format,
+        fileBase: String(detail.fileName || detail.FileName || "tax").replace(/\.(csv|xlsx|pdf)$/i, ""),
+        title: "GST & tax",
+        columns: parsed.columns,
+        rows: parsed.rows,
+      });
+      return true;
+    }
+    downloadExport({
+      format,
+      fileBase: "tax",
+      title: "GST & tax",
+      columns: [
+        { key: "when", label: "When", value: (row) => formatWhen(pick(row, "at", "At", "createdAt", "CreatedAt")) },
+        { key: "amount", label: "Amount", value: (row) => pick(row, "amount", "Amount") ?? "" },
+        { key: "gst", label: "GST", value: (row) => pick(row, "gst", "Gst", "gstAmount", "GstAmount") ?? "" },
+      ],
+      rows,
+    });
+    return true;
   };
 
   return (
@@ -674,40 +864,79 @@ const AccountFinancePage = ({ section = "ledger" }) => {
             <p className="clinic-page-subtitle account-page-subtitle mb-0">{meta.subtitle}</p>
           </div>
           <div className="clinic-table-actions">
-            <Link to="/accountdashboard" className="btn btn-sm btn-soft-secondary clinic-action-btn">
+            <Link to={dashboardHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
               <i className="ri-home-4-line" aria-hidden="true" />
-              Account home
+              {adminReportsBase ? "Admin home" : "Account home"}
             </Link>
+            {adminReportsBase && section !== "reports" ? (
+              <Link to={reportsHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
+                <i className="ri-bar-chart-line" aria-hidden="true" />
+                Reports
+              </Link>
+            ) : null}
             <button type="button" className="btn btn-sm clinic-primary-btn" onClick={load} disabled={loading}>
               <i className="ri-refresh-line" aria-hidden="true" />
               Refresh
             </button>
             {section === "consult-recon" || section === "reports" ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-soft-secondary clinic-action-btn"
-                onClick={() => runReportExport(exportReconciliation, "reconciliation.csv")}
-              >
-                Export reconciliation
-              </button>
+              <ExportFormatButton
+                label="Download"
+                className="clinic-action-btn"
+                disabled={!rows.length && section === "consult-recon"}
+                onExport={(format) =>
+                  runReportExport(
+                    format,
+                    exportReconciliation,
+                    "reconciliation",
+                    RECON_EXPORT_COLUMNS,
+                    rows,
+                    "Consultation reconciliation"
+                  )
+                }
+              />
             ) : null}
             {section === "settlements" || section === "reports" ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-soft-secondary clinic-action-btn"
-                onClick={() => runReportExport(exportSettlements, "settlements.csv")}
-              >
-                Export settlements
-              </button>
+              <ExportFormatButton
+                label="Download settlements"
+                className="clinic-action-btn"
+                onExport={(format) =>
+                  runReportExport(
+                    format,
+                    exportSettlements,
+                    "settlements",
+                    [
+                      { key: "id", label: "Settlement", value: (row) => pick(row, "settlementId", "SettlementId") || "" },
+                      { key: "status", label: "Status", value: (row) => pick(row, "status", "Status") || "" },
+                      { key: "createdBy", label: "Created by", value: (row) => pick(row, "createdBy", "CreatedBy") || "" },
+                      { key: "createdAt", label: "Created", value: (row) => formatWhen(pick(row, "createdAt", "CreatedAt")) },
+                    ],
+                    rows,
+                    "Settlements"
+                  )
+                }
+              />
             ) : null}
             {section === "payouts" || section === "reports" ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-soft-secondary clinic-action-btn"
-                onClick={() => runReportExport(exportPayouts, "payouts.csv")}
-              >
-                Export payouts
-              </button>
+              <ExportFormatButton
+                label="Download payouts"
+                className="clinic-action-btn"
+                onExport={(format) =>
+                  runReportExport(
+                    format,
+                    exportPayouts,
+                    "payouts",
+                    [
+                      { key: "id", label: "Payout", value: (row) => pick(row, "payoutId", "PayoutId") || "" },
+                      { key: "payee", label: "Payee", value: (row) => pick(row, "payeeName", "PayeeName") || "" },
+                      { key: "amount", label: "Amount", value: (row) => pick(row, "amount", "Amount") ?? "" },
+                      { key: "status", label: "Status", value: (row) => pick(row, "status", "Status") || "" },
+                      { key: "created", label: "Created", value: (row) => formatWhen(pick(row, "createdAt", "CreatedAt")) },
+                    ],
+                    rows,
+                    "Payouts"
+                  )
+                }
+              />
             ) : null}
           </div>
         </div>
@@ -731,21 +960,11 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <Button className="account-primary-btn" onClick={load} disabled={loading}>Load report</Button>
                 </Col>
                 <Col md={3}>
-                  <Button
-                    color="soft-secondary"
-                    disabled={!detail?.csv}
-                    onClick={() => {
-                      const blob = new Blob([detail.csv], { type: "text/csv;charset=utf-8" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = detail.fileName || "tax.csv";
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                  >
-                    Export CSV
-                  </Button>
+                  <ExportFormatButton
+                    label="Download"
+                    disabled={!detail?.csv && !rows.length}
+                    onExport={exportTaxFile}
+                  />
                 </Col>
               </Row>
               {detail && !loading ? (
@@ -845,9 +1064,11 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 </Col>
                 <Col md={3} className="d-flex gap-2">
                   <Button className="account-primary-btn" onClick={load} disabled={loading}>Apply</Button>
-                  <Button color="soft-secondary" disabled={busyId === "ledger-export"} onClick={runLedgerExport}>
-                    Export CSV
-                  </Button>
+                  <ExportFormatButton
+                    label="Download"
+                    disabled={busyId === "ledger-export"}
+                    onExport={runLedgerExport}
+                  />
                 </Col>
               </Row>
             </CardBody>
@@ -899,7 +1120,11 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <Button className="account-primary-btn" onClick={load} disabled={loading}>Apply dates</Button>
                 </Col>
                 <Col md={3}>
-                  <Button color="soft-secondary" disabled={!rows.length} onClick={exportClinicCsv}>Export CSV</Button>
+                  <ExportFormatButton
+                    label="Download"
+                    disabled={!rows.length}
+                    onExport={exportClinicFile}
+                  />
                 </Col>
               </Row>
               {detail && !loading ? (
@@ -979,7 +1204,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
 
         {section === "reports" ? (
           <Row className="g-3 mb-3">
-            {REPORT_LINKS.map((item) => (
+            {reportLinks.map((item) => (
               <Col xs={12} sm={6} lg={3} key={item.to}>
                 <Card className="admin-dash-card h-100">
                   <CardBody>
@@ -1011,7 +1236,11 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 <li>Money hits the ledger when reception collects or a gateway capture succeeds.</li>
                 <li><strong>Dry-run</strong> counts those unsettled lines. Use this in a demo.</li>
                 <li><strong>Commit</strong> locks those lines into a settlement run and opens rows on Payouts.</li>
-                <li>On <Link to="/account/payouts">Payouts</Link> click OTP, then Approve. That is the actual release (RazorpayX skipped until S5 keys).</li>
+                <li>
+                  On{" "}
+                  <Link to={adminReportsBase ? "/admin/reports/payouts" : "/account/payouts"}>Payouts</Link> click OTP,
+                  then Approve. That is the actual release (RazorpayX skipped until S5 keys).
+                </li>
               </ol>
               <div className="d-flex flex-wrap gap-2">
               <Button
@@ -1155,73 +1384,183 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "consult-recon" ? (
               <div>
-                <h5 className="mb-2">Online collections</h5>
-                <p className="text-muted small">Gateway / Razorpay consult orders (not cash, UPI, card POS, or pay link).</p>
-                {onlineOrders.length === 0 ? (
-                  <p className="text-muted">No online consult collections in this range.</p>
+                {reconDoctorId == null ? (
+                  <>
+                    <h5 className="mb-1">Doctors</h5>
+                    <p className="text-muted small mb-3">
+                      All consult collections by doctor. Click a doctor to see patients.
+                    </p>
+                    {reconDoctors.length === 0 ? (
+                      <p className="text-muted mb-0">No consult collections in this range.</p>
+                    ) : (
+                      <div className="table-responsive">
+                        <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
+                          <thead>
+                            <tr>
+                              <th>Doctor</th>
+                              <th>Collections</th>
+                              <th>Online</th>
+                              <th>Clinic</th>
+                              <th>Total</th>
+                              <th className="text-end">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reconDoctors.map((doc) => {
+                              const key = String(doc.doctorId ?? "unknown");
+                              const label = doc.doctorName
+                                ? `${doc.doctorName} · ${doc.doctorId || "—"}`
+                                : doc.doctorId || "Unknown doctor";
+                              return (
+                                <tr
+                                  key={key}
+                                  style={{ cursor: "pointer" }}
+                                  onClick={() => {
+                                    setReconDoctorId(key);
+                                    setReconPatientId(null);
+                                  }}
+                                >
+                                  <td className="fw-medium">{label}</td>
+                                  <td>{doc.count}</td>
+                                  <td>
+                                    {doc.onlineCount} · {money(doc.onlineTotal)}
+                                  </td>
+                                  <td>
+                                    {doc.clinicCount} · {money(doc.clinicTotal)}
+                                  </td>
+                                  <td>{money(doc.total)}</td>
+                                  <td className="text-end">
+                                    <Button
+                                      size="sm"
+                                      color="soft-info"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setReconDoctorId(key);
+                                        setReconPatientId(null);
+                                      }}
+                                    >
+                                      Patients
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </Table>
+                      </div>
+                    )}
+                  </>
+                ) : reconPatientId == null ? (
+                  <>
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                      <div>
+                        <h5 className="mb-1">
+                          Patients · Doctor{" "}
+                          {reconDoctor?.doctorName
+                            ? `${reconDoctor.doctorName} (${reconDoctor.doctorId || "—"})`
+                            : reconDoctor?.doctorId || "—"}
+                        </h5>
+                        <p className="text-muted small mb-0">
+                          {reconDoctor?.count || 0} collections · {money(reconDoctor?.total || 0)}. Click a patient for
+                          their orders.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        color="soft-secondary"
+                        onClick={() => {
+                          setReconDoctorId(null);
+                          setReconPatientId(null);
+                        }}
+                      >
+                        Back to doctors
+                      </Button>
+                    </div>
+                    {reconPatients.length === 0 ? (
+                      <p className="text-muted mb-0">No patients for this doctor.</p>
+                    ) : (
+                      <div className="table-responsive">
+                        <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
+                          <thead>
+                            <tr>
+                              <th>Patient</th>
+                              <th>Collections</th>
+                              <th>Total</th>
+                              <th className="text-end">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reconPatients.map((pat) => {
+                              const key = String(pat.patientId ?? "unknown");
+                              const label = pat.patientName
+                                ? `${pat.patientName} · ${pat.patientId || "—"}`
+                                : pat.patientId || "Unknown patient";
+                              return (
+                                <tr
+                                  key={key}
+                                  style={{ cursor: "pointer" }}
+                                  onClick={() => setReconPatientId(key)}
+                                >
+                                  <td className="fw-medium">{label}</td>
+                                  <td>{pat.count}</td>
+                                  <td>{money(pat.total)}</td>
+                                  <td className="text-end">
+                                    <Button
+                                      size="sm"
+                                      color="soft-info"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setReconPatientId(key);
+                                      }}
+                                    >
+                                      Orders
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </Table>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="table-responsive mb-4">
-                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
-                      <thead>
-                        <tr>
-                          <th>Order</th>
-                          <th>Visit</th>
-                          <th>Patient</th>
-                          <th>Doctor</th>
-                          <th>Amount</th>
-                          <th>Status</th>
-                          <th>Channel</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {onlineOrders.map((row, index) => (
-                          <tr key={`on-${pick(row, "paymentOrderId", "PaymentOrderId") || index}`}>
-                            <td>{pick(row, "paymentOrderId", "PaymentOrderId")}</td>
-                            <td>{pick(row, "patientAppId", "PatientAppId") || "—"}</td>
-                            <td>{pick(row, "patientId", "PatientId") || "—"}</td>
-                            <td>{pick(row, "doctorId", "DoctorId") || "—"}</td>
-                            <td>{money(pick(row, "amount", "Amount"))}</td>
-                            <td>{pick(row, "status", "Status") || "—"}</td>
-                            <td>{channelLabel(row)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                )}
-                <h5 className="mb-2">Clinic collections</h5>
-                <p className="text-muted small">Cash, offline UPI, card POS, and pay-link reservations from reception.</p>
-                {clinicOrders.length === 0 ? (
-                  <p className="text-muted mb-0">No clinic collections in this range.</p>
-                ) : (
-                  <div className="table-responsive">
-                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
-                      <thead>
-                        <tr>
-                          <th>Order</th>
-                          <th>Visit</th>
-                          <th>Patient</th>
-                          <th>Doctor</th>
-                          <th>Amount</th>
-                          <th>Status</th>
-                          <th>Channel</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clinicOrders.map((row, index) => (
-                          <tr key={`cl-${pick(row, "paymentOrderId", "PaymentOrderId") || index}`}>
-                            <td>{pick(row, "paymentOrderId", "PaymentOrderId")}</td>
-                            <td>{pick(row, "patientAppId", "PatientAppId") || "—"}</td>
-                            <td>{pick(row, "patientId", "PatientId") || "—"}</td>
-                            <td>{pick(row, "doctorId", "DoctorId") || "—"}</td>
-                            <td>{money(pick(row, "amount", "Amount"))}</td>
-                            <td>{pick(row, "status", "Status") || "—"}</td>
-                            <td>{channelLabel(row)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
+                  <>
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                      <div>
+                        <h5 className="mb-1">
+                          Collections · Patient{" "}
+                          {reconPatient?.patientName
+                            ? `${reconPatient.patientName} (${reconPatient.patientId || "—"})`
+                            : reconPatient?.patientId || "—"}
+                        </h5>
+                        <p className="text-muted small mb-0">
+                          Doctor {reconDoctor?.doctorId || "—"} · {reconPatient?.count || 0} orders ·{" "}
+                          {money(reconPatient?.total || 0)}
+                        </p>
+                      </div>
+                      <div className="d-flex gap-2">
+                        <Button size="sm" color="soft-secondary" onClick={() => setReconPatientId(null)}>
+                          Back to patients
+                        </Button>
+                        <Button
+                          size="sm"
+                          color="soft-secondary"
+                          onClick={() => {
+                            setReconDoctorId(null);
+                            setReconPatientId(null);
+                          }}
+                        >
+                          All doctors
+                        </Button>
+                      </div>
+                    </div>
+                    {!reconPatient?.orders?.length ? (
+                      <p className="text-muted mb-0">No collections for this patient.</p>
+                    ) : (
+                      <OrderLinesTable rows={reconPatient.orders} rowKey="recon-pat" hideDoctor />
+                    )}
+                  </>
                 )}
               </div>
             ) : section === "payouts" ? (

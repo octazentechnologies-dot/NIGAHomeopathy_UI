@@ -7,6 +7,7 @@ export { s4Message, unwrapS4 };
 
 export const listSmsTemplates = () => nigahomeoAPI.get("/Sms/Templates", null);
 export const saveSmsTemplate = (payload) => nigahomeoAPI.post("/Sms/Templates", payload);
+export const deleteSmsTemplate = (smsTemplateId) => nigahomeoAPI.delete(`/Sms/Templates/${smsTemplateId}`, null);
 export const listSmsEvents = () => nigahomeoAPI.get("/Sms/Events", null);
 export const saveSmsPreference = (payload) => nigahomeoAPI.put("/Sms/Preferences", payload);
 export const listNotifications = () => nigahomeoAPI.get("/Notifications", null);

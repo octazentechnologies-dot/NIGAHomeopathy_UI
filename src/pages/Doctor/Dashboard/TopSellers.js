@@ -54,6 +54,7 @@ const TopSellers = () => {
     const [saving, setSaving] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const [newReminder, setNewReminder] = useState(emptyReminder(today));
 
     const monthStart = today.clone().startOf('month');
@@ -89,10 +90,28 @@ const TopSellers = () => {
     );
 
     const openModal = () => {
+        setEditingId(null);
         setNewReminder(emptyReminder(selectedDate));
         setIsModalOpen(true);
     };
-    const closeModal = () => setIsModalOpen(false);
+
+    const openEditModal = (item) => {
+        const timeRaw = item.time ? String(item.time).slice(0, 5) : '';
+        setEditingId(item.id);
+        setNewReminder({
+            date: moment(item.date, API_DATE).format(DATE_DISPLAY_FORMAT),
+            time: timeRaw,
+            title: item.title || '',
+            description: item.description || '',
+            contact: item.contact || '',
+        });
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setEditingId(null);
+    };
 
     const saveNewReminder = async () => {
         const title = newReminder.title.trim();
@@ -101,22 +120,33 @@ const TopSellers = () => {
             return;
         }
         const parsedDate = moment(newReminder.date, [DATE_DISPLAY_FORMAT, 'MM/DD/YYYY', API_DATE], true);
+        const payload = {
+            reminderDate: (parsedDate.isValid() ? parsedDate : moment(selectedDate)).format(API_DATE),
+            reminderTime: newReminder.time || null,
+            title,
+            description: newReminder.description.trim() || null,
+            contactNumber: newReminder.contact.trim() || null,
+            isDone: false,
+        };
         setSaving(true);
         try {
-            await createDoctorReminder({
-                reminderDate: (parsedDate.isValid() ? parsedDate : moment(selectedDate)).format(API_DATE),
-                reminderTime: newReminder.time || null,
-                title,
-                description: newReminder.description.trim() || null,
-                contactNumber: newReminder.contact.trim() || null,
-            });
+            if (editingId) {
+                const existing = monthReminders.find((r) => r.id === editingId);
+                await updateDoctorReminder(editingId, {
+                    ...payload,
+                    isDone: existing ? existing.isDone : false,
+                });
+            } else {
+                await createDoctorReminder(payload);
+            }
             setIsModalOpen(false);
+            setEditingId(null);
             if (parsedDate.isValid()) setSelectedDate(parsedDate.format(API_DATE));
             await loadReminders();
         } catch (err) {
             Swal.fire({
                 icon: 'error',
-                title: 'Reminder not saved',
+                title: editingId ? 'Reminder not updated' : 'Reminder not saved',
                 text: err?.data?.message || err?.message || 'Please try again.',
             });
         } finally {
@@ -425,11 +455,14 @@ const TopSellers = () => {
                                             </div>
                                             <div className="flex-shrink-0 d-flex align-items-center gap-1 reminder-actions">
                                                 {item.time ? <span className="reminder-time">{formatTimeToDisplay(item.time)}</span> : null}
-                                                {item.contact ? (
-                                                    <a href={`tel:${item.contact}`} className="btn btn-sm btn-soft-success" title={`Call ${item.contact}`}>
-                                                        <i className="ri-phone-fill" />
-                                                    </a>
-                                                ) : null}
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-soft-primary"
+                                                    title="Edit"
+                                                    onClick={() => openEditModal(item)}
+                                                >
+                                                    <i className="ri-pencil-line" />
+                                                </button>
                                                 <button
                                                     type="button"
                                                     className="btn btn-sm btn-soft-danger remove-item-btn"
@@ -454,7 +487,9 @@ const TopSellers = () => {
                             <ModalHeader className="patient-list-modal__header" toggle={closeModal}>
                                 <span className="patient-list-modal__title patient-list-modal__title--simple">
                                     <i className="ri-notification-3-line" style={{ color: '#25a0e2', fontSize: 15 }} aria-hidden="true" />
-                                    <span className="patient-list-modal__title-text">Create New Reminder</span>
+                                    <span className="patient-list-modal__title-text">
+                                        {editingId ? 'Edit Reminder' : 'Create New Reminder'}
+                                    </span>
                                 </span>
                             </ModalHeader>
                             <ModalBody>
