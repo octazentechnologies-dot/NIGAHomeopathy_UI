@@ -165,7 +165,7 @@ import AccountDashboard from "../pages/Account/Dashboard";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import FamilyMembers from "../pages/Family/FamilyMembers";
 import CaregiverAccess from "../pages/Family/CaregiverAccess";
-import ReceptionDashboard from "../pages/Reception/Dashboard";
+import ReceptionDashboard from "../pages/Reception/ReceptionNew/Dashboard";
 import DoctorEarningsSummaryPage from "../pages/Doctor/Earnings/DoctorEarningsSummaryPage";
 import DoctorSmsPage from "../pages/Doctor/Sms/DoctorSmsPage";
 import ClinicReportPage from "../pages/Doctor/Reports/ClinicReportPage";
@@ -444,8 +444,6 @@ import DoctorMobileContextPage from "../pages/Doctor/Mobile/DoctorMobileContextP
 import DoctorVideoRoomPage from "../pages/Doctor/Mobile/DoctorVideoRoomPage";
 import RefillInboxPage from "../pages/Doctor/Mobile/RefillInboxPage";
 import RefillDetailPage from "../pages/Doctor/Mobile/RefillDetailPage";
-import ReceptionSchedule from "../pages/Reception/ReceptionSchedule";
-import ReceptionCasePaper from "../pages/Reception/ReceptionCasePaper";
 import RangeArea from '../pages/Charts/ApexCharts/RangeAreaCharts';
 
 import FileManager from "../pages/FileManager";
@@ -654,8 +652,8 @@ const authProtectedRoutes = [
   { path: "doctor/pharmacy-queries", component: <DoctorPharmacyQueriesPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/support", component: <SupportWorkspacePage mode="mine" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "reception", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
-  { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: RECEPTION_ROUTE_ROLES },
-  { path: "reception/case-paper", component: <ReceptionCasePaper />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/schedule", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/case-paper", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
 
 
   // Doctor Side End //

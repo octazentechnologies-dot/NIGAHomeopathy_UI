@@ -28,7 +28,7 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from 'reselect';
 import { useProfile } from '../Components/Hooks/UserHooks';
-import { resolveUserRole, usesDoctorDashboardLayout, usesAdminDashboardLayout, usesPatientDashboardLayout } from '../Components/constants/roles';
+import { resolveUserRole, usesDoctorDashboardLayout, usesAdminDashboardLayout, usesPatientDashboardLayout, UserRole } from '../Components/constants/roles';
 import { layoutTypes, sidebarVisibilitytypes } from '../Components/constants/layout';
 import useDoctorLayout from '../Components/Hooks/DoctorLayoutHook';
 
@@ -42,6 +42,7 @@ const Layout = (props) => {
 
     const userRole = resolveUserRole(userProfile);
     const noSidebarLayout = usesDoctorDashboardLayout(userRole);
+    const hideReceptionHorizontalMenu = userRole === UserRole.RECEPTION;
 
     // Immediate role-based layout on mount (before profile hook resolves)
     useEffect(() => {
@@ -189,6 +190,7 @@ const Layout = (props) => {
         const adminDashboardLayout = usesAdminDashboardLayout(role);
 
         document.body.classList.toggle('patient-layout', usesPatientDashboardLayout(role));
+        document.body.classList.toggle('reception-layout', role === UserRole.RECEPTION);
 
         if (hideSidebarLayout) {
             document.body.classList.remove('admin-layout');
@@ -254,6 +256,7 @@ const Layout = (props) => {
             document.body.classList.remove('doctor-layout');
             document.body.classList.remove('admin-layout');
             document.body.classList.remove('patient-layout');
+            document.body.classList.remove('reception-layout');
         };
     }, [userProfile?.role, dispatch]);
 
@@ -326,7 +329,7 @@ const Layout = (props) => {
                     layoutModeType={layoutModeType}
                     onChangeLayoutMode={onChangeLayoutMode} />
                 {/* Hide admin sidebar for Doctor and Reception */}
-                {!noSidebarLayout && (
+                {!noSidebarLayout && !hideReceptionHorizontalMenu && (
                     <Sidebar
                         layoutType={layoutType}
                     />

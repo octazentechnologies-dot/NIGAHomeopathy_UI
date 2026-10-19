@@ -123,7 +123,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 </div>
                             ) : null}
 
-                            {!noSidebarLayout && (
+                            {!noSidebarLayout && userRole !== UserRole.RECEPTION && (
                                 <button
                                     onClick={toogleMenuBtn}
                                     type="button"
