@@ -31,9 +31,11 @@ import { resolveUserRole, UserRole } from "../../Components/constants/roles";
 import ReceptionProfileFields from "../Reception/ReceptionProfileFields";
 import PatientProfileFields from "./PatientProfileFields";
 import DoctorReviewsPanel from "./DoctorReviewsPanel";
-import { rankingExplain } from "../../helpers/s4Week4Api";
+import { feeHistory, rankingExplain, saveFee, unwrapS4 } from "../../helpers/s4Week4Api";
+import { getAuthDoctorId } from "../../helpers/appointmentSlotHelper";
 import defaultAvatar from "../../assets/images/users/user-dummy-img.jpg";
 import { notifyProfilePhotoChanged } from "../../helpers/profilePhotoEvents";
+import { dispatchDoctorScheduleChanged } from "../../helpers/dashboard_helper";
 import {
   getDoctorProfileMe,
   updateDoctorProfileMe,
@@ -53,6 +55,8 @@ import {
   getRegistrationDistricts,
   getRegistrationCities,
   getRegistrationPinCodes,
+  getUserById,
+  updateUser,
 } from "../../helpers/realbackend_helper";
 import { clinicMessage, deleteDoctorTimeOff, listDoctorTimeOff, saveDoctorTimeOff, unwrapClinic } from "../../helpers/doctorClinicApi";
 
@@ -77,8 +81,32 @@ const getProfileTabsForRole = (role) => {
 
 const getRoleDisplayLabel = (role) => {
   if (role === UserRole.RECEPTION) return "Receptionist";
+  if (role === UserRole.ADMIN) return "Admin";
+  if (role === UserRole.MANAGEMENT) return "Management";
+  if (role === UserRole.ACCOUNT) return "Account";
+  if (role === UserRole.PHARMACY || role === UserRole.PHARMACY_PARTNER) return "Pharmacy";
   return role || "N/A";
 };
+
+const isMeaningfulDate = (value) => {
+  if (value == null || value === "") return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime()) && date.getFullYear() > 1970;
+};
+
+const formatProfileDate = (value) => {
+  if (!isMeaningfulDate(value)) return null;
+  return new Date(value).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+/** Doctor subscription fields are not meaningful for admin/staff accounts. */
+const showsDoctorPlanFields = (role) => role === UserRole.DOCTOR;
 
 const CREDENTIAL_DOCUMENTS = [
   { type: "Qualification", label: "BHMS Certificate" },
@@ -315,6 +343,16 @@ const DEFAULT_FEES_FORM = {
     currency: "INR",
     freeFollowUpDays: "",
   },
+  instantSurcharge: "",
+  payAtClinicEnabled: true,
+  effectiveFrom: new Date().toISOString().slice(0, 10),
+};
+
+const asFeeHistoryRows = (payload) => {
+  const rows = unwrapS4(payload);
+  if (Array.isArray(rows)) return rows;
+  if (Array.isArray(rows?.data)) return rows.data;
+  return [];
 };
 
 const toFieldText = (value) => (value === null || value === undefined ? "" : String(value));
@@ -540,6 +578,7 @@ const UserProfile = () => {
   const [ranking, setRanking] = useState(null);
   const [bookingRules, setBookingRules] = useState({ gapMinutes: "", horizonDays: "" });
   const [personalSaving, setPersonalSaving] = useState(false);
+  const [editingStaffProfile, setEditingStaffProfile] = useState(false);
   const [activeTab, setActiveTab] = useState("clinic");
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
   const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
@@ -553,6 +592,7 @@ const UserProfile = () => {
   const [timeOffForm, setTimeOffForm] = useState({ start: "", end: "", reason: "" });
   const [timeOffBusy, setTimeOffBusy] = useState(false);
   const [feesForm, setFeesForm] = useState(DEFAULT_FEES_FORM);
+  const [feeHistoryRows, setFeeHistoryRows] = useState([]);
   const [profilePhoto, setProfilePhoto] = useState(defaultAvatar);
   const [photoFileInputKey, setPhotoFileInputKey] = useState(0);
   const [photoFile, setPhotoFile] = useState(null);
@@ -597,6 +637,14 @@ const UserProfile = () => {
           setemail(userInfo.email || userInfo.emailId || userInfo.EmailId || "");
           setDoctorMobile(userInfo.mobileNo || userInfo.MobileNo || "");
           setidx(userInfo.userId || userInfo._id || "");
+          setPersonalForm((prev) => ({
+            ...prev,
+            firstName: userInfo.firstName || "",
+            middleName: userInfo.middleName || "",
+            lastName: userInfo.lastName || "",
+            email: userInfo.email || userInfo.emailId || userInfo.EmailId || "",
+            mobileNo: userInfo.mobileNo || userInfo.MobileNo || "",
+          }));
 
           if (!isEmpty(user)) {
             const updatedObj = { ...obj };
@@ -624,6 +672,68 @@ const UserProfile = () => {
       setActiveTab(tabs[0]?.id || "profile");
     }
   }, [userData?.role, activeTab]);
+
+  // Enrich admin/staff profile from Users/{id} (login payload is a subset).
+  useEffect(() => {
+    const role = resolveUserRole(userData);
+    const userId = Number(userData?.userId || userData?.UserId || idx || 0);
+    if (!userId || !role || role === UserRole.DOCTOR || role === UserRole.RECEPTION || role === UserRole.PATIENT) {
+      return undefined;
+    }
+    let cancelled = false;
+    getUserById(userId)
+      .then((raw) => {
+        if (cancelled) return;
+        const me = raw?.resultObject ?? raw?.ResultObject ?? raw?.data ?? raw?.Data ?? raw ?? {};
+        const firstName = me.firstName || me.FirstName || userData?.firstName || "";
+        const lastName = me.lastName || me.LastName || userData?.lastName || "";
+        const middleName = me.middleName || me.MiddleName || userData?.middleName || "";
+        const emailValue = me.emailId || me.EmailId || userData?.email || userData?.emailId || "";
+        const mobileValue = me.mobileNo || me.MobileNo || userData?.mobileNo || "";
+        const loginName = me.userName || me.UserName || userData?.loginId || userData?.userName || "";
+        const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ").trim();
+        if (fullName) setUserName(fullName);
+        if (emailValue) setemail(emailValue);
+        if (mobileValue) setDoctorMobile(mobileValue);
+        setPersonalForm((prev) => ({
+          ...prev,
+          firstName: firstName || prev.firstName,
+          middleName: middleName || prev.middleName,
+          lastName: lastName || prev.lastName,
+          email: emailValue || prev.email,
+          mobileNo: mobileValue || prev.mobileNo,
+        }));
+        setUserData((prev) => ({
+          ...prev,
+          userId,
+          firstName,
+          middleName,
+          lastName,
+          email: emailValue,
+          emailId: emailValue,
+          mobileNo: mobileValue,
+          loginId: prev?.loginId || loginName,
+          userName: loginName || prev?.userName,
+          displayName: fullName || prev?.displayName,
+          roleId: me.roleId ?? me.RoleId ?? prev?.roleId,
+          userStatus: me.userStatus ?? me.UserStatus,
+          companyName: me.companyName || me.CompanyName || prev?.companyName || "",
+          firmIds: me.firmIds || me.FirmIds || prev?.firmIds || "",
+          enteredBy: me.enteredBy || me.EnteredBy || prev?.enteredBy || "",
+          enteredDate: me.enteredDate || me.EnteredDate || prev?.enteredDate || null,
+          changedBy: me.changedBy || me.ChangedBy || prev?.changedBy || "",
+          changedDate: me.changedDate || me.ChangedDate || prev?.changedDate || null,
+          isCurrentlyLoggedIn: me.isCurrentlyLoggedIn ?? me.IsCurrentlyLoggedIn ?? prev?.isCurrentlyLoggedIn,
+          isUserActivated: me.isUserActivated ?? me.IsUserActivated ?? prev?.isUserActivated,
+          countryId: me.countryId ?? me.CountryId ?? prev?.countryId,
+          stateId: me.stateId ?? me.StateId ?? prev?.stateId,
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userData?.userId, userData?.UserId, userData?.role, idx]);
 
   const loadQualifications = (isCancelled = () => false) =>
     getDoctorCredentialsMe()
@@ -748,7 +858,30 @@ const UserProfile = () => {
             currency,
             freeFollowUpDays: toFieldText(me.freeFollowUpDaysTele),
           },
+          instantSurcharge: "",
+          payAtClinicEnabled: true,
+          effectiveFrom: new Date().toISOString().slice(0, 10),
         });
+        if (me.doctorId) {
+          feeHistory(me.doctorId)
+            .then((payload) => {
+              if (cancelled) return;
+              const list = asFeeHistoryRows(payload);
+              setFeeHistoryRows(list);
+              const latest = list[0];
+              if (!latest) return;
+              setFeesForm((prev) => ({
+                ...prev,
+                instantSurcharge: toFieldText(latest.instantSurcharge ?? latest.InstantSurcharge ?? prev.instantSurcharge),
+                payAtClinicEnabled:
+                  latest.payAtClinicEnabled ?? latest.PayAtClinicEnabled ?? prev.payAtClinicEnabled,
+                effectiveFrom: String(latest.effectiveFrom || latest.EffectiveFrom || prev.effectiveFrom).slice(0, 10),
+              }));
+            })
+            .catch(() => {
+              if (!cancelled) setFeeHistoryRows([]);
+            });
+        }
         setConsultationMode({
           inClinic: true,
           teleconsultation: teleOn || Boolean(me.isOnline),
@@ -845,6 +978,96 @@ const UserProfile = () => {
     };
   }, [userData?.doctorId, userData?.role]);
 
+  const applyPersonalToSession = (fullName, emailValue, mobileValue, extra = {}) => {
+    setUserName(fullName);
+    setemail(emailValue);
+    setDoctorMobile(mobileValue);
+    setUserData((prev) => ({
+      ...prev,
+      ...extra,
+      firstName: extra.firstName ?? prev?.firstName,
+      middleName: extra.middleName ?? prev?.middleName,
+      lastName: extra.lastName ?? prev?.lastName,
+      email: emailValue,
+      emailId: emailValue,
+      mobileNo: mobileValue,
+      displayName: fullName,
+    }));
+    try {
+      const stored = JSON.parse(sessionStorage.getItem("authUser") || "{}");
+      const target = stored.data || stored;
+      target.email = emailValue;
+      target.emailId = emailValue;
+      target.displayName = fullName;
+      target.firstName = extra.firstName ?? target.firstName;
+      target.middleName = extra.middleName ?? target.middleName;
+      target.lastName = extra.lastName ?? target.lastName;
+      target.mobileNo = mobileValue;
+      sessionStorage.setItem("authUser", JSON.stringify(stored));
+    } catch (_) {
+      /* session copy is display-only */
+    }
+  };
+
+  const handleSaveStaffProfile = async (event) => {
+    event?.preventDefault?.();
+    const firstName = personalForm.firstName.trim();
+    const middleName = personalForm.middleName.trim();
+    const lastName = personalForm.lastName.trim();
+    const emailValue = personalForm.email.trim();
+    const mobileValue = personalForm.mobileNo.trim();
+    if (!firstName || !lastName) {
+      showSaveResult(false, "First name and last name are required.");
+      return;
+    }
+    if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      showSaveResult(false, "Enter a valid email address.");
+      return;
+    }
+    if (mobileValue && mobileValue.replace(/\D/g, "").length < 10) {
+      showSaveResult(false, "Enter a valid mobile number (at least 10 digits).");
+      return;
+    }
+    const userId = Number(userData?.userId || userData?.UserId || idx || 0);
+    if (!userId) {
+      showSaveResult(false, "Your user account could not be loaded for save.");
+      return;
+    }
+    setPersonalSaving(true);
+    try {
+      const existingRaw = await getUserById(userId);
+      const existing =
+        existingRaw?.resultObject ??
+        existingRaw?.ResultObject ??
+        existingRaw?.data ??
+        existingRaw?.Data ??
+        existingRaw ??
+        {};
+      await updateUser({
+        ...existing,
+        userId,
+        firstName,
+        lastName,
+        middleName: middleName || existing.middleName || existing.MiddleName || "",
+        emailId: emailValue,
+        mobileNo: mobileValue,
+        userName: existing.userName || existing.UserName || userData?.loginId || userData?.userName,
+        roleId: existing.roleId ?? existing.RoleId ?? userData?.roleId,
+        userStatus: existing.userStatus ?? existing.UserStatus ?? true,
+        deleteStatus: false,
+        enteredBy: existing.enteredBy || existing.EnteredBy || userData?.loginId || "self",
+      });
+      const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
+      applyPersonalToSession(fullName, emailValue, mobileValue, { firstName, middleName, lastName });
+      setEditingStaffProfile(false);
+      showSaveResult(true, "Profile details have been updated.");
+    } catch (err) {
+      showSaveResult(false, typeof err === "string" ? err : err?.message || "Save failed.");
+    } finally {
+      setPersonalSaving(false);
+    }
+  };
+
   const handleSavePersonal = async (event) => {
     event.preventDefault();
     const firstName = personalForm.firstName.trim();
@@ -884,29 +1107,14 @@ const UserProfile = () => {
         practiceActivated: Boolean(personalForm.practiceActivated),
       });
       const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
-      setUserName(fullName);
-      setUserData((prev) => ({ ...prev, practiceActivated: Boolean(personalForm.practiceActivated) }));
-      setemail(emailValue);
-      setDoctorMobile(mobileValue);
-      setClinicForm((prev) => ({ ...prev, email: emailValue, contactNumber: mobileValue }));
-      setUserData((prev) => ({
-        ...prev,
+      applyPersonalToSession(fullName, emailValue, mobileValue, {
         firstName,
         middleName,
         lastName,
-        email: emailValue,
-        mobileNo: mobileValue,
         registrationNo,
-      }));
-      try {
-        const stored = JSON.parse(sessionStorage.getItem("authUser") || "{}");
-        const target = stored.data || stored;
-        target.email = emailValue;
-        target.displayName = fullName;
-        sessionStorage.setItem("authUser", JSON.stringify(stored));
-      } catch (_) {
-        /* session copy is display-only */
-      }
+        practiceActivated: Boolean(personalForm.practiceActivated),
+      });
+      setClinicForm((prev) => ({ ...prev, email: emailValue, contactNumber: mobileValue }));
       showSaveResult(true, "Personal details have been updated.");
     } catch (err) {
       showSaveResult(false, typeof err === "string" ? err : err?.message || "Save failed.");
@@ -1072,6 +1280,13 @@ const UserProfile = () => {
     }));
   };
 
+  const updateFeeConfigField = (field, value) => {
+    setFeesForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   const handleSaveClinic = async (event) => {
     event.preventDefault();
     if (
@@ -1158,7 +1373,7 @@ const UserProfile = () => {
     if (!String(feesForm.inClinic.consultationFee || "").trim()) {
       Swal.fire({
         title: "Missing details",
-        text: "Please enter the in-clinic consultation fee.",
+        text: "Please enter the Present fee.",
         icon: "warning",
         timer: 1800,
         showConfirmButton: false,
@@ -1178,16 +1393,41 @@ const UserProfile = () => {
 
     try {
       const teleOn = Boolean(feesForm.tele.enabled);
+      const presentFee = Number(feesForm.inClinic.consultationFee);
+      const teleFee = teleOn ? Number(feesForm.tele.consultationFee) : presentFee;
+      const currency = feesForm.inClinic.currency || "INR";
       await updateDoctorProfileMe({
-        consultFeeInClinic: Number(feesForm.inClinic.consultationFee),
-        consultFeeTele: teleOn ? Number(feesForm.tele.consultationFee) : null,
+        consultFeeInClinic: presentFee,
+        consultFeeTele: teleOn ? teleFee : null,
         followUpFeeInClinic: toOptionalNumber(feesForm.inClinic.followUpFee),
         followUpFeeTele: teleOn ? toOptionalNumber(feesForm.tele.followUpFee) : null,
         freeFollowUpDaysInClinic: toOptionalNumber(feesForm.inClinic.freeFollowUpDays),
         freeFollowUpDaysTele: teleOn ? toOptionalNumber(feesForm.tele.freeFollowUpDays) : null,
-        feeCurrency: feesForm.inClinic.currency || "INR",
+        feeCurrency: currency,
         teleDisabled: !teleOn,
       });
+      const doctorId = Number(getAuthDoctorId() || 0);
+      const surchargeRaw = Number(feesForm.instantSurcharge);
+      const instantSurcharge = Number.isFinite(surchargeRaw) && surchargeRaw >= 0 ? surchargeRaw : 0;
+      const effectiveFrom =
+        String(feesForm.effectiveFrom || "").trim().slice(0, 10) || new Date().toISOString().slice(0, 10);
+      if (doctorId > 0 && Number.isFinite(teleFee) && teleFee > 0) {
+        try {
+          await saveFee({
+            doctorId,
+            inClinicFee: presentFee,
+            teleFee,
+            instantSurcharge,
+            currency,
+            payAtClinicEnabled: Boolean(feesForm.payAtClinicEnabled),
+            effectiveFrom,
+          });
+          const historyPayload = await feeHistory(doctorId);
+          setFeeHistoryRows(asFeeHistoryRows(historyPayload));
+        } catch {
+          // Profile row already saved; fee history sync is best-effort.
+        }
+      }
       showSaveResult(true, "Consultation fees have been updated.");
     } catch (err) {
       showSaveResult(false, typeof err === "string" ? err : err?.message || "Fee save failed.");
@@ -1599,6 +1839,7 @@ const UserProfile = () => {
           });
         }
       }
+      dispatchDoctorScheduleChanged({ source: "profile-hours" });
       showSaveResult(true, successText);
       return true;
     } catch (err) {
@@ -1790,8 +2031,8 @@ const UserProfile = () => {
                     ) : null}
                     {userData?.role !== UserRole.DOCTOR ? (
                       <p className="user-profile-page__summary-meta mb-0">
-                        <i className="ri-hashtag" aria-hidden="true" />
-                        <span>User ID: {idx || "—"}</span>
+                        <i className="ri-user-settings-line" aria-hidden="true" />
+                        <span>Login: {userData?.loginId || userData?.userName || "—"}</span>
                       </p>
                     ) : null}
                   </div>
@@ -1822,10 +2063,130 @@ const UserProfile = () => {
                   <TabPane tabId="profile">
                     {isReceptionProfile ? <ReceptionProfileFields /> : userData ? (
                       <>
-                        <h5 className="user-profile-page__section-title">
-                          <i className="ri-information-line" aria-hidden="true" />
-                          User Information
-                        </h5>
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                          <h5 className="user-profile-page__section-title mb-0">
+                            <i className="ri-information-line" aria-hidden="true" />
+                            User Information
+                          </h5>
+                          {userData.role !== UserRole.DOCTOR ? (
+                            <div className="d-flex gap-2">
+                              {editingStaffProfile ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-soft-secondary"
+                                    disabled={personalSaving}
+                                    onClick={() => {
+                                      setPersonalForm((prev) => ({
+                                        ...prev,
+                                        firstName: userData.firstName || "",
+                                        middleName: userData.middleName || "",
+                                        lastName: userData.lastName || "",
+                                        email: email || userData.email || userData.emailId || "",
+                                        mobileNo: doctorMobile || userData.mobileNo || "",
+                                      }));
+                                      setEditingStaffProfile(false);
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm clinic-primary-btn"
+                                    disabled={personalSaving}
+                                    onClick={handleSaveStaffProfile}
+                                  >
+                                    {personalSaving ? "Saving…" : "Save"}
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-soft-primary"
+                                  onClick={() => {
+                                    setPersonalForm((prev) => ({
+                                      ...prev,
+                                      firstName: userData.firstName || "",
+                                      middleName: userData.middleName || "",
+                                      lastName: userData.lastName || "",
+                                      email: email || userData.email || userData.emailId || "",
+                                      mobileNo: doctorMobile || userData.mobileNo || "",
+                                    }));
+                                    setEditingStaffProfile(true);
+                                  }}
+                                >
+                                  <i className="ri-pencil-line me-1" aria-hidden="true" />
+                                  Edit
+                                </button>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                        {editingStaffProfile && userData.role !== UserRole.DOCTOR ? (
+                          <Form onSubmit={handleSaveStaffProfile}>
+                            <Row className="g-3 new-patient-modal__fields">
+                              <Col md={4} xs={12}>
+                                <Label className="form-label new-patient-modal__label">
+                                  First Name
+                                  <RequiredMark />
+                                </Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.firstName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={4} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Middle Name</Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.middleName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, middleName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={4} xs={12}>
+                                <Label className="form-label new-patient-modal__label">
+                                  Last Name
+                                  <RequiredMark />
+                                </Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.lastName}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Email</Label>
+                                <Input
+                                  type="email"
+                                  value={personalForm.email}
+                                  onChange={(e) => setPersonalForm((prev) => ({ ...prev, email: e.target.value }))}
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Mobile</Label>
+                                <Input
+                                  type="text"
+                                  value={personalForm.mobileNo}
+                                  onChange={(e) =>
+                                    setPersonalForm((prev) => ({
+                                      ...prev,
+                                      mobileNo: e.target.value.replace(/[^\d+]/g, ""),
+                                    }))
+                                  }
+                                />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Login ID</Label>
+                                <Input value={userData.loginId || userData.userName || "—"} disabled />
+                              </Col>
+                              <Col md={6} xs={12}>
+                                <Label className="form-label new-patient-modal__label">Role</Label>
+                                <Input value={roleLabel} disabled />
+                              </Col>
+                            </Row>
+                          </Form>
+                        ) : (
                         <Row className="g-3 new-patient-modal__fields user-profile-page__info-grid">
                           <ProfileInfoField icon="ri-user-line" label="Full Name">
                             {[userData.firstName, userData.middleName, userData.lastName].filter(Boolean).join(" ") || userData.displayName || userData.userName || "—"}
@@ -1833,6 +2194,11 @@ const UserProfile = () => {
                           <ProfileInfoField icon="ri-user-3-line" label="First Name">
                             {userData.firstName || "—"}
                           </ProfileInfoField>
+                          {userData.middleName ? (
+                            <ProfileInfoField icon="ri-user-smile-line" label="Middle Name">
+                              {userData.middleName}
+                            </ProfileInfoField>
+                          ) : null}
                           <ProfileInfoField icon="ri-user-4-line" label="Last Name">
                             {userData.lastName || "—"}
                           </ProfileInfoField>
@@ -1843,19 +2209,38 @@ const UserProfile = () => {
                             {doctorMobile || userData.mobileNo || userData.mobile || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-user-settings-line" label="Login ID">
-                            {userData.loginId || "—"}
+                            {userData.loginId || userData.userName || "—"}
                           </ProfileInfoField>
                           <ProfileInfoField icon="ri-shield-user-line" label="Role">
-                            <ProfileBadge tone="info">{roleLabel}</ProfileBadge>
+                            <ProfileBadge tone="info">
+                              {roleLabel}
+                              {userData.roleId != null && userData.roleId !== "" ? ` · #${userData.roleId}` : ""}
+                            </ProfileBadge>
                           </ProfileInfoField>
                           {userData.role !== UserRole.DOCTOR ? (
-                            <ProfileInfoField icon="ri-key-line" label="Role ID">
-                              {userData.roleId || "—"}
+                            <ProfileInfoField icon="ri-account-circle-line" label="User name">
+                              {userData.userName || userData.loginId || userData.displayName || "—"}
                             </ProfileInfoField>
                           ) : null}
-                          {userData.role !== UserRole.DOCTOR ? (
-                            <ProfileInfoField icon="ri-fingerprint-line" label="User ID">
-                              {userData.userId || "—"}
+                          {(userData.userId || userData.UserId) ? (
+                            <ProfileInfoField icon="ri-hashtag" label="User ID">
+                              {userData.userId || userData.UserId}
+                            </ProfileInfoField>
+                          ) : null}
+                          {userData.userStatus !== undefined && userData.userStatus !== null ? (
+                            <ProfileInfoField icon="ri-user-follow-line" label="Account status">
+                              <ProfileBadge tone={userData.userStatus === true || userData.userStatus === 1 || /^active$/i.test(String(userData.userStatus)) ? "success" : "danger"}>
+                                {userData.userStatus === true || userData.userStatus === 1 || /^active$/i.test(String(userData.userStatus))
+                                  ? "Active"
+                                  : "Inactive"}
+                              </ProfileBadge>
+                            </ProfileInfoField>
+                          ) : null}
+                          {userData.isUserActivated !== undefined && userData.isUserActivated !== null ? (
+                            <ProfileInfoField icon="ri-mail-check-line" label="Email activated">
+                              <ProfileBadge tone={userData.isUserActivated ? "success" : "warning"}>
+                                {userData.isUserActivated ? "Yes" : "Pending"}
+                              </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
                           {userData.verificationStatus ? (
@@ -1865,24 +2250,54 @@ const UserProfile = () => {
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
-                          <ProfileInfoField icon="ri-vip-crown-line" label="Super User">
-                            <ProfileBadge tone={userData.isSuperUser ? "success" : "neutral"}>
-                              {userData.isSuperUser ? "Yes" : "No"}
-                            </ProfileBadge>
-                          </ProfileInfoField>
-                          <ProfileInfoField icon="ri-checkbox-circle-line" label="Plan Status">
-                            <ProfileBadge tone={userData.isPlanActive ? "success" : "danger"}>
-                              {userData.isPlanActive ? "Active" : "Inactive"}
-                            </ProfileBadge>
-                          </ProfileInfoField>
-                          {userData.daysRemaining !== undefined ? (
+                          {userData.isSuperUser !== undefined && userData.isSuperUser !== null ? (
+                            <ProfileInfoField icon="ri-vip-crown-line" label="Super User">
+                              <ProfileBadge tone={userData.isSuperUser ? "success" : "neutral"}>
+                                {userData.isSuperUser ? "Yes" : "No"}
+                              </ProfileBadge>
+                            </ProfileInfoField>
+                          ) : null}
+                          {userData.companyName ? (
+                            <ProfileInfoField icon="ri-building-2-line" label="Company">
+                              {userData.companyName}
+                            </ProfileInfoField>
+                          ) : null}
+                          {(userData.firmNames || userData.firmName || userData.firmIds) ? (
+                            <ProfileInfoField icon="ri-building-line" label="Firms">
+                              {userData.firmNames || userData.firmName || userData.firmIds}
+                            </ProfileInfoField>
+                          ) : null}
+                          {formatProfileDate(userData.enteredDate) ? (
+                            <ProfileInfoField icon="ri-calendar-check-line" label="Member since">
+                              {formatProfileDate(userData.enteredDate)}
+                              {userData.enteredBy ? (
+                                <span className="text-muted small d-block">by {userData.enteredBy}</span>
+                              ) : null}
+                            </ProfileInfoField>
+                          ) : null}
+                          {formatProfileDate(userData.changedDate) ? (
+                            <ProfileInfoField icon="ri-history-line" label="Last updated">
+                              {formatProfileDate(userData.changedDate)}
+                              {userData.changedBy ? (
+                                <span className="text-muted small d-block">by {userData.changedBy}</span>
+                              ) : null}
+                            </ProfileInfoField>
+                          ) : null}
+                          {showsDoctorPlanFields(userData.role) ? (
+                            <ProfileInfoField icon="ri-checkbox-circle-line" label="Plan Status">
+                              <ProfileBadge tone={userData.isPlanActive ? "success" : "danger"}>
+                                {userData.isPlanActive ? "Active" : "Inactive"}
+                              </ProfileBadge>
+                            </ProfileInfoField>
+                          ) : null}
+                          {showsDoctorPlanFields(userData.role) && userData.daysRemaining !== undefined ? (
                             <ProfileInfoField icon="ri-timer-line" label="Days Remaining">
                               <ProfileBadge tone={getDaysRemainingTone(userData.daysRemaining)}>
                                 {userData.daysRemaining} days
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
-                          {userData.packageName ? (
+                          {showsDoctorPlanFields(userData.role) && userData.packageName ? (
                             <ProfileInfoField icon="ri-vip-diamond-line" label="Package">
                               {userData.packageName}
                             </ProfileInfoField>
@@ -1900,12 +2315,8 @@ const UserProfile = () => {
                               {ranking.parts ? ` · verified ${ranking.parts.verified ?? "—"}, rating ${ranking.parts.averageRating ?? "—"}, fee factor ${ranking.parts.feeFactor ?? "—"}` : ""}
                             </ProfileInfoField>
                           ) : null}
-                          {userData.firmIds ? (
-                            <ProfileInfoField icon="ri-building-line" label="Firm IDs">
-                              {userData.firmIds}
-                            </ProfileInfoField>
-                          ) : null}
                         </Row>
+                        )}
                       </>
                     ) : null}
 
@@ -2028,6 +2439,8 @@ const UserProfile = () => {
                     ) : null}
                   </TabPane>
 
+                  {userData?.role === UserRole.DOCTOR ? (
+                  <>
                   <TabPane tabId="clinic">
                     <Form onSubmit={handleSaveClinic}>
                       <h5 className="user-profile-page__section-title">
@@ -2225,7 +2638,7 @@ const UserProfile = () => {
                         <Row className="g-3 new-patient-modal__fields">
                           <Col lg={4} md={6} xs={12}>
                             <Label htmlFor="inClinicConsultationFee" className="form-label new-patient-modal__label">
-                              Consultation Fee
+                              Present
                               <RequiredMark />
                             </Label>
                             <Input
@@ -2366,6 +2779,91 @@ const UserProfile = () => {
                             aria-label="Teleconsultation free follow-up validity days"
                           />
                         </div>
+                      </div>
+
+                      <div className="user-profile-page__fee-block">
+                        <div className="user-profile-page__fee-block-header">
+                          <h6 className="user-profile-page__fee-block-title mb-0">
+                            <i className="ri-flashlight-line" aria-hidden="true" />
+                            Instant &amp; clinic payment
+                          </h6>
+                        </div>
+                        <Row className="g-3 new-patient-modal__fields">
+                          <Col lg={4} md={6} xs={12}>
+                            <Label htmlFor="profileInstantSurcharge" className="form-label new-patient-modal__label">
+                              Instant surcharge
+                            </Label>
+                            <Input
+                              id="profileInstantSurcharge"
+                              type="number"
+                              min="0"
+                              value={feesForm.instantSurcharge}
+                              onChange={(e) => updateFeeConfigField("instantSurcharge", e.target.value)}
+                            />
+                          </Col>
+                          <Col lg={4} md={6} xs={12}>
+                            <Label htmlFor="profileFeeEffectiveFrom" className="form-label new-patient-modal__label">
+                              Effective from
+                              <RequiredMark />
+                            </Label>
+                            <Input
+                              id="profileFeeEffectiveFrom"
+                              type="date"
+                              value={feesForm.effectiveFrom}
+                              onChange={(e) => updateFeeConfigField("effectiveFrom", e.target.value)}
+                            />
+                          </Col>
+                          <Col lg={4} md={6} xs={12} className="d-flex align-items-end">
+                            <div className="form-check mb-2">
+                              <Input
+                                className="form-check-input"
+                                type="checkbox"
+                                id="profilePayAtClinic"
+                                checked={Boolean(feesForm.payAtClinicEnabled)}
+                                onChange={(e) => updateFeeConfigField("payAtClinicEnabled", e.target.checked)}
+                              />
+                              <Label className="form-check-label" htmlFor="profilePayAtClinic">
+                                Allow pay at clinic
+                              </Label>
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
+
+                      <div className="user-profile-page__fee-block">
+                        <div className="user-profile-page__fee-block-header">
+                          <h6 className="user-profile-page__fee-block-title mb-0">
+                            <i className="ri-history-line" aria-hidden="true" />
+                            Change history
+                          </h6>
+                        </div>
+                        {feeHistoryRows.length === 0 ? (
+                          <p className="text-muted small mb-0">No fee rows yet.</p>
+                        ) : (
+                          <ul className="list-unstyled mb-0 user-profile-page__fee-history">
+                            {feeHistoryRows.map((row) => {
+                              const id = row.consultFeeConfigId || row.ConsultFeeConfigId;
+                              const surcharge = row.instantSurcharge ?? row.InstantSurcharge;
+                              const payClinic = row.payAtClinicEnabled ?? row.PayAtClinicEnabled;
+                              return (
+                                <li key={id} className="border-bottom py-2">
+                                  <div className="fw-medium">
+                                    In-clinic ₹{row.inClinicFee ?? row.InClinicFee} · Tele ₹
+                                    {row.teleFee ?? row.TeleFee}
+                                    {surcharge != null && Number(surcharge) > 0
+                                      ? ` · Instant ₹${surcharge}`
+                                      : ""}
+                                  </div>
+                                  <div className="text-muted small">
+                                    From {String(row.effectiveFrom || row.EffectiveFrom || "").slice(0, 10)}
+                                    {" · Pay at clinic "}
+                                    {payClinic === false ? "off" : "on"}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
                       </div>
 
                       <div className="user-profile-page__form-footer">
@@ -3018,6 +3516,8 @@ const UserProfile = () => {
                   <TabPane tabId="reviews">
                     {activeTab === "reviews" ? <DoctorReviewsPanel /> : null}
                   </TabPane>
+                  </>
+                  ) : null}
                 </TabContent>
               </CardBody>
             </Card>

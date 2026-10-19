@@ -22,13 +22,20 @@ export const EMPTY_PHARMACY_CONFIG = {
 
 const text = (value) => (value == null ? "" : String(value));
 
+const toHHmm = (value) => {
+  const raw = text(value).trim();
+  if (!raw) return "";
+  const m = moment(raw, ["HH:mm:ss", "HH:mm", "H:mm"], true);
+  return m.isValid() ? m.format("HH:mm") : raw.slice(0, 5);
+};
+
 export const configFromApi = (data, partner) => {
   if (!data) return { ...EMPTY_PHARMACY_CONFIG, areas: partner?.area ? [partner.area] : [] };
   const areas = Array.isArray(data.areas) ? data.areas.filter(Boolean) : [];
   return {
     configured: Boolean(data.configured),
-    openTime: text(data.openTime),
-    closeTime: text(data.closeTime),
+    openTime: toHHmm(data.openTime),
+    closeTime: toHHmm(data.closeTime),
     days: Array.isArray(data.days) ? WEEK_DAYS.filter((d) => data.days.includes(d)) : [],
     areas: areas.length ? areas : partner?.area ? [partner.area] : [],
     deliveryCharge: text(data.deliveryCharge),
@@ -41,10 +48,15 @@ export const configFromApi = (data, partner) => {
 export const loadPharmacyConfig = async (partner) => {
   if (!partner?.id) return { ...EMPTY_PHARMACY_CONFIG };
   const response = await getPharmacyConfig(partner.id);
-  return configFromApi(response?.data, partner);
+  const payload = response?.data?.data ?? response?.data ?? response;
+  return configFromApi(payload, partner);
 };
 
-export const formatConfigTime = (value) => (value ? moment(value, "HH:mm").format("h:mm A") : "—");
+export const formatConfigTime = (value) => {
+  if (!value) return "—";
+  const m = moment(value, ["HH:mm:ss", "HH:mm", "H:mm"], true);
+  return m.isValid() ? m.format("h:mm A") : "—";
+};
 
 /** Whether the pharmacy is open right now according to its config; null until hours and days are set. */
 export const pharmacyOpenState = (config, now = moment()) => {

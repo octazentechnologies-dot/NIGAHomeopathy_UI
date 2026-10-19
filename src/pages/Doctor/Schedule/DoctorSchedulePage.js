@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { Card, CardBody, Col, Container, Row } from "reactstrap";
 import DailyScheduleSetupModal from "../../../Components/Common/DailyScheduleSetupModal";
-import { getAuthUserId } from "../../../helpers/appointmentSlotHelper";
+import { formatApiDate, getAuthDoctorId } from "../../../helpers/appointmentSlotHelper";
 
 /**
  * APT-07.01 — full-page week schedule. Reuses Get/SaveDailySchedule via DailyScheduleSetupModal.
+ * Must use DoctorId (not UserId) so SaveDailySchedule ownership matches slots / Hours / Tele.
  */
 const DoctorSchedulePage = () => {
-  const doctorId = getAuthUserId();
+  const doctorId = Number(getAuthDoctorId() || 0);
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
     const day = d.getDay();
@@ -25,6 +26,7 @@ const DoctorSchedulePage = () => {
       Array.from({ length: 7 }, (_, i) => {
         const d = new Date(weekStart);
         d.setDate(weekStart.getDate() + i);
+        d.setHours(0, 0, 0, 0);
         return d;
       }),
     [weekStart]
@@ -33,6 +35,7 @@ const DoctorSchedulePage = () => {
   const shiftWeek = (delta) => {
     const next = new Date(weekStart);
     next.setDate(weekStart.getDate() + delta * 7);
+    next.setHours(0, 0, 0, 0);
     setWeekStart(next);
   };
 
@@ -42,7 +45,9 @@ const DoctorSchedulePage = () => {
         <div className="clinic-page-header">
           <div>
             <h2 className="clinic-page-title">Clinic schedule</h2>
-            <p className="clinic-page-subtitle mb-0">Set slot interval and work hours per day. Same SaveDailySchedule API as the dashboard modal.</p>
+            <p className="clinic-page-subtitle mb-0">
+              Same daily hours as dashboard schedule setup, profile Hours, and booking slots.
+            </p>
           </div>
           <div className="clinic-table-actions">
             <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={() => shiftWeek(-1)}>
@@ -55,15 +60,23 @@ const DoctorSchedulePage = () => {
             </button>
           </div>
         </div>
+        {!doctorId ? (
+          <div className="alert alert-warning">Sign in as a doctor to edit clinic schedule hours.</div>
+        ) : null}
         <Row className="g-2">
           {days.map((d) => {
-            const key = d.toISOString().slice(0, 10);
+            const key = formatApiDate(d) || d.toLocaleDateString("en-CA");
             return (
               <Col key={key} md={6} xl={3}>
                 <Card className="admin-dash-card">
                   <CardBody>
                     <div className="fw-medium">{d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</div>
-                    <button type="button" className="btn btn-sm clinic-primary-btn mt-2" onClick={() => setOpenDate(d)}>
+                    <button
+                      type="button"
+                      className="btn btn-sm clinic-primary-btn mt-2"
+                      disabled={!doctorId}
+                      onClick={() => setOpenDate(d)}
+                    >
                       <i className="ri-time-line" aria-hidden="true" />
                       Edit hours
                     </button>
@@ -74,7 +87,7 @@ const DoctorSchedulePage = () => {
           })}
         </Row>
         <DailyScheduleSetupModal
-          isOpen={!!openDate}
+          isOpen={!!openDate && doctorId > 0}
           doctorId={doctorId}
           scheduleDate={openDate || new Date()}
           requireSave={false}

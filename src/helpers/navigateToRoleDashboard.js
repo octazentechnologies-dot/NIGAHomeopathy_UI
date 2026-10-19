@@ -30,7 +30,7 @@ export const navigateToRoleDashboard = (navigate) => {
             }
 
             if (userRole === UserRole.RECEPTION) {
-                navigate('/receptiondashboard');
+                navigate('/reception');
                 return;
             }
 

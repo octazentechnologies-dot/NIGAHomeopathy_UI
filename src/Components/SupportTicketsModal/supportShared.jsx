@@ -19,7 +19,7 @@ export const statusBadgeClass = (status) => {
   if (status === "Open") return "bg-primary";
   if (status === "Pending") return "bg-warning";
   if (status === "In Progress") return "bg-info";
-  if (status === "Closed") return "bg-secondary";
+  if (status === "Closed" || status === "Resolved") return "bg-secondary";
   return "bg-success";
 };
 

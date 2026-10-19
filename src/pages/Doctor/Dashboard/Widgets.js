@@ -47,6 +47,7 @@ import {
     buildPatientSelectOption,
     DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT,
     DOCTOR_DASHBOARD_OPEN_BILLING_LIST_EVENT,
+    DOCTOR_SCHEDULE_CHANGED_EVENT,
     dispatchOpenDoctorScheduleCalendar,
     formatPlanDaysRemaining,
     getPlanDaysRemaining,
@@ -64,8 +65,6 @@ import {
     getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentSlots,
     getDailySchedule,
-    getDirectoryVisibility,
-    setDirectoryVisibility,
     updateAvailabilityMe,
 } from '../../../helpers/realbackend_helper';
 import { } from "../../../slices/doctor/dashboard/reducer";
@@ -116,6 +115,15 @@ const statusMatches = (appointmentStatus, targetStatus) => {
     return normalizedAppStatus === normalizedTarget ||
         normalizedAppStatus.toLowerCase() === normalizedTarget.toLowerCase() ||
         normalizedAppStatus.toUpperCase() === normalizedTarget.toUpperCase();
+};
+
+/** Matches doctor dashboard teleQueueCount: IsTele flag or E-Consult status. */
+const isTeleConsultationAppointment = (appointment) => {
+    if (!appointment) return false;
+    if (appointment.isTele === true || appointment.IsTele === true) return true;
+    const mode = appointment.consultMode || appointment.ConsultMode || '';
+    if (typeof mode === 'string' && /tele|video/i.test(mode)) return true;
+    return statusMatches(appointment.status, 'E-Consult') || statusMatches(appointment.status, 'E-CONSULT');
 };
 
 const formatPatientListAppointmentDisplay = (appointment) => {
@@ -271,7 +279,7 @@ const PatientListTimeCell = ({ appointment }) => (
 
 const formatPatientListStatusLabel = (status) => {
     if (statusMatches(status, 'E-Consult') || statusMatches(status, 'E-CONSULT')) {
-        return 'Telemedicine';
+        return 'Tele Consultation';
     }
     return status || 'N/A';
 };
@@ -1928,10 +1936,6 @@ const Widgets = () => {
     const subscriptionSuccess = useSelector((state) => state?.DoctorDashboard?.subscriptionSuccess);
     const subscriptionError = useSelector((state) => state?.DoctorDashboard?.subscriptionError);
     const [selectedPackage, setSelectedPackage] = useState(null);
-    const [availabilityBusy, setAvailabilityBusy] = useState(false);
-    const [directoryVisible, setDirectoryVisibleState] = useState(false);
-    const [directoryCanPublish, setDirectoryCanPublish] = useState(true);
-    const [directoryBusy, setDirectoryBusy] = useState(false);
     const [todaySlotCount, setTodaySlotCount] = useState(null);
     const razorpayInstanceRef = useRef(null);
     const selectedPackageRef = useRef(null);
@@ -2294,44 +2298,22 @@ const Widgets = () => {
 
     useEffect(() => {
         let cancelled = false;
-        getDirectoryVisibility()
-            .then((raw) => {
-                if (cancelled) return;
-                const data = raw?.data ?? raw?.Data ?? raw;
-                setDirectoryVisibleState(!!(data?.directoryVisible ?? data?.DirectoryVisible));
-                const can =
-                    data?.canPublish ?? data?.CanPublish ??
-                    String(data?.verificationStatus ?? data?.VerificationStatus ?? "").toLowerCase() === "verified";
-                setDirectoryCanPublish(can !== false);
-            })
-            .catch(() => {
-                if (!cancelled) setDirectoryVisibleState(false);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
-        const doctorId = getAuthDoctorId();
-        if (!doctorId) return undefined;
-
-        let isMounted = true;
         (async () => {
             try {
+                const doctorId = getAuthDoctorId();
+                if (!doctorId) return;
                 const schedule = await getDailySchedule({
                     doctorId,
                     scheduleDate: moment().format('YYYY-MM-DD'),
                 });
-                if (!isMounted || schedule) return;
+                if (cancelled || schedule) return;
                 openScheduleSetupModal(doctorId, moment().format('YYYY-MM-DD'), true, 'dashboard');
             } catch (error) {
                 console.error('Failed to check daily schedule:', error);
             }
         })();
-
         return () => {
-            isMounted = false;
+            cancelled = true;
         };
     }, []);
 
@@ -2899,7 +2881,6 @@ const Widgets = () => {
             statusMatches(appointment.status, "E-CONSULT");
         if (!isTelemedicine) return false;
 
-        // Then filter by search term
         const needle = econsultSearch.trim().toLowerCase();
         if (!needle) return true;
 
@@ -2911,6 +2892,7 @@ const Widgets = () => {
             (appointment.mobileNo || "").toString().includes(needle)
         );
     });
+    const econsultTotalCount = appointmentList.filter(isTeleConsultationAppointment).length;
 
     const econsultTotalPages = Math.max(1, Math.ceil(econsultFiltered.length / econsultPageSize));
     const econsultSafePage = Math.min(econsultPage, econsultTotalPages);
@@ -3105,131 +3087,8 @@ const Widgets = () => {
                     className="col-6 col-md-4 col-lg-2"
                     role="button"
                     tabIndex={0}
-                    title="Click to toggle online / offline"
-                    onClick={async (event) => {
-                        event.preventDefault();
-                        if (availabilityBusy) return;
-                        const currentlyOnline = !!(counts?.isOnline || counts?.IsOnline);
-                        try {
-                            setAvailabilityBusy(true);
-                            await updateAvailabilityMe({ isOnline: !currentlyOnline });
-                            const auth = JSON.parse(sessionStorage.getItem('authUser'));
-                            const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
-                            dispatch(fetchDoctorDashboardCounts({
-                                appointmentDate: dashboardQueryDateIso(),
-                                status: "",
-                                userId,
-                            }));
-                        } catch (err) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Availability update failed',
-                                text: typeof err === 'string' ? err : err?.message || 'Could not toggle online status',
-                            });
-                        } finally {
-                            setAvailabilityBusy(false);
-                        }
-                    }}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            e.currentTarget.click();
-                        }
-                    }}
-                >
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className={`avatar-title border rounded-2 fs-17 doctor-kpi-icon ${counts?.isOnline || counts?.IsOnline ? 'bg-success-subtle border-success' : 'bg-secondary-subtle border-secondary'}`}>
-                                    <i className="ri-wifi-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{availabilityBusy ? 'Saving…' : ((counts?.isOnline || counts?.IsOnline) ? 'Online' : 'Offline')}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">AVAILABILITY</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="col-6 col-md-4 col-lg-2"
-                    role="button"
-                    tabIndex={0}
-                    title={
-                        directoryCanPublish
-                            ? "Click to show or hide your profile in Find a Doctor"
-                            : "Verify credentials before publishing in Find a Doctor"
-                    }
-                    onClick={async (event) => {
-                        event.preventDefault();
-                        if (directoryBusy) return;
-                        const next = !directoryVisible;
-                        if (next && !directoryCanPublish) {
-                            Swal.fire({
-                                icon: "info",
-                                title: "Not verified yet",
-                                text: "Complete credential verification before publishing your profile in Find a Doctor.",
-                            });
-                            return;
-                        }
-                        try {
-                            setDirectoryBusy(true);
-                            const raw = await setDirectoryVisibility({ directoryVisible: next });
-                            const data = raw?.data ?? raw?.Data ?? raw;
-                            setDirectoryVisibleState(!!(data?.directoryVisible ?? data?.DirectoryVisible ?? next));
-                            if (data?.canPublish != null || data?.CanPublish != null) {
-                                setDirectoryCanPublish(!!(data?.canPublish ?? data?.CanPublish));
-                            }
-                        } catch (err) {
-                            Swal.fire({
-                                icon: "error",
-                                title: "Discovery update failed",
-                                text:
-                                    typeof err === "string"
-                                        ? err
-                                        : err?.message || "Could not change Find a Doctor visibility",
-                            });
-                        } finally {
-                            setDirectoryBusy(false);
-                        }
-                    }}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            e.currentTarget.click();
-                        }
-                    }}
-                >
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div
-                                    className={`avatar-title border rounded-2 fs-17 doctor-kpi-icon ${
-                                        directoryVisible
-                                            ? "bg-primary-subtle border-primary"
-                                            : "bg-secondary-subtle border-secondary"
-                                    }`}
-                                >
-                                    <i className="ri-search-eye-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">
-                                    {directoryBusy ? "Saving…" : directoryVisible ? "Visible" : "Hidden"}
-                                </h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">FIND A DOCTOR</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="col-6 col-md-4 col-lg-2"
-                    role="button"
-                    tabIndex={0}
-                    title="Set today's slots"
-                    onClick={() => {
-                        openTodaySlotsSetup();
-                    }}
+                    title="Open today's appointment slots"
+                    onClick={() => openTodaySlotsSetup()}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
@@ -3295,13 +3154,13 @@ const Widgets = () => {
                 </div>
                 <div
                     className="col-6 col-md-4 col-lg-2"
-                    onClick={() => navigate('/doctor/telemedicine')}
+                    onClick={() => navigate('/doctor/tele-consultation')}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            navigate('/doctor/telemedicine');
+                            navigate('/doctor/tele-consultation');
                         }
                     }}
                 >
@@ -3313,8 +3172,8 @@ const Widgets = () => {
                                 </div>
                             </div>
                             <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppEConsult ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">TELEMEDICINE</p>
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">TELE CONSULTATION</p>
                             </div>
                         </div>
                     </div>
@@ -4280,7 +4139,7 @@ const Widgets = () => {
                 <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_econsult(); }}>
                     <PatientListModalTitle
                         icon="ri-vidicon-line"
-                        title="Telemedicine Patients"
+                        title="Tele Consultation Patients"
                         variant="simple"
                         iconColor="#25a0e2"
                     />
@@ -4301,7 +4160,7 @@ const Widgets = () => {
                                                 <div className="spinner-border spinner-border-sm me-2" role="status">
                                                     <span className="visually-hidden">Loading...</span>
                                                 </div>
-                                                Loading telemedicine patients...
+                                                Loading tele consultation patients...
                                             </div>
                                         </td>
                                     </tr>
@@ -4324,7 +4183,7 @@ const Widgets = () => {
                                             <td>
                                                 <PatientListStatusBadge
                                                     status={appointment.status}
-                                                    badgeClass={appointment.status === 'E-Consult' ? 'bg-purple' : 'bg-secondary'}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
                                             </td>
                                         </tr>
@@ -4333,7 +4192,7 @@ const Widgets = () => {
                                 {econsultPageItems.length === 0 && !appointmentListLoading && (
                                     <tr>
                                         <PatientListEmptyCell
-                                            message={econsultSearch ? 'No telemedicine patients found matching your search' : 'No telemedicine patients available'}
+                                            message={econsultSearch ? 'No tele consultation patients found matching your search' : 'No tele consultation patients available'}
                                         />
                                     </tr>
                                 )}
@@ -4345,7 +4204,7 @@ const Widgets = () => {
                             {appointmentListLoading ? (
                                 'Loading...'
                             ) : (
-                                `Showing ${econsultPageItems.length} of ${econsultFiltered.length} Telemedicine Patients ${econsultSearch ? `(filtered from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total telemedicine)` : `(from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total telemedicine)`}`
+                                `Showing ${econsultPageItems.length} of ${econsultFiltered.length} Tele Consultation Patients ${econsultSearch ? `(filtered from ${econsultTotalCount} total tele consultation)` : `(from ${econsultTotalCount} total tele consultation)`}`
                             )}
                         </div>
                         {!appointmentListLoading && econsultTotalPages > 1 && (

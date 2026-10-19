@@ -299,7 +299,7 @@ const BarLabelChart = ({ colors = PATIENT_STATS_CHART_COLORS, seriesData }) => {
         ["WAITING", resolved.waiting],
         ["WALK-IN", resolved.walkIn],
         ["NOT ARRIVED", resolved.notArrived],
-        ["TELEMEDICINE", resolved.eConsult],
+        ["TELE CONSULTATION", resolved.eConsult],
         ["REMAINING", resolved.remaining],
         ["COMPLETED", resolved.completed],
     ];

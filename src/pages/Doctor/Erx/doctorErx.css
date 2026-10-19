@@ -1,3 +1,32 @@
+.erx-page--embedded {
+  padding: 0.75rem 0.85rem 1rem;
+  max-height: min(78vh, 820px);
+  overflow: auto;
+}
+
+.erx-page--embedded .clinic-page-subtitle {
+  font-size: 0.78rem;
+}
+
+.erx-page__locked-visit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.erx-page__locked-visit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #e8f4fc;
+  color: #0b6e99;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .erx-page {
   --erx-border: var(--minimal-card-border, #b9b9b9);
   --erx-divider: #eef2f6;
@@ -541,6 +570,77 @@ textarea.form-control.erx-notes__input {
   margin: 0;
   color: #000;
   font-weight: 600;
+}
+
+.erx-required {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.erx-required__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.erx-required__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.erx-required__list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.erx-required__list li i {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.erx-required__list li.is-ok {
+  color: #166534;
+}
+
+.erx-required__list li.is-missing {
+  color: #b45309;
+}
+
+.erx-required__list li strong {
+  display: block;
+  font-weight: 700;
+}
+
+.erx-required__list li small {
+  display: block;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.erx-format-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #e8f5ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 /* Print / download */

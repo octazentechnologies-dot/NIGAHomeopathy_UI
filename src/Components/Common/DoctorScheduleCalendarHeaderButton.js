@@ -1,41 +1,41 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ModalBody, ModalHeader, Spinner } from 'reactstrap';
 import moment from 'moment';
 import { UserRole } from '../constants/roles';
 import {
   getAuthDoctorId,
+  getSlotStatusSummary,
   normalizeAppointmentSlotsResponse,
 } from '../../helpers/appointmentSlotHelper';
-import { getAppointmentSlots } from '../../helpers/realbackend_helper';
-import { DOCTOR_DASHBOARD_OPEN_SCHEDULE_CALENDAR_EVENT } from '../../helpers/dashboard_helper';
+import { getAppointmentSlots, getAvailabilityMe } from '../../helpers/realbackend_helper';
+import {
+  DOCTOR_DASHBOARD_OPEN_SCHEDULE_CALENDAR_EVENT,
+  DOCTOR_SCHEDULE_CHANGED_EVENT,
+} from '../../helpers/dashboard_helper';
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const DEFAULT_HOUR_START = 9;
-const DEFAULT_HOUR_END = 21;
+const POLL_MS = 30000;
 
 const getWeekStart = (anchor) => moment(anchor).startOf('isoWeek');
 
 const buildWeekDays = (weekStart) =>
   Array.from({ length: 7 }, (_, index) => weekStart.clone().add(index, 'day'));
 
-const hourLabel = (hour) => moment({ hour, minute: 0 }).format('hh:mm A');
+const statusLabel = {
+  available: 'Available',
+  booked: 'Booked',
+  break: 'Break',
+  past: 'Past',
+  current: 'Current',
+};
 
-const resolveHourStatus = (hourSlots = []) => {
-  if (!hourSlots.length) return null;
-  const statuses = hourSlots.map((slot) => String(slot.status || '').toLowerCase());
-  if (statuses.some((status) => status === 'booked' || status === 'current')) {
-    return 'booked';
-  }
-  if (statuses.some((status) => status === 'break')) {
-    return 'break';
-  }
-  if (statuses.some((status) => status === 'available')) {
-    return 'available';
-  }
-  if (statuses.every((status) => status === 'past')) {
-    return 'available';
-  }
-  return null;
+const slotStatusClass = (status) => {
+  const key = String(status || '').toLowerCase();
+  if (key === 'booked' || key === 'current') return 'booked';
+  if (key === 'break') return 'break';
+  if (key === 'past') return 'past';
+  if (key === 'available') return 'available';
+  return 'empty';
 };
 
 const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
@@ -45,6 +45,10 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
   const [selectedDate, setSelectedDate] = useState(() => moment().startOf('day'));
   const [loading, setLoading] = useState(false);
   const [daySchedule, setDaySchedule] = useState(null);
+  const [scheduledDates, setScheduledDates] = useState(() => new Set());
+  const [loadError, setLoadError] = useState('');
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const requestIdRef = useRef(0);
 
   const weekStart = useMemo(() => getWeekStart(weekAnchor), [weekAnchor]);
   const weekDays = useMemo(() => buildWeekDays(weekStart), [weekStart]);
@@ -53,52 +57,124 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
     return `${weekStart.format('D MMM')} – ${end.format('D MMM YYYY')}`;
   }, [weekStart]);
 
-  const hourRows = useMemo(() => {
-    let minHour = DEFAULT_HOUR_START;
-    let maxHour = DEFAULT_HOUR_END;
-    if (daySchedule?.hasSchedule) {
-      const start = moment(daySchedule.workStartTime, ['HH:mm:ss', 'HH:mm'], true);
-      const end = moment(daySchedule.workEndTime, ['HH:mm:ss', 'HH:mm'], true);
-      if (start.isValid()) minHour = start.hour();
-      if (end.isValid()) {
-        maxHour = end.minute() > 0 || end.second() > 0 ? end.hour() : Math.max(end.hour() - 1, minHour);
-      }
-    }
-    const hours = [];
-    for (let hour = minHour; hour <= maxHour; hour += 1) {
-      hours.push(hour);
-    }
-    return hours.length ? hours : [9, 10, 11, 12, 13, 14, 15];
-  }, [daySchedule]);
+  const slotSummary = useMemo(
+    () => getSlotStatusSummary(daySchedule?.slots || []),
+    [daySchedule]
+  );
 
-  const loadSelectedDaySchedule = useCallback(async () => {
-    const doctorId = getAuthDoctorId();
-    const dateKey = selectedDate.format('YYYY-MM-DD');
-    if (!doctorId) {
-      setDaySchedule({ hasSchedule: false, slots: [], workStartTime: null, workEndTime: null });
-      return;
-    }
-
-    setLoading(true);
+  const resolveDoctorId = useCallback(async () => {
+    const fromAuth = getAuthDoctorId();
+    if (fromAuth) return Number(fromAuth);
     try {
+      const me = await getAvailabilityMe();
+      const data = me?.data ?? me?.Data ?? me;
+      const id = data?.doctorId ?? data?.DoctorId;
+      return id ? Number(id) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const loadWeekMarkers = useCallback(async () => {
+    try {
+      const me = await getAvailabilityMe();
+      const data = me?.data ?? me?.Data ?? me;
+      const rows = data?.weekSchedules ?? data?.WeekSchedules ?? [];
+      const next = new Set();
+      (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const raw = row?.scheduleDate ?? row?.ScheduleDate;
+        if (!raw) return;
+        const key = moment(raw).format('YYYY-MM-DD');
+        if (key && key !== 'Invalid date') next.add(key);
+      });
+      setScheduledDates(next);
+    } catch {
+      // Selected-day slots still load from GetAppointmentSlots.
+    }
+  }, []);
+
+  const loadSelectedDaySchedule = useCallback(async ({ silent = false } = {}) => {
+    const dateKey = selectedDate.format('YYYY-MM-DD');
+    const requestId = ++requestIdRef.current;
+    if (!silent) {
+      setLoading(true);
+      setLoadError('');
+    }
+
+    try {
+      const doctorId = await resolveDoctorId();
+      if (!doctorId) {
+        if (requestId !== requestIdRef.current) return;
+        setDaySchedule({ hasSchedule: false, slots: [], workStartTime: null, workEndTime: null });
+        setLoadError('Doctor profile not found for this login.');
+        return;
+      }
+
       const response = await getAppointmentSlots({
         doctorId,
         appointmentDate: dateKey,
       });
-      setDaySchedule(normalizeAppointmentSlotsResponse(response));
+      if (requestId !== requestIdRef.current) return;
+
+      const normalized = normalizeAppointmentSlotsResponse(response);
+      setDaySchedule(normalized);
+      setLastSyncedAt(moment());
+      setScheduledDates((prev) => {
+        const next = new Set(prev);
+        if (normalized.hasSchedule) next.add(dateKey);
+        else next.delete(dateKey);
+        return next;
+      });
     } catch (error) {
+      if (requestId !== requestIdRef.current) return;
       console.error(`Failed to load schedule for ${dateKey}:`, error);
       setDaySchedule({ hasSchedule: false, slots: [], workStartTime: null, workEndTime: null });
+      setLoadError(typeof error === 'string' ? error : error?.message || 'Could not load schedule.');
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current && !silent) {
+        setLoading(false);
+      }
     }
-  }, [selectedDate]);
+  }, [resolveDoctorId, selectedDate]);
+
+  const refreshAll = useCallback(
+    async ({ silent = false } = {}) => {
+      await Promise.all([loadWeekMarkers(), loadSelectedDaySchedule({ silent })]);
+    },
+    [loadWeekMarkers, loadSelectedDaySchedule]
+  );
 
   useEffect(() => {
     if (!modalOpen) return undefined;
-    loadSelectedDaySchedule();
+    refreshAll({ silent: false });
     return undefined;
-  }, [modalOpen, loadSelectedDaySchedule]);
+  }, [modalOpen, refreshAll]);
+
+  useEffect(() => {
+    if (!modalOpen) return undefined;
+
+    const poll = () => {
+      if (document.visibilityState === 'hidden') return;
+      loadSelectedDaySchedule({ silent: true });
+    };
+
+    const timer = window.setInterval(poll, POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshAll({ silent: true });
+    };
+    const onScheduleChanged = () => refreshAll({ silent: true });
+
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener(DOCTOR_SCHEDULE_CHANGED_EVENT, onScheduleChanged);
+    window.addEventListener('focus', onVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener(DOCTOR_SCHEDULE_CHANGED_EVENT, onScheduleChanged);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [modalOpen, loadSelectedDaySchedule, refreshAll]);
 
   const openModal = useCallback(() => {
     const today = moment().startOf('day');
@@ -122,7 +198,29 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
   const closeModal = () => setModalOpen(false);
 
+  const selectDay = (day) => {
+    const next = day.clone().startOf('day');
+    setSelectedDate(next);
+    setWeekAnchor(next.clone());
+  };
+
+  /** Move one day. On the last day of the week, next advances into the following week. */
+  const shiftDay = (direction) => {
+    selectDay(selectedDate.clone().add(direction, 'day'));
+  };
+
   const shiftWeek = (direction) => {
+    const lastDayOfWeek = weekStart.clone().add(6, 'day');
+    const firstDayOfWeek = weekStart.clone();
+    // From the last visible day, next arrow goes to the next calendar day (new week).
+    if (direction > 0 && selectedDate.isSame(lastDayOfWeek, 'day')) {
+      shiftDay(1);
+      return;
+    }
+    if (direction < 0 && selectedDate.isSame(firstDayOfWeek, 'day')) {
+      shiftDay(-1);
+      return;
+    }
     setWeekAnchor((prev) => {
       const nextWeekStart = getWeekStart(prev).add(direction * 7, 'day');
       const weekdayOffset = selectedDate.clone().startOf('day').diff(getWeekStart(selectedDate), 'days');
@@ -139,40 +237,21 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
     });
   };
 
-  const selectDay = (day) => {
-    const next = day.clone().startOf('day');
-    setSelectedDate(next);
-    setWeekAnchor(next.clone());
+  const handleRefresh = () => {
+    if (loading) return;
+    refreshAll({ silent: false });
   };
 
-  const getHourStatus = (hour) => {
-    if (!daySchedule?.hasSchedule) return null;
-
-    const hourSlots = (daySchedule.slots || []).filter((slot) => {
-      const slotMoment = moment(slot.time, ['HH:mm:ss', 'HH:mm', 'hh:mm A'], true);
-      return slotMoment.isValid() && slotMoment.hour() === hour;
-    });
-
-    const status = resolveHourStatus(hourSlots);
-    if (status) return status;
-
-    const workStart = moment(daySchedule.workStartTime, ['HH:mm:ss', 'HH:mm'], true);
-    const workEnd = moment(daySchedule.workEndTime, ['HH:mm:ss', 'HH:mm'], true);
-    if (workStart.isValid() && workEnd.isValid()) {
-      const hourStart = selectedDate.clone().hour(hour).minute(0).second(0);
-      const hourEnd = hourStart.clone().add(1, 'hour');
-      if (hourEnd.isAfter(workStart) && hourStart.isBefore(workEnd)) {
-        return 'break';
-      }
-    }
-    return null;
-  };
-
-  const statusLabel = {
-    available: 'Available',
-    booked: 'Booked',
-    break: 'Break',
-  };
+  const slots = daySchedule?.slots || [];
+  const hoursNote =
+    daySchedule?.hasSchedule && daySchedule.workStartTime && daySchedule.workEndTime
+      ? `${moment(daySchedule.workStartTime, ['HH:mm:ss', 'HH:mm']).format('hh:mm A')} – ${moment(
+          daySchedule.workEndTime,
+          ['HH:mm:ss', 'HH:mm']
+        ).format('hh:mm A')}${
+          daySchedule.intervalMinutes ? ` · ${daySchedule.intervalMinutes} min slots` : ''
+        }`
+      : null;
 
   return (
     <>
@@ -215,7 +294,15 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
               <div className="doctor-schedule-calendar__range">
                 <span>{weekRangeLabel}</span>
-                <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="doctor-schedule-calendar__range-next"
+                  onClick={() => shiftDay(1)}
+                  aria-label="Next day"
+                  title="Next day"
+                >
+                  <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                </button>
               </div>
 
               <div className="doctor-schedule-calendar__week-nav">
@@ -224,6 +311,7 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
                   className="doctor-schedule-calendar__nav-btn doctor-schedule-calendar__nav-btn--sm"
                   onClick={() => shiftWeek(-1)}
                   aria-label="Previous week"
+                  title="Previous week"
                 >
                   <i className="ri-arrow-left-s-line" />
                 </button>
@@ -232,6 +320,7 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
                   className="doctor-schedule-calendar__nav-btn doctor-schedule-calendar__nav-btn--sm"
                   onClick={() => shiftWeek(1)}
                   aria-label="Next week"
+                  title="Next week"
                 >
                   <i className="ri-arrow-right-s-line" />
                 </button>
@@ -240,19 +329,53 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
             <div className="doctor-schedule-calendar__days">
               {weekDays.map((day) => {
+                const key = day.format('YYYY-MM-DD');
                 const isSelected = selectedDate.isSame(day, 'day');
+                const hasHours = scheduledDates.has(key);
                 return (
                   <button
-                    key={day.format('YYYY-MM-DD')}
+                    key={key}
                     type="button"
-                    className={`doctor-schedule-calendar__day-btn${isSelected ? ' is-selected' : ''}`}
+                    className={`doctor-schedule-calendar__day-btn${isSelected ? ' is-selected' : ''}${
+                      hasHours ? ' has-schedule' : ''
+                    }`}
                     onClick={() => selectDay(day)}
+                    title={hasHours ? 'Hours set in profile / daily schedule' : 'No hours saved for this day'}
                   >
-                    <span>{WEEKDAY_LABELS[day.isoWeekday() - 1]} {day.format('D')}</span>
+                    <span>
+                      {WEEKDAY_LABELS[day.isoWeekday() - 1]} {day.format('D')}
+                    </span>
                   </button>
                 );
               })}
             </div>
+
+            <div className="doctor-schedule-calendar__meta">
+              <span>{hoursNote || selectedDate.format('ddd D MMM YYYY')}</span>
+              <span className="doctor-schedule-calendar__synced">
+                {lastSyncedAt ? <span>Synced {lastSyncedAt.format('hh:mm:ss A')}</span> : null}
+                <button
+                  type="button"
+                  className="doctor-schedule-calendar__refresh-btn"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  aria-label="Refresh schedule"
+                  title="Refresh latest schedule"
+                >
+                  <i className={`ri-refresh-line${loading ? ' spinning' : ''}`} aria-hidden="true" />
+                  Refresh
+                </button>
+              </span>
+            </div>
+
+            {daySchedule?.hasSchedule ? (
+              <div className="doctor-schedule-calendar__summary">
+                <span>{slotSummary.total} slots</span>
+                <span>{slotSummary.available} available</span>
+                <span>{slotSummary.booked + slotSummary.current} booked</span>
+                <span>{slotSummary.break} break</span>
+              </div>
+            ) : null}
 
             {loading ? (
               <div className="doctor-schedule-calendar__loading">
@@ -262,28 +385,33 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
             ) : (
               <div className="doctor-schedule-calendar__grid-wrap">
                 <div className="doctor-schedule-calendar__day-list">
-                  {hourRows.map((hour) => {
-                    const status = getHourStatus(hour);
+                  {loadError ? (
+                    <div className="doctor-schedule-calendar__empty-note text-danger">{loadError}</div>
+                  ) : null}
+                  {!daySchedule?.hasSchedule && !loadError ? (
+                    <div className="doctor-schedule-calendar__empty-note">
+                      No schedule configured for this day. Set hours in Profile → Clinic Availability or
+                      Appointment Slots.
+                    </div>
+                  ) : null}
+                  {slots.map((slot) => {
+                    const status = String(slot.status || 'available').toLowerCase();
+                    const tone = slotStatusClass(status);
+                    const label = slot.label || moment(slot.time, ['HH:mm:ss', 'HH:mm']).format('hh:mm A');
                     return (
-                      <div key={`hour-${hour}`} className="doctor-schedule-calendar__day-row">
-                        <div className="doctor-schedule-calendar__hour">{hourLabel(hour)}</div>
+                      <div key={`${slot.time}-${status}-${slot.patientAppId || ''}`} className="doctor-schedule-calendar__day-row">
+                        <div className="doctor-schedule-calendar__hour">{label}</div>
                         <div className="doctor-schedule-calendar__cell">
-                          {status ? (
-                            <div className={`doctor-schedule-calendar__slot doctor-schedule-calendar__slot--${status}`}>
-                              {statusLabel[status]}
-                            </div>
-                          ) : (
-                            <div className="doctor-schedule-calendar__slot doctor-schedule-calendar__slot--empty" aria-hidden="true" />
-                          )}
+                          <div className={`doctor-schedule-calendar__slot doctor-schedule-calendar__slot--${tone}`}>
+                            <span>{statusLabel[status] || statusLabel.available}</span>
+                            {slot.patientName ? (
+                              <small className="doctor-schedule-calendar__slot-patient">{slot.patientName}</small>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     );
                   })}
-                  {!daySchedule?.hasSchedule ? (
-                    <div className="doctor-schedule-calendar__empty-note">
-                      No schedule configured for this day.
-                    </div>
-                  ) : null}
                 </div>
               </div>
             )}
@@ -300,6 +428,10 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
               <span className="doctor-schedule-calendar__legend-item">
                 <span className="doctor-schedule-calendar__legend-swatch break" />
                 Break
+              </span>
+              <span className="doctor-schedule-calendar__legend-item">
+                <span className="doctor-schedule-calendar__legend-swatch past" />
+                Past
               </span>
             </div>
           </div>

@@ -16,6 +16,7 @@ import {
   validateSlotIntervalMinutes,
 } from '../../helpers/appointmentSlotHelper';
 import { saveDailySchedule } from '../../helpers/realbackend_helper';
+import { dispatchDoctorScheduleChanged } from '../../helpers/dashboard_helper';
 
 const DailyScheduleSetupModal = ({
   isOpen,
@@ -111,6 +112,11 @@ const DailyScheduleSetupModal = ({
         createdByUserId: Number(userId),
       });
       onSaved?.(result);
+      dispatchDoctorScheduleChanged({
+        source: 'daily-schedule',
+        doctorId: Number(doctorId),
+        scheduleDate: apiDate,
+      });
       onClose?.();
       Swal.fire({
         icon: 'success',

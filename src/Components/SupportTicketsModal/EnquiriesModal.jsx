@@ -13,7 +13,13 @@ import {
 } from "reactstrap";
 import TicketConversationModal from "./TicketConversationModal";
 import { CompactPaginationPages, PAGE_SIZE, priorityBadgeClass, statusBadgeClass } from "./supportShared";
-import { TICKET_CATEGORIES, TICKET_STATUSES, formatUpdated, loadAdminTickets } from "./supportTicketApi";
+import {
+  TICKET_CATEGORIES,
+  TICKET_STATUSES,
+  errorText,
+  formatUpdated,
+  loadAdminTickets,
+} from "./supportTicketApi";
 import "./SupportTicketsModal.css";
 
 const STATUS_TABS = [
@@ -65,6 +71,7 @@ const hasSession = () => {
 export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [statusTab, setStatusTab] = useState("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -74,20 +81,22 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
   const [viewId, setViewId] = useState(null);
 
   const reload = useCallback(async () => {
-    if (!hasSession()) return;
+    if (!hasSession()) {
+      setTickets([]);
+      setError("Sign in to load tickets.");
+      return;
+    }
     setLoading(true);
+    setError("");
     try {
       setTickets(await loadAdminTickets());
-    } catch (_) {
+    } catch (err) {
       setTickets([]);
+      setError(errorText(err, "Could not load tickets."));
     } finally {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
 
   useEffect(() => {
     if (isOpen) reload();
@@ -116,7 +125,9 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
     const tab = STATUS_TABS.find((t) => t.key === statusTab) || STATUS_TABS[0];
     return tickets.filter((t) => {
       if (!tab.match(t.status)) return false;
-      if (categoryFilter && t.categoryCode !== categoryFilter) return false;
+      if (categoryFilter && String(t.categoryCode || "").toLowerCase() !== String(categoryFilter).toLowerCase()) {
+        return false;
+      }
       if (statusFilter && t.status !== statusFilter) return false;
       if (!matchesDateFilter(t.createdAt, dateFilter)) return false;
       if (!q) return true;
@@ -168,6 +179,14 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
           </div>
         </ModalHeader>
         <ModalBody>
+          {error ? (
+            <div className="alert alert-danger py-2 px-3 mb-2 d-flex align-items-center justify-content-between" role="alert">
+              <span>{error}</span>
+              <button type="button" className="btn btn-sm btn-soft-danger" onClick={reload}>
+                Retry
+              </button>
+            </div>
+          ) : null}
           <div className="support-tickets-modal__toolbar mb-2">
             <div className="support-tickets-modal__tabs" role="tablist">
               {STATUS_TABS.map((tab) => (
@@ -198,7 +217,6 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
                       {c.label}
                     </option>
                   ))}
-                  <option value="AssistedRequest">Assisted booking</option>
                 </Input>
               </div>
               <div className="patient-list-modal__status-filter">

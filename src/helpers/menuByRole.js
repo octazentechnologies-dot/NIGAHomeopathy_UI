@@ -87,6 +87,7 @@ const ADMIN_HORIZONTAL_MAIN_LABELS = new Set([
 const MENU_LINK_OVERRIDES = {
   "/admin/trust-queue": { label: "Trust & Verification", icon: "ri-shield-check-line" },
   "/admin/consult-payments": { icon: "ri-secure-payment-line" },
+  "/admin/reports": { icon: "ri-bar-chart-line" },
   "/admin/pharmacy-partners": { label: "Pharmacy configuration", icon: "ri-store-3-line" },
 };
 
@@ -170,20 +171,51 @@ export const ADMIN_WEEK4_MENU = [
   { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
   { id: "pharmacy-partners", label: "Pharmacy configuration", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
   { id: "consult-payments", label: "Consult payments", icon: "ri-secure-payment-line", link: "/admin/consult-payments" },
+  { id: "admin-reports", label: "Reports", icon: "ri-bar-chart-line", link: "/admin/reports" },
   { id: "payment-exceptions", label: "Payment exceptions", icon: "ri-error-warning-line", link: "/admin/payment-exceptions" },
   { id: "admin-sms", label: "SMS templates", icon: "ri-message-2-line", link: "/admin/sms" },
   { id: "medicine-report", label: "Medicine report", icon: "ri-capsule-line", link: "/admin/medicine-report" },
-  { id: "security-posture", label: "Security posture", icon: "ri-shield-keyhole-line", link: "/admin/security" },
   { id: "security-audit", label: "Security audit", icon: "ri-file-shield-2-line", link: "/admin/security-audit" },
   { id: "consent-audit", label: "Consent audit", icon: "ri-file-list-3-line", link: "/admin/consent-audit" },
-  { id: "package-topups", label: "Package top-ups", icon: "ri-add-box-line", link: "/admin/package-topups" },
 ];
+
+/** Admin Enquiries live on Help & Support (Ticket Enquiries) — omit from More / horizontal nav. */
+export const isAdminEnquiriesNavItem = (item) => {
+  const label = String(item?.label || "").trim().toLowerCase();
+  if (
+    label === "enquiries" ||
+    label === "enquiry" ||
+    label === "enquiry inbox" ||
+    label === "ticket enquiries" ||
+    label.includes("enquir")
+  ) {
+    return true;
+  }
+  const link = String(item?.link || "").split("?")[0].toLowerCase();
+  return (
+    link === "/enquiries" ||
+    link === "/admin/enquiries" ||
+    link === "/enquiry" ||
+    link.endsWith("/enquiries")
+  );
+};
+
+/** Package top-ups admin screen removed from nav (route redirects to dashboard). */
+export const isHiddenAdminNavItem = (item) => {
+  const label = String(item?.label || "").trim().toLowerCase();
+  const link = String(item?.link || "").split("?")[0].toLowerCase();
+  if (link === "/admin/package-topups") return true;
+  if (label === "package top-ups" || label === "package topups" || label === "package top up") return true;
+  return false;
+};
 
 export const splitAdminApiNavItems = (items) => {
   const menuItems = [];
   const moreMenuItems = [];
   (items || []).forEach((item) => {
     if (item.link === "/dashboard") return;
+    if (isAdminEnquiriesNavItem(item)) return;
+    if (isHiddenAdminNavItem(item)) return;
     if (ADMIN_HORIZONTAL_MAIN_LABELS.has(item.label) && item.subItems?.length) {
       menuItems.push(item);
       return;
@@ -266,13 +298,14 @@ export const isDoctorSpaLink = (link) => {
 export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
   { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },
-  { id: "doctor-tele", label: "Teleconsult", icon: "ri-vidicon-line", link: "/doctor/tele" },
+  { id: "doctor-tele", label: "Tele Consultation", icon: "ri-vidicon-line", link: "/doctor/tele-consultation" },
   { id: "doctor-anatomy", label: "Anatomy", icon: "ri-body-scan-line", link: "/doctor/anatomy" },
   { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
   { id: "doctor-fees", label: "Consult fees", icon: "ri-money-dollar-circle-line", link: "/doctor/consult-fees" },
-  { id: "doctor-earnings", label: "Earnings", icon: "ri-wallet-3-line", link: "/doctor/earnings" },
+  { id: "doctor-earnings", label: "Earnings summary", icon: "ri-wallet-3-line", link: "/doctor/earnings" },
   { id: "doctor-sms", label: "SMS events", icon: "ri-message-2-line", link: "/doctor/sms" },
-  { id: "doctor-followup", label: "Follow-up analysis", icon: "ri-calendar-check-line", link: "/doctor/follow-up-analysis" },
+  { id: "doctor-followups-due", label: "Follow-ups due", icon: "ri-calendar-check-line", link: "/doctor/follow-ups" },
+  { id: "doctor-followup", label: "Follow-up analysis", icon: "ri-line-chart-line", link: "/doctor/follow-up-analysis" },
   { id: "doctor-performance", label: "Clinic performance", icon: "ri-bar-chart-grouped-line", link: "/doctor/clinic-performance" },
   { id: "doctor-practice", label: "Practice", icon: "ri-pulse-line", link: "/doctor/practice" },
   { id: "doctor-erx", label: "eRx", icon: "ri-file-text-line", link: "/doctor/erx" },

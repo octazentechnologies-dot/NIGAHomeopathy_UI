@@ -489,13 +489,156 @@
   opacity: 0.95;
 }
 
-.tele-call-video__fs {
+.tele-call-video__top-actions {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  z-index: 4;
+}
+
+.tele-call-video__fs {
   border: none;
   background: transparent;
   color: #fff;
   font-size: 1.15rem;
-  z-index: 4;
+  line-height: 1;
+  padding: 0.2rem;
+  border-radius: 0.35rem;
+}
+
+.tele-call-video__fs:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.tele-call-mini {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 20500;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 17.5rem;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.85rem;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tele-call-mini__video {
+  position: relative;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 0.55rem;
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: #1e293b;
+}
+
+.tele-call-mini__video-el,
+.tele-call-mini__avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #334155;
+}
+
+.tele-call-mini__live {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.55);
+}
+
+.tele-call-mini__meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.tele-call-mini__name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tele-call-mini__timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.tele-call-mini__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+}
+
+.tele-call-mini__btn {
+  width: 1.85rem;
+  height: 1.85rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.tele-call-mini__btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.tele-call-mini__btn.is-off {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fecaca;
+}
+
+.tele-call-mini__btn--max {
+  background: rgba(37, 160, 226, 0.28);
+}
+
+.tele-call-mini__btn--end {
+  background: rgba(220, 38, 38, 0.85);
+}
+
+.tele-call-mini__btn--end:hover {
+  background: #b91c1c;
+}
+
+.tele-erx-app-modal .modal-dialog {
+  max-width: min(1120px, 96vw);
+  margin: 0.75rem auto;
+}
+
+.tele-erx-app-modal .modal-content {
+  max-height: min(90vh, 900px);
+}
+
+.tele-erx-app-modal__body {
+  overflow: auto;
+  max-height: min(82vh, 820px);
 }
 
 .tele-call-video__pip {
@@ -597,7 +740,6 @@
 
 .tele-call-ctrl--end i {
   font-size: 1.25rem;
-  transform: rotate(135deg);
 }
 
 .tele-call-sidebar {
@@ -890,8 +1032,7 @@
   z-index: 21000 !important;
 }
 
-.tele-end-confirm-modal .tele-alert-icon--inline .ri-phone-fill {
-  transform: rotate(135deg);
+.tele-end-confirm-modal .tele-alert-icon--inline .ri-close-circle-fill {
   display: inline-block;
 }
 

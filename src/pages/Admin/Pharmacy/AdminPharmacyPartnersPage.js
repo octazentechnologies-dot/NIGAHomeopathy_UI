@@ -5,6 +5,7 @@ import {
   activatePharmacy,
   listPharmacyPartners,
   s4Message,
+  suspendPharmacy,
   sweepPharmacyLicences,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
@@ -35,6 +36,12 @@ const initialsOf = (name) =>
     .slice(0, 2)
     .map((part) => part[0].toUpperCase())
     .join("");
+
+/** Platform / HomeoMeds filling pharmacies — admin may view config but not edit it. */
+const isFillingPharmacy = (partner) => {
+  const name = String(partner?.name || "").toLowerCase();
+  return /homeomeds|filling|central\s*fill|fulfil/.test(name);
+};
 
 /** MED-05 — admin pharmacy partners: activation, licence sweep and per-partner configuration. */
 const AdminPharmacyPartnersPage = () => {
@@ -117,6 +124,20 @@ const AdminPharmacyPartnersPage = () => {
     }
   };
 
+  const suspend = async (partner) => {
+    setBusyId(`sus-${partner.id}`);
+    setError("");
+    try {
+      await suspendPharmacy(partner.id);
+      setPartners((prev) => prev.map((row) => (row.id === partner.id ? { ...row, status: "SUSPENDED" } : row)));
+      setNotice(`${partner.name} suspended.`);
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
@@ -125,7 +146,7 @@ const AdminPharmacyPartnersPage = () => {
             <div>
               <h2 className="clinic-page-title mb-1">Pharmacy partners &amp; configuration</h2>
               <p className="clinic-page-subtitle mb-0">
-                Activate HomeoMeds partners and configure their operating hours, service areas and delivery charges.
+                Activate HomeoMeds partners and review their operating hours, service areas and delivery charges.
               </p>
             </div>
             <div className="phc-page__actions">
@@ -254,7 +275,7 @@ const AdminPharmacyPartnersPage = () => {
                                     type="button"
                                     className="phc-icon-btn phc-icon-btn--approve"
                                     title="Activate"
-                                    disabled={busyId === `act-${partner.id}`}
+                                    disabled={busyId === `act-${partner.id}` || busyId === `sus-${partner.id}`}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       activate(partner);
@@ -262,17 +283,30 @@ const AdminPharmacyPartnersPage = () => {
                                   >
                                     <i className="ri-check-line" aria-hidden="true" />
                                   </button>
-                                ) : null}
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="phc-icon-btn phc-icon-btn--suspend"
+                                    title="Suspend"
+                                    disabled={busyId === `act-${partner.id}` || busyId === `sus-${partner.id}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      suspend(partner);
+                                    }}
+                                  >
+                                    <i className="ri-pause-circle-line" aria-hidden="true" />
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   className={`phc-icon-btn${partner.id === selectedId ? " is-active" : ""}`}
-                                  title="Configure"
+                                  title="View configuration"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedId(partner.id);
                                   }}
                                 >
-                                  <i className="ri-settings-3-line" aria-hidden="true" />
+                                  <i className="ri-eye-line" aria-hidden="true" />
                                 </button>
                               </div>
                             </td>
@@ -292,12 +326,19 @@ const AdminPharmacyPartnersPage = () => {
                   <i className="ri-settings-3-line" aria-hidden="true" />
                   Pharmacy Configuration
                 </span>
+                <span className="phc-card__meta">
+                  {selected && isFillingPharmacy(selected)
+                    ? "Filling pharmacy · view only"
+                    : selected
+                      ? "Partner can also edit on their dashboard"
+                      : ""}
+                </span>
               </header>
               {!selected ? (
                 <div className="phc-card__body">
                   <div className="phc-empty-state">
                     <i className="ri-store-2-line" aria-hidden="true" />
-                    <span>Select a pharmacy to configure it.</span>
+                    <span>Select a pharmacy to view its configuration.</span>
                   </div>
                 </div>
               ) : (
@@ -309,6 +350,7 @@ const AdminPharmacyPartnersPage = () => {
                       <span>
                         {`Partner #${selected.id}`}
                         {selected.area ? ` · ${selected.area}` : ""}
+                        {isFillingPharmacy(selected) ? " · Filling pharmacy" : ""}
                       </span>
                     </div>
                     <span
@@ -320,8 +362,17 @@ const AdminPharmacyPartnersPage = () => {
 
                   <PharmacyConfigForm
                     partner={selected}
-                    onSaved={() => setNotice(`Configuration saved for ${selected.name}.`)}
+                    readOnly={isFillingPharmacy(selected)}
+                    disabled={isFillingPharmacy(selected)}
                     onError={setError}
+                    onSaved={() => {
+                      setError("");
+                      setNotice(
+                        isFillingPharmacy(selected)
+                          ? "Configuration viewed."
+                          : `${selected.name} configuration saved.`
+                      );
+                    }}
                   />
                 </div>
               )}

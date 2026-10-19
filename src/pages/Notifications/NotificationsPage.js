@@ -16,12 +16,74 @@ const TABS = [
   { id: "unread", label: "Unread" },
 ];
 
+const DEFAULT_PREFS = {
+  pushEnabled: true,
+  smsEnabled: false,
+  emailEnabled: false,
+  appointments: true,
+  prescriptions: true,
+  medicines: true,
+  marketing: false,
+  quietHoursEnabled: false,
+  quietStart: "",
+  quietEnd: "",
+  reminderOffsets: "",
+};
+
+/** API returns TimeSpan as "HH:mm:ss" or null; time inputs need "HH:mm". */
+const toTimeInput = (value) => {
+  if (value == null || value === "") return "";
+  const text = String(value).trim();
+  const match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?/);
+  if (!match) return "";
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+};
+
+/** Empty → null; "HH:mm" → "HH:mm:00" so System.TimeSpan binds. */
+const toTimeSpan = (value) => {
+  if (value == null || String(value).trim() === "") return null;
+  const text = String(value).trim();
+  const match = text.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return null;
+  const hh = match[1].padStart(2, "0");
+  const mm = match[2];
+  const ss = match[3] || "00";
+  return `${hh}:${mm}:${ss}`;
+};
+
+const normalizePrefs = (raw) => {
+  const source = raw && typeof raw === "object" ? raw : {};
+  return {
+    ...DEFAULT_PREFS,
+    ...source,
+    quietStart: toTimeInput(source.quietStart),
+    quietEnd: toTimeInput(source.quietEnd),
+    reminderOffsets: source.reminderOffsets == null ? "" : String(source.reminderOffsets),
+  };
+};
+
+const prefsPayload = (prefs) => ({
+  pushEnabled: Boolean(prefs.pushEnabled),
+  smsEnabled: Boolean(prefs.smsEnabled),
+  emailEnabled: Boolean(prefs.emailEnabled),
+  appointments: Boolean(prefs.appointments),
+  prescriptions: Boolean(prefs.prescriptions),
+  medicines: Boolean(prefs.medicines),
+  marketing: Boolean(prefs.marketing),
+  quietHoursEnabled: Boolean(prefs.quietHoursEnabled),
+  quietStart: toTimeSpan(prefs.quietStart),
+  quietEnd: toTimeSpan(prefs.quietEnd),
+  reminderOffsets: prefs.reminderOffsets?.trim() ? prefs.reminderOffsets.trim() : null,
+});
+
 const normalize = (row) => ({
   id: row.appNotificationId,
   title: row.title || "Notification",
   message: row.body || "",
   unread: !row.isRead,
   at: row.createdAt,
+  type: row.type || null,
+  deepLink: row.deepLink || null,
 });
 
 const NotificationsPage = () => {
@@ -34,6 +96,7 @@ const NotificationsPage = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [prefs, setPrefs] = useState(null);
   const [prefsNote, setPrefsNote] = useState("");
+  const [prefsError, setPrefsError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,8 +116,11 @@ const NotificationsPage = () => {
   useEffect(() => {
     load();
     getNotificationPreferences()
-      .then((response) => setPrefs(response?.data ?? response))
-      .catch(() => setPrefs(null));
+      .then((response) => setPrefs(normalizePrefs(response?.data ?? response)))
+      .catch(() => {
+        setPrefs(normalizePrefs(null));
+        setPrefsError("Preferences could not be loaded. You can still edit and try Save.");
+      });
   }, [load]);
 
   const unreadCount = items.filter((item) => item.unread).length;
@@ -81,12 +147,16 @@ const NotificationsPage = () => {
     if (!prefs) return;
     setBusy(true);
     setPrefsNote("");
+    setPrefsError("");
+    setError("");
     try {
-      const response = await saveNotificationPreferences(prefs);
-      setPrefs(response?.data ?? response);
+      const response = await saveNotificationPreferences(prefsPayload(prefs));
+      setPrefs(normalizePrefs(response?.data ?? response));
       setPrefsNote("Preferences saved.");
     } catch (err) {
-      setError(s4Message(err) || "Preferences could not be saved.");
+      const message = s4Message(err) || "Preferences could not be saved.";
+      setPrefsError(message);
+      setError(message);
     } finally {
       setBusy(false);
     }
@@ -155,6 +225,7 @@ const NotificationsPage = () => {
             <div className="admin-dash-card p-3 mb-3">
               <h5 className="mb-2">Notification preferences</h5>
               {prefsNote ? <div className="text-success small mb-2">{prefsNote}</div> : null}
+              {prefsError ? <div className="text-danger small mb-2">{prefsError}</div> : null}
               <Row className="g-2">
                 {[
                   ["pushEnabled", "Push"],
@@ -166,8 +237,8 @@ const NotificationsPage = () => {
                   ["marketing", "Marketing"],
                   ["quietHoursEnabled", "Quiet hours"],
                 ].map(([key, label]) => (
-                  <Col md={3} key={key}>
-                    <Label check>
+                  <Col md={3} sm={6} xs={6} key={key}>
+                    <Label check className="ntf-pref-check">
                       <Input
                         type="checkbox"
                         checked={Boolean(prefs[key])}
@@ -177,20 +248,40 @@ const NotificationsPage = () => {
                     </Label>
                   </Col>
                 ))}
-                <Col md={3}>
-                  <Label>Quiet start</Label>
-                  <Input value={prefs.quietStart || ""} onChange={(e) => setPrefs((prev) => ({ ...prev, quietStart: e.target.value }))} />
+                <Col md={3} sm={6}>
+                  <Label htmlFor="ntf-quiet-start">Quiet start</Label>
+                  <Input
+                    id="ntf-quiet-start"
+                    type="time"
+                    value={prefs.quietStart || ""}
+                    disabled={!prefs.quietHoursEnabled}
+                    onChange={(e) => setPrefs((prev) => ({ ...prev, quietStart: e.target.value }))}
+                  />
                 </Col>
-                <Col md={3}>
-                  <Label>Quiet end</Label>
-                  <Input value={prefs.quietEnd || ""} onChange={(e) => setPrefs((prev) => ({ ...prev, quietEnd: e.target.value }))} />
+                <Col md={3} sm={6}>
+                  <Label htmlFor="ntf-quiet-end">Quiet end</Label>
+                  <Input
+                    id="ntf-quiet-end"
+                    type="time"
+                    value={prefs.quietEnd || ""}
+                    disabled={!prefs.quietHoursEnabled}
+                    onChange={(e) => setPrefs((prev) => ({ ...prev, quietEnd: e.target.value }))}
+                  />
                 </Col>
-                <Col md={4}>
-                  <Label>Reminder offsets (minutes)</Label>
-                  <Input value={prefs.reminderOffsets || ""} onChange={(e) => setPrefs((prev) => ({ ...prev, reminderOffsets: e.target.value }))} />
+                <Col md={4} sm={12}>
+                  <Label htmlFor="ntf-reminder-offsets">Reminder offsets (minutes)</Label>
+                  <Input
+                    id="ntf-reminder-offsets"
+                    type="text"
+                    placeholder="e.g. 60,1440"
+                    value={prefs.reminderOffsets || ""}
+                    onChange={(e) => setPrefs((prev) => ({ ...prev, reminderOffsets: e.target.value }))}
+                  />
                 </Col>
-                <Col md={2} className="d-flex align-items-end">
-                  <Button color="primary" disabled={busy} onClick={savePrefs}>Save</Button>
+                <Col md={2} sm={12} className="d-flex align-items-end">
+                  <Button color="primary" className="w-100" disabled={busy} onClick={savePrefs}>
+                    {busy ? "Saving…" : "Save"}
+                  </Button>
                 </Col>
               </Row>
             </div>

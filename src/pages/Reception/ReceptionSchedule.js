@@ -46,7 +46,13 @@ const SCHEDULE_ROWS = [
 /** REC-11.01 — /reception/schedule read-only over GetDailySchedule (no Save / edit). */
 const ReceptionSchedule = () => {
   const doctorId = readReceptionDoctorId();
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  });
   const [schedule, setSchedule] = useState(null);
   const [slots, setSlots] = useState([]);
   const [note, setNote] = useState("");

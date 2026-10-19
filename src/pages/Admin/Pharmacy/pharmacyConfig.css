@@ -429,6 +429,16 @@
   color: #15803d;
 }
 
+.phc-icon-btn--suspend {
+  color: #d97706;
+}
+
+.phc-icon-btn--suspend:hover:not(:disabled) {
+  border-color: #d97706;
+  background: #fff7ed;
+  color: #b45309;
+}
+
 .phc-icon-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;

@@ -1,20 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert } from "reactstrap";
-import { saveReceptionCasePaper } from "../../../helpers/realbackend_helper";
-import { apiMessage } from "../receptionSession";
+import {
+  getReceptionCasePapers,
+  getReceptionVitals,
+  saveReceptionCasePaper,
+  saveReceptionVitals,
+  updateAppointmentStatus,
+} from "../../../helpers/realbackend_helper";
+import { apiMessage, unwrap } from "../receptionSession";
 import QuickActions from "./QuickActions";
 import EditAppointmentStepsModal from "./EditAppointmentStepsModal";
 import BookAppointmentModal from "./BookAppointmentModal";
 import CollectVitalsModal from "./CollectVitalsModal";
 import CollectPaymentModal from "./CollectPaymentModal";
 import CasePaperModal from "./CasePaperModal";
-
-const vitalsKey = (patientAppId) => `reception.vitals.${patientAppId}`;
-
-export const readStoredVitals = () => null;
-
-const writeStoredVitals = () => {};
 
 const patientFromRow = (row) => {
   if (!row) return null;
@@ -40,11 +40,28 @@ const scheduleFromRow = (row) => {
   };
 };
 
+const normalizeVitals = (raw) => {
+  if (!raw || typeof raw !== "object") return null;
+  const data = raw.data ?? raw.Data ?? raw;
+  if (!data || typeof data !== "object") return null;
+  return {
+    bloodPressureSystolic: data.bloodPressureSystolic ?? data.BloodPressureSystolic ?? "",
+    bloodPressureDiastolic: data.bloodPressureDiastolic ?? data.BloodPressureDiastolic ?? "",
+    bloodPressure: data.bloodPressure ?? data.BloodPressure ?? "",
+    pulse: data.pulse ?? data.Pulse ?? "",
+    temperature: data.temperature ?? data.Temperature ?? "",
+    weight: data.weight ?? data.Weight ?? "",
+    height: data.height ?? data.Height ?? "",
+    spo2: data.spo2 ?? data.Spo2 ?? "",
+    respiratoryRate: data.respiratoryRate ?? data.RespiratoryRate ?? "",
+    bloodSugar: data.bloodSugar ?? data.BloodSugar ?? "",
+    notes: data.notes ?? data.Notes ?? "",
+  };
+};
+
 /**
- * UI-developer reception check-in desk: Quick Actions + step modals.
- * Payment and case paper call the API. Vitals stay on this desk until a vitals API exists.
- *
- * Pass `checkInRow` when the appointment Edit button should open the step picker.
+ * Reception check-in desk: Quick Actions + step modals.
+ * Complaint, vitals, payment, and case paper are API-bound.
  */
 const ReceptionCheckInFlow = ({
   selectedRow = null,
@@ -54,6 +71,7 @@ const ReceptionCheckInFlow = ({
   onPaymentConfirmed,
   onOpenNewPatient,
   onOpenBookAppointment,
+  onVisitStatusChanged,
   consultationFee,
 }) => {
   const navigate = useNavigate();
@@ -69,30 +87,72 @@ const ReceptionCheckInFlow = ({
   const [casePaperDetails, setCasePaperDetails] = useState(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const activeRow = selectedRow || checkInRow;
   const selectedPatient = useMemo(() => patientFromRow(activeRow), [activeRow]);
   const allottedSchedule = useMemo(() => scheduleFromRow(activeRow), [activeRow]);
   const patientAppId = selectedPatient?.patientAppId;
 
+  const loadVisitExtras = useCallback(async (row) => {
+    const appId = row?.patientAppId || row?.PatientAppId || row?.id;
+    const patientId = Number(row?.patientId || row?.PatientId || 0);
+    if (appId) {
+      try {
+        const vitalsRes = unwrap(await getReceptionVitals(appId));
+        setVitalsDetails(normalizeVitals(vitalsRes));
+      } catch {
+        setVitalsDetails(null);
+      }
+    }
+    if (patientId) {
+      try {
+        const papers = unwrap(await getReceptionCasePapers(patientId));
+        const list = papers.data || papers.Data || papers;
+        const rows = Array.isArray(list) ? list : [];
+        const latest = rows[0];
+        const complaint =
+          latest?.chiefComplaintName || latest?.ChiefComplaintName || latest?.chiefComplaint || "";
+        if (complaint) {
+          setAppointmentDetails((prev) => prev || { chiefComplaints: complaint });
+        }
+      } catch {
+        /* optional */
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!checkInRow) return;
     onSelectRow?.(checkInRow);
-    setVitalsDetails(readStoredVitals(checkInRow.patientAppId || checkInRow.id));
     setStepsOpen(true);
     setActiveActionId(null);
     setError("");
+    setAppointmentDetails(null);
+    setPaymentDetails(null);
+    setCasePaperDetails(null);
+    loadVisitExtras(checkInRow);
+    const appId = checkInRow.patientAppId || checkInRow.id;
+    const status = String(checkInRow.appointmentStatus || checkInRow.status || "").toUpperCase();
+    if (appId && status && status !== "WAITING" && status !== "COMPLETED" && status !== "CANCELLED") {
+      updateAppointmentStatus({ patientAppId: appId, status: "WAITING" })
+        .then(() => onVisitStatusChanged?.(appId, "WAITING"))
+        .catch(() => {});
+    }
     onCheckInHandled?.();
-  }, [checkInRow, onSelectRow, onCheckInHandled]);
+  }, [checkInRow, onSelectRow, onCheckInHandled, loadVisitExtras, onVisitStatusChanged]);
+
+  useEffect(() => {
+    if (!selectedRow?.patientAppId && !selectedRow?.id) return;
+    loadVisitExtras(selectedRow);
+  }, [selectedRow?.patientAppId, selectedRow?.id, loadVisitExtras]);
 
   const completedActionIds = useMemo(() => {
     const done = [];
     if (selectedPatient) done.push("patient-details");
     if (allottedSchedule?.slot?.label) done.push("doctor-schedule");
     if (appointmentDetails?.chiefComplaints) done.push("new-appointment");
-    if (vitalsDetails?.bloodPressure || readStoredVitals(patientAppId)?.bloodPressure) {
-      done.push("collect-vitals");
-    }
+    if (vitalsDetails?.bloodPressure || vitalsDetails?.pulse) done.push("collect-vitals");
     if (
       paymentDetails?.paymentStatus ||
       String(activeRow?.paymentStatusRaw || activeRow?.paymentStatus || "").toUpperCase() === "PAID"
@@ -108,7 +168,6 @@ const ReceptionCheckInFlow = ({
     vitalsDetails,
     paymentDetails,
     casePaperDetails,
-    patientAppId,
     activeRow,
   ]);
 
@@ -145,7 +204,6 @@ const ReceptionCheckInFlow = ({
       }
       if (actionId === "collect-vitals") {
         if (!requireVisit()) return;
-        setVitalsDetails(readStoredVitals(patientAppId));
         setVitalsOpen(true);
         return;
       }
@@ -182,7 +240,7 @@ const ReceptionCheckInFlow = ({
         selectedPatient={selectedPatient}
         allottedSchedule={allottedSchedule}
         appointmentDetails={appointmentDetails}
-        vitalsDetails={vitalsDetails || readStoredVitals(patientAppId)}
+        vitalsDetails={vitalsDetails}
         paymentDetails={paymentDetails}
         casePaperDetails={casePaperDetails}
       />
@@ -218,9 +276,29 @@ const ReceptionCheckInFlow = ({
         allottedSchedule={allottedSchedule}
         initialAppointment={appointmentDetails}
         editMode={Boolean(appointmentDetails)}
-        onAppointmentConfirmed={(details) => {
+        saving={saving}
+        onAppointmentConfirmed={async (details) => {
           setAppointmentDetails(details);
-          setNotice("Chief complaint saved for this check-in. Collect vitals or payment next.");
+          const pid = Number(selectedPatient?.patientId || selectedPatient?.id);
+          const complaint = String(details?.chiefComplaints || "").trim();
+          if (pid && complaint) {
+            setSaving(true);
+            try {
+              await saveReceptionCasePaper({
+                patientId: pid,
+                patientAppId: patientAppId || null,
+                caseId: null,
+                chiefComplaint: complaint,
+              });
+              setNotice("Chief complaint saved for the doctor.");
+            } catch (err) {
+              setError(apiMessage(err, "Could not save chief complaint."));
+            } finally {
+              setSaving(false);
+            }
+          } else {
+            setNotice("Chief complaint noted for this check-in.");
+          }
         }}
       />
 
@@ -230,16 +308,36 @@ const ReceptionCheckInFlow = ({
         selectedPatient={selectedPatient}
         initialVitals={vitalsDetails}
         editMode={Boolean(vitalsDetails)}
-        onVitalsConfirmed={(details) => {
+        saving={saving}
+        onVitalsConfirmed={async (details) => {
           const stored = {
             ...details,
             bloodPressureSystolic: details.bloodPressureSystolic,
             bloodPressureDiastolic: details.bloodPressureDiastolic,
             bloodPressure: details.bloodPressure,
           };
-          setVitalsDetails(stored);
-          writeStoredVitals(patientAppId, stored);
-          setNotice("Vitals stored for this visit on this desk.");
+          setSaving(true);
+          try {
+            await saveReceptionVitals({
+              patientAppId: Number(patientAppId),
+              bloodPressureSystolic: details.bloodPressureSystolic,
+              bloodPressureDiastolic: details.bloodPressureDiastolic,
+              pulse: details.pulse,
+              temperature: details.temperature,
+              weight: details.weight,
+              height: details.height,
+              spo2: details.spo2,
+              respiratoryRate: details.respiratoryRate,
+              bloodSugar: details.bloodSugar,
+              notes: details.notes,
+            });
+            setVitalsDetails(stored);
+            setNotice("Vitals saved for this visit.");
+          } catch (err) {
+            setError(apiMessage(err, "Could not save vitals."));
+          } finally {
+            setSaving(false);
+          }
         }}
       />
 
@@ -264,7 +362,7 @@ const ReceptionCheckInFlow = ({
         selectedPatient={selectedPatient}
         allottedSchedule={allottedSchedule}
         appointmentDetails={appointmentDetails}
-        vitalsDetails={vitalsDetails || readStoredVitals(patientAppId)}
+        vitalsDetails={vitalsDetails}
         paymentDetails={paymentDetails}
         onCasePaperConfirmed={async (details) => {
           setCasePaperDetails(details);
@@ -275,6 +373,7 @@ const ReceptionCheckInFlow = ({
             try {
               await saveReceptionCasePaper({
                 patientId: pid,
+                patientAppId: patientAppId || null,
                 caseId: null,
                 chiefComplaint: String(complaint).trim(),
               });

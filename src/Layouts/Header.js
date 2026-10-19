@@ -123,7 +123,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 </div>
                             ) : null}
 
-                            {!noSidebarLayout && (
+                            {!noSidebarLayout && userRole !== UserRole.RECEPTION && (
                                 <button
                                     onClick={toogleMenuBtn}
                                     type="button"
@@ -165,7 +165,9 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                         Help &amp; Support
                                     </UncontrolledTooltip>
                                 </div>
-                                <WebAppsDropdown />
+                                {userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGEMENT ? (
+                                  <WebAppsDropdown />
+                                ) : null}
                                 <FullScreenDropdown />
                             </div>
 

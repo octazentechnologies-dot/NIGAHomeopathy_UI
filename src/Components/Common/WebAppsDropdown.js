@@ -5,11 +5,6 @@ import { UserRole, resolveUserRole } from '../constants/roles';
 
 const LINKS_BY_ROLE = {
     [UserRole.DOCTOR]: [
-        { to: '/doctordashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
-        { to: '/doctor/schedule', icon: 'ri-calendar-2-line', label: 'Schedule' },
-        { to: '/doctor/tele', icon: 'ri-vidicon-line', label: 'Teleconsult' },
-        { to: '/doctor/erx', icon: 'ri-file-list-3-line', label: 'eRx' },
-        { to: '/doctor/earnings', icon: 'ri-money-rupee-circle-line', label: 'Earnings' },
         { to: '/doctor/support', icon: 'ri-customer-service-2-line', label: 'Support' },
     ],
     [UserRole.ADMIN]: [
@@ -17,8 +12,9 @@ const LINKS_BY_ROLE = {
         { to: '/admin/listusers', icon: 'ri-user-settings-line', label: 'Users' },
         { to: '/admin/trust-queue', icon: 'ri-shield-check-line', label: 'Trust queue' },
         { to: '/admin/consult-payments', icon: 'ri-bank-card-line', label: 'Payments' },
+        { to: '/admin/reports', icon: 'ri-bar-chart-line', label: 'Reports' },
         { to: '/admin/support-tickets', icon: 'ri-customer-service-2-line', label: 'Support' },
-        { to: '/admin/security', icon: 'ri-lock-2-line', label: 'Security' },
+        { to: '/admin/security-audit', icon: 'ri-lock-2-line', label: 'Security audit' },
     ],
     [UserRole.RECEPTION]: [
         { to: '/reception', icon: 'ri-dashboard-line', label: 'Home' },

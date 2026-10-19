@@ -358,3 +358,33 @@
   color: #94a3b8;
   font-size: 0.6rem;
 }
+
+.pc-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 8rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.pc-state--error {
+  color: #b91c1c;
+}
+
+.pc-state--warn {
+  min-height: auto;
+  margin-bottom: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.4rem;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 0.78rem;
+  justify-content: flex-start;
+}
+
+.pc-task-due {
+  color: #94a3b8;
+  font-weight: 500;
+}

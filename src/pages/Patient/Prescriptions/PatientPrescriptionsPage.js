@@ -494,7 +494,11 @@ const PatientPrescriptionsPage = () => {
                       type="button"
                       className="prx-btn prx-btn--primary"
                       disabled={!selected.signed || downloadingId === selected.id}
-                      title={selected.signed ? "Download prescription" : "Available after the doctor signs"}
+                      title={
+                        selected.signed
+                          ? "Download prescription as PDF (.pdf)"
+                          : "Available after the doctor signs — file format PDF (.pdf)"
+                      }
                       onClick={() => onDownload(selected)}
                     >
                       {downloadingId === selected.id ? (
@@ -502,9 +506,12 @@ const PatientPrescriptionsPage = () => {
                       ) : (
                         <i className="ri-download-2-line" aria-hidden="true" />
                       )}
-                      Download
+                      Download PDF
                     </button>
                   </div>
+                ) : null}
+                {selected?.signed ? (
+                  <p className="text-muted small mb-0 mt-2">Download file format: PDF (.pdf)</p>
                 ) : null}
               </div>
               <div className="prx-card__body">

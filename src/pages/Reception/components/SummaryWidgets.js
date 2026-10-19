@@ -13,7 +13,7 @@ const CARDS = [
   { id: "today-patients", label: "Total Patients", icon: "mdi mdi-account-group" },
 ];
 
-const SummaryWidgets = () => {
+const SummaryWidgets = ({ refreshKey = 0 }) => {
   const [activeModalId, setActiveModalId] = useState(null);
   const [rows, setRows] = useState([]);
   const doctorId = readReceptionDoctorId();
@@ -21,12 +21,31 @@ const SummaryWidgets = () => {
   useEffect(() => {
     if (!doctorId) return undefined;
     let cancelled = false;
-    getAppointmentQueue(doctorId)
-      .then((response) => {
+    const localIso = () => {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    };
+    Promise.all([
+      getAppointmentQueue(doctorId, { date: localIso(), scope: "day" }),
+      getAppointmentQueue(doctorId),
+    ])
+      .then(([dayRes, waitRes]) => {
         if (cancelled) return;
-        const body = unwrap(response);
-        const list = body.queue || body.Queue || body.data || body;
-        setRows((Array.isArray(list) ? list : []).map(mapQueueKpiRow).sort((a, b) => a.sortTime - b.sortTime));
+        const asList = (response) => {
+          const body = unwrap(response);
+          const list = body.queue || body.Queue || body.data || body;
+          return Array.isArray(list) ? list : [];
+        };
+        const merged = [];
+        const seen = new Set();
+        [...asList(dayRes), ...asList(waitRes)].forEach((row) => {
+          const id = row.patientAppId ?? row.PatientAppId;
+          if (id == null || seen.has(String(id))) return;
+          seen.add(String(id));
+          merged.push(row);
+        });
+        setRows(merged.map(mapQueueKpiRow).sort((a, b) => a.sortTime - b.sortTime));
       })
       .catch(() => {
         if (!cancelled) setRows([]);
@@ -34,7 +53,7 @@ const SummaryWidgets = () => {
     return () => {
       cancelled = true;
     };
-  }, [doctorId]);
+  }, [doctorId, refreshKey]);
 
   const lists = useMemo(() => {
     const out = {};

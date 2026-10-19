@@ -28,11 +28,12 @@ import {
   listTeleChat,
   setTeleAvailability,
 } from "../../../helpers/realbackend_helper";
-import { erxByAppointment } from "../../../helpers/s4Week4Api";
+import { erxByAppointment, unwrapS4 } from "../../../helpers/s4Week4Api";
 import { getAuthDoctorId } from "../../../helpers/appointmentSlotHelper";
 import TeleCallFlow from "./TeleCallFlow";
+import TeleErxAppModal from "./TeleErxAppModal";
 import { loadInstantOfferCount, loadTeleDay, mapChatMessage } from "./teleApi";
-import "./telemedicine.css";
+import "./teleConsultation.css";
 
 const PAGE_SIZE = 5;
 const KPI_MODAL_PAGE_SIZE = 5;
@@ -178,49 +179,60 @@ const CompactModalPaginationPages = ({ currentPage, totalPages, onPageChange }) 
   });
 };
 
-const TelePatientActionButtons = ({ row, idPrefix = "tele", showJoin = true, onJoin }) => (
-  <div className="dashboard-patient-action-group d-inline-flex align-items-center justify-content-end flex-nowrap gap-1">
-    {showJoin && row.queueStatus !== "Completed" && (
-      <>
+const isTeleCallFinished = (row) => {
+  const queue = String(row?.queueStatus || "").toLowerCase();
+  if (queue === "completed") return true;
+  const session = String(row?.sessionStatus || "").toLowerCase();
+  return session === "ended" || session === "completed" || session === "complete";
+};
+
+const TelePatientActionButtons = ({ row, idPrefix = "tele", showJoin = true, onJoin }) => {
+  if (!showJoin) return null;
+  const finished = isTeleCallFinished(row);
+  const btnId = `${idPrefix}-join-${row.id}`;
+  if (finished) {
+    return (
+      <div className="dashboard-patient-action-group d-inline-flex align-items-center justify-content-end flex-nowrap gap-1">
         <button
           type="button"
-          id={`${idPrefix}-join-${row.id}`}
-          className="btn btn-sm btn-soft-primary"
-          aria-label="Join call"
-          onClick={() => onJoin?.(row)}
+          id={btnId}
+          className="btn btn-sm btn-soft-secondary"
+          aria-label="Call completed"
+          disabled
         >
           <i className="ri-vidicon-line" />
         </button>
-        <UncontrolledTooltip placement="top" target={`${idPrefix}-join-${row.id}`}>
-          {row.sessionStatus === "Active" ? "Rejoin Call" : "Join Call"}
+        <UncontrolledTooltip placement="top" target={btnId}>
+          Call completed
         </UncontrolledTooltip>
-      </>
-    )}
-    {row.mobile ? (
-      <>
-        <a
-          href={`tel:${row.mobile}`}
-          id={`${idPrefix}-call-${row.id}`}
-          className="btn btn-sm btn-soft-success"
-          aria-label="Phone call"
-        >
-          <i className="ri-phone-fill" />
-        </a>
-        <UncontrolledTooltip placement="top" target={`${idPrefix}-call-${row.id}`}>
-          Call {row.mobile}
-        </UncontrolledTooltip>
-      </>
-    ) : null}
-  </div>
-);
+      </div>
+    );
+  }
+  return (
+    <div className="dashboard-patient-action-group d-inline-flex align-items-center justify-content-end flex-nowrap gap-1">
+      <button
+        type="button"
+        id={btnId}
+        className="btn btn-sm btn-soft-primary"
+        aria-label="Join call"
+        onClick={() => onJoin?.(row)}
+      >
+        <i className="ri-vidicon-line" />
+      </button>
+      <UncontrolledTooltip placement="top" target={btnId}>
+        {row.sessionStatus === "Active" ? "Rejoin Call" : "Join Call"}
+      </UncontrolledTooltip>
+    </div>
+  );
+};
 
 const TelePatientNameCell = ({ row, idPrefix = "tele" }) => (
-  <div className="telemedicine-patient-name">
+  <div className="tele-consultation-patient-name">
     {row.consultType === "instant" && (
       <>
         <span
           id={`${idPrefix}-instant-${row.id}`}
-          className="telemedicine-instant-icon"
+          className="tele-consultation-instant-icon"
           aria-label="Instant consultation"
         >
           <i className="ri-flashlight-fill" aria-hidden="true" />
@@ -294,7 +306,7 @@ const CompletedChatHistoryModal = ({ isOpen, toggle, patient }) => {
     <Modal
       isOpen={isOpen}
       toggle={toggle}
-      className="patient-list-modal telemedicine-detail-modal"
+      className="patient-list-modal tele-consultation-detail-modal"
       centered
       size="md"
       zIndex={11000}
@@ -308,7 +320,7 @@ const CompletedChatHistoryModal = ({ isOpen, toggle, patient }) => {
         </span>
       </ModalHeader>
       <ModalBody>
-        <div className="telemedicine-chat-history">
+        <div className="tele-consultation-chat-history">
           {loading ? (
             <div className="text-center py-3">
               <Spinner size="sm" color="primary" />
@@ -321,13 +333,13 @@ const CompletedChatHistoryModal = ({ isOpen, toggle, patient }) => {
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`telemedicine-chat-history__msg ${msg.mine ? "" : "telemedicine-chat-history__msg--mine"}`}
+                className={`tele-consultation-chat-history__msg ${msg.mine ? "" : "tele-consultation-chat-history__msg--mine"}`}
               >
-                <div className="telemedicine-chat-history__meta">
+                <div className="tele-consultation-chat-history__meta">
                   <strong>{msg.name}</strong>
                   <span>{msg.time}</span>
                 </div>
-                {msg.text && <div className="telemedicine-chat-history__bubble">{msg.text}</div>}
+                {msg.text && <div className="tele-consultation-chat-history__bubble">{msg.text}</div>}
               </div>
             ))}
         </div>
@@ -343,94 +355,127 @@ const CompletedPrescriptionModal = ({ isOpen, toggle, patient }) => {
   const [erx, setErx] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [erxAppOpen, setErxAppOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen || !patient?.patientAppId) {
+  const loadErx = useCallback(() => {
+    if (!patient?.patientAppId) {
       setErx(null);
       setError("");
       return;
     }
-    let active = true;
     setLoading(true);
     setError("");
     erxByAppointment(patient.patientAppId)
-      .then((res) => active && setErx(res?.data || null))
+      .then((res) => {
+        const next = unwrapS4(res);
+        setErx(next && typeof next === "object" ? next : null);
+      })
       .catch((err) => {
-        if (!active) return;
         setErx(null);
         setError(
           (typeof err === "string" ? err : err?.message) || "No signed prescription for this consultation."
         );
       })
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [isOpen, patient?.patientAppId]);
+      .finally(() => setLoading(false));
+  }, [patient?.patientAppId]);
 
-  const items = Array.isArray(erx?.items) ? erx.items : [];
+  useEffect(() => {
+    if (!isOpen || !patient?.patientAppId) {
+      setErx(null);
+      setError("");
+      setErxAppOpen(false);
+      return;
+    }
+    loadErx();
+  }, [isOpen, patient?.patientAppId, loadErx]);
+
+  const items = Array.isArray(erx?.items)
+    ? erx.items
+    : Array.isArray(erx?.Items)
+      ? erx.Items
+      : [];
+  const signedAt = erx?.signedAt || erx?.SignedAt;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      toggle={toggle}
-      className="patient-list-modal telemedicine-detail-modal"
-      centered
-      size="md"
-      zIndex={11000}
-    >
-      <ModalHeader toggle={toggle} className="patient-list-modal__header">
-        <span className="patient-list-modal__title patient-list-modal__title--simple">
-          <i className="ri-file-list-3-line" style={{ color: "#25a0e2", fontSize: 15 }} aria-hidden="true" />
-          <span className="patient-list-modal__title-text">
-            Prescription{patient?.patient ? ` · ${patient.patient}` : ""}
+    <>
+      <Modal
+        isOpen={isOpen && !erxAppOpen}
+        toggle={toggle}
+        className="patient-list-modal tele-consultation-detail-modal"
+        centered
+        size="md"
+        zIndex={11000}
+      >
+        <ModalHeader toggle={toggle} className="patient-list-modal__header">
+          <span className="patient-list-modal__title patient-list-modal__title--simple">
+            <i className="ri-file-list-3-line" style={{ color: "#25a0e2", fontSize: 15 }} aria-hidden="true" />
+            <span className="patient-list-modal__title-text">
+              Prescription{patient?.patient ? ` · ${patient.patient}` : ""}
+            </span>
           </span>
-        </span>
-      </ModalHeader>
-      <ModalBody>
-        {loading ? (
-          <div className="text-center py-3">
-            <Spinner size="sm" color="primary" />
-          </div>
-        ) : null}
-        {!loading && items.length === 0 ? (
-          <p className="text-muted text-center mb-0 py-3">{error || "No remedies on this prescription."}</p>
-        ) : null}
-        {!loading && erx?.signedAt ? (
-          <p className="text-muted small mb-2">Signed {moment(erx.signedAt).format("DD MMM YYYY, hh:mm A")}</p>
-        ) : null}
-        {!loading &&
-          items.map((item, idx) => (
-            <div className="telemedicine-rx-detail mb-2" key={`${item.remedyCode || "rx"}-${idx}`}>
-              <div className="telemedicine-rx-detail__row">
-                <span>Remedy</span>
-                <strong>{item.remedyName || item.remedyCode || "—"}</strong>
-              </div>
-              <div className="telemedicine-rx-detail__row">
-                <span>Potency</span>
-                <strong>{item.potencyCode || "—"}</strong>
-              </div>
-              <div className="telemedicine-rx-detail__row">
-                <span>Dosage</span>
-                <strong>{[item.dose, item.frequency].filter(Boolean).join(", ") || "—"}</strong>
-              </div>
-              <div className="telemedicine-rx-detail__row">
-                <span>Duration</span>
-                <strong>{item.duration || "—"}</strong>
-              </div>
-              {item.instructions ? (
-                <div className="telemedicine-rx-detail__row telemedicine-rx-detail__row--block">
-                  <span>Instructions</span>
-                  <strong>{item.instructions}</strong>
-                </div>
-              ) : null}
+        </ModalHeader>
+        <ModalBody>
+          {loading ? (
+            <div className="text-center py-3">
+              <Spinner size="sm" color="primary" />
             </div>
-          ))}
-      </ModalBody>
-      <ModalFooter>
-        <ModalActionButton action="close" onClick={toggle} />
-      </ModalFooter>
-    </Modal>
+          ) : null}
+          {!loading && items.length === 0 ? (
+            <p className="text-muted text-center mb-0 py-3">{error || "No remedies on this prescription yet."}</p>
+          ) : null}
+          {!loading && signedAt ? (
+            <p className="text-muted small mb-2">Signed {moment(signedAt).format("DD MMM YYYY, hh:mm A")}</p>
+          ) : null}
+          {!loading &&
+            items.map((item, idx) => (
+              <div className="tele-consultation-rx-detail mb-2" key={`${item.remedyCode || item.RemedyCode || "rx"}-${idx}`}>
+                <div className="tele-consultation-rx-detail__row">
+                  <span>Remedy</span>
+                  <strong>{item.remedyName || item.RemedyName || item.remedyCode || item.RemedyCode || "—"}</strong>
+                </div>
+                <div className="tele-consultation-rx-detail__row">
+                  <span>Potency</span>
+                  <strong>{item.potencyCode || item.PotencyCode || "—"}</strong>
+                </div>
+                <div className="tele-consultation-rx-detail__row">
+                  <span>Dosage</span>
+                  <strong>
+                    {[item.dose || item.Dose, item.frequency || item.Frequency].filter(Boolean).join(", ") || "—"}
+                  </strong>
+                </div>
+                <div className="tele-consultation-rx-detail__row">
+                  <span>Duration</span>
+                  <strong>{item.duration || item.Duration || "—"}</strong>
+                </div>
+                {item.instructions || item.Instructions ? (
+                  <div className="tele-consultation-rx-detail__row tele-consultation-rx-detail__row--block">
+                    <span>Instructions</span>
+                    <strong>{item.instructions || item.Instructions}</strong>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+        </ModalBody>
+        <ModalFooter className="gap-2">
+          <ModalActionButton action="close" onClick={toggle} />
+          <ModalActionButton
+            action="save"
+            iconClassName="ri-file-list-3-line"
+            onClick={() => setErxAppOpen(true)}
+          >
+            Open eRx
+          </ModalActionButton>
+        </ModalFooter>
+      </Modal>
+
+      <TeleErxAppModal
+        isOpen={erxAppOpen}
+        toggle={() => setErxAppOpen(false)}
+        patientAppId={patient?.patientAppId}
+        patientName={patient?.patient}
+        onClosed={loadErx}
+      />
+    </>
   );
 };
 
@@ -441,7 +486,7 @@ const TeleKpiListModal = ({ isOpen, toggle, kpiKey, patients }) => {
   const [detailPatient, setDetailPatient] = useState(null);
   const [detailType, setDetailType] = useState(null);
   const isCompleted = kpiKey === "Completed";
-  const colCount = isCompleted ? 9 : 8;
+  const colCount = isCompleted ? 8 : 8;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -528,7 +573,7 @@ const TeleKpiListModal = ({ isOpen, toggle, kpiKey, patients }) => {
         </ModalHeader>
         <ModalBody>
           <div className="table-responsive patient-list-modal__table-wrap">
-            <table className="table mb-0 align-middle patient-list-modal__table telemedicine-patient-table">
+            <table className="table mb-0 align-middle patient-list-modal__table tele-consultation-patient-table">
               <thead>
                 <tr>
                   <th
@@ -544,14 +589,15 @@ const TeleKpiListModal = ({ isOpen, toggle, kpiKey, patients }) => {
                   <th scope="col">Mobile</th>
                   <th scope="col">Amount</th>
                   <th scope="col">Status</th>
-                  {isCompleted && (
+                  {isCompleted ? (
                     <th scope="col" className="text-center">
                       Records
                     </th>
+                  ) : (
+                    <th scope="col" className="text-end">
+                      Action
+                    </th>
                   )}
-                  <th scope="col" className="text-end">
-                    Action
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -577,7 +623,7 @@ const TeleKpiListModal = ({ isOpen, toggle, kpiKey, patients }) => {
                         {row.paymentStatus}
                       </span>
                     </td>
-                    {isCompleted && (
+                    {isCompleted ? (
                       <td className="text-center">
                         <CompletedRecordsButtons
                           row={row}
@@ -585,14 +631,16 @@ const TeleKpiListModal = ({ isOpen, toggle, kpiKey, patients }) => {
                           onOpenRx={openRx}
                         />
                       </td>
+                    ) : (
+                      <td className="text-end">
+                        <TelePatientActionButtons
+                          row={row}
+                          idPrefix={`kpi-${kpiKey}`}
+                          onJoin={undefined}
+                          showJoin={false}
+                        />
+                      </td>
                     )}
-                    <td className="text-end">
-                      <TelePatientActionButtons
-                        row={row}
-                        idPrefix={`kpi-${kpiKey}`}
-                        showJoin={false}
-                      />
-                    </td>
                   </tr>
                 ))}
                 {pageItems.length === 0 && (
@@ -660,8 +708,8 @@ const TeleKpiListModal = ({ isOpen, toggle, kpiKey, patients }) => {
   );
 };
 
-const TelemedicineDashboard = () => {
-  document.title = "Teleconsult | Niga Homeocentrum";
+const TeleConsultationDashboard = () => {
+  document.title = "Tele Consultation | Niga Homeocentrum";
 
   const doctorId = getAuthDoctorId();
   const [patients, setPatients] = useState([]);
@@ -818,7 +866,7 @@ const TelemedicineDashboard = () => {
 
   const renderKpiCard = ({ key, count, label, icon }) => (
     <div
-      className="col telemedicine-kpi-col"
+      className="col tele-consultation-kpi-col"
       onClick={() => openKpiModal(key)}
       role="button"
       tabIndex={0}
@@ -847,14 +895,14 @@ const TelemedicineDashboard = () => {
 
   return (
     <React.Fragment>
-      <div className="page-content doctor-dashboard-page telemedicine-dashboard-page">
+      <div className="page-content doctor-dashboard-page tele-consultation-dashboard-page">
         <Container fluid>
           <InstantOfferBanner />
-          <div className="row doctor-dashboard-kpi-row telemedicine-kpi-row">
-            <div className="col telemedicine-kpi-col">
-              <div className="card-animate card mb-2 doctor-kpi-card telemedicine-status-kpi">
+          <div className="row doctor-dashboard-kpi-row tele-consultation-kpi-row">
+            <div className="col tele-consultation-kpi-col">
+              <div className="card-animate card mb-2 doctor-kpi-card tele-consultation-status-kpi">
                 <div className="card-body d-flex gap-3 align-items-center">
-                  <label className="telemedicine-toggle mb-0" htmlFor="teleStatusToggle">
+                  <label className="tele-consultation-toggle mb-0" htmlFor="teleStatusToggle">
                     <input
                       id="teleStatusToggle"
                       type="checkbox"
@@ -865,11 +913,11 @@ const TelemedicineDashboard = () => {
                         requestStatusChange(!isOnline);
                       }}
                     />
-                    <span className="telemedicine-toggle__track" aria-hidden="true" />
+                    <span className="tele-consultation-toggle__track" aria-hidden="true" />
                   </label>
                   <div className="flex-grow-1 overflow-hidden">
                     <h5 className="fs-15 doctor-kpi-count mb-0">{isOnline ? "Online" : "Offline"}</h5>
-                    <p className="mb-0 text-muted doctor-kpi-label">TELEMEDICINE STATUS</p>
+                    <p className="mb-0 text-muted doctor-kpi-label">TELE CONSULTATION STATUS</p>
                   </div>
                 </div>
               </div>
@@ -881,12 +929,12 @@ const TelemedicineDashboard = () => {
             {renderKpiCard({ key: "Instant", count: instantCount, label: "INSTANT CONSULT", icon: "ri-smartphone-line" })}
           </div>
 
-          <Row className="g-2 mt-1 telemedicine-content-row align-items-stretch">
+          <Row className="g-2 mt-1 tele-consultation-content-row align-items-stretch">
             <Col lg={8}>
-              <Card className="telemedicine-panel-card h-100 mb-0">
-                <CardHeader className="telemedicine-panel-card__header">
-                  <h5 className="telemedicine-panel-card__title mb-0">Telemedicine Patients</h5>
-                  <div className="search-box telemedicine-panel-search">
+              <Card className="tele-consultation-panel-card h-100 mb-0">
+                <CardHeader className="tele-consultation-panel-card__header">
+                  <h5 className="tele-consultation-panel-card__title mb-0">Tele Consultation Patients</h5>
+                  <div className="search-box tele-consultation-panel-search">
                     <input
                       type="text"
                       className="form-control form-control-sm search"
@@ -899,7 +947,7 @@ const TelemedicineDashboard = () => {
                 </CardHeader>
                 <CardBody className="p-0 doctor-patient-table-body">
                   <div className="table-responsive">
-                    <table className="table table-hover mb-0 align-middle dashboard-patient-table telemedicine-patient-table">
+                    <table className="table table-hover mb-0 align-middle dashboard-patient-table tele-consultation-patient-table">
                       <thead>
                         <tr>
                           <th scope="col">Time</th>
@@ -948,7 +996,7 @@ const TelemedicineDashboard = () => {
                             <td colSpan={7} className="text-center text-muted py-3">
                               {searchTerm
                                 ? "No patients found matching your search"
-                                : "No telemedicine appointments today"}
+                                : "No tele consultation appointments today"}
                             </td>
                           </tr>
                         )}
@@ -1005,12 +1053,12 @@ const TelemedicineDashboard = () => {
             </Col>
 
             <Col lg={4}>
-              <Card className="telemedicine-panel-card h-100 mb-0">
-                <CardHeader className="telemedicine-panel-card__header">
-                  <h5 className="telemedicine-panel-card__title mb-0">Consultation Hours</h5>
+              <Card className="tele-consultation-panel-card h-100 mb-0">
+                <CardHeader className="tele-consultation-panel-card__header">
+                  <h5 className="tele-consultation-panel-card__title mb-0">Consultation Hours</h5>
                   <button
                     type="button"
-                    className="telemedicine-edit-link"
+                    className="tele-consultation-edit-link"
                     disabled={!doctorId}
                     onClick={() => setScheduleEditDate(moment().format("YYYY-MM-DD"))}
                   >
@@ -1018,43 +1066,43 @@ const TelemedicineDashboard = () => {
                     Edit
                   </button>
                 </CardHeader>
-                <CardBody className="telemedicine-date-hours-body">
+                <CardBody className="tele-consultation-date-hours-body">
                   {hoursLoading && Object.keys(schedules).length === 0 ? (
                     <div className="text-center py-3">
                       <Spinner size="sm" color="primary" />
                     </div>
                   ) : (
-                    <div className="telemedicine-date-hours-list">
+                    <div className="tele-consultation-date-hours-list">
                       {dateWiseHours.map((day) => (
                         <div
                           key={day.key}
-                          className="telemedicine-date-hours-item"
+                          className="tele-consultation-date-hours-item"
                           role="button"
                           title="Edit hours for this day"
                           onClick={() => doctorId && setScheduleEditDate(day.key)}
                         >
-                          <div className="telemedicine-date-hours-item__head">
-                            <div className="telemedicine-date-hours-item__title">
-                              <span className="telemedicine-date-hours-item__label">{day.label}</span>
-                              <span className="telemedicine-date-hours-item__date">{day.dateDisplay}</span>
+                          <div className="tele-consultation-date-hours-item__head">
+                            <div className="tele-consultation-date-hours-item__title">
+                              <span className="tele-consultation-date-hours-item__label">{day.label}</span>
+                              <span className="tele-consultation-date-hours-item__date">{day.dateDisplay}</span>
                             </div>
-                            <span className="telemedicine-date-hours-item__meta">
+                            <span className="tele-consultation-date-hours-item__meta">
                               {day.isActive ? `${day.slotCount} sessions · ${day.totalLabel}` : "Not set"}
                             </span>
                           </div>
                           {day.isActive ? (
-                            <ul className="telemedicine-hours-list mb-0">
+                            <ul className="tele-consultation-hours-list mb-0">
                               {day.slots.map((slot) => (
                                 <li key={`${day.key}-${slot.id}`}>
-                                  <span className="telemedicine-hours-list__icon" aria-hidden="true">
+                                  <span className="tele-consultation-hours-list__icon" aria-hidden="true">
                                     <i className="ri-time-line" />
                                   </span>
-                                  <div className="telemedicine-hours-list__content">
-                                    <div className="telemedicine-hours-list__row">
-                                      <span className="telemedicine-hours-list__session">{slot.session}</span>
-                                      <span className="telemedicine-hours-list__duration">{slot.durationLabel}</span>
+                                  <div className="tele-consultation-hours-list__content">
+                                    <div className="tele-consultation-hours-list__row">
+                                      <span className="tele-consultation-hours-list__session">{slot.session}</span>
+                                      <span className="tele-consultation-hours-list__duration">{slot.durationLabel}</span>
                                     </div>
-                                    <span className="telemedicine-hours-list__time">
+                                    <span className="tele-consultation-hours-list__time">
                                       {slot.start} – {slot.end}
                                     </span>
                                   </div>
@@ -1062,7 +1110,7 @@ const TelemedicineDashboard = () => {
                               ))}
                             </ul>
                           ) : (
-                            <p className="telemedicine-date-hours-item__closed mb-0">No schedule saved for this day</p>
+                            <p className="tele-consultation-date-hours-item__closed mb-0">No schedule saved for this day</p>
                           )}
                         </div>
                       ))}
@@ -1111,8 +1159,8 @@ const TelemedicineDashboard = () => {
         <ModalBody>
           <p className="mb-0 text-muted" style={{ fontSize: "0.8125rem" }}>
             {pendingOnline
-              ? "Are you sure you want to enable telemedicine status? Patients will be able to reach you for consultations."
-              : "Are you sure you want to disable telemedicine status? New consultation requests will be paused while you are offline."}
+              ? "Are you sure you want to enable TELE CONSULTATION STATUS? Patients will be able to reach you for consultations."
+              : "Are you sure you want to disable TELE CONSULTATION STATUS? New consultation requests will be paused while you are offline."}
           </p>
         </ModalBody>
         <ModalFooter>
@@ -1138,4 +1186,4 @@ const TelemedicineDashboard = () => {
   );
 };
 
-export default TelemedicineDashboard;
+export default TeleConsultationDashboard;

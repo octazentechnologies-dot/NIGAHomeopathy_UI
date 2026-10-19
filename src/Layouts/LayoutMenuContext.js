@@ -16,9 +16,11 @@ import {
   RECEPTION_FALLBACK_MENU,
   DOCTOR_FALLBACK_MENU,
   ADMIN_WEEK4_MENU,
+  isHiddenAdminNavItem,
   mergeMissingMenuItems,
   receptionChromeFromApi,
   isDoctorSpaLink,
+  isAdminEnquiriesNavItem,
 } from '../helpers/menuByRole';
 import { getMenuByRole } from '../helpers/realbackend_helper';
 import { resolveUserRole, UserRole } from '../Components/constants/roles';
@@ -142,15 +144,26 @@ export const LayoutMenuProvider = ({ children }) => {
         if (!split.menuItems.length) {
           const mainLinks = new Set(spaItems.map((item) => String(item.link || '').toLowerCase()));
           return {
-            menuItems: withDropdownState(spaItems),
+            menuItems: withDropdownState(
+              spaItems.filter((item) => !isAdminEnquiriesNavItem(item) && !isHiddenAdminNavItem(item))
+            ),
             moreMenuItems: withDropdownState(
-              ADMIN_WEEK4_MENU.filter((item) => !mainLinks.has(String(item.link || '').toLowerCase()))
+              ADMIN_WEEK4_MENU.filter(
+                (item) =>
+                  !mainLinks.has(String(item.link || '').toLowerCase()) &&
+                  !isAdminEnquiriesNavItem(item) &&
+                  !isHiddenAdminNavItem(item)
+              )
             ),
           };
         }
         return {
-          menuItems: withDropdownState(split.menuItems),
-          moreMenuItems: withDropdownState(mergeMissingMenuItems(split.moreMenuItems, ADMIN_WEEK4_MENU)),
+          menuItems: withDropdownState(split.menuItems.filter((item) => !isHiddenAdminNavItem(item))),
+          moreMenuItems: withDropdownState(
+            mergeMissingMenuItems(split.moreMenuItems, ADMIN_WEEK4_MENU).filter(
+              (item) => !isAdminEnquiriesNavItem(item) && !isHiddenAdminNavItem(item)
+            )
+          ),
         };
       }
       if (role === UserRole.ACCOUNT) {
@@ -182,9 +195,10 @@ export const LayoutMenuProvider = ({ children }) => {
           '/doctor/anatomy',
           '/doctor/tele',
           '/doctor/telemedicine',
+          '/doctor/tele-consultation',
+          '/doctor/teleconsultation',
           '/doctor/reception-staff',
           '/doctor/consult-fees',
-          '/doctor/earnings',
           '/doctor/erx',
           '/doctor/waitlist',
           '/doctor/schedule',

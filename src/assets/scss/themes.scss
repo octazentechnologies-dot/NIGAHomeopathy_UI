@@ -4116,6 +4116,18 @@ body.admin-layout {
     }
   }
 
+  &.reception-layout {
+    .app-menu.navbar-menu,
+    .topnav-hamburger {
+      display: none !important;
+    }
+  }
+
+  html[data-layout="horizontal"] &.reception-layout .page-content,
+  &.reception-layout .page-content {
+    margin-top: $app-topbar-height !important;
+  }
+
   // Admin equal card spacing (doctor formula):
   // page pad (0.5g) + card-col pad (0.5g) = edge (g)
   // card-col pad + card-col pad = between (g)

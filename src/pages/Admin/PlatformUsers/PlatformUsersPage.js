@@ -8,6 +8,7 @@ import {
   UncontrolledDropdown,
 } from "reactstrap";
 import moment from "moment";
+import Swal from "sweetalert2";
 import {
   createUser,
   getRoleMaster,
@@ -16,6 +17,7 @@ import {
   updateUser,
 } from "../../../helpers/realbackend_helper";
 import { recordMatchesQuery } from "../../../helpers/recordSearch";
+import { downloadExport } from "../../../helpers/exportFormats";
 import {
   ConfirmUserModal,
   ImportUsersModal,
@@ -28,7 +30,6 @@ import {
   STATUS_OPTIONS,
   USER_TYPES,
   VERIFICATION_LABELS,
-  downloadCsv,
   downloadImportTemplate,
   formatJoined,
   initialsOf,
@@ -290,21 +291,54 @@ const PlatformUsersPage = () => {
     }
   };
 
-  const handleExport = () => {
-    downloadCsv(`platform-users-${moment().format("YYYYMMDD-HHmm")}.csv`, [
-      ["ID", "Name", "User Type", "User Name", "Email", "Phone", "Status", "Verification", "Joined"],
-      ...filtered.map((u) => [
-        userCode(u),
-        u.name,
-        typeLabel(u.type),
-        u.userName,
-        u.email,
-        u.phone,
-        STATUS_OPTIONS.find((s) => s.id === u.status)?.label || u.status,
-        VERIFICATION_LABELS[u.verification] || "",
-        formatJoined(u.joined),
-      ]),
-    ]);
+  const handleExport = async () => {
+    const { value: format } = await Swal.fire({
+      title: "Download as",
+      input: "radio",
+      inputOptions: { csv: "CSV", excel: "Excel (.xlsx)", pdf: "PDF" },
+      inputValue: "csv",
+      showCancelButton: true,
+      confirmButtonText: "Download",
+      inputValidator: (value) => (!value ? "Pick a format" : undefined),
+    });
+    if (!format) return;
+    const columns = [
+      { key: "id", label: "ID" },
+      { key: "name", label: "Name" },
+      { key: "type", label: "User Type" },
+      { key: "userName", label: "User Name" },
+      { key: "email", label: "Email" },
+      { key: "phone", label: "Phone" },
+      { key: "status", label: "Status" },
+      { key: "verification", label: "Verification" },
+      { key: "joined", label: "Joined" },
+    ];
+    const rows = filtered.map((u) => ({
+      id: userCode(u),
+      name: u.name,
+      type: typeLabel(u.type),
+      userName: u.userName,
+      email: u.email,
+      phone: u.phone,
+      status: STATUS_OPTIONS.find((s) => s.id === u.status)?.label || u.status,
+      verification: VERIFICATION_LABELS[u.verification] || "",
+      joined: formatJoined(u.joined),
+    }));
+    try {
+      downloadExport({
+        format,
+        fileBase: `platform-users-${moment().format("YYYYMMDD-HHmm")}`,
+        title: "Platform Users",
+        columns,
+        rows,
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Export failed",
+        text: err?.message || "Could not download the file.",
+      });
+    }
   };
 
   const resetFilters = () => {
@@ -340,7 +374,7 @@ const PlatformUsersPage = () => {
                 <i className="ri-upload-2-line" aria-hidden="true" /> Import CSV
               </button>
               <button type="button" className="pu-btn pu-btn--soft" onClick={handleExport} disabled={!filtered.length}>
-                <i className="ri-download-2-line" aria-hidden="true" /> Export CSV
+                <i className="ri-download-2-line" aria-hidden="true" /> Download
               </button>
               <button
                 type="button"
