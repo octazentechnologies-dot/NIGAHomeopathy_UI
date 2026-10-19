@@ -31,7 +31,7 @@ import {
     createPatient,
     deletePatient,
 } from '../../../slices/doctor/dashboard/thunk';
-import { buildPatientApiPayload, getPatientAuthContext, getPatientEmailForEdit } from '../../../helpers/patient_payload_helper';
+import { buildPatientApiPayload, formatCalendarDateForApi, getPatientAuthContext, getPatientEmailForEdit } from '../../../helpers/patient_payload_helper';
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
@@ -702,16 +702,11 @@ const AppointmentTimeCell = ({
     );
 };
 
+/** Local calendar day as YYYY-MM-DDT00:00:00.000Z — matches Widgets dashboardQueryDateIso (avoids IST day shift). */
 const toDashboardAppointmentDateIso = (displayDateStr) => {
     const parsed = moment(displayDateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
-    if (!parsed.isValid()) return new Date().toISOString();
-    const now = moment();
-    return parsed
-        .hour(now.hour())
-        .minute(now.minute())
-        .second(now.second())
-        .millisecond(now.millisecond())
-        .toISOString();
+    const day = parsed.isValid() ? parsed.format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+    return formatCalendarDateForApi(day);
 };
 
 const triggerBlobDownload = (blob, fileName) => {
@@ -1639,7 +1634,7 @@ const BestSellingProducts = () => {
 
             await dispatch(getPatientList({ userId }));
             await dispatch(fetchDoctorDashboardCounts({
-                appointmentDate: new Date().toISOString(),
+                appointmentDate: toDashboardAppointmentDateIso(getTodayDisplayDate()),
                 status: '',
                 userId,
             }));
@@ -1760,7 +1755,7 @@ const BestSellingProducts = () => {
             if (userId) {
                 dispatch(getPatientList({ userId }));
                 dispatch(fetchDoctorDashboardCounts({
-                    appointmentDate: new Date().toISOString(),
+                    appointmentDate: toDashboardAppointmentDateIso(getTodayDisplayDate()),
                     status: '',
                     userId,
                 }));
@@ -1859,7 +1854,7 @@ const BestSellingProducts = () => {
             if (userId) {
                 dispatch(getPatientList({ userId }));
                 dispatch(fetchDoctorDashboardCounts({
-                    appointmentDate: new Date().toISOString(),
+                    appointmentDate: toDashboardAppointmentDateIso(getTodayDisplayDate()),
                     status: '',
                     userId,
                 }));
