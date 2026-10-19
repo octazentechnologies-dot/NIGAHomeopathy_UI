@@ -9,18 +9,17 @@ const formatRupees = (value) => {
   return `₹ ${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 };
 
-/** Sample finance figures so charts always render on Account dashboard. */
-const DUMMY = {
-  collected: 185000,
-  earnings: 112000,
-  pendingPayouts: 42000,
-  refunds: 8500,
-  gstTotal: 33300,
-  openExceptions: 4,
-  pendingPayoutCount: 7,
-  payoutCount: 18,
-  weeklyCollected: [22000, 28000, 19500, 31000, 26500, 34000, 24000],
-  weeklyLabels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+const EMPTY = {
+  collected: 0,
+  earnings: 0,
+  pendingPayouts: 0,
+  refunds: 0,
+  gstTotal: 0,
+  openExceptions: 0,
+  pendingPayoutCount: 0,
+  otherPayoutCount: 0,
+  weeklyCollected: [0, 0, 0, 0, 0, 0, 0],
+  weeklyLabels: ["", "", "", "", "", "", ""],
 };
 
 const FinanceBarChart = ({ series, categories, dataColors }) => {
@@ -154,27 +153,33 @@ const FinancePieChart = ({ labels, values, dataColors }) => {
   );
 };
 
+const ChartEmpty = ({ label }) => (
+  <div className="text-center text-muted py-5">
+    <i className="ri-bar-chart-box-line fs-2 d-block mb-2" />
+    {label}
+  </div>
+);
+
 /**
- * Account dashboard charts with dummy sample data (always draws).
- * Admin-style ApexCharts: bar, donut, pie, and weekly combo.
+ * Account dashboard charts bound to the same finance totals as the KPI cards.
  */
-const AccountCharts = () => {
+const AccountCharts = ({ figures, loading = false }) => {
+  const live = figures || EMPTY;
   const barCategories = ["Collected", "Earnings", "Payouts", "Refunds", "GST"];
-  const barValues = [DUMMY.collected, DUMMY.earnings, DUMMY.pendingPayouts, DUMMY.refunds, DUMMY.gstTotal];
+  const barValues = [live.collected, live.earnings, live.pendingPayouts, live.refunds, live.gstTotal];
   const donutLabels = ["Collected", "Pending payouts", "Refunds", "GST"];
-  const donutValues = [DUMMY.collected, DUMMY.pendingPayouts, DUMMY.refunds, DUMMY.gstTotal];
-  const pieLabels = ["Pending payouts", "Paid / other", "Open exceptions"];
-  const pieValues = [
-    DUMMY.pendingPayoutCount,
-    Math.max(0, DUMMY.payoutCount - DUMMY.pendingPayoutCount),
-    DUMMY.openExceptions,
-  ];
+  const donutValues = [live.collected, live.pendingPayouts, live.refunds, live.gstTotal];
+  const donutTotal = donutValues.reduce((sum, n) => sum + (Number(n) || 0), 0);
+  const pieLabels = ["Pending payouts", "Other payouts", "Open exceptions"];
+  const pieValues = [live.pendingPayoutCount, live.otherPayoutCount, live.openExceptions];
+  const pieTotal = pieValues.reduce((sum, n) => sum + (Number(n) || 0), 0);
+  const weekHasMoney = (live.weeklyCollected || []).some((n) => Number(n) > 0);
 
   return (
     <div className="account-charts mt-3">
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
         <h5 className="account-section-title mb-0">Finance overview</h5>
-        <span className="badge bg-soft-info text-info">Sample data</span>
+        <span className="badge bg-soft-info text-info">{loading ? "Loading" : "Live · 30 days"}</span>
       </div>
       <Row className="g-2">
         <Col xl={7}>
@@ -199,12 +204,16 @@ const AccountCharts = () => {
               <span className="text-muted small">Donut</span>
             </CardHeader>
             <CardBody className="pt-0">
-              <FinanceDonutChart
-                labels={donutLabels}
-                values={donutValues}
-                centerLabel="Cashflow"
-                dataColors='["--vz-info", "--vz-warning", "--vz-danger", "--vz-success"]'
-              />
+              {donutTotal > 0 ? (
+                <FinanceDonutChart
+                  labels={donutLabels}
+                  values={donutValues}
+                  centerLabel="Cashflow"
+                  dataColors='["--vz-info", "--vz-warning", "--vz-danger", "--vz-success"]'
+                />
+              ) : (
+                <ChartEmpty label="No cashflow in the last 30 days." />
+              )}
             </CardBody>
           </Card>
         </Col>
@@ -217,11 +226,15 @@ const AccountCharts = () => {
               <span className="text-muted small">Pie</span>
             </CardHeader>
             <CardBody className="pt-0">
-              <FinancePieChart
-                labels={pieLabels}
-                values={pieValues}
-                dataColors='["--vz-warning", "--vz-success", "--vz-danger"]'
-              />
+              {pieTotal > 0 ? (
+                <FinancePieChart
+                  labels={pieLabels}
+                  values={pieValues}
+                  dataColors='["--vz-warning", "--vz-success", "--vz-danger"]'
+                />
+              ) : (
+                <ChartEmpty label="No payouts or open exceptions." />
+              )}
             </CardBody>
           </Card>
         </Col>
@@ -232,11 +245,15 @@ const AccountCharts = () => {
               <span className="text-muted small">Bar + trend</span>
             </CardHeader>
             <CardBody className="pt-0">
-              <WeeklyAreaBarChart
-                labels={DUMMY.weeklyLabels}
-                collected={DUMMY.weeklyCollected}
-                dataColors='["--vz-info", "--vz-primary"]'
-              />
+              {weekHasMoney ? (
+                <WeeklyAreaBarChart
+                  labels={live.weeklyLabels}
+                  collected={live.weeklyCollected}
+                  dataColors='["--vz-info", "--vz-primary"]'
+                />
+              ) : (
+                <ChartEmpty label="No collections in the last 7 days." />
+              )}
             </CardBody>
           </Card>
         </Col>
