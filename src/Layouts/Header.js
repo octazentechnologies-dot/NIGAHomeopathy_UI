@@ -18,7 +18,7 @@ import { changeSidebarVisibility } from '../slices/thunks';
 import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from 'reselect';
 import { useProfile } from '../Components/Hooks/UserHooks';
-import { UserRole, resolveUserRole, usesDoctorDashboardLayout, usesTopbarMoreMenu } from '../Components/constants/roles';
+import { UserRole, resolveUserRole, usesAdminDashboardLayout, usesDoctorDashboardLayout, usesTopbarMoreMenu } from '../Components/constants/roles';
 import { getHomeDashboardPath } from '../helpers/dashboard_helper';
 import { WhatsAppModal } from '../Components/WhatsAppModal';
 import { EnquiriesModal, SupportTicketsModal } from '../Components/SupportTicketsModal';
@@ -43,6 +43,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
     const sidebarVisibilitytype = useSelector(selectDashboardData);
     const userRole = resolveUserRole(userProfile);
     const noSidebarLayout = usesDoctorDashboardLayout(userRole);
+    const adminChromeLayout = usesAdminDashboardLayout(userRole);
     const showTopbarMoreMenu = usesTopbarMoreMenu(userRole);
     const homeDashboardPath = getHomeDashboardPath(userRole);
 
@@ -123,7 +124,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 </div>
                             ) : null}
 
-                            {!noSidebarLayout && userRole !== UserRole.RECEPTION && (
+                            {!noSidebarLayout && !adminChromeLayout && (
                                 <button
                                     onClick={toogleMenuBtn}
                                     type="button"
@@ -139,8 +140,10 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
 
                             <div className="d-flex align-items-center header-topbar-actions-extra">
                                 {showTopbarMoreMenu ? <AdminMoreMenuDropdown showLabel={userRole === UserRole.ADMIN} /> : null}
-                                <ThemeCustomizerHeaderButton />
-                                <div className="vr header-topbar-divider align-self-center mx-1" aria-hidden="true" />
+                                {userRole !== UserRole.PATIENT ? <ThemeCustomizerHeaderButton /> : null}
+                                {userRole !== UserRole.PATIENT ? (
+                                    <div className="vr header-topbar-divider align-self-center mx-1" aria-hidden="true" />
+                                ) : null}
                                 <div className="ms-1 header-item">
                                     <button
                                         type="button"
@@ -165,7 +168,10 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                         Help &amp; Support
                                     </UncontrolledTooltip>
                                 </div>
-                                {userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGEMENT ? (
+                                {userRole !== UserRole.ADMIN &&
+                                userRole !== UserRole.MANAGEMENT &&
+                                userRole !== UserRole.PATIENT &&
+                                userRole !== UserRole.RECEPTION ? (
                                   <WebAppsDropdown />
                                 ) : null}
                                 <FullScreenDropdown />

@@ -25,7 +25,7 @@ export const navigateToRoleDashboard = (navigate) => {
             }
 
             if (userRole === UserRole.PATIENT) {
-                navigate('/family');
+                navigate('/patientdashboard');
                 return;
             }
 

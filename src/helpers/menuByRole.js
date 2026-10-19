@@ -321,6 +321,7 @@ export const DOCTOR_FALLBACK_MENU = [
 ];
 
 export const PATIENT_FALLBACK_MENU = [
+  { id: "patient-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/patientdashboard" },
   { id: "family", label: "Family", icon: "ri-group-line", link: "/family" },
   {
     id: "caregiver",
@@ -339,9 +340,33 @@ export const PATIENT_FALLBACK_MENU = [
   { id: "patient-requests", label: "Appointment requests", icon: "ri-mail-send-line", link: "/patient/appointment-requests" },
   { id: "patient-waitlist", label: "Waitlist offers", icon: "ri-time-line", link: "/patient/waitlist" },
   { id: "patient-checkin", label: "Check in", icon: "ri-checkbox-circle-line", link: "/patient/check-in" },
-  { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },
-  { id: "patient-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
+
+/** Drop Profile (header avatar) and Support (Help icon); keep Dashboard first. */
+export const normalizePatientHorizontalMenu = (items) => {
+  const hidden = new Set(["/profile", "/patient/support", "/patient/support/"]);
+  const isDashboard = (link) => {
+    const path = String(link || "").split("?")[0].toLowerCase();
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    return normalized === "/patientdashboard" || normalized === "/patient/home";
+  };
+  const isHidden = (link) => {
+    const path = String(link || "").split("?")[0].toLowerCase();
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    if (hidden.has(normalized)) return true;
+    if (normalized.startsWith("/profile")) return true;
+    if (normalized.startsWith("/patient/support")) return true;
+    return false;
+  };
+  const cleaned = (items || []).filter((item) => !isHidden(item.link));
+  const dash = cleaned.find((item) => isDashboard(item.link));
+  const rest = cleaned.filter((item) => !isDashboard(item.link));
+  const home =
+    dash ||
+    PATIENT_FALLBACK_MENU.find((item) => isDashboard(item.link)) ||
+    PATIENT_FALLBACK_MENU[0];
+  return [home, ...rest];
+};
 
 /** ADM-B04.03 — keep API menus that map to SPA paths (drop legacy MVC URLs). */
 export const isSpaMenuLink = (link) => {
@@ -362,6 +387,7 @@ export const isSpaMenuLink = (link) => {
     path === "/dashboard" ||
     path === "/accountdashboard" ||
     path === "/pharmacydashboard" ||
-    path === "/doctordashboard"
+    path === "/doctordashboard" ||
+    path === "/patientdashboard"
   );
 };

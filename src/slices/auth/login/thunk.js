@@ -72,7 +72,7 @@ export const loginUser = (user, history) => async (dispatch) => {
         dispatch(loginLoading(false));
         dispatch(changeSidebarVisibility(sidebarVisibilitytypes.SHOW));
         dispatch(changeLayout(layoutTypes.HORIZONTAL));
-        history('/family')
+        history('/patientdashboard')
       }
 
       /*  if (process.env.REACT_APP_DEFAULTAUTH === "fake") {

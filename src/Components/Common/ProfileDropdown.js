@@ -304,7 +304,13 @@ const ProfileDropdown = () => {
     return (
         <React.Fragment>
             <Dropdown isOpen={isProfileDropdown} toggle={toggleProfileDropdown} className="header-item topbar-user">
-                <DropdownToggle tag="button" type="button" className="btn">
+                <DropdownToggle
+                    tag="button"
+                    type="button"
+                    className="btn"
+                    title={displayName || 'Profile'}
+                    aria-label={`${displayName || 'Profile'}${roleLabel ? `, ${roleLabel}` : ''}`}
+                >
                     <span className="d-flex align-items-center">
                         <span className={`header-profile-user-wrap${isDoctor && isOnline ? ' is-online' : ''}`}>
                             {photoUrl ? (
@@ -326,14 +332,14 @@ const ProfileDropdown = () => {
                                 <span className="header-profile-user-status" aria-hidden="true" />
                             ) : null}
                         </span>
-                        <span className="text-start ms-xl-2">
-                            <span className="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{displayName}</span>
-                            <span className="d-none d-xl-block ms-1 fs-12 text-muted user-name-sub-text">{roleLabel}</span>
-                        </span>
                     </span>
                 </DropdownToggle>
                 <DropdownMenu className="dropdown-menu-end">
-                    <h6 className="dropdown-header">Welcome {welcomeName || 'USER'}!</h6>
+                    <h6 className="dropdown-header mb-0">Welcome {welcomeName || 'USER'}!</h6>
+                    <div className="dropdown-header pt-0 pb-2">
+                        <div className="fw-medium text-body">{displayName || 'User'}</div>
+                        {roleLabel ? <div className="fs-12 text-muted">{roleLabel}</div> : null}
+                    </div>
                     {isDoctor ? (
                         <>
                             <div

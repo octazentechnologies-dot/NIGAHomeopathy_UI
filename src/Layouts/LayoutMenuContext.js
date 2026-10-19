@@ -20,6 +20,7 @@ import {
   ADMIN_WEEK4_MENU,
   isHiddenAdminNavItem,
   mergeMissingMenuItems,
+  normalizePatientHorizontalMenu,
   receptionChromeFromApi,
   isDoctorSpaLink,
   isAdminEnquiriesNavItem,
@@ -104,7 +105,7 @@ export const LayoutMenuProvider = ({ children }) => {
       }
       if (role === UserRole.PATIENT) {
         return {
-          menuItems: PATIENT_FALLBACK_MENU,
+          menuItems: normalizePatientHorizontalMenu(PATIENT_FALLBACK_MENU),
           moreMenuItems: [],
         };
       }
@@ -189,9 +190,8 @@ export const LayoutMenuProvider = ({ children }) => {
       }
       if (role === UserRole.PATIENT) {
         const merged = mergeMissingMenuItems(spaItems, PATIENT_FALLBACK_MENU);
-        const isTail = (item) => ['/patient/support', '/profile'].includes(String(item.link || '').toLowerCase());
         return {
-          menuItems: withDropdownState([...merged.filter((item) => !isTail(item)), ...merged.filter(isTail)]),
+          menuItems: withDropdownState(normalizePatientHorizontalMenu(merged)),
           moreMenuItems: [],
         };
       }
