@@ -32,6 +32,7 @@ import { refreshAuthSubscriptionStatus } from '../../../slices/auth/login/thunk'
 import { readPlanActive } from '../../../helpers/client_error_reporter';
 import { getInitials } from "../../../helpers/initials";
 import { getLoggedinUserInfo } from "../../../helpers/api_helper";
+import { getDoctorProfileMe } from "../../../helpers/realbackend_helper";
 import {
     buildPatientApiPayload,
     formatCalendarDateForApi,
@@ -2129,9 +2130,26 @@ const Widgets = () => {
     const [scheduleModalDate, setScheduleModalDate] = useState(null);
     const [requireDailyScheduleSave, setRequireDailyScheduleSave] = useState(false);
     const [scheduleModalContext, setScheduleModalContext] = useState(null);
+    const [teleConsultationEnabled, setTeleConsultationEnabled] = useState(true);
     const availabilityEvaluatedRef = useRef('');
     const appointmentSlotsRequestRef = useRef(0);
     const appointmentResetFormRef = useRef(null);
+
+    // Fetch doctor profile to check if teleconsultation is enabled
+    useEffect(() => {
+        const loadDoctorProfile = async () => {
+            try {
+                const response = await getDoctorProfileMe();
+                const me = response?.data || response?.Data || response;
+                if (me) {
+                    setTeleConsultationEnabled(Boolean(me.teleconsultation));
+                }
+            } catch {
+                // Silently fail - if we can't fetch, allow teleconsultation by default
+            }
+        };
+        loadDoctorProfile();
+    }, []);
 
     const closeNewAppointmentModal = () => {
         tog_newAppointment();
@@ -2510,6 +2528,18 @@ const Widgets = () => {
             return;
         }
 
+        if (values.consultMode === 'Tele' && !teleConsultationEnabled) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Teleconsultation Disabled',
+                text: 'Teleconsultation is currently disabled. Please enable it in your profile settings or choose In-clinic consultation.',
+                timer: 3000,
+                showConfirmButton: false,
+            });
+            setSubmitting(false);
+            return;
+        }
+
         let formattedDate = values.appointmentDate;
         if (values.appointmentDate) {
             formattedDate = formatCalendarDateForApi(values.appointmentDate) || values.appointmentDate;
@@ -2837,21 +2867,29 @@ const Widgets = () => {
     const [econsultPage, setEconsultPage] = useState(1);
     const econsultPageSize = 10;
 
-    // Tele consultation modal: IsTele / Tele mode / E-Consult (same as teleQueueCount + Tele page)
+    // Filter appointments by telemedicine consult mode and search term
     const econsultFiltered = appointmentList.filter((appointment) => {
-        if (!isTeleConsultationAppointment(appointment)) {
-            return false;
-        }
+        // Show all telemedicine appointments (consultMode === 'Tele') regardless of status
+        // This ensures the Tele Queue list matches the teleQueueCount badge count
+        const isTelemedicine =
+            appointment?.consultMode === "Tele" ||
+            appointment?.ConsultMode === "Tele" ||
+            appointment?.consult_mode === "Tele" ||
+            appointment?.ConsultMode === "tele" ||
+            appointment?.consultMode === "tele" ||
+            statusMatches(appointment.status, "E-Consult") ||
+            statusMatches(appointment.status, "E-CONSULT");
+        if (!isTelemedicine) return false;
 
         const needle = econsultSearch.trim().toLowerCase();
         if (!needle) return true;
 
         const ageSex = getAgeSexDisplay(appointment.dateOfBirth, appointment.gender);
         return (
-            (appointment.patientName || '').toLowerCase().includes(needle) ||
-            (appointment.address || appointment.place || '').toLowerCase().includes(needle) ||
+            (appointment.patientName || "").toLowerCase().includes(needle) ||
+            (appointment.address || appointment.place || "").toLowerCase().includes(needle) ||
             ageSex.toLowerCase().includes(needle) ||
-            (appointment.mobileNo || '').toString().includes(needle)
+            (appointment.mobileNo || "").toString().includes(needle)
         );
     });
     const econsultTotalCount = appointmentList.filter(isTeleConsultationAppointment).length;
@@ -3879,7 +3917,9 @@ const Widgets = () => {
                                             onChange={(event) => setFieldValue('consultMode', event.target.value)}
                                         >
                                             <option value="InClinic">In-clinic</option>
-                                            <option value="Tele">Tele</option>
+                                            <option value="Tele" disabled={!teleConsultationEnabled}>
+                                                {teleConsultationEnabled ? 'Tele' : 'Tele (disabled)'}
+                                            </option>
                                         </Input>
                                     </div>
                                     <div className="col-md-6">
