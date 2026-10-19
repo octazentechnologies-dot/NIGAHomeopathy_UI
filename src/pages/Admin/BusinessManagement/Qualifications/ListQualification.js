@@ -6,6 +6,7 @@ import { deleteQualification, getQualificationList } from '../../../../slices/ad
 import { setQualificationError, setQualificationSuccess } from '../../../../slices/admin/qualifications/reducer';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import { exportListTableCsv } from '../../../../helpers/listExport';
+import { recordMatchesQuery } from '../../../../helpers/recordSearch';
 
 const ListQualification = () => {
   const dispatch = useDispatch();
@@ -34,14 +35,7 @@ const ListQualification = () => {
   }, [success, error, dispatch]);
 
   const filteredList = useMemo(() => {
-    const term = searchQuery.trim().toLowerCase();
-    if (!term) return qualifications;
-    return qualifications.filter((item) => {
-      const name = (item.qualificationName || item.QualificationName || '').toLowerCase();
-      const alias = (item.qualificationAlias || item.QualificationAlias || '').toLowerCase();
-      const degree = (item.degreeLevel || item.DegreeLevel || '').toLowerCase();
-      return name.includes(term) || alias.includes(term) || degree.includes(term);
-    });
+    return qualifications.filter((item) => recordMatchesQuery(item, searchQuery));
   }, [qualifications, searchQuery]);
 
   const onClickDelete = (item) => {

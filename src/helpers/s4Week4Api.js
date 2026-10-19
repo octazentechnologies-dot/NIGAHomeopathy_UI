@@ -46,6 +46,7 @@ export const previewRefundPolicy = (paymentOrderId) =>
 
 /* Account finance */
 export const getLedger = (params) => nigahomeoAPI.get("/Account/Ledger", params || {});
+export const getAccountTrail = (params) => nigahomeoAPI.get("/Account/Trail", params || {});
 export const exportLedger = (params) => nigahomeoAPI.get("/Account/Ledger/Export", params || {});
 export const getReconciliation = (params) => nigahomeoAPI.get("/Account/Reconciliation", params || {});
 export const getMedicineLedger = (params) => nigahomeoAPI.get("/Account/MedicineLedger", params || {});
@@ -69,6 +70,7 @@ export const getClinicCollections = (params) =>
   nigahomeoAPI.get("/Account/ClinicCollections", params || {});
 /** DMO-10.02 — doctor mobile earnings summary */
 export const earningsSummary = (params) => nigahomeoAPI.get("/Earnings/Summary", params || {});
+export const earningsPayouts = (params) => nigahomeoAPI.get("/Earnings/Payouts", params || {});
 export const accountDoctorEarnings = (params) => nigahomeoAPI.get("/Account/DoctorEarnings", params || {});
 
 /* Pharmacy / medicine */
@@ -118,6 +120,8 @@ export const rankingExplain = (doctorId) => nigahomeoAPI.get(`/Doctors/RankingEx
 
 /* eRx (ERX) */
 export const erxPotencies = () => nigahomeoAPI.get("/Erx/Potencies", null);
+export const erxRemedies = (search, take = 40) =>
+  nigahomeoAPI.get("/Erx/Remedies", { search: search || undefined, take });
 export const updateErxRemedyLine = (id, payload) => nigahomeoAPI.put(`/Erx/RemedyLines/${id}`, payload);
 export const erxByAppointment = (id) => nigahomeoAPI.get(`/Erx/ByAppointment/${id}`, null);
 export const signErx = (payload) => nigahomeoAPI.post("/Erx/Sign", payload);
@@ -164,5 +168,6 @@ export const openPatientDocument = (documentId) =>
   nigahomeoAPI.get(`/Patient/Documents/${documentId}`, { responseType: "blob" });
 export const deletePatientDocument = (documentId) => nigahomeoAPI.delete(`/Patient/Documents/${documentId}`);
 export const postDataRequest = (payload) => nigahomeoAPI.post("/Patient/DataRequests", payload);
+export const getDataRequests = () => nigahomeoAPI.get("/Patient/DataRequests", null);
 export const getPatientProfileS4 = () => nigahomeoAPI.get("/Patient/Profile", null);
 export const putPatientProfileS4 = (payload) => nigahomeoAPI.put("/Patient/Profile", payload);

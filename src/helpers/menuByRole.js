@@ -25,6 +25,16 @@ export const getAuthUserId = () => {
           user?.data?.DoctorUserId
       );
       if (Number.isFinite(doctorUserId) && doctorUserId > 0) return doctorUserId;
+      try {
+        const token = user?.token || user?.Token || user?.data?.token;
+        if (token && token.includes(".")) {
+          const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+          const fromToken = Number(payload.DoctorUserID || payload.doctorUserId || payload.DoctorUserId || 0);
+          if (Number.isFinite(fromToken) && fromToken > 0) return fromToken;
+        }
+      } catch {
+        /* token is optional; fall through to the signed-in user id */
+      }
     }
     const raw =
       user?.userId ??
@@ -164,6 +174,9 @@ export const ADMIN_WEEK4_MENU = [
   { id: "admin-sms", label: "SMS templates", icon: "ri-message-2-line", link: "/admin/sms" },
   { id: "medicine-report", label: "Medicine report", icon: "ri-capsule-line", link: "/admin/medicine-report" },
   { id: "security-posture", label: "Security posture", icon: "ri-shield-keyhole-line", link: "/admin/security" },
+  { id: "security-audit", label: "Security audit", icon: "ri-file-shield-2-line", link: "/admin/security-audit" },
+  { id: "consent-audit", label: "Consent audit", icon: "ri-file-list-3-line", link: "/admin/consent-audit" },
+  { id: "package-topups", label: "Package top-ups", icon: "ri-add-box-line", link: "/admin/package-topups" },
 ];
 
 export const splitAdminApiNavItems = (items) => {
@@ -261,9 +274,13 @@ export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-sms", label: "SMS events", icon: "ri-message-2-line", link: "/doctor/sms" },
   { id: "doctor-followup", label: "Follow-up analysis", icon: "ri-calendar-check-line", link: "/doctor/follow-up-analysis" },
   { id: "doctor-performance", label: "Clinic performance", icon: "ri-bar-chart-grouped-line", link: "/doctor/clinic-performance" },
+  { id: "doctor-practice", label: "Practice", icon: "ri-pulse-line", link: "/doctor/practice" },
   { id: "doctor-erx", label: "eRx", icon: "ri-file-text-line", link: "/doctor/erx" },
   { id: "doctor-waitlist", label: "Waitlist", icon: "ri-time-line", link: "/doctor/waitlist" },
   { id: "doctor-schedule", label: "Schedule", icon: "ri-calendar-2-line", link: "/doctor/schedule" },
+  { id: "doctor-carelink", label: "CareLink", icon: "ri-share-forward-line", link: "/doctor/carelink" },
+  { id: "doctor-appt-requests", label: "Appointment requests", icon: "ri-mail-check-line", link: "/doctor/appointment-requests" },
+  { id: "doctor-pharmacy-queries", label: "Pharmacy queries", icon: "ri-capsule-line", link: "/doctor/pharmacy-queries" },
   { id: "doctor-support", label: "Support", icon: "ri-customer-service-2-line", link: "/doctor/support" },
   { id: "doctor-videoroom", label: "Video room", icon: "ri-vidicon-line", link: "/doctor/mobile/videoroom" },
   { id: "doctor-refill", label: "Refill inbox", icon: "ri-medicine-bottle-line", link: "/doctor/mobile/refill" },
@@ -284,6 +301,11 @@ export const PATIENT_FALLBACK_MENU = [
   { id: "patient-rejoin", label: "Rejoin call", icon: "ri-refresh-line", link: "/patient/rejoin" },
   { id: "patient-meds", label: "Medicine orders", icon: "ri-capsule-line", link: "/patient/medicine-orders" },
   { id: "patient-erx", label: "Digital Prescription", icon: "ri-file-list-3-line", link: "/patient/prescriptions" },
+  { id: "patient-addresses", label: "Delivery addresses", icon: "ri-map-pin-line", link: "/patient/addresses" },
+  { id: "patient-reminders", label: "Reminders", icon: "ri-alarm-line", link: "/patient/reminders" },
+  { id: "patient-requests", label: "Appointment requests", icon: "ri-mail-send-line", link: "/patient/appointment-requests" },
+  { id: "patient-waitlist", label: "Waitlist offers", icon: "ri-time-line", link: "/patient/waitlist" },
+  { id: "patient-checkin", label: "Check in", icon: "ri-checkbox-circle-line", link: "/patient/check-in" },
   { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },
   { id: "patient-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];

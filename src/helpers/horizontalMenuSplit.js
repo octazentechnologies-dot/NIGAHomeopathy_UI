@@ -98,6 +98,12 @@ export const getAccountHorizontalMenuItems = () => [
     link: '/account/payees',
   },
   {
+    id: 'accounttrail',
+    label: 'Account trail',
+    icon: 'ri-route-line',
+    link: '/account/trail',
+  },
+  {
     id: 'accountcollections',
     label: 'Clinic collections',
     icon: 'ri-store-2-line',

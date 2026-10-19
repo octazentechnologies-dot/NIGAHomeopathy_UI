@@ -104,6 +104,7 @@ const BookPayPage = () => {
             const order = body?.data || body;
             const gatewayOrderId = order?.gatewayOrderId || order?.GatewayOrderId;
             const amount = Number(order?.amount ?? order?.Amount ?? booking?.consultFee ?? 0);
+            const currency = String(order?.currency || order?.Currency || booking?.currency || booking?.Currency || "").trim();
 
             if (!gatewayReady || !keyId || !gatewayOrderId) {
                 setError(
@@ -111,6 +112,10 @@ const BookPayPage = () => {
                         body?.message ||
                         "Online checkout is not ready. Use pay at clinic, or ask reception to collect."
                 );
+                return;
+            }
+            if (!currency) {
+                setError("Payment currency is not configured for this doctor. Set FeeCurrency on the profile.");
                 return;
             }
 
@@ -123,7 +128,7 @@ const BookPayPage = () => {
             const rzp = new window.Razorpay({
                 key: keyId,
                 amount: Math.round(amount * 100),
-                currency: order?.currency || order?.Currency || "INR",
+                currency,
                 name: SITE.name || "Homeocentrum",
                 description: "Consultation fee",
                 order_id: gatewayOrderId,
@@ -190,7 +195,10 @@ const BookPayPage = () => {
                         </p>
                         {booking.consultFee != null ? (
                             <p className="mb-2">
-                                <strong>Fee:</strong> ₹{booking.consultFee}
+                                <strong>Fee:</strong>{" "}
+                                {booking.currency || booking.Currency
+                                    ? `${booking.currency || booking.Currency} ${booking.consultFee}`
+                                    : booking.consultFee}
                             </p>
                         ) : null}
                         <p className="mb-0" aria-live="polite">

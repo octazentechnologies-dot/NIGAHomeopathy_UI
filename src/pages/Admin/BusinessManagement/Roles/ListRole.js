@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getRoleList, deleteRole } from '../../../../slices/admin/role/thunk';
 import DeleteModal from '../../../../Components/Common/DeleteModal';
 import { exportListTableCsv } from '../../../../helpers/listExport';
+import { recordMatchesQuery } from '../../../../helpers/recordSearch';
 
 const ListRole = () => {
   const dispatch = useDispatch();
@@ -23,13 +24,7 @@ const ListRole = () => {
 
   const filteredRoles = useMemo(() => {
     const activeRoles = (roles || []).filter((role) => !role.deleteStatus);
-    const term = searchQuery.trim().toLowerCase();
-    if (!term) return activeRoles;
-    return activeRoles.filter((role) => {
-      const name = (role.roleName || '').toLowerCase();
-      const firm = (role.firmName || '').toLowerCase();
-      return name.includes(term) || firm.includes(term);
-    });
+    return activeRoles.filter((role) => recordMatchesQuery(role, searchQuery));
   }, [roles, searchQuery]);
 
   const onClickDelete = (roleItem) => {

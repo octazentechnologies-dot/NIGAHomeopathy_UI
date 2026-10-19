@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
 import { Card, CardHeader, CardBody, Col, Container, Label, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import Select from 'react-select';
@@ -12,45 +13,6 @@ import {
   deleteClinicalQuestionBodyPart,
 } from '../../../../slices/thunks';
 import { exportListTableCsv } from '../../../../helpers/listExport';
-
-const renderAdminListPagination = ({ currentPage, totalPages, onPrev, onNext, onPage }) => (
-  <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-      <button type="button" className="page-link page-link--nav" onClick={onPrev}>
-        Previous
-      </button>
-    </li>
-    {[...Array(totalPages)].map((_, index) => {
-      const pageNumber = index + 1;
-      if (
-        pageNumber === 1 ||
-        pageNumber === totalPages ||
-        (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-      ) {
-        return (
-          <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
-            <button type="button" className="page-link" onClick={() => onPage(pageNumber)}>
-              {pageNumber}
-            </button>
-          </li>
-        );
-      }
-      if (pageNumber === 2 || pageNumber === totalPages - 1) {
-        return (
-          <li key={index} className="page-item disabled">
-            <span className="page-link">...</span>
-          </li>
-        );
-      }
-      return null;
-    })}
-    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-      <button type="button" className="page-link page-link--nav" onClick={onNext}>
-        Next
-      </button>
-    </li>
-  </ul>
-);
 
 const ClinicalQuestionList = () => {
   const dispatch = useDispatch();
@@ -120,17 +82,7 @@ const ClinicalQuestionList = () => {
     setCurrentPage(1);
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
-  };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
-  };
 
   const handleDelete = (clinicalQuestion) => {
     Swal.fire({
@@ -346,13 +298,11 @@ const ClinicalQuestionList = () => {
                         ? 'Loading...'
                         : `Showing ${rows.length} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
                     </div>
-                    {renderAdminListPagination({
-                      currentPage,
-                      totalPages,
-                      onPrev: handlePrevPage,
-                      onNext: handleNextPage,
-                      onPage: setCurrentPage,
-                    })}
+                                        <AdminListPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPage={setCurrentPage}
+                    />
                   </div>
                 </CardBody>
               </Card>

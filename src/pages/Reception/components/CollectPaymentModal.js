@@ -16,8 +16,6 @@ const PAYMENT_METHODS = [
   { label: "Card", value: "CARD_POS" },
   { label: "Pay link", value: "PAY_LINK" },
 ];
-const DEFAULT_FEE = 800;
-
 const formatRupee = (amount) =>
   `₹ ${Math.round(Number(amount) || 0).toLocaleString("en-IN")}`;
 
@@ -26,13 +24,13 @@ const CollectPaymentModal = ({
   toggle,
   selectedPatient,
   allottedSchedule,
-  consultationFee = DEFAULT_FEE,
+  consultationFee = null,
   initialPayment = null,
   editMode = false,
   onPaymentConfirmed,
 }) => {
   const [paymentMethod, setPaymentMethod] = useState("UPI_OFFLINE");
-  const [amount, setAmount] = useState(String(DEFAULT_FEE));
+  const [amount, setAmount] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("Paid");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,7 +40,10 @@ const CollectPaymentModal = ({
   useEffect(() => {
     if (!isOpen) return;
     setPaymentMethod(initialPayment?.paymentMethod || "UPI_OFFLINE");
-    setAmount(String(initialPayment?.amount ?? consultationFee ?? DEFAULT_FEE));
+    const fee =
+      initialPayment?.amount ??
+      (consultationFee != null && consultationFee !== "" ? consultationFee : "");
+    setAmount(fee === "" || fee == null ? "" : String(fee));
     setPaymentStatus(initialPayment?.paymentStatus || "Paid");
     setNotes(initialPayment?.notes || "");
     setError("");

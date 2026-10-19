@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
 import classnames from "classnames";
 import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Accordion, AccordionItem, Collapse, CardHeader, CardFooter, Alert, Button, Card, CardBody, Col, Container, Input, Modal, ModalBody, ModalHeader, PopoverBody, PopoverHeader, Row, UncontrolledPopover, UncontrolledTooltip, Label } from 'reactstrap';
+import { Accordion, AccordionItem, Collapse, CardHeader, Card, CardBody, Col, Container, Modal, ModalBody, ModalHeader, Row, Label } from 'reactstrap';
 import TableContainer from "../../../../Components/Common/TableContainerReactTable";
 import { Link } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
@@ -65,7 +66,11 @@ const RubricList = () => {
   const [gradeDetailsLoading, setGradeDetailsLoading] = useState(false);
   const [gradeDetailsError, setGradeDetailsError] = useState('');
 
-  const openGradeDetails = (subSectionId) => {
+  const [detailsRubric, setDetailsRubric] = useState(null);
+
+  const openGradeDetails = (rubric) => {
+    const subSectionId = rubric?.subSectionId;
+    setDetailsRubric(rubric || null);
     const cached = gradeDetailsCache.current.get(subSectionId);
     const requestId = ++gradeDetailsRequest.current;
     dispatch(setGradeDetails(cached || []));
@@ -192,13 +197,7 @@ const RubricList = () => {
   }, [rubricSuccessresponse]);
 
   // Pagination Handlers
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-  };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-  };
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -442,7 +441,7 @@ const RubricList = () => {
                                           type="button"
                                           className="btn btn-sm btn-soft-warning remove-item-btn"
                                           title="View"
-                                          onClick={() => openGradeDetails(rubric.subSectionId)}
+                                          onClick={() => openGradeDetails(rubric)}
                                         >
                                           <i className="ri-eye-line" />
                                         </button>
@@ -487,42 +486,11 @@ const RubricList = () => {
                         ? 'Loading...'
                         : `Showing ${rubricList?.resultObject?.length || 0} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
                     </div>
-                    <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
-                          Previous
-                        </button>
-                      </li>
-                      {[...Array(totalPages)].map((_, index) => {
-                        const pageNumber = index + 1;
-                        if (
-                          pageNumber === 1 ||
-                          pageNumber === totalPages ||
-                          (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                        ) {
-                          return (
-                            <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
-                              <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
-                                {pageNumber}
-                              </button>
-                            </li>
-                          );
-                        }
-                        if (pageNumber === 2 || pageNumber === totalPages - 1) {
-                          return (
-                            <li key={index} className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          );
-                        }
-                        return null;
-                      })}
-                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                        <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
-                          Next
-                        </button>
-                      </li>
-                    </ul>
+                                        <AdminListPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPage={setCurrentPage}
+                    />
                   </div>
                 </CardBody>
               </Card>
@@ -585,7 +553,15 @@ const RubricList = () => {
                       Grade - {grade.gradeNo}
                       <Link
                         to="/admin/editrubrics"
-                        state={{ selectedGrade: grade }}
+                        state={{
+                          selectedGrade: {
+                            ...grade,
+                            subSectionId: grade.subSectionId || detailsRubric?.subSectionId,
+                            subSectionName: detailsRubric?.subSectionName,
+                            sectionId: selectedSection?.value,
+                            sectionName: selectedSection?.label,
+                          },
+                        }}
                         onClick={(e) => e.stopPropagation()}
                         className="btn btn-sm btn-soft-success edit-item-btn"
                         title="Edit"

@@ -9,6 +9,7 @@ import {
 } from "reactstrap";
 import moment from "moment";
 import { getWhatsAppCampaignHistory, sendWhatsAppBulkMessage } from "../../../helpers/realbackend_helper";
+import { recordMatchesQuery } from "../../../helpers/recordSearch";
 import { whatsAppAudience } from "../../../helpers/s5Week5Api";
 import { CampaignDetailsModal, CampaignFormModal, CampaignStatusPill } from "./CampaignModals";
 import {
@@ -139,8 +140,7 @@ const WhatsAppCampaignsPage = () => {
     const query = search.trim().toLowerCase();
     return campaigns.filter((c) => {
       if (!inTab(c, tab)) return false;
-      if (!query) return true;
-      return [c.name, c.doctorName, categoryLabel(c.category)].join(" ").toLowerCase().includes(query);
+      return recordMatchesQuery(c, query);
     });
   }, [campaigns, tab, search]);
 
