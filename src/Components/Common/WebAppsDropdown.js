@@ -22,14 +22,9 @@ const LINKS_BY_ROLE = {
         { to: '/reception/case-paper', icon: 'ri-file-user-line', label: 'Case paper' },
         { to: '/notifications', icon: 'ri-notification-3-line', label: 'Notifications' },
     ],
-    [UserRole.ACCOUNT]: [
-        { to: '/accountdashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
-        { to: '/account/ledger', icon: 'ri-book-2-line', label: 'Ledger' },
-        { to: '/account/settlements', icon: 'ri-exchange-funds-line', label: 'Settlements' },
-        { to: '/account/payouts', icon: 'ri-hand-coin-line', label: 'Payouts' },
-        { to: '/account/refunds', icon: 'ri-refund-2-line', label: 'Refunds' },
-        { to: '/account/tax', icon: 'ri-percent-line', label: 'Tax' },
-    ],
+    // Account: top navbar + dashboard Quick Actions cover menus — no Quick Links grid (avoids duplicates).
+    [UserRole.ACCOUNT]: [],
+
     [UserRole.PHARMACY]: [
         { to: '/pharmacydashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
         { to: '/pharmacy/orders', icon: 'ri-shopping-bag-3-line', label: 'Orders' },

@@ -11,6 +11,7 @@ import {
 import { apiMessage, unwrap } from "../receptionSession";
 import QuickActions from "./QuickActions";
 import EditAppointmentStepsModal from "./EditAppointmentStepsModal";
+import AppointmentPatientViewModal from "./AppointmentPatientViewModal";
 import BookAppointmentModal from "./BookAppointmentModal";
 import CollectVitalsModal from "./CollectVitalsModal";
 import CollectPaymentModal from "./CollectPaymentModal";
@@ -77,6 +78,7 @@ const ReceptionCheckInFlow = ({
   const navigate = useNavigate();
   const [activeActionId, setActiveActionId] = useState(null);
   const [stepsOpen, setStepsOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
   const [vitalsOpen, setVitalsOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -93,6 +95,23 @@ const ReceptionCheckInFlow = ({
   const selectedPatient = useMemo(() => patientFromRow(activeRow), [activeRow]);
   const allottedSchedule = useMemo(() => scheduleFromRow(activeRow), [activeRow]);
   const patientAppId = selectedPatient?.patientAppId;
+
+  const viewAppointment = useMemo(() => {
+    if (!activeRow) return null;
+    return {
+      ...activeRow,
+      vitals: vitalsDetails || activeRow.vitals || {},
+      paymentDetails: paymentDetails
+        ? {
+            amount: paymentDetails.total != null ? `₹ ${paymentDetails.total}` : activeRow.payment,
+            gst: paymentDetails.gstAmount != null ? `₹ ${paymentDetails.gstAmount}` : "—",
+            total: paymentDetails.total != null ? `₹ ${paymentDetails.total}` : activeRow.payment,
+            method: paymentDetails.paymentMethod || "—",
+            notes: paymentDetails.notes || "",
+          }
+        : activeRow.paymentDetails || {},
+    };
+  }, [activeRow, vitalsDetails, paymentDetails]);
 
   const loadVisitExtras = useCallback(async (row) => {
     const appId = row?.patientAppId || row?.PatientAppId || row?.id;
@@ -123,7 +142,7 @@ const ReceptionCheckInFlow = ({
   }, []);
 
   useEffect(() => {
-    if (!checkInRow) return;
+    if (!checkInRow) return undefined;
     onSelectRow?.(checkInRow);
     setStepsOpen(true);
     setActiveActionId(null);
@@ -139,7 +158,9 @@ const ReceptionCheckInFlow = ({
         .then(() => onVisitStatusChanged?.(appId, "WAITING"))
         .catch(() => {});
     }
-    onCheckInHandled?.();
+    // Clear after open so the steps modal is not lost on the next parent render.
+    const clearTrigger = window.setTimeout(() => onCheckInHandled?.(), 0);
+    return () => window.clearTimeout(clearTrigger);
   }, [checkInRow, onSelectRow, onCheckInHandled, loadVisitExtras, onVisitStatusChanged]);
 
   useEffect(() => {
@@ -186,7 +207,7 @@ const ReceptionCheckInFlow = ({
 
       if (actionId === "patient-details") {
         if (!requireVisit()) return;
-        setNotice(`Patient: ${selectedPatient.fullName}. Use View on the appointment row for the full card.`);
+        setViewOpen(true);
         return;
       }
       if (actionId === "doctor-schedule") {
@@ -267,6 +288,12 @@ const ReceptionCheckInFlow = ({
         selectedPatient={selectedPatient}
         completedActionIds={completedActionIds}
         onSelectStep={openStep}
+      />
+
+      <AppointmentPatientViewModal
+        isOpen={viewOpen}
+        toggle={() => setViewOpen(false)}
+        appointment={viewAppointment}
       />
 
       <BookAppointmentModal
