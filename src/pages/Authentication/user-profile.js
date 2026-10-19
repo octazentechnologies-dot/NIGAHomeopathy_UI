@@ -1307,6 +1307,27 @@ const UserProfile = () => {
       return;
     }
 
+    const contactNumber = clinicForm.contactNumber.trim();
+    if (contactNumber && !/^\d{10}$/.test(contactNumber)) {
+      setContactNumberError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    setContactNumberError("");
+
+    const pincode = clinicForm.pincode.trim();
+    if (pincode && !/^\d{6}$/.test(pincode)) {
+      setPincodeError("Please enter a valid 6-digit PIN code.");
+      return;
+    }
+    setPincodeError("");
+
+    const googleMapsLink = clinicForm.googleMapsLink.trim();
+    if (googleMapsLink && !/^https?:\/\/(www\.)?google\.com\/maps\//i.test(googleMapsLink)) {
+      setGoogleMapsLinkError("Please enter a valid Google Maps URL.");
+      return;
+    }
+    setGoogleMapsLinkError("");
+
     try {
       await updateDoctorProfileMe({
         firstName: userData.firstName || undefined,
@@ -2540,14 +2561,22 @@ const UserProfile = () => {
 
                         <Col lg={4} md={6} xs={12}>
                           <Label htmlFor="clinicContact" className="form-label new-patient-modal__label">
-                            Contact Number
+                            Contact Number 
                           </Label>
                           <Input
                             id="clinicContact"
                             type="text"
                             value={clinicForm.contactNumber}
-                            onChange={(e) => updateClinicField("contactNumber", e.target.value)}
+                            onChange={(e) => {
+                              updateClinicField("contactNumber", e.target.value);
+                              if (contactNumberError) setContactNumberError("");
+                            }}
                           />
+                          {contactNumberError && (
+                            <div className="text-danger mt-1" style={{ fontSize: "0.875rem" }}>
+                              {contactNumberError}
+                            </div>
+                          )}
                         </Col>
                         <Col lg={4} md={6} xs={12}>
                           <Label htmlFor="clinicEmail" className="form-label new-patient-modal__label">
@@ -2568,8 +2597,16 @@ const UserProfile = () => {
                             id="clinicMaps"
                             type="text"
                             value={clinicForm.googleMapsLink}
-                            onChange={(e) => updateClinicField("googleMapsLink", e.target.value)}
+                            onChange={(e) => {
+                              updateClinicField("googleMapsLink", e.target.value);
+                              if (googleMapsLinkError) setGoogleMapsLinkError("");
+                            }}
                           />
+                          {googleMapsLinkError && (
+                            <div className="text-danger mt-1" style={{ fontSize: "0.875rem" }}>
+                              {googleMapsLinkError}
+                            </div>
+                          )}
                         </Col>
                       </Row>
 
