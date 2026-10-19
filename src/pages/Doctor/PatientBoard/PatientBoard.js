@@ -1931,9 +1931,7 @@ const PatientBoard = () => {
   /** @deprecated Use hoveredRemedyInfo; kept so legacy JSX / HMR bundles do not throw ReferenceError */
   const showInfoTooltip = hoveredRemedyInfo != null;
   const hoveredRemedyInfoIdRef = useRef(null);
-  const remedyInfoCacheRef = useRef(new Map());
   const remedyInfoTooltipTimeoutRef = useRef(null);
-  const remedyDetailsInflightRef = useRef(new Map());
   const remedyDetailsAbortRef = useRef(null);
   const [showEnglishTooltip, setShowEnglishTooltip] = useState(false);
   const [showMarathiTooltip, setShowMarathiTooltip] = useState(false);
@@ -2403,24 +2401,13 @@ const PatientBoard = () => {
 
   const fetchRemedyDetailsOnce = (remedyId) => {
     if (remedyId == null) return Promise.resolve(null);
-    if (remedyInfoCacheRef.current.has(remedyId)) {
-      return Promise.resolve(remedyInfoCacheRef.current.get(remedyId));
-    }
-    const pending = remedyDetailsInflightRef.current.get(remedyId);
-    if (pending) return pending;
     abortRemedyDetailsFetch();
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     remedyDetailsAbortRef.current = controller;
-    const request = getRubricRemedyDetailsApi(
+    return getRubricRemedyDetailsApi(
       { remedyId },
       controller ? { signal: controller.signal } : undefined
-    ).finally(() => {
-      if (remedyDetailsInflightRef.current.get(remedyId) === request) {
-        remedyDetailsInflightRef.current.delete(remedyId);
-      }
-    });
-    remedyDetailsInflightRef.current.set(remedyId, request);
-    return request;
+    );
   };
   const handleRemedyAbbrevHover = (remedy) => {
     if (tooltipTimeoutRef.current) {
@@ -2486,13 +2473,6 @@ const PatientBoard = () => {
       return;
     }
 
-    if (remedyId != null && remedyInfoCacheRef.current.has(remedyId)) {
-      setHoveredRemedyInfo(remedyInfoCacheRef.current.get(remedyId));
-      return;
-    }
-
-    setHoveredRemedyInfo(inline);
-
     if (remedyId == null) {
       return;
     }
@@ -2501,7 +2481,6 @@ const PatientBoard = () => {
       .then((response) => {
         const payload = response?.resultObject ?? response?.data ?? response;
         const fetched = mergeRemedyTooltipData(payload, remedy);
-        remedyInfoCacheRef.current.set(remedyId, fetched);
         if (hoveredRemedyInfoIdRef.current === remedyId) {
           setHoveredRemedyInfo(fetched);
         }
@@ -2584,18 +2563,9 @@ const PatientBoard = () => {
   }, [hoveredRemedyInfo]);
 
   useEffect(() => {
-    remedyInfoCacheRef.current.clear();
-    hoveredRemedyInfoIdRef.current = null;
-    abortRemedyDetailsFetch();
-    setHoveredRemedyInfo(null);
-  }, [
-    rubricDetailsList?.subSectionId,
-    rubricDetailsList?.subSectionID,
-    rubricDetailsList?.subsectionId,
-    selectedSubSection?.subSectionId,
-  ]);
+    // Debug therapeutics font size changes
+  }, []);
 
-  // Debug therapeutics font size changes
   useEffect(() => {
     console.log('therapeuticsFontSize changed to:', therapeuticsFontSize);
   }, [therapeuticsFontSize]);
