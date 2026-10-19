@@ -5,12 +5,16 @@ import {
   CardBody,
   CardHeader,
   Col,
+  DropdownItem,
+  DropdownMenu,
+  DropdownToggle,
   Nav,
   NavItem,
   NavLink,
   Row,
   TabContent,
   TabPane,
+  UncontrolledDropdown,
   UncontrolledTooltip,
 } from "reactstrap";
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from "../../../../Components/Common/DateOfBirthPicker";
@@ -21,11 +25,21 @@ import {
   getAppointmentQueue,
   getReceptionPatientCard,
   getReceptionVitals,
+  updateAppointmentStatus,
 } from "../../../../helpers/realbackend_helper";
 import { getPublicFee, unwrapS4 } from "../../../../helpers/s4Week4Api";
 import { paymentStatusMeta } from "../../../../helpers/paymentStatusBadge";
 import { apiMessage, readReceptionDoctorId, unwrap } from "../../receptionSession";
 import AppointmentPatientViewModal from "./AppointmentPatientViewModal";
+
+const APP_STATUS_OPTIONS = [
+  { value: "WAITING", label: "WAITING" },
+  { value: "WALK-IN", label: "WALK-IN" },
+  { value: "NOT ARRIVED", label: "NOT ARRIVED" },
+  { value: "E-CONSULT", label: "TELE CONSULTATION" },
+  { value: "REMAINING", label: "REMAINING" },
+  { value: "COMPLETED", label: "COMPLETED" },
+];
 
 const genderLabel = (gender) => {
   if (gender === 0 || gender === "0" || gender === "M") return "Male";
@@ -92,7 +106,7 @@ const mapQueueRow = (apiRow, feeByType) => {
     type,
     payment: formatRupees(fee),
     status: pay.label,
-    appointmentStatus: apiRow.status || apiRow.Status || "—",
+    appointmentStatus: apiRow.status || apiRow.Status || "",
     patientDetails: {
       patientId,
       fullName: patient,
@@ -109,9 +123,14 @@ const unwrapQueue = (response) => {
   return Array.isArray(list) ? list : [];
 };
 
+const appointmentSortKey = (row) => {
+  const parsed = moment(row.time, ["h:mm A", "hh:mm A", "HH:mm", "H:mm"], true);
+  return parsed.isValid() ? parsed.valueOf() : Number.MAX_SAFE_INTEGER;
+};
+
 const matchesSearch = (row, needle) => {
   if (!needle) return true;
-  const haystack = [row.time, row.patient, row.doctor, row.type, row.payment, row.status]
+  const haystack = [row.time, row.patient, row.doctor, row.type, row.payment, row.status, row.appointmentStatus]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -159,7 +178,35 @@ const AppointmentActionButtons = ({ row, onView, onEdit, onDelete }) => (
   </div>
 );
 
-const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit, onDelete }) => (
+const AppStatusCell = ({ row, onStatusChange }) => {
+  const current = row.appointmentStatus || "";
+  if (!current) return <span className="text-muted">-</span>;
+  return (
+    <UncontrolledDropdown>
+      <DropdownToggle
+        tag="button"
+        className="btn btn-sm btn-link text-decoration-none p-0 border-0 d-flex align-items-center text-nowrap"
+        style={{ cursor: "pointer", color: "inherit", fontSize: "0.75rem" }}
+      >
+        <span className="me-1">{current}</span>
+        <i className="ri-arrow-down-s-line" />
+      </DropdownToggle>
+      <DropdownMenu container="body" strategy="fixed" style={{ zIndex: 2000 }}>
+        {APP_STATUS_OPTIONS.map((option) => (
+          <DropdownItem
+            key={option.value}
+            active={current === option.value}
+            onClick={() => onStatusChange?.(row, option.value)}
+          >
+            {option.label}
+          </DropdownItem>
+        ))}
+      </DropdownMenu>
+    </UncontrolledDropdown>
+  );
+};
+
+const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit, onDelete, onStatusChange }) => (
   <div className="table-responsive">
     <table className="table table-hover mb-0 dashboard-patient-table reception-appointment-data-table">
       <thead>
@@ -168,6 +215,7 @@ const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit, onDe
           <th scope="col">Patient</th>
           <th scope="col">Doctor</th>
           <th scope="col">Type</th>
+          <th scope="col">App.Status</th>
           <th scope="col">Payment</th>
           <th scope="col">Status</th>
           <th scope="col" className="text-end">
@@ -182,6 +230,9 @@ const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit, onDe
             <td>{row.patient}</td>
             <td className="text-nowrap">{row.doctor}</td>
             <td className="text-muted">{row.type}</td>
+            <td className="text-nowrap">
+              <AppStatusCell row={row} onStatusChange={onStatusChange} />
+            </td>
             <td className="text-nowrap">{row.payment}</td>
             <td>
               <span
@@ -199,7 +250,7 @@ const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit, onDe
         ))}
         {rows.length === 0 && (
           <tr>
-            <td colSpan={7} className="text-center text-muted">
+            <td colSpan={8} className="text-center text-muted">
               {searchTerm ? emptyMessage.search : emptyMessage.empty}
             </td>
           </tr>
@@ -209,10 +260,30 @@ const AppointmentTable = ({ rows, searchTerm, emptyMessage, onView, onEdit, onDe
   </div>
 );
 
+const toIsoDate = (displayDate) => {
+  const parsed = moment(displayDate, [DOB_DISPLAY_FORMAT, "MM/DD/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"], true);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : null;
+};
+
+const mapFeeByType = (feeRes) => {
+  const fee = unwrapS4(feeRes) || {};
+  const data = fee.data || fee.Data || fee;
+  return {
+    inClinic: data.inClinicFee ?? data.InClinicFee ?? null,
+    tele: data.teleFee ?? data.TeleFee ?? data.inClinicFee ?? data.InClinicFee ?? null,
+  };
+};
+
+const mapDayRows = (dayRes, feeByType) =>
+  unwrapQueue(dayRes)
+    .map((row) => mapQueueRow(row, feeByType))
+    .sort((a, b) => appointmentSortKey(a) - appointmentSortKey(b) || Number(a.id) - Number(b.id));
+
 const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) => {
   const [activeTab, setActiveTab] = useState("1");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState(moment().format(DOB_DISPLAY_FORMAT));
+  // Doctor pattern: date picker only on All; empty = pick a date / clear filter.
+  const [allListDate, setAllListDate] = useState("");
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [todaySource, setTodaySource] = useState([]);
@@ -220,37 +291,59 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
   const [loadError, setLoadError] = useState("");
   const doctorId = readReceptionDoctorId();
 
+  // Today tab — always calendar today (no date picker).
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       if (!doctorId) {
         setTodaySource([]);
-        setAllSource([]);
         setLoadError("Reception doctor context is missing.");
         return;
       }
       setLoadError("");
-      const isoDate = moment(selectedDate, DOB_DISPLAY_FORMAT, true).isValid()
-        ? moment(selectedDate, DOB_DISPLAY_FORMAT).format("YYYY-MM-DD")
-        : moment().format("YYYY-MM-DD");
+      const isoDate = moment().format("YYYY-MM-DD");
       try {
-        const [queueRes, dayRes, feeRes] = await Promise.all([
-          getAppointmentQueue(doctorId, { date: isoDate, scope: "queue" }),
+        const [dayRes, feeRes] = await Promise.all([
           getAppointmentQueue(doctorId, { date: isoDate, scope: "day" }),
           getPublicFee(doctorId).catch(() => null),
         ]);
         if (cancelled) return;
-        const fee = unwrapS4(feeRes) || {};
-        const data = fee.data || fee.Data || fee;
-        const feeByType = {
-          inClinic: data.inClinicFee ?? data.InClinicFee ?? null,
-          tele: data.teleFee ?? data.TeleFee ?? data.inClinicFee ?? data.InClinicFee ?? null,
-        };
-        setTodaySource(unwrapQueue(queueRes).map((row) => mapQueueRow(row, feeByType)));
-        setAllSource(unwrapQueue(dayRes).map((row) => mapQueueRow(row, feeByType)));
+        setTodaySource(mapDayRows(dayRes, mapFeeByType(feeRes)));
       } catch (err) {
         if (cancelled) return;
         setTodaySource([]);
+        setLoadError(apiMessage(err, "Could not load appointments."));
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [doctorId, refreshKey]);
+
+  // All tab — optional date; load that day's appointments when set (same as doctor).
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!doctorId) {
+        setAllSource([]);
+        return;
+      }
+      const isoDate = toIsoDate(allListDate);
+      if (!isoDate) {
+        setAllSource([]);
+        return;
+      }
+      setLoadError("");
+      try {
+        const [dayRes, feeRes] = await Promise.all([
+          getAppointmentQueue(doctorId, { date: isoDate, scope: "day" }),
+          getPublicFee(doctorId).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setAllSource(mapDayRows(dayRes, mapFeeByType(feeRes)));
+      } catch (err) {
+        if (cancelled) return;
         setAllSource([]);
         setLoadError(apiMessage(err, "Could not load appointments."));
       }
@@ -259,7 +352,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
     return () => {
       cancelled = true;
     };
-  }, [doctorId, selectedDate, refreshKey]);
+  }, [doctorId, allListDate, refreshKey]);
 
   const needle = searchTerm.trim().toLowerCase();
   const todayRows = useMemo(
@@ -270,6 +363,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
     () => allSource.filter((row) => matchesSearch(row, needle)),
     [allSource, needle]
   );
+  const showingAllByDate = Boolean(toIsoDate(allListDate));
 
   const handleView = async (row) => {
     setSelectedAppointment(row);
@@ -324,6 +418,17 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
 
   const handleEdit = (row) => {
     onEditAppointment?.(row);
+  };
+
+  const handleStatusChange = async (row, newStatus) => {
+    const appId = Number(row.patientAppId || row.id);
+    if (!appId || !newStatus || newStatus === row.appointmentStatus) return;
+    try {
+      await updateAppointmentStatus({ patientAppId: appId, status: newStatus });
+      onChanged?.();
+    } catch (err) {
+      Swal.fire({ icon: "error", text: apiMessage(err, "Could not update the appointment status.") });
+    }
   };
 
   const handleDelete = async (row) => {
@@ -381,16 +486,29 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
                   </NavLink>
                 </NavItem>
               </Nav>
-              <div className="doctor-dashboard-appointment-date flex-shrink-0">
-                <DateOfBirthPicker
-                  name="receptionAppointmentDate"
-                  value={selectedDate}
-                  minDate={null}
-                  maxDate={null}
-                  placeholder={DOB_DISPLAY_FORMAT}
-                  onChange={setSelectedDate}
-                />
-              </div>
+              {activeTab === "2" ? (
+                <div className="doctor-dashboard-appointment-date flex-shrink-0 d-inline-flex align-items-center gap-1">
+                  <DateOfBirthPicker
+                    name="receptionAllListDate"
+                    value={allListDate}
+                    minDate={null}
+                    maxDate={null}
+                    placeholder="All dates"
+                    onChange={(dateStr) => setAllListDate(dateStr || "")}
+                  />
+                  {allListDate ? (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-soft-secondary"
+                      title="Clear date"
+                      aria-label="Clear date"
+                      onClick={() => setAllListDate("")}
+                    >
+                      <i className="ri-close-line" aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div className="d-flex align-items-center flex-wrap gap-2 ms-sm-auto doctor-appointments-toolbar__actions">
               <div className="search-box doctor-appointments-toolbar__search">
@@ -416,6 +534,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
                   onView={handleView}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onStatusChange={handleStatusChange}
                   emptyMessage={{
                     search: "No appointments found matching your search",
                     empty: "No appointments available",
@@ -429,9 +548,12 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
                   onView={handleView}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onStatusChange={handleStatusChange}
                   emptyMessage={{
                     search: "No appointments found matching your search",
-                    empty: "No appointments available",
+                    empty: showingAllByDate
+                      ? `No appointments on ${allListDate}`
+                      : "Select a date to view appointments",
                   }}
                 />
               </TabPane>

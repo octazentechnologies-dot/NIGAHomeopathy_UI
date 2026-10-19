@@ -185,16 +185,30 @@ const CollectPaymentModal = ({
 
             <div className="reception-payment-status-row mb-3">
               <span className="label">Payment Status</span>
-              <button
-                type="button"
-                className={`reception-payment-status-btn${paymentStatus === "Paid" ? " is-paid" : ""}`}
-                onClick={() =>
-                  setPaymentStatus((prev) => (prev === "Paid" ? "Unpaid" : "Paid"))
-                }
+              <div
+                className="reception-payment-status-toggle"
+                role="group"
+                aria-label="Payment status"
               >
-                <i className={paymentStatus === "Paid" ? "ri-checkbox-circle-fill" : "ri-close-circle-line"} />
-                {paymentStatus}
-              </button>
+                <button
+                  type="button"
+                  className={`reception-payment-status-option${paymentStatus === "Unpaid" ? " is-unpaid" : ""}`}
+                  aria-pressed={paymentStatus === "Unpaid"}
+                  onClick={() => setPaymentStatus("Unpaid")}
+                >
+                  <i className="ri-close-circle-line" aria-hidden="true" />
+                  Unpaid
+                </button>
+                <button
+                  type="button"
+                  className={`reception-payment-status-option${paymentStatus === "Paid" ? " is-paid" : ""}`}
+                  aria-pressed={paymentStatus === "Paid"}
+                  onClick={() => setPaymentStatus("Paid")}
+                >
+                  <i className="ri-checkbox-circle-fill" aria-hidden="true" />
+                  Paid
+                </button>
+              </div>
             </div>
 
             <div>
