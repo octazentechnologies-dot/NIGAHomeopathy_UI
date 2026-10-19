@@ -29,14 +29,57 @@ const toMoreItem = (value) => {
   return val;
 };
 
-/** Flat Account portal nav matching FND-02.01 Account Dashboard. */
+/**
+ * Account top sub-menu — important finance pages only.
+ * Profile stays under the avatar; Account Home is not shown.
+ */
 export const getAccountHorizontalMenuItems = () => [
   {
-    id: 'accounthome',
-    label: 'Home',
-    icon: 'ri-home-4-line',
-    link: '/accountdashboard',
+    id: 'accountcollections',
+    label: 'Collection',
+    icon: 'ri-store-2-line',
+    link: '/account/clinic-collections',
   },
+  {
+    id: 'accountinvoices',
+    label: 'Invoices',
+    icon: 'ri-file-list-3-line',
+    link: '/account/invoices',
+  },
+  {
+    id: 'accountearnings',
+    label: 'Earnings',
+    icon: 'ri-user-smile-line',
+    link: '/account/doctor-earnings',
+  },
+  {
+    id: 'accountsettlements',
+    label: 'Settlements',
+    icon: 'ri-shake-hands-line',
+    link: '/account/settlements',
+  },
+  {
+    id: 'accountpayouts',
+    label: 'Payouts',
+    icon: 'ri-exchange-dollar-line',
+    link: '/account/payouts',
+  },
+  {
+    id: 'accountrefunds',
+    label: 'Refunds',
+    icon: 'ri-refund-2-line',
+    link: '/account/refunds',
+  },
+  {
+    id: 'accountreports',
+    label: 'Reports',
+    icon: 'ri-bar-chart-box-line',
+    link: '/account/reports',
+  },
+];
+
+/** Remaining Account pages — Quick Links / More / dashboard Quick Actions (not top bar). */
+export const getAccountOverflowMenuItems = () => [
   {
     id: 'accountledger',
     label: 'Ledger',
@@ -54,30 +97,6 @@ export const getAccountHorizontalMenuItems = () => [
     label: 'Medicine ledger',
     icon: 'ri-capsule-line',
     link: '/account/medicine-ledger',
-  },
-  {
-    id: 'accountearnings',
-    label: 'Doctor Earnings',
-    icon: 'ri-user-smile-line',
-    link: '/account/doctor-earnings',
-  },
-  {
-    id: 'accountpayouts',
-    label: 'Payouts',
-    icon: 'ri-exchange-dollar-line',
-    link: '/account/payouts',
-  },
-  {
-    id: 'accountrefunds',
-    label: 'Refunds',
-    icon: 'ri-refund-2-line',
-    link: '/account/refunds',
-  },
-  {
-    id: 'accountsettlements',
-    label: 'Settlements',
-    icon: 'ri-shake-hands-line',
-    link: '/account/settlements',
   },
   {
     id: 'accountexceptions',
@@ -103,25 +122,54 @@ export const getAccountHorizontalMenuItems = () => [
     icon: 'ri-route-line',
     link: '/account/trail',
   },
-  {
-    id: 'accountcollections',
-    label: 'Clinic collections',
-    icon: 'ri-store-2-line',
-    link: '/account/clinic-collections',
-  },
-  {
-    id: 'accountinvoices',
-    label: 'Invoices',
-    icon: 'ri-file-list-3-line',
-    link: '/account/invoices',
-  },
-  {
-    id: 'accountreports',
-    label: 'Reports',
-    icon: 'ri-bar-chart-box-line',
-    link: '/account/reports',
-  },
 ];
+
+const normalizeMenuLink = (link) => String(link || '').split('?')[0].toLowerCase();
+
+/** Hide Account Home and Profile from menus — Profile is under the avatar. */
+const isAccountExcludedFromMenus = (link) => {
+  const path = normalizeMenuLink(link);
+  return (
+    path === '/accountdashboard' ||
+    path === '/account/home' ||
+    path === '/profile' ||
+    path === '/user-profile'
+  );
+};
+
+/** Top bar = important menus; rest = More / Quick Links / dashboard cards. */
+export const splitAccountNavItems = (items = []) => {
+  const core = getAccountHorizontalMenuItems();
+  const coreLinks = new Set(core.map((item) => normalizeMenuLink(item.link)));
+  const byLink = new Map();
+  (items || []).forEach((item) => {
+    const link = normalizeMenuLink(item.link);
+    if (link) byLink.set(link, item);
+  });
+
+  const menuItems = core.map((fallback) => {
+    const fromApi = byLink.get(normalizeMenuLink(fallback.link));
+    return fromApi ? { ...fallback, ...fromApi, id: fallback.id, link: fallback.link, label: fallback.label } : fallback;
+  });
+
+  const overflowFallback = getAccountOverflowMenuItems();
+  const overflowLinks = new Set(overflowFallback.map((item) => normalizeMenuLink(item.link)));
+  const seen = new Set();
+  const moreMenuItems = [];
+
+  const pushMore = (item) => {
+    const link = normalizeMenuLink(item?.link);
+    if (!link || seen.has(link) || isAccountExcludedFromMenus(link) || coreLinks.has(link)) return;
+    if (!overflowLinks.has(link) && !link.startsWith('/account')) return;
+    seen.add(link);
+    moreMenuItems.push(item);
+  };
+
+  (items || []).forEach(pushMore);
+  overflowFallback.forEach(pushMore);
+
+  return { menuItems, moreMenuItems };
+};
 
 /** Flat Pharmacy portal nav (Home / Onboarding / Orders / Quotes). */
 export const getPharmacyHorizontalMenuItems = () => [

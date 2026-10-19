@@ -3,9 +3,11 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import Navdata from './LayoutMenuData';
 import {
   getAccountHorizontalMenuItems,
+  getAccountOverflowMenuItems,
   getPharmacyHorizontalMenuItems,
   getReceptionHorizontalMenuItems,
   getHorizontalMenuSplit,
+  splitAccountNavItems,
 } from '../helpers/horizontalMenuSplit';
 import {
   getAuthUserId,
@@ -88,6 +90,7 @@ export const LayoutMenuProvider = ({ children }) => {
   const { menuItems, moreMenuItems } = useMemo(() => {
     const hardcodedFallback = () => {
       if (role === UserRole.ACCOUNT) {
+        // Navbar = primary menus only. Overflow lives on dashboard Quick Actions (not More / Quick Links).
         return {
           menuItems: getAccountHorizontalMenuItems(),
           moreMenuItems: [],
@@ -167,8 +170,14 @@ export const LayoutMenuProvider = ({ children }) => {
         };
       }
       if (role === UserRole.ACCOUNT) {
+        const split = splitAccountNavItems(
+          mergeMissingMenuItems(spaItems, [
+            ...getAccountHorizontalMenuItems(),
+            ...getAccountOverflowMenuItems(),
+          ])
+        );
         return {
-          menuItems: withDropdownState(mergeMissingMenuItems(spaItems, getAccountHorizontalMenuItems())),
+          menuItems: withDropdownState(split.menuItems),
           moreMenuItems: [],
         };
       }

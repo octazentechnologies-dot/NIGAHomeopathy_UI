@@ -42,6 +42,7 @@ const Layout = (props) => {
 
     const userRole = resolveUserRole(userProfile);
     const noSidebarLayout = usesDoctorDashboardLayout(userRole);
+    // Reception keeps a slim top bar elsewhere; Account uses its own slim horizontal finance menus.
     const hideReceptionHorizontalMenu = userRole === UserRole.RECEPTION;
 
     // Immediate role-based layout on mount (before profile hook resolves)

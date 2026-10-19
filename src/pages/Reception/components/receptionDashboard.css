@@ -774,7 +774,7 @@
 
 .reception-appointment-view-modal .doctor-patient-nav-tabs {
   width: 100%;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 .reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav {
@@ -787,7 +787,7 @@
   padding-right: 1rem !important;
   margin: 0;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item {
