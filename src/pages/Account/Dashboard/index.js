@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Container } from "reactstrap";
 import SummaryWidgets from "../components/SummaryWidgets";
+import AccountQuickActions from "../components/AccountQuickActions";
+import AccountCharts from "../components/AccountCharts";
 import {
   accountDoctorEarnings,
   getReconciliation,
@@ -50,6 +52,7 @@ const AccountDashboard = () => {
     ]).then(([recon, earnings, payouts, refunds, tax, exceptions]) => {
       if (cancelled) return;
       const next = {};
+
       if (recon.status === "fulfilled") {
         const body = bodyOf(recon.value);
         next.ledger = { main: money(body.capturedOrCollected), sub: `${body.count ?? 0} orders` };
@@ -80,6 +83,7 @@ const AccountDashboard = () => {
         const rows = listOf(exceptions.value);
         next.exceptions = { main: String(rows.length), sub: rows.length ? "needs action" : "all clear" };
       }
+
       const failed = [recon, earnings, payouts, refunds, tax, exceptions].find((r) => r.status === "rejected");
       setError(failed ? s4Message(failed.reason) : "");
       setValues(next);
@@ -94,14 +98,10 @@ const AccountDashboard = () => {
     <React.Fragment>
       <div className="page-content admin-dashboard-page account-dashboard-page clinic-workspace-page">
         <Container fluid>
-          <div className="clinic-page-header">
-            <div>
-              <h2 className="clinic-page-title">Account</h2>
-              <p className="clinic-page-subtitle mb-0">Clinic finance overview for this login.</p>
-            </div>
-          </div>
           {error ? <Alert color="warning" className="py-2 small">Some numbers could not load: {error}</Alert> : null}
           <SummaryWidgets values={values} loading={loading} />
+          <AccountQuickActions />
+          <AccountCharts />
         </Container>
       </div>
     </React.Fragment>

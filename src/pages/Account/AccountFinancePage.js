@@ -1229,16 +1229,16 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         ) : null}
 
         {section === "reports" ? (
-          <Row className="g-3 mb-3">
+          <Row className="g-2 mb-2 account-reports-grid">
             {reportLinks.map((item) => (
               <Col xs={12} sm={6} lg={3} key={item.to}>
-                <Card className="admin-dash-card h-100">
-                  <CardBody>
+                <Card className="admin-dash-card account-report-card h-100 mb-0">
+                  <CardBody className="py-2 px-3">
                     <div className="d-flex align-items-center gap-2 mb-1">
-                      <i className={`${item.icon} text-info fs-4`} aria-hidden="true" />
+                      <i className={`${item.icon} text-info fs-5`} aria-hidden="true" />
                       <h6 className="mb-0">{item.label}</h6>
                     </div>
-                    <p className="text-muted small mb-2">{item.hint}</p>
+                    <p className="text-muted small mb-1">{item.hint}</p>
                     <Link to={item.to} className="account-kpi-link">Open report</Link>
                   </CardBody>
                 </Card>
@@ -1248,7 +1248,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         ) : null}
 
         {section === "reports" ? (
-          <h5 className="mb-2">Clinic collections (last 30 days)</h5>
+          <h5 className="mb-2 mt-1">Clinic collections (last 30 days)</h5>
         ) : null}
 
         {section === "settlements" ? (

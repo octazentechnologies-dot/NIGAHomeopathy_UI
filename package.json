@@ -123,9 +123,10 @@
     "yup": "^1.4.0"
   },
   "scripts": {
-    "start": "set NODE_OPTIONS=--max-old-space-size=4096 --disable-warning=DEP0176 && react-scripts start",
-    "build": "set NODE_OPTIONS=--max-old-space-size=4096 --disable-warning=DEP0176 && react-scripts build",
-    "test": "react-scripts test",
+    "postinstall": "node scripts/fix-ckeditor-svgs.js",
+    "start": "set NODE_OPTIONS=--max-old-space-size=4096 --disable-warning=DEP0176 && craco start",
+    "build": "set NODE_OPTIONS=--max-old-space-size=4096 --disable-warning=DEP0176 && craco build",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "browserslist": {
@@ -159,6 +160,7 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@craco/craco": "^7.1.0",
     "@types/lodash": "^4.14.195",
     "@types/react-bootstrap-table2-paginator": "^2.1.2",
     "@types/react-bootstrap-table2-toolkit": "^2.1.7"

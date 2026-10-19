@@ -10,12 +10,16 @@
 .account-dashboard-page .account-kpi-label {
   color: #000 !important;
   font-weight: 700 !important;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
 }
 
 .account-dashboard-page .account-kpi-link {
   color: var(--account-blue) !important;
   text-decoration: none;
   font-weight: 500;
+  font-size: 0.8125rem;
+  padding: 0;
 }
 
 .account-dashboard-page .account-kpi-link:hover {
@@ -23,21 +27,21 @@
   text-decoration: underline;
 }
 
-.account-kpi-card-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-
-.account-kpi-card-link:hover {
-  color: inherit;
-}
-
 .account-dashboard-page .account-kpi-card {
   border: 1px solid #e3e8ee !important;
   border-radius: 5px !important;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
   background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.account-dashboard-page .account-kpi-card:hover {
+  border-color: #7dd3fc !important;
+  box-shadow: 0 0 0 1px rgba(37, 160, 226, 0.2), 0 4px 14px rgba(37, 160, 226, 0.12) !important;
+}
+
+.account-dashboard-page .account-kpi-card:hover .doctor-action-icon {
+  background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
 }
 
 .account-dashboard-page .account-kpi-card .card-body {
@@ -47,6 +51,11 @@
 .account-dashboard-page .account-kpi-count {
   color: #000;
   font-weight: 600;
+  margin-bottom: 0.35rem !important;
+}
+
+.account-dashboard-page .account-kpi-sub {
+  min-height: 1.1rem;
 }
 
 .account-dashboard-page .btn-primary,
@@ -115,4 +124,98 @@
   border-radius: 0.25rem !important;
   box-shadow: 0 1px 2px rgba(56, 65, 74, 0.06) !important;
   background: #fff !important;
+}
+
+/* Quick Actions — match Reception action cards for UI consistency */
+.account-dashboard-page .account-section-title {
+  color: #000 !important;
+  font-size: 0.95rem;
+  font-weight: 700 !important;
+}
+
+.account-dashboard-page .account-action-label {
+  color: #000 !important;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.account-quick-action-btn {
+  color: inherit;
+  cursor: pointer;
+}
+
+.account-quick-action-btn:hover {
+  color: inherit;
+}
+
+.account-quick-action-btn:focus-visible .doctor-action-icon {
+  outline: 2px solid #25a0e2;
+  outline-offset: 2px;
+}
+
+.account-dashboard-page .account-quick-action-card {
+  border: 1px solid #e3e8ee !important;
+  border-radius: 5px !important;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.account-dashboard-page .account-quick-action-card:hover {
+  border-color: #7dd3fc !important;
+  box-shadow: 0 0 0 1px rgba(37, 160, 226, 0.2), 0 4px 14px rgba(37, 160, 226, 0.12) !important;
+}
+
+.account-dashboard-page .account-quick-action-card:hover .doctor-action-icon {
+  background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+}
+
+.account-dashboard-page .doctor-action-icon {
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+  border: 1px solid #7dd3fc;
+  color: #0369a1 !important;
+}
+
+@media (min-width: 1200px) {
+  .account-quick-actions > .account-action-col {
+    flex: 0 0 14.2857%;
+    max-width: 14.2857%;
+  }
+}
+
+/* Reports hub — tighter row/column gutters */
+.account-reports-grid {
+  --bs-gutter-x: 0.5rem;
+  --bs-gutter-y: 0.5rem;
+}
+
+.account-report-card {
+  border: 1px solid #e3e8ee !important;
+  border-radius: 5px !important;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+}
+
+/* Charts — match admin dash card chrome */
+.account-dashboard-page .account-chart-card {
+  border: 1px solid #e3e8ee !important;
+  border-radius: 5px !important;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  background: #fff;
+}
+
+.account-dashboard-page .account-chart-card .card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.account-chart-snapshot-cell {
+  background: #f8fafc;
+  border-color: #e2e8f0 !important;
+}
+
+.account-chart-snapshot-cell h5 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
 }
