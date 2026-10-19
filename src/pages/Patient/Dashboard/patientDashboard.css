@@ -1,0 +1,123 @@
+/* Patient dashboard — match reception/admin blue UI (#25a0e2) */
+.patient-dashboard-page {
+  --patient-blue: #25a0e2;
+  --patient-blue-hover: #2099d4;
+  --patient-muted: #6c757d;
+  --patient-card-border: #eff3f7;
+}
+
+.patient-page-title {
+  margin: 0;
+  color: #000 !important;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.patient-page-subtitle {
+  margin: 0.15rem 0 0;
+  color: var(--patient-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.patient-refresh-btn {
+  background: #e8f4fc !important;
+  border-color: #b6dff5 !important;
+  color: #0b5f8a !important;
+  font-weight: 600;
+}
+
+.patient-refresh-btn:hover:not(:disabled) {
+  background: #d5eefb !important;
+  color: #084b6e !important;
+}
+
+.patient-spin {
+  display: inline-block;
+  animation: patient-spin 0.8s linear infinite;
+}
+
+@keyframes patient-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 992px) {
+  .patient-dashboard-widgets > .patient-kpi-col {
+    flex: 0 0 20% !important;
+    max-width: 20% !important;
+    width: 20% !important;
+  }
+}
+
+.patient-dashboard-page .patient-stats-card {
+  border: 1px solid var(--patient-card-border) !important;
+  box-shadow: 0 1px 2px rgba(56, 65, 74, 0.06) !important;
+}
+
+.patient-dashboard-page .patient-stats-card .card-title {
+  color: #000;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.patient-dashboard-page .patient-kpi-label,
+.patient-dashboard-page .patient-action-label,
+.patient-dashboard-page .patient-section-title {
+  color: #000 !important;
+  font-weight: 700 !important;
+}
+
+.patient-dashboard-page .patient-section-title {
+  font-size: 0.95rem;
+}
+
+.patient-dashboard-page .patient-kpi-link {
+  color: var(--patient-blue) !important;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.patient-dashboard-page .patient-kpi-link:hover {
+  color: var(--patient-blue-hover) !important;
+  text-decoration: underline;
+}
+
+.patient-dashboard-page .patient-action-label {
+  color: #000 !important;
+  font-size: 0.8125rem;
+}
+
+.patient-quick-action-btn {
+  cursor: pointer;
+}
+
+.patient-quick-action-btn:focus-visible .doctor-action-icon {
+  outline: 2px solid #25a0e2;
+  outline-offset: 2px;
+}
+
+.patient-quick-action-card.is-active-step {
+  border-color: #7dd3fc !important;
+  box-shadow: 0 0 0 1px rgba(37, 160, 226, 0.2), 0 4px 14px rgba(37, 160, 226, 0.12) !important;
+}
+
+.patient-appointments-card .doctor-patient-custom-nav .nav-link.active {
+  background: #e8f4fc !important;
+  color: #0b5f8a !important;
+}
+
+.patient-dashboard-page .dashboard-patient-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.patient-dashboard-page .dashboard-patient-table td {
+  font-size: 0.85rem;
+  vertical-align: middle;
+}

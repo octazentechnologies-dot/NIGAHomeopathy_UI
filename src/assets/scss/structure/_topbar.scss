@@ -186,8 +186,15 @@
         background-color: var(--#{$prefix}topbar-user-bg);
     }
 
+    // Avatar-only control (name / role live in the dropdown, app-theme pattern).
+    .btn {
+        padding: 0.2rem !important;
+        border-radius: 50%;
+    }
+
     .dropdown-menu {
         top: 6px !important;
+        min-width: 14rem;
     }
 }
 

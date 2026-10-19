@@ -5,6 +5,8 @@ import { Collapse, Container, NavbarToggler } from "reactstrap";
 import LogoDark from "../../../assets/images/logo-dark.png";
 import LogoLight from "../../../assets/images/logo-light.png";
 import { landingPath } from "../../../constants/landingRoutes";
+import { UserRole } from "../../../Components/constants/roles";
+import { getAuthUserInfo } from "../../../helpers/dashboard_helper";
 
 const NAV_ITEMS = [
     { path: landingPath(), label: "Home", end: true },
@@ -22,6 +24,9 @@ const Navbar = () => {
     const [isOpenMenu, setisOpenMenu] = useState(false);
     const [navClass, setnavClass] = useState("");
     const location = useLocation();
+    const signedIn = getAuthUserInfo();
+    const signedInRole = signedIn?.role || signedIn?.Role;
+    const brandPath = signedInRole === UserRole.PATIENT ? "/patientdashboard" : landingPath();
 
     const toggle = () => setisOpenMenu(!isOpenMenu);
 
@@ -44,7 +49,7 @@ const Navbar = () => {
     return (
         <nav className={`navbar navbar-expand-lg navbar-landing fixed-top job-navbar${navClass}`} id="navbar">
             <Container fluid className="custom-container">
-                <Link className="navbar-brand homeojob-brand" to={landingPath()}>
+                <Link className="navbar-brand homeojob-brand" to={brandPath}>
                     <img src={LogoDark} className="card-logo card-logo-dark" alt="Homeocentrum" />
                     <img src={LogoLight} className="card-logo card-logo-light" alt="Homeocentrum" />
                 </Link>
