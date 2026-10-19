@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner } from "reactstrap";
+import { Alert, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner } from "reactstrap";
 import { getAuthDoctorId } from "../../../helpers/appointmentSlotHelper";
 import { feeHistory, getPublicFee, saveFee, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
 
@@ -106,10 +106,14 @@ const DoctorConsultFeesPage = () => {
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Consult fees</h2>
-        <p className="clinic-page-subtitle">
-          Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the API.
-        </p>
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">Consult fees</h2>
+            <p className="clinic-page-subtitle mb-0">
+              Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the API.
+            </p>
+          </div>
+        </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
         {loading ? (
@@ -165,9 +169,9 @@ const DoctorConsultFeesPage = () => {
                       Allow pay at clinic
                     </Label>
                   </FormGroup>
-                  <Button className="clinic-primary-btn" disabled={saving || !doctorId} onClick={onSave}>
+                  <button type="button" className="btn clinic-primary-btn" disabled={saving || !doctorId} onClick={onSave}>
                     {saving ? "Saving…" : "Save fees"}
-                  </Button>
+                  </button>
                 </CardBody>
               </Card>
             </Col>

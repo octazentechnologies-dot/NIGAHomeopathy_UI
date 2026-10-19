@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Card, CardBody, Col, Container, Row, Spinner, Table } from "reactstrap";
-import { earningsSummary, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
+import { earningsPayouts, earningsSummary, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
 import { earningsBuckets } from "../../../helpers/s5Week5Api";
 
 /** DMO-10.02 web surface for doctor earnings summary (same API as mobile). */
 const DoctorEarningsSummaryPage = () => {
   const [data, setData] = useState(null);
   const [buckets, setBuckets] = useState([]);
+  const [payouts, setPayouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
@@ -24,10 +25,13 @@ const DoctorEarningsSummaryPage = () => {
       try {
         const response = await earningsSummary({});
         const bucketResponse = await earningsBuckets({});
+        const payoutResponse = await earningsPayouts({});
         if (!cancelled) {
           setData(unwrapS4(response));
           const bucketRows = unwrapS4(bucketResponse);
           setBuckets(Array.isArray(bucketRows) ? bucketRows : []);
+          const payoutRows = unwrapS4(payoutResponse);
+          setPayouts(Array.isArray(payoutRows) ? payoutRows : []);
         }
       } catch (err) {
         if (!cancelled) setError(s4Message(err));
@@ -48,8 +52,12 @@ const DoctorEarningsSummaryPage = () => {
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Earnings summary</h2>
-        <p className="clinic-page-subtitle">Consult captures and clinic collections for this doctor (API).</p>
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">Earnings summary</h2>
+            <p className="clinic-page-subtitle mb-0">Consult captures and clinic collections for this doctor (API).</p>
+          </div>
+        </div>
         {offline ? <Alert color="warning">You appear to be offline. Earnings will load when the connection returns.</Alert> : null}
         {error ? <Alert color="danger">{error}</Alert> : null}
         {loading ? (
@@ -81,6 +89,39 @@ const DoctorEarningsSummaryPage = () => {
                             <td>{row.bucket || row.Bucket}</td>
                             <td>{row.cnt ?? row.Cnt}</td>
                             <td>{money(row.amount ?? row.Amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  )}
+                </CardBody>
+              </Card>
+            </Col>
+            <Col md={12}>
+              <Card className="admin-dash-card">
+                <CardBody>
+                  <div className="text-muted small mb-2">Payout history</div>
+                  {payouts.length === 0 ? (
+                    <div className="text-muted">No payout rows for this doctor yet.</div>
+                  ) : (
+                    <Table size="sm" className="mb-0">
+                      <thead>
+                        <tr>
+                          <th>Id</th>
+                          <th>When</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                          <th>Currency</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payouts.map((row) => (
+                          <tr key={row.id ?? row.Id}>
+                            <td>{row.id ?? row.Id}</td>
+                            <td>{String(row.at ?? row.At ?? "").replace("T", " ").slice(0, 16)}</td>
+                            <td>{money(row.amount ?? row.Amount)}</td>
+                            <td>{row.status ?? row.Status}</td>
+                            <td>{row.currency ?? row.Currency ?? "—"}</td>
                           </tr>
                         ))}
                       </tbody>

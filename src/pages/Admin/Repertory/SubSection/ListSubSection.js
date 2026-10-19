@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, CardHeader, CardBody, Col, Container, Input, Label, Row, Button, InputGroup, InputGroupText, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
+import { Card, CardHeader, CardBody, Col, Container, Input, Label, Row, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
 import { useDispatch, useSelector } from 'react-redux';
@@ -45,7 +46,6 @@ const ListSubSection = () => {
   const userDetails = JSON.parse(sessionStorage.getItem('authUser'));
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [goToPageInput, setGoToPageInput] = useState('');
   const [isSelectedSection, setIsSelectedSection] = useState(false);
   const pageSize = 10;
   const [selectedSection, setSelectedSection] = useState(null);
@@ -248,58 +248,6 @@ const ListSubSection = () => {
       }
     }
   }, [subSectionSuccessResponse, dispatch, selectedSection, searchQuery, currentPage, pageSize]);
-
-  // Pagination Handlers
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
-  };
-
-  const handleGoToPageInputChange = (e) => {
-    const digitsOnly = (e.target.value || '').replace(/[^\d]/g, '');
-    setGoToPageInput(digitsOnly);
-  };
-
-  const handleGoToPage = () => {
-    const page = Number.parseInt(goToPageInput, 10);
-
-    if (!Number.isFinite(page) || Number.isNaN(page)) {
-      Swal.fire({
-        title: 'Invalid page number',
-        text: `Please enter a page number between 1 and ${totalPages}.`,
-        icon: 'warning',
-        confirmButtonText: 'OK'
-      });
-      return;
-    }
-
-    if (page < 1 || page > totalPages) {
-      Swal.fire({
-        title: 'Invalid page number',
-        text: `Page number must be between 1 and ${totalPages}.`,
-        icon: 'warning',
-        confirmButtonText: 'OK'
-      });
-      return;
-    }
-
-    setCurrentPage(page);
-    setGoToPageInput('');
-  };
-
-  const handleGoToPageKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleGoToPage();
-    }
-  };
 
   // Fetch list whenever page, section, or search changes (like ListRemedialRubrics)
   useEffect(() => {
@@ -849,63 +797,11 @@ const ListSubSection = () => {
                           : `Showing ${subSectionList?.resultObject?.length || 0} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
                       </div>
                       <div className="d-flex align-items-center gap-2 flex-wrap">
-                        <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                            <button type="button" className="page-link page-link--nav" onClick={handlePrevPage}>
-                              Previous
-                            </button>
-                          </li>
-                          {[...Array(totalPages)].map((_, index) => {
-                            const pageNumber = index + 1;
-                            if (
-                              pageNumber === 1 ||
-                              pageNumber === totalPages ||
-                              (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                            ) {
-                              return (
-                                <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
-                                  <button type="button" className="page-link" onClick={() => setCurrentPage(pageNumber)}>
-                                    {pageNumber}
-                                  </button>
-                                </li>
-                              );
-                            }
-                            if (pageNumber === 2 || pageNumber === totalPages - 1) {
-                              return (
-                                <li key={index} className="page-item disabled">
-                                  <span className="page-link">...</span>
-                                </li>
-                              );
-                            }
-                            return null;
-                          })}
-                          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                            <button type="button" className="page-link page-link--nav" onClick={handleNextPage}>
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                        <InputGroup size="sm" style={{ width: '190px' }}>
-                          <InputGroupText>Go to</InputGroupText>
-                          <Input
-                            value={goToPageInput}
-                            onChange={handleGoToPageInputChange}
-                            onKeyDown={handleGoToPageKeyDown}
-                            placeholder="Page #"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            aria-label="Go to page number"
-                            disabled={totalPages <= 1}
-                          />
-                          <Button
-                            color="primary"
-                            outline
-                            onClick={handleGoToPage}
-                            disabled={totalPages <= 1}
-                          >
-                            Go
-                          </Button>
-                        </InputGroup>
+                                                <AdminListPagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPage={setCurrentPage}
+                        />
                       </div>
                     </div>
                 </CardBody>

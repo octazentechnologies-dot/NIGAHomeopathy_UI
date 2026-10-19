@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Button, Card, CardBody, Col, Container, Row } from "reactstrap";
+import { Card, CardBody, Col, Container, Row } from "reactstrap";
 import DailyScheduleSetupModal from "../../../Components/Common/DailyScheduleSetupModal";
 import { getAuthUserId } from "../../../helpers/appointmentSlotHelper";
 
@@ -39,14 +39,20 @@ const DoctorSchedulePage = () => {
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title mb-1">Clinic schedule</h2>
+            <h2 className="clinic-page-title">Clinic schedule</h2>
             <p className="clinic-page-subtitle mb-0">Set slot interval and work hours per day. Same SaveDailySchedule API as the dashboard modal.</p>
           </div>
-          <div className="d-flex gap-2">
-            <Button size="sm" color="soft-secondary" onClick={() => shiftWeek(-1)}>Previous week</Button>
-            <Button size="sm" color="soft-secondary" onClick={() => shiftWeek(1)}>Next week</Button>
+          <div className="clinic-table-actions">
+            <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={() => shiftWeek(-1)}>
+              <i className="ri-arrow-left-s-line" aria-hidden="true" />
+              Previous week
+            </button>
+            <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={() => shiftWeek(1)}>
+              Next week
+              <i className="ri-arrow-right-s-line" aria-hidden="true" />
+            </button>
           </div>
         </div>
         <Row className="g-2">
@@ -57,9 +63,10 @@ const DoctorSchedulePage = () => {
                 <Card className="admin-dash-card">
                   <CardBody>
                     <div className="fw-medium">{d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</div>
-                    <Button size="sm" className="clinic-primary-btn mt-2" onClick={() => setOpenDate(d)}>
+                    <button type="button" className="btn btn-sm clinic-primary-btn mt-2" onClick={() => setOpenDate(d)}>
+                      <i className="ri-time-line" aria-hidden="true" />
                       Edit hours
-                    </Button>
+                    </button>
                   </CardBody>
                 </Card>
               </Col>

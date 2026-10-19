@@ -7,13 +7,56 @@ import Swal from 'sweetalert2';
 import { createSelector } from 'reselect';
 import { UserRole } from '../constants/roles';
 import { dispatchOpenBillingListModal } from '../../helpers/dashboard_helper';
-import { getAvailabilityMe, getCaregiverMe, getDoctorPhotoBlob, updateAvailabilityMe } from '../../helpers/realbackend_helper';
+import {
+    getAvailabilityMe,
+    getCaregiverMe,
+    getDirectoryVisibility,
+    getDoctorPhotoBlob,
+    getDoctorProfileMe,
+    setDirectoryVisibility,
+    updateAvailabilityMe,
+} from '../../helpers/realbackend_helper';
 import { PROFILE_PHOTO_CHANGED_EVENT } from '../../helpers/profilePhotoEvents';
 import { setCounts } from '../../slices/doctor/dashboard/reducer';
 
 const readOnlineFlag = (source) => {
     const value = source?.isOnline ?? source?.IsOnline;
     return typeof value === 'boolean' ? value : null;
+};
+
+const pickNamePart = (...values) => {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return '';
+};
+
+/** Build "First Middle Last" from any name-bearing object. */
+const buildFullName = (source) => {
+    if (!source || typeof source !== 'object') return '';
+    const first = pickNamePart(source.firstName, source.FirstName);
+    const middle = pickNamePart(source.middleName, source.MiddleName);
+    const last = pickNamePart(source.lastName, source.LastName);
+    const joined = [first, middle, last].filter(Boolean).join(' ');
+    if (joined) return joined;
+    return pickNamePart(source.displayName, source.DisplayName, source.userName, source.UserName);
+};
+
+// "FIRST MIDDLE LAST" -> "L. First Middle"
+const formatNameToInitials = (fullName) => {
+    if (!fullName || fullName.trim() === '') return '';
+
+    const nameParts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (nameParts.length === 1) {
+        return `${nameParts[0].charAt(0).toUpperCase()}. ${nameParts[0].substring(1)}`;
+    }
+
+    const lastInitial = `${nameParts[nameParts.length - 1].charAt(0).toUpperCase()}.`;
+    const givenNames = nameParts
+        .slice(0, -1)
+        .map((part) => part.charAt(0).toUpperCase() + part.substring(1).toLowerCase())
+        .join(' ');
+    return `${lastInitial} ${givenNames}`;
 };
 
 const ProfileDropdown = () => {
@@ -24,61 +67,46 @@ const ProfileDropdown = () => {
         (state) => state.Profile,
         (user) => user.user
     );
-    // Inside your component
     const user = useSelector(profiledropdownData);
 
-    const [userName, setUserName] = useState("");
-    const [userRole, setUserRole] = useState("");
-    const [displayName, setDisplayName] = useState("");
-    const [actingForName, setActingForName] = useState("");
+    const [userName, setUserName] = useState('');
+    const [userRole, setUserRole] = useState('');
+    const [displayName, setDisplayName] = useState('');
+    const [welcomeName, setWelcomeName] = useState('');
+    const [actingForName, setActingForName] = useState('');
 
-    // "NIKHIL JAMDAR" -> "J. Nikhil"
-    const formatNameToInitials = (fullName) => {
-        if (!fullName || fullName.trim() === "") return "";
-        
-        const nameParts = fullName.trim().split(/\s+/);
-        if (nameParts.length === 1) {
-            // Single name: show first letter + rest of name
-            return nameParts[0].charAt(0).toUpperCase() + ". " + nameParts[0].substring(1);
-        } else if (nameParts.length >= 2) {
-            // Format: Last initial + ". " + First name (e.g., "NIKHIL JAMDAR" -> "J. Nikhil")
-            const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].substring(1).toLowerCase();
-            const lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase() + ".";
-            return `${lastInitial} ${firstName}`;
-        }
-        return fullName;
-    };
+    const applyPersonName = useCallback((source, loginFallback = '') => {
+        const fullName = buildFullName(source);
+        const loginName = pickNamePart(source?.userName, source?.UserName, loginFallback);
+        setUserName(loginName);
+        setWelcomeName((fullName || loginName || 'USER').toUpperCase());
+        setDisplayName(
+            pickNamePart(source?.displayName, source?.DisplayName) ||
+                formatNameToInitials(fullName || loginName) ||
+                'User'
+        );
+    }, []);
 
     useEffect(() => {
-        const authUserStr = sessionStorage.getItem("authUser");
+        const authUserStr = sessionStorage.getItem('authUser');
         if (authUserStr) {
             try {
                 const obj = JSON.parse(authUserStr);
                 const userInfo = obj.data || obj;
 
                 if (userInfo) {
-                    const loginName = userInfo.userName || userInfo.UserName || "";
-                    const fullName = [userInfo.firstName || userInfo.FirstName, userInfo.lastName || userInfo.LastName]
-                        .filter(Boolean)
-                        .join(" ");
-                    setUserName(loginName);
-                    setUserRole(userInfo.role || userInfo.Role || "");
-                    setDisplayName(
-                        userInfo.displayName ||
-                        userInfo.DisplayName ||
-                        formatNameToInitials(fullName || loginName) ||
-                        "User"
-                    );
+                    setUserRole(userInfo.role || userInfo.Role || '');
+                    applyPersonName(userInfo);
                 }
             } catch (error) {
-                console.error("Error parsing authUser:", error);
+                console.error('Error parsing authUser:', error);
             }
         }
-    }, [user]);
+    }, [user, applyPersonName]);
 
     useEffect(() => {
         if (userRole !== UserRole.PATIENT) {
-            setActingForName("");
+            setActingForName('');
             return undefined;
         }
         let cancelled = false;
@@ -86,21 +114,23 @@ const ProfileDropdown = () => {
             .then((raw) => {
                 const me = raw?.data ?? raw;
                 const acting = !!(me?.isActingAsCaregiver ?? me?.IsActingAsCaregiver);
-                const name = me?.ownerPatientName ?? me?.OwnerPatientName ?? "";
-                if (!cancelled) setActingForName(acting ? name : "");
+                const name = me?.ownerPatientName ?? me?.OwnerPatientName ?? '';
+                if (!cancelled) setActingForName(acting ? name : '');
             })
             .catch(() => {
-                if (!cancelled) setActingForName("");
+                if (!cancelled) setActingForName('');
             });
         return () => {
             cancelled = true;
         };
     }, [userRole]);
 
-    //Dropdown Toggle
     const [isProfileDropdown, setIsProfileDropdown] = useState(false);
     const [isOnline, setIsOnline] = useState(false);
     const [availabilityBusy, setAvailabilityBusy] = useState(false);
+    const [directoryVisible, setDirectoryVisible] = useState(false);
+    const [directoryCanPublish, setDirectoryCanPublish] = useState(true);
+    const [directoryBusy, setDirectoryBusy] = useState(false);
     const [doctorId, setDoctorId] = useState(null);
     const [photoUrl, setPhotoUrl] = useState(null);
     const [photoVersion, setPhotoVersion] = useState(0);
@@ -121,12 +151,40 @@ const ProfileDropdown = () => {
                 setDoctorId(me.doctorId ?? me.DoctorId ?? null);
             })
             .catch(() => {});
+
+        getDoctorProfileMe()
+            .then((raw) => {
+                if (cancelled) return;
+                const me = raw?.data ?? raw?.Data ?? raw;
+                if (!me) return;
+                applyPersonName(me);
+                if (me.doctorId ?? me.DoctorId) {
+                    setDoctorId(me.doctorId ?? me.DoctorId);
+                }
+            })
+            .catch(() => {});
+
+        getDirectoryVisibility()
+            .then((raw) => {
+                if (cancelled) return;
+                const data = raw?.data ?? raw?.Data ?? raw;
+                setDirectoryVisible(!!(data?.directoryVisible ?? data?.DirectoryVisible));
+                const can =
+                    data?.canPublish ??
+                    data?.CanPublish ??
+                    String(data?.verificationStatus ?? data?.VerificationStatus ?? '').toLowerCase() ===
+                        'verified';
+                setDirectoryCanPublish(can !== false);
+            })
+            .catch(() => {
+                if (!cancelled) setDirectoryVisible(false);
+            });
+
         return () => {
             cancelled = true;
         };
-    }, [isDoctor]);
+    }, [isDoctor, applyPersonName]);
 
-    // The dashboard availability widget updates the same flag through the counts API.
     const countsOnline = readOnlineFlag(dashboardCounts);
     useEffect(() => {
         if (isDoctor && countsOnline !== null) setIsOnline(countsOnline);
@@ -164,39 +222,79 @@ const ProfileDropdown = () => {
         };
     }, [doctorId, photoVersion]);
     const isReception = userRole === UserRole.RECEPTION;
-    const avatarLetter = String(displayName || userName || "U").trim().charAt(0).toUpperCase() || "U";
+    const avatarLetter = String(displayName || userName || 'U').trim().charAt(0).toUpperCase() || 'U';
     const roleLabel = isReception
-        ? "Receptionist"
+        ? 'Receptionist'
         : actingForName
-            ? `Caregiver · ${actingForName}`
-            : userRole;
+          ? `Caregiver · ${actingForName}`
+          : userRole;
     const toggleProfileDropdown = () => {
         setIsProfileDropdown(!isProfileDropdown);
     };
-    const handleOnlineToggle = useCallback(async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (availabilityBusy) return;
-        const next = !isOnline;
-        setAvailabilityBusy(true);
-        try {
-            const raw = await updateAvailabilityMe({ isOnline: next });
-            const saved = readOnlineFlag(raw?.data ?? raw);
-            const value = saved ?? next;
-            setIsOnline(value);
-            if (dashboardCounts) {
-                dispatch(setCounts({ ...dashboardCounts, isOnline: value, IsOnline: value }));
+    const handleOnlineToggle = useCallback(
+        async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (availabilityBusy) return;
+            const next = !isOnline;
+            setAvailabilityBusy(true);
+            try {
+                const raw = await updateAvailabilityMe({ isOnline: next });
+                const saved = readOnlineFlag(raw?.data ?? raw);
+                const value = saved ?? next;
+                setIsOnline(value);
+                if (dashboardCounts) {
+                    dispatch(setCounts({ ...dashboardCounts, isOnline: value, IsOnline: value }));
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Availability update failed',
+                    text: typeof err === 'string' ? err : err?.message || 'Could not change online status',
+                });
+            } finally {
+                setAvailabilityBusy(false);
             }
-        } catch (err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Availability update failed',
-                text: typeof err === 'string' ? err : err?.message || 'Could not change online status',
-            });
-        } finally {
-            setAvailabilityBusy(false);
-        }
-    }, [availabilityBusy, isOnline, dashboardCounts, dispatch]);
+        },
+        [availabilityBusy, isOnline, dashboardCounts, dispatch]
+    );
+    const handleDirectoryToggle = useCallback(
+        async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (directoryBusy) return;
+            const next = !directoryVisible;
+            if (next && !directoryCanPublish) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Not verified yet',
+                    text: 'Complete credential verification before publishing your profile in Find a Doctor.',
+                });
+                return;
+            }
+            setDirectoryBusy(true);
+            try {
+                const raw = await setDirectoryVisibility({ directoryVisible: next });
+                const data = raw?.data ?? raw?.Data ?? raw;
+                setDirectoryVisible(!!(data?.directoryVisible ?? data?.DirectoryVisible ?? next));
+                if (data?.canPublish != null || data?.CanPublish != null) {
+                    setDirectoryCanPublish(!!(data?.canPublish ?? data?.CanPublish));
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Public visibility update failed',
+                    text:
+                        typeof err === 'string'
+                            ? err
+                            : err?.message || 'Could not change Find a Doctor visibility',
+                });
+            } finally {
+                setDirectoryBusy(false);
+            }
+        },
+        [directoryBusy, directoryVisible, directoryCanPublish]
+    );
     const handleOpenBilling = (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -208,13 +306,13 @@ const ProfileDropdown = () => {
             <Dropdown isOpen={isProfileDropdown} toggle={toggleProfileDropdown} className="header-item topbar-user">
                 <DropdownToggle tag="button" type="button" className="btn">
                     <span className="d-flex align-items-center">
-                        <span className={`header-profile-user-wrap${isDoctor && isOnline ? " is-online" : ""}`}>
+                        <span className={`header-profile-user-wrap${isDoctor && isOnline ? ' is-online' : ''}`}>
                             {photoUrl ? (
                                 <img
                                     className="rounded-circle header-profile-user"
                                     src={photoUrl}
-                                    alt={displayName || "Profile"}
-                                    style={{ objectFit: "cover" }}
+                                    alt={displayName || 'Profile'}
+                                    style={{ objectFit: 'cover' }}
                                 />
                             ) : (
                                 <span
@@ -235,37 +333,70 @@ const ProfileDropdown = () => {
                     </span>
                 </DropdownToggle>
                 <DropdownMenu className="dropdown-menu-end">
-                    <h6 className="dropdown-header">Welcome {userName ? userName.toUpperCase() : "USER"}!</h6>
+                    <h6 className="dropdown-header">Welcome {welcomeName || 'USER'}!</h6>
                     {isDoctor ? (
-                        <div
-                            className="dropdown-item-text doctor-online-toggle d-flex align-items-center justify-content-between gap-2"
-                            onClick={(event) => event.stopPropagation()}
-                            onMouseDown={(event) => event.stopPropagation()}
-                        >
-                            <span className="d-flex align-items-center min-w-0">
-                                <i
-                                    className={`mdi mdi-circle fs-12 align-middle me-1 ${isOnline ? "text-success" : "text-muted"}`}
-                                    aria-hidden="true"
-                                />
-                                <span className="align-middle text-body">
-                                    {isOnline ? "Online" : "Offline"}
+                        <>
+                            <div
+                                className="dropdown-item-text doctor-online-toggle d-flex align-items-center justify-content-between gap-2"
+                                onClick={(event) => event.stopPropagation()}
+                                onMouseDown={(event) => event.stopPropagation()}
+                            >
+                                <span className="d-flex align-items-center min-w-0">
+                                    <i
+                                        className={`mdi mdi-circle fs-12 align-middle me-1 ${isOnline ? 'text-success' : 'text-muted'}`}
+                                        aria-hidden="true"
+                                    />
+                                    <span className="align-middle text-body">
+                                        {isOnline ? 'Online' : 'Offline'}
+                                    </span>
                                 </span>
-                            </span>
-                            <div className="form-check form-switch form-switch-success mb-0">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    role="switch"
-                                    id="doctorOnlineStatus"
-                                    checked={isOnline}
-                                    disabled={availabilityBusy}
-                                    onChange={handleOnlineToggle}
-                                    aria-label={isOnline ? "Set offline" : "Set online"}
-                                />
+                                <div className="form-check form-switch form-switch-success mb-0">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="doctorOnlineStatus"
+                                        checked={isOnline}
+                                        disabled={availabilityBusy}
+                                        onChange={handleOnlineToggle}
+                                        aria-label={isOnline ? 'Set offline' : 'Set online'}
+                                    />
+                                </div>
                             </div>
-                        </div>
+                            <div
+                                className="dropdown-item-text doctor-online-toggle d-flex align-items-center justify-content-between gap-2"
+                                onClick={(event) => event.stopPropagation()}
+                                onMouseDown={(event) => event.stopPropagation()}
+                            >
+                                <span className="d-flex align-items-center min-w-0">
+                                    <i
+                                        className={`mdi mdi-earth fs-14 align-middle me-1 ${directoryVisible ? 'text-primary' : 'text-muted'}`}
+                                        aria-hidden="true"
+                                    />
+                                    <span className="align-middle text-body">
+                                        {directoryVisible ? 'Public Visibility' : 'Hidden from public'}
+                                    </span>
+                                </span>
+                                <div className="form-check form-switch form-switch-primary mb-0">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="doctorDirectoryVisibility"
+                                        checked={directoryVisible}
+                                        disabled={directoryBusy}
+                                        onChange={handleDirectoryToggle}
+                                        aria-label={
+                                            directoryVisible
+                                                ? 'Hide from Find a Doctor'
+                                                : 'Show in Find a Doctor'
+                                        }
+                                    />
+                                </div>
+                            </div>
+                        </>
                     ) : null}
-                    <DropdownItem className='p-0'>
+                    <DropdownItem className="p-0">
                         <Link to="/profile" className="dropdown-item">
                             <i className="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
                             <span className="align-middle">Profile</span>
@@ -273,22 +404,19 @@ const ProfileDropdown = () => {
                     </DropdownItem>
                     <div className="dropdown-divider"></div>
                     {isDoctor ? (
-                        <DropdownItem className='p-0'>
-                            <button
-                                type="button"
-                                className="dropdown-item"
-                                onClick={handleOpenBilling}
-                            >
+                        <DropdownItem className="p-0">
+                            <button type="button" className="dropdown-item" onClick={handleOpenBilling}>
                                 <i className="mdi mdi-receipt-text-outline text-muted fs-16 align-middle me-1"></i>
                                 <span className="align-middle">Billing</span>
                             </button>
                         </DropdownItem>
                     ) : null}
-                    <DropdownItem className='p-0'>
+                    <DropdownItem className="p-0">
                         <Link to="/logout" className="dropdown-item">
-                            <i
-                                className="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
-                                    className="align-middle" data-key="t-logout">Logout</span>
+                            <i className="mdi mdi-logout text-muted fs-16 align-middle me-1"></i>{' '}
+                            <span className="align-middle" data-key="t-logout">
+                                Logout
+                            </span>
                         </Link>
                     </DropdownItem>
                 </DropdownMenu>

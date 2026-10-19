@@ -1,77 +1,125 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardBody, CardHeader, Col, Container, Row, Spinner } from 'reactstrap';
+import React, { useEffect, useMemo, useState } from 'react';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
+import { Card, CardBody, CardHeader, Col, Container, Label, Row, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { getQuestionGroups, deleteQuestionGroup } from '../../../../slices/admin/questiongroup/thunk';
+import Select from 'react-select';
+import { useDispatch } from 'react-redux';
+import { deleteQuestionGroup } from '../../../../slices/admin/questiongroup/thunk';
 import Swal from 'sweetalert2';
 import { getAuditUserName } from "../../../../helpers/api_helper";
 import { exportListTableCsv } from '../../../../helpers/listExport';
+import { getQuestionGroupExistance, getQuestionGroups as getQuestionGroupMaster, getQuestionSectionDll } from '../../../../helpers/realbackend_helper';
+import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
-const renderAdminListPagination = ({ currentPage, totalPages, onPrev, onNext, onPage }) => (
-  <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-      <button type="button" className="page-link page-link--nav" onClick={onPrev}>
-        Previous
-      </button>
-    </li>
-    {[...Array(totalPages)].map((_, index) => {
-      const pageNumber = index + 1;
-      if (
-        pageNumber === 1 ||
-        pageNumber === totalPages ||
-        (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-      ) {
-        return (
-          <li key={index} className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}>
-            <button type="button" className="page-link" onClick={() => onPage(pageNumber)}>
-              {pageNumber}
-            </button>
-          </li>
-        );
-      }
-      if (pageNumber === 2 || pageNumber === totalPages - 1) {
-        return (
-          <li key={index} className="page-item disabled">
-            <span className="page-link">...</span>
-          </li>
-        );
-      }
-      return null;
-    })}
-    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-      <button type="button" className="page-link page-link--nav" onClick={onNext}>
-        Next
-      </button>
-    </li>
-  </ul>
-);
+const asList = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.resultObject)) return raw.resultObject;
+  if (Array.isArray(raw?.data)) return raw.data;
+  return [];
+};
 
 const ListQuestionGroup = () => {
   const dispatch = useDispatch();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedQuestionGroup, setSelectedQuestionGroup] = useState(null);
+  const [selectedExistance, setSelectedExistance] = useState(null);
+  const [questionGroupOptions, setQuestionGroupOptions] = useState([]);
+  const [existanceOptions, setExistanceOptions] = useState([]);
+  const [allGroups, setAllGroups] = useState([]);
+  const [questionGroupLoading, setQuestionGroupLoading] = useState(false);
   const pageSize = 10;
+  const filtersActive = Boolean(selectedQuestionGroup || selectedExistance);
 
-  const buildListParams = (pageNumber = currentPage) => ({
-    PageNumber: pageNumber,
-    PageSize: pageSize,
-    queryString: searchQuery,
-  });
-
-  const questionGroupLoading = useSelector((state) => state?.QuestionGroup?.loading || false);
-  const questionGroups = useSelector((state) => state?.QuestionGroup?.questionGroups?.resultObject) || [];
-  const totalPages = useSelector((state) => state?.QuestionGroup?.questionGroups?.totalPageCount || 1);
-  const totalRecords = useSelector(
-    (state) => state?.QuestionGroup?.questionGroups?.totalRecordCount || questionGroups.length || 0
-  );
+  const loadGroups = async () => {
+    setQuestionGroupLoading(true);
+    try {
+      const pageSizeFetch = 50;
+      let page = 1;
+      let pages = 1;
+      const rows = [];
+      do {
+        const response = await getQuestionGroupExistance({ PageNumber: page, PageSize: pageSizeFetch });
+        const batch = asList(response?.resultObject ?? response?.ResultObject);
+        rows.push(...batch);
+        pages = Number(response?.totalPageCount ?? response?.TotalPageCount ?? 1) || 1;
+        if (!batch.length) break;
+        page += 1;
+      } while (page <= pages && page < 40);
+      setAllGroups(rows);
+    } catch {
+      setAllGroups([]);
+    } finally {
+      setQuestionGroupLoading(false);
+    }
+  };
 
   useEffect(() => {
-    dispatch(getQuestionGroups(buildListParams()));
-  }, [currentPage, searchQuery, dispatch]);
+    loadGroups();
+  }, []);
 
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
+  const filteredGroups = useMemo(() => {
+    return allGroups.filter((group) => {
+      if (selectedQuestionGroup && String(group.questionGroupId ?? group.QuestionGroupId) !== String(selectedQuestionGroup.value)) {
+        return false;
+      }
+      if (selectedExistance && String(group.questionSectionId ?? group.QuestionSectionId) !== String(selectedExistance.value)) {
+        return false;
+      }
+      return true;
+    });
+  }, [allGroups, selectedQuestionGroup, selectedExistance]);
+
+  const totalRecords = filteredGroups.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const questionGroups = filteredGroups.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadMasters = async () => {
+      try {
+        const [groups, sections] = await Promise.all([
+          getQuestionGroupMaster(),
+          getQuestionSectionDll(),
+        ]);
+        if (cancelled) return;
+        setQuestionGroupOptions(
+          asList(groups)
+            .map((row) => ({
+              value: row.questionGroupId ?? row.QuestionGroupId,
+              label: row.questionGroupName ?? row.QuestionGroupName,
+            }))
+            .filter((row) => row.value && row.label)
+            .sort((a, b) => a.label.localeCompare(b.label))
+        );
+        setExistanceOptions(
+          asList(sections)
+            .map((row) => ({
+              value: row.questionSectionId ?? row.QuestionSectionId,
+              label: row.questionSectionName ?? row.QuestionSectionName,
+            }))
+            .filter((row) => row.value && row.label)
+            .sort((a, b) => a.label.localeCompare(b.label))
+        );
+      } catch {
+        if (!cancelled) {
+          setQuestionGroupOptions([]);
+          setExistanceOptions([]);
+        }
+      }
+    };
+    loadMasters();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectStyles = useMemo(() => getAdminFormSelectStyles(), []);
+
+  const handleReset = () => {
+    setSelectedQuestionGroup(null);
+    setSelectedExistance(null);
     setCurrentPage(1);
   };
 
@@ -93,25 +141,15 @@ const ListQuestionGroup = () => {
             enteredBy: getAuditUserName(),
             deleteStatus: true,
           })
-        );
+        ).then(() => loadGroups());
         Swal.fire('Deleted!', 'Your question group has been deleted.', 'success');
       }
     });
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
-  };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
-  };
 
-  const rowStart = (currentPage - 1) * pageSize;
+  const rowStart = (safePage - 1) * pageSize;
 
   document.title = 'List Question Groups';
 
@@ -121,20 +159,68 @@ const ListQuestionGroup = () => {
         <Container fluid>
           <Row>
             <Col lg={12}>
+              <Card className="patient-list-modal admin-existance-list admin-list-filter-card">
+                <CardBody>
+                  <Row className="g-3 align-items-end">
+                    <Col xxl={4} md={4}>
+                      <Label className="form-label mb-1">Question Group Name</Label>
+                      <Select
+                        value={selectedQuestionGroup}
+                        onChange={(selected) => {
+                          setSelectedQuestionGroup(selected);
+                          setCurrentPage(1);
+                        }}
+                        options={questionGroupOptions}
+                        placeholder="Select..."
+                        isClearable
+                        isSearchable
+                        classNamePrefix="admin-form-select"
+                        theme={neutralSelectTheme}
+                        styles={selectStyles}
+                        {...adminFormSelectPortalProps}
+                      />
+                    </Col>
+                    <Col xxl={4} md={4}>
+                      <Label className="form-label mb-1">Existance</Label>
+                      <Select
+                        value={selectedExistance}
+                        onChange={(selected) => {
+                          setSelectedExistance(selected);
+                          setCurrentPage(1);
+                        }}
+                        options={existanceOptions}
+                        placeholder="Select..."
+                        isClearable
+                        isSearchable
+                        classNamePrefix="admin-form-select"
+                        theme={neutralSelectTheme}
+                        styles={selectStyles}
+                        {...adminFormSelectPortalProps}
+                      />
+                    </Col>
+                    <Col xxl={4} md={4}>
+                      <Label className="form-label mb-1 opacity-0 user-select-none" aria-hidden="true">
+                        Reset
+                      </Label>
+                      <div className="admin-list-filter-reset">
+                        <button
+                          type="button"
+                          className="btn btn-sm admin-list-btn admin-list-btn--reset"
+                          onClick={handleReset}
+                        >
+                          <i className="ri-refresh-line align-middle me-1" aria-hidden="true" />
+                          Reset
+                        </button>
+                      </div>
+                    </Col>
+                  </Row>
+                </CardBody>
+              </Card>
+
               <Card className="patient-list-modal admin-existance-list">
                 <CardHeader className="border-0">
-                  <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
-                    <div className="patient-list-modal__search flex-shrink-0">
-                      <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                      />
-                    </div>
-                    <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                  <div className="admin-list-toolbar d-flex align-items-center justify-content-end gap-2 flex-wrap w-100">
+                    <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0">
                       <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
                         Import
@@ -162,7 +248,7 @@ const ListQuestionGroup = () => {
                             #
                           </th>
                           <th scope="col">Question Group Name</th>
-                          <th scope="col">Question Section Name</th>
+                          <th scope="col">Existance</th>
                           <th scope="col">Description</th>
                           <th scope="col" className="text-center" style={{ width: '12%' }}>
                             Action
@@ -225,8 +311,8 @@ const ListQuestionGroup = () => {
                           ) : (
                             <tr>
                               <td colSpan="5" className="text-center text-muted py-4">
-                                {searchQuery
-                                  ? 'No question groups match your search'
+                                {filtersActive
+                                  ? 'No question groups match these filters'
                                   : 'No Question Groups Available'}
                               </td>
                             </tr>
@@ -240,15 +326,13 @@ const ListQuestionGroup = () => {
                     <div className="text-muted patient-list-modal__footer-text">
                       {questionGroupLoading
                         ? 'Loading...'
-                        : `Showing ${questionGroups.length} of ${totalRecords} Results · Page ${currentPage} of ${totalPages}`}
+                        : `Showing ${questionGroups.length} of ${totalRecords} Results · Page ${safePage} of ${totalPages}`}
                     </div>
-                    {renderAdminListPagination({
-                      currentPage,
-                      totalPages,
-                      onPrev: handlePrevPage,
-                      onNext: handleNextPage,
-                      onPage: setCurrentPage,
-                    })}
+                                        <AdminListPagination
+                      currentPage={safePage}
+                      totalPages={totalPages}
+                      onPage={setCurrentPage}
+                    />
                   </div>
                 </CardBody>
               </Card>

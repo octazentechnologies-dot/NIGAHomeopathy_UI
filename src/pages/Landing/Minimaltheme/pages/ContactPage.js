@@ -1,13 +1,44 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Col, Container, Row, Card, CardBody } from "reactstrap";
 import PageBanner from "../components/PageBanner";
 import ContactForm from "../components/ContactForm";
 import { SITE } from "../constants/siteContent";
+import { getPublicAppConfig, unwrapClinic } from "../../../../helpers/doctorClinicApi";
 
 const ContactPage = () => {
+    const [support, setSupport] = useState({
+        phone: SITE.phone,
+        email: SITE.supportEmail || SITE.email,
+        whatsApp: null,
+    });
+
     useEffect(() => {
         document.title = `${SITE.name} | Contact Us`;
+        let cancelled = false;
+        getPublicAppConfig()
+            .then((response) => {
+                if (cancelled) return;
+                const data = unwrapClinic(response) || {};
+                setSupport({
+                    phone: data.supportPhone || data.SupportPhone || SITE.phone,
+                    email: data.supportEmail || data.SupportEmail || SITE.supportEmail || SITE.email,
+                    whatsApp: data.supportWhatsApp || data.SupportWhatsApp || null,
+                });
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+        };
     }, []);
+
+    const quickContact = [
+        `Phone: ${support.phone}`,
+        `Support: ${support.email}`,
+        SITE.emailAlt ? SITE.emailAlt : null,
+        support.whatsApp ? `WhatsApp: ${support.whatsApp}` : null,
+    ]
+        .filter(Boolean)
+        .join("\n");
 
     return (
         <>
@@ -18,7 +49,7 @@ const ContactPage = () => {
                         {[
                             { icon: "ri-map-pin-line", title: "Visit Our Place", text: SITE.address },
                             { icon: "ri-time-line", title: "Office Schedule", text: `Days : Monday to Saturday\nTime : 09.00 AM to 06.00 PM\nSunday : Closed` },
-                            { icon: "ri-phone-line", title: "Quick Contact", text: `Phone: ${SITE.phone}\nEmail: ${SITE.email} ;\n${SITE.emailAlt}` },
+                            { icon: "ri-phone-line", title: "Quick Contact", text: quickContact },
                         ].map((item) => (
                             <Col lg={4} md={6} key={item.title}>
                                 <Card className="h-100 border-0 shadow-sm text-center">

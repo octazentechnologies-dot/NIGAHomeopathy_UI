@@ -19,9 +19,10 @@ const WIDGETS = [
   },
   {
     id: "inventory",
-    label: "Inventory",
+    label: "Stock confirmation",
     icon: "ri-archive-line",
     linkPath: "/pharmacy/inventory",
+    linkLabel: "Confirm stock",
   },
   {
     id: "onboarding",
@@ -35,6 +36,7 @@ const WIDGETS = [
     label: "Prescriptions",
     icon: "ri-capsule-line",
     linkPath: "/pharmacy/prescriptions",
+    linkLabel: "View prescriptions",
   },
 ];
 

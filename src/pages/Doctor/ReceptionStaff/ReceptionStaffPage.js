@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Button,
+  Alert,
   Card,
   CardBody,
   Col,
@@ -13,6 +13,7 @@ import {
   ModalHeader,
   Row,
   Spinner,
+  Table,
 } from "reactstrap";
 import Swal from "sweetalert2";
 import ModalActionButton from "../../../Components/Common/ModalActionButton";
@@ -91,9 +92,10 @@ const ReceptionStaffPage = () => {
 
   if (userRole !== UserRole.DOCTOR) {
     return (
-      <div className="page-content">
+      <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
         <Container fluid>
-          <p>Only the treating doctor can manage reception staff.</p>
+          <h2 className="clinic-page-title">Reception staff</h2>
+          <p className="clinic-page-subtitle mb-0">Only the treating doctor can manage reception staff.</p>
         </Container>
       </div>
     );
@@ -196,143 +198,172 @@ const ReceptionStaffPage = () => {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <Row className="mb-3">
-          <Col>
-            <h4 className="mb-1">Reception staff</h4>
-            <p className="text-muted mb-0">List, add, edit, and disable clinic reception logins.</p>
-          </Col>
-          <Col xs="auto">
-            <Button color="primary" onClick={openAdd}>
-              Add staff
-            </Button>
-          </Col>
-        </Row>
-        <Card>
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">Reception staff</h2>
+            <p className="clinic-page-subtitle mb-0">List, add, edit, and disable clinic reception logins.</p>
+          </div>
+          <button type="button" className="btn btn-sm clinic-primary-btn" onClick={openAdd}>
+            <i className="ri-user-add-line me-1" aria-hidden="true" />
+            Add staff
+          </button>
+        </div>
+
+        {error ? (
+          <Alert color="danger" className="py-2 small">
+            {error}
+          </Alert>
+        ) : null}
+
+        <Card className="admin-dash-card">
           <CardBody>
-            {loading ? <Spinner color="primary" /> : null}
-            {error ? <p className="text-danger">{error}</p> : null}
-            {!loading && !error && rows.length === 0 ? (
-              <p className="text-muted mb-0">No reception staff yet.</p>
-            ) : null}
-            {rows.length > 0 ? (
+            {loading ? (
+              <div className="py-3 text-muted">
+                <Spinner size="sm" className="me-2" /> Loading…
+              </div>
+            ) : (
               <div className="table-responsive">
-                <table className="table align-middle">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table">
                   <thead>
                     <tr>
                       <th>Name</th>
                       <th>Login</th>
                       <th>Email</th>
                       <th>Mobile</th>
-                      <th />
+                      <th className="text-end">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row) => {
-                      const id = row.receptionStaffID ?? row.ReceptionStaffID;
-                      return (
-                        <tr key={id}>
-                          <td>{row.fullName ?? row.FullName}</td>
-                          <td>{row.userID ?? row.UserID}</td>
-                          <td>{row.emailId ?? row.EmailId}</td>
-                          <td>{row.contactNumber ?? row.ContactNumber}</td>
-                          <td className="text-end">
-                            <Button size="sm" color="light" className="me-2" onClick={() => openEdit(row)}>
-                              Edit
-                            </Button>
-                            <Button size="sm" color="danger" outline onClick={() => disableRow(row)}>
-                              Disable
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-muted py-4">
+                          No reception staff yet. Use Add staff to create a login.
+                        </td>
+                      </tr>
+                    ) : (
+                      rows.map((row) => {
+                        const id = row.receptionStaffID ?? row.ReceptionStaffID;
+                        return (
+                          <tr key={id}>
+                            <td className="fw-medium">{row.fullName ?? row.FullName}</td>
+                            <td>{row.userID ?? row.UserID}</td>
+                            <td>{(row.emailId ?? row.EmailId) || "—"}</td>
+                            <td>{(row.contactNumber ?? row.ContactNumber) || "—"}</td>
+                            <td className="text-end">
+                              <div className="clinic-table-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-soft-primary clinic-action-btn"
+                                  onClick={() => openEdit(row)}
+                                >
+                                  <i className="ri-pencil-line" aria-hidden="true" />
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-soft-danger clinic-action-btn"
+                                  onClick={() => disableRow(row)}
+                                >
+                                  <i className="ri-user-unfollow-line" aria-hidden="true" />
+                                  Disable
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
-                </table>
+                </Table>
               </div>
-            ) : null}
+            )}
           </CardBody>
         </Card>
       </Container>
 
-      <Modal isOpen={formOpen} toggle={() => setFormOpen(false)} centered>
+      <Modal isOpen={formOpen} toggle={() => setFormOpen(false)} centered className="clinic-form-modal">
         <ModalHeader toggle={() => setFormOpen(false)}>
           {formMode === "add" ? "Add reception staff" : "Edit reception staff"}
         </ModalHeader>
         <ModalBody>
-          {formMode === "add" ? (
-            <>
-              <Label>Login user id</Label>
+          <Row className="g-3">
+            {formMode === "add" ? (
+              <>
+                <Col md={6}>
+                  <Label className="form-label">Login user id</Label>
+                  <Input
+                    value={form.userID}
+                    invalid={Boolean(fieldErrors.userID)}
+                    onChange={(e) => {
+                      setForm((p) => ({ ...p, userID: e.target.value }));
+                      if (fieldErrors.userID) setFieldErrors((p) => ({ ...p, userID: undefined }));
+                    }}
+                  />
+                  {fieldErrors.userID ? <small className="text-danger">{fieldErrors.userID}</small> : null}
+                </Col>
+                <Col md={6}>
+                  <Label className="form-label">Password</Label>
+                  <Input
+                    type="password"
+                    value={form.password}
+                    invalid={Boolean(fieldErrors.password)}
+                    onChange={(e) => {
+                      setForm((p) => ({ ...p, password: e.target.value }));
+                      if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined }));
+                    }}
+                  />
+                  {fieldErrors.password ? <small className="text-danger">{fieldErrors.password}</small> : null}
+                </Col>
+              </>
+            ) : null}
+            <Col md={12}>
+              <Label className="form-label">Full name</Label>
               <Input
-                className={fieldErrors.userID ? "mb-1" : "mb-2"}
-                value={form.userID}
+                value={form.fullName}
+                invalid={Boolean(fieldErrors.fullName)}
                 onChange={(e) => {
-                  setForm((p) => ({ ...p, userID: e.target.value }));
-                  if (fieldErrors.userID) setFieldErrors((p) => ({ ...p, userID: undefined }));
+                  setForm((p) => ({ ...p, fullName: e.target.value }));
+                  if (fieldErrors.fullName) setFieldErrors((p) => ({ ...p, fullName: undefined }));
                 }}
               />
-              {fieldErrors.userID ? (
-                <small className="text-danger d-block mb-2">{fieldErrors.userID}</small>
-              ) : null}
-              <Label>Password</Label>
+              {fieldErrors.fullName ? <small className="text-danger">{fieldErrors.fullName}</small> : null}
+            </Col>
+            <Col md={6}>
+              <Label className="form-label">Email</Label>
               <Input
-                type="password"
-                className={fieldErrors.password ? "mb-1" : "mb-2"}
-                value={form.password}
+                type="email"
+                value={form.emailId}
+                invalid={Boolean(fieldErrors.emailId)}
                 onChange={(e) => {
-                  setForm((p) => ({ ...p, password: e.target.value }));
-                  if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined }));
+                  setForm((p) => ({ ...p, emailId: e.target.value }));
+                  if (fieldErrors.emailId) setFieldErrors((p) => ({ ...p, emailId: undefined }));
                 }}
               />
-              {fieldErrors.password ? (
-                <small className="text-danger d-block mb-2">{fieldErrors.password}</small>
+              {fieldErrors.emailId ? <small className="text-danger">{fieldErrors.emailId}</small> : null}
+            </Col>
+            <Col md={6}>
+              <Label className="form-label">Mobile</Label>
+              <Input
+                value={form.contactNumber}
+                invalid={Boolean(fieldErrors.contactNumber)}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, contactNumber: e.target.value }));
+                  if (fieldErrors.contactNumber) setFieldErrors((p) => ({ ...p, contactNumber: undefined }));
+                }}
+              />
+              {fieldErrors.contactNumber ? (
+                <small className="text-danger">{fieldErrors.contactNumber}</small>
               ) : null}
-            </>
-          ) : null}
-          <Label>Full name</Label>
-          <Input
-            className={fieldErrors.fullName ? "mb-1" : "mb-2"}
-            value={form.fullName}
-            onChange={(e) => {
-              setForm((p) => ({ ...p, fullName: e.target.value }));
-              if (fieldErrors.fullName) setFieldErrors((p) => ({ ...p, fullName: undefined }));
-            }}
-          />
-          {fieldErrors.fullName ? (
-            <small className="text-danger d-block mb-2">{fieldErrors.fullName}</small>
-          ) : null}
-          <Label>Email</Label>
-          <Input
-            type="email"
-            className={fieldErrors.emailId ? "mb-1" : "mb-2"}
-            value={form.emailId}
-            onChange={(e) => {
-              setForm((p) => ({ ...p, emailId: e.target.value }));
-              if (fieldErrors.emailId) setFieldErrors((p) => ({ ...p, emailId: undefined }));
-            }}
-          />
-          {fieldErrors.emailId ? (
-            <small className="text-danger d-block mb-2">{fieldErrors.emailId}</small>
-          ) : null}
-          <Label>Mobile</Label>
-          <Input
-            className={fieldErrors.contactNumber ? "mb-1" : "mb-2"}
-            value={form.contactNumber}
-            onChange={(e) => {
-              setForm((p) => ({ ...p, contactNumber: e.target.value }));
-              if (fieldErrors.contactNumber) setFieldErrors((p) => ({ ...p, contactNumber: undefined }));
-            }}
-          />
-          {fieldErrors.contactNumber ? (
-            <small className="text-danger d-block mb-2">{fieldErrors.contactNumber}</small>
-          ) : null}
+            </Col>
+          </Row>
         </ModalBody>
         <ModalFooter>
-          <ModalActionButton color="light" onClick={() => setFormOpen(false)}>
+          <ModalActionButton action="cancel" onClick={() => setFormOpen(false)}>
             Cancel
           </ModalActionButton>
-          <ModalActionButton color="primary" onClick={saveForm} disabled={saving} loading={saving}>
+          <ModalActionButton action="save" onClick={saveForm} disabled={saving} loading={saving}>
             Save
           </ModalActionButton>
         </ModalFooter>

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Spinner } from "reactstrap";
 import Swal from "sweetalert2";
 import { callNextAppointment, getAppointmentQueue, getAppointmentSlots, updateAppointmentTime } from "../../helpers/realbackend_helper";
 import { formatApiDate, normalizeAppointmentSlotsResponse, timeInputToApiTime } from "../../helpers/appointmentSlotHelper";
-import { collectAtReception, s4Message, unwrapS4 } from "../../helpers/s4Week4Api";
+import { collectAtReception, getPublicFee, s4Message, unwrapS4 } from "../../helpers/s4Week4Api";
 import { paymentStatusMeta } from "../../helpers/paymentStatusBadge";
 import TodaysAppointments from "./components/TodaysAppointments";
 import ReceptionNewPatientForm from "./components/ReceptionNewPatientForm";
@@ -12,6 +12,7 @@ import CancelAppointmentModal from "../../Components/Common/CancelAppointmentMod
 import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from "../../helpers/appointmentStatus";
 import AssistedBookWizard from "../../Components/Common/AssistedBookWizard";
 import { apiMessage, readReceptionDoctorId, unwrap } from "./receptionSession";
+import ReceptionCheckInFlow from "./components/ReceptionCheckInFlow";
 import "./components/receptionDashboard.css";
 
 /** REC-08.03 — format wait minutes from queue API (negative = not yet due). */
@@ -56,6 +57,39 @@ const ReceptionHome = () => {
   const [assistedPickKey, setAssistedPickKey] = useState(0);
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [paymentPatch, setPaymentPatch] = useState(null);
+  const [checkInSelected, setCheckInSelected] = useState(null);
+  const [checkInRow, setCheckInRow] = useState(null);
+  const [feeByType, setFeeByType] = useState({ inClinic: null, tele: null });
+
+  useEffect(() => {
+    if (!doctorId) return undefined;
+    let cancelled = false;
+    getPublicFee(doctorId)
+      .then((response) => {
+        if (cancelled) return;
+        const fee = unwrapS4(response) || {};
+        const data = fee.data || fee.Data || fee;
+        setFeeByType({
+          inClinic: data.inClinicFee ?? data.InClinicFee ?? null,
+          tele: data.teleFee ?? data.TeleFee ?? data.inClinicFee ?? data.InClinicFee ?? null,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setFeeByType({ inClinic: null, tele: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [doctorId]);
+
+  const consultationFee = useMemo(() => {
+    const row = checkInSelected || checkInRow;
+    if (!row) return feeByType.inClinic;
+    const tele = String(row.type || row.consultMode || row.ConsultMode || "").toLowerCase().includes("tele");
+    const fromRow = Number(String(row.payment || row.consultFee || "").replace(/[^\d.]/g, ""));
+    if (Number.isFinite(fromRow) && fromRow > 0) return fromRow;
+    return tele ? feeByType.tele : feeByType.inClinic;
+  }, [checkInSelected, checkInRow, feeByType]);
 
   const markRowPaid = (patientAppId, method) => {
     const patch = (row) =>
@@ -227,10 +261,26 @@ const ReceptionHome = () => {
         <p className="clinic-page-subtitle reception-page-subtitle">Clinical case-taking stays on the doctor. These actions are for this doctor only.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
-        <Row className="g-3">
+        <ReceptionCheckInFlow
+          selectedRow={checkInSelected}
+          checkInRow={checkInRow}
+          consultationFee={consultationFee}
+          onSelectRow={setCheckInSelected}
+          onCheckInHandled={() => setCheckInRow(null)}
+          onOpenNewPatient={() => setDeskPanel("patient")}
+          onOpenBookAppointment={() => setDeskPanel("appointment")}
+          onPaymentConfirmed={(details, row) => {
+            const patientAppId = row?.patientAppId || details?.patientAppId;
+            if (!patientAppId) return;
+            markRowPaid(patientAppId, details?.paymentMethod);
+            setListRefreshKey((n) => n + 1);
+            load().catch(() => {});
+          }}
+        />
+        <Row className="g-3 mt-1">
           <Col md={6}>
             <Card className="admin-dash-card"><CardBody>
-              <h5>Quick actions</h5>
+              <h5>Desk forms</h5>
               <p className="text-muted small mb-2">Case paper and Schedule stay in the top menu. Open one desk form at a time.</p>
               <div className="d-flex flex-wrap gap-2" data-testid="reception-quick-actions">
                 <Button
@@ -485,12 +535,11 @@ const ReceptionHome = () => {
           </Col>
           ) : null}
           {deskPanel === "appointment" ? (
-          <Col md={6} id="reception-assisted">
+          <Col lg={8} id="reception-assisted">
             <Card className="admin-dash-card"><CardBody>
-              {/* SUP-07.03 — assisted-book wizard + open AssistedRequest queue */}
-              <h5>Assisted booking</h5>
+              <h5>New appointment</h5>
               <p className="text-muted small">
-                Book on behalf of a patient who asked for help. Payment is not taken on this screen.
+                Search the patient by name or mobile, then pick a date and an open slot. Payment stays at the desk.
               </p>
               <AssistedBookWizard
                 doctorId={doctorId}
@@ -506,6 +555,10 @@ const ReceptionHome = () => {
           ) : null}
         </Row>
         <TodaysAppointments
+          onCheckInEdit={(row) => {
+            setCheckInSelected(row);
+            setCheckInRow(row);
+          }}
           onEditAppointment={(row) => setTimeEditRow(row)}
           refreshKey={listRefreshKey}
           paymentPatch={paymentPatch}

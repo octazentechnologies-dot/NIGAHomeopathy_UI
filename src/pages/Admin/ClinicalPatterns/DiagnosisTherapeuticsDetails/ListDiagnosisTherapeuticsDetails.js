@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import AdminListPagination from '../../../../Components/Common/AdminListPagination';
 import classnames from "classnames";
 import BreadCrumb from '../../../../Components/Common/BreadCrumb';
-import { Accordion, AccordionItem, Collapse, CardHeader, CardFooter, Alert, Button, Card, CardBody, Col, Container, Input, Modal, ModalBody, ModalHeader, PopoverBody, PopoverHeader, Row, UncontrolledPopover, UncontrolledTooltip, Label } from 'reactstrap';
+import { Accordion, CardHeader, Card, CardBody, Col, Container, Modal, ModalBody, ModalHeader, Row, Label } from 'reactstrap';
 import TableContainer from "../../../../Components/Common/TableContainerReactTable";
 import { Link } from 'react-router-dom';
 import { Spinner } from 'reactstrap';
@@ -28,7 +29,6 @@ const DiagnosisTherapeuticsList = () => {
   const pageSize = 10;
   const [selectedDiagnosis, setSelectedDiagnosis] = useState(null);
   const [selectedDiagnosisItem, setSelectedDiagnosisItem] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Redux state
   const diagnosisTherapeuticsList = useSelector((state) => state.DiagnosisTherapeutics.diagnosisTherapeuticsList);
@@ -82,19 +82,7 @@ const DiagnosisTherapeuticsList = () => {
   }, [currentPage]);
 
   // Pagination Handlers
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      dispatch(getDiagnosisTherapeuticsList({ diagonosisId: selectedDiagnosis?.value, pageNumber: currentPage - 1, pageSize: pageSize }));
-      setCurrentPage((prev) => prev - 1);
-    }
-  };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      dispatch(getDiagnosisTherapeuticsList({ diagonosisId: selectedDiagnosis?.value, pageNumber: currentPage + 1, pageSize: pageSize }));
-      setCurrentPage((prev) => prev + 1);
-    }
-  };
 
   const rowStart = (currentPage - 1) * pageSize;
 
@@ -148,27 +136,7 @@ const DiagnosisTherapeuticsList = () => {
 
               <Card className="patient-list-modal admin-existance-list">
                 <CardHeader className="border-0">
-                  <div className="admin-list-toolbar d-flex align-items-center justify-content-between gap-2 flex-wrap w-100">
-                    <div className="patient-list-modal__search flex-shrink-0">
-                      <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          dispatch(
-                            getDiagnosisTherapeuticsList({
-                              diagonosisId: selectedDiagnosis?.value,
-                              queryString: e.target.value,
-                              pageNumber: currentPage,
-                              pageSize: pageSize,
-                            })
-                          );
-                        }}
-                      />
-                    </div>
+                  <div className="admin-list-toolbar d-flex align-items-center justify-content-end gap-2 flex-wrap w-100">
                     <div className="admin-list-toolbar__actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
                       <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" disabled title="Import is not available for this list yet">
                         <i className="ri-upload-2-line align-middle me-1" aria-hidden="true" />
@@ -265,59 +233,11 @@ const DiagnosisTherapeuticsList = () => {
                           : `Showing ${diagnosisTherapeuticsList?.resultObject?.length || 0} of ${diagnosisTherapeuticsList?.resultObject?.length || 0} Results · Page ${currentPage} of ${totalPages}`}
                       </div>
 
-                      <ul className="pagination pagination-separated pagination-md mb-0 admin-list-pagination">
-                        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                          <button
-                            type="button"
-                            className="page-link page-link--nav"
-                            onClick={handlePrevPage}
-                          >
-                            Previous
-                          </button>
-                        </li>
-
-                        {[...Array(totalPages)].map((_, index) => {
-                          const pageNumber = index + 1;
-                          if (
-                            pageNumber === 1 ||
-                            pageNumber === totalPages ||
-                            (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                          ) {
-                            return (
-                              <li
-                                key={index}
-                                className={`page-item ${currentPage === pageNumber ? 'active' : ''}`}
-                              >
-                                <button
-                                  type="button"
-                                  className="page-link"
-                                  onClick={() => setCurrentPage(pageNumber)}
-                                >
-                                  {pageNumber}
-                                </button>
-                              </li>
-                            );
-                          }
-                          if (pageNumber === 2 || pageNumber === totalPages - 1) {
-                            return (
-                              <li key={index} className="page-item disabled">
-                                <span className="page-link">...</span>
-                              </li>
-                            );
-                          }
-                          return null;
-                        })}
-
-                        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                          <button
-                            type="button"
-                            className="page-link page-link--nav"
-                            onClick={handleNextPage}
-                          >
-                            Next
-                          </button>
-                        </li>
-                      </ul>
+                                            <AdminListPagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPage={setCurrentPage}
+                      />
                     </div>
 
                   </div>

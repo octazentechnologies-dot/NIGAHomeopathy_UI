@@ -5,12 +5,20 @@ import {
   getConsentNotice,
   getPatientProfileMe,
   getPrivacyConsentStatus,
+  getRegistrationCities,
+  getRegistrationCountries,
+  getRegistrationDistricts,
+  getRegistrationPinCodes,
+  getRegistrationStates,
   grantPrivacyConsent,
   savePatientProfileMe,
 } from "../../helpers/realbackend_helper";
 import { getPatientProfileS4, putPatientProfileS4 } from "../../helpers/s4Week4Api";
 
-const emptyForm = { firstName: "", lastName: "", mobileNo: "", email: "", dateOfBirth: "", gender: "" };
+const emptyForm = {
+  firstName: "", lastName: "", mobileNo: "", email: "", dateOfBirth: "", gender: "",
+  countryId: "", stateId: "", districtId: "", cityId: "", pinCodeId: "",
+};
 const emptyHealth = {
   bloodGroup: "",
   allergies: "",
@@ -44,7 +52,20 @@ const formFromProfile = (me) => ({
   email: me?.email || me?.Email || "",
   dateOfBirth: toDateInput(me?.dateOfBirth ?? me?.DateOfBirth),
   gender: me?.gender ?? me?.Gender ?? "",
+  countryId: me?.countryId ? String(me.countryId) : "",
+  stateId: me?.stateId ? String(me.stateId) : "",
+  districtId: me?.districtId ? String(me.districtId) : "",
+  cityId: me?.cityId ? String(me.cityId) : "",
+  pinCodeId: me?.pinCodeId ? String(me.pinCodeId) : "",
 });
+
+const masterOptions = (rows, idKeys, nameKeys) =>
+  (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      id: Number(idKeys.map((key) => row?.[key]).find((value) => value != null && value !== "")),
+      name: String(nameKeys.map((key) => row?.[key]).find(Boolean) || "").trim(),
+    }))
+    .filter((row) => Number.isFinite(row.id) && row.id > 0 && row.name);
 
 const healthFromProfile = (row) => ({
   bloodGroup: row?.bloodGroup || row?.BloodGroup || "",
@@ -93,6 +114,11 @@ const PatientProfileFields = () => {
   const [privacyNotice, setPrivacyNotice] = useState(null);
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [privacyNote, setPrivacyNote] = useState("");
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [pins, setPins] = useState([]);
 
   const loadPrivacy = async () => {
     const [privacyRes, noticeRes] = await Promise.all([
@@ -114,8 +140,27 @@ const PatientProfileFields = () => {
         getPatientProfileS4().catch(() => null),
         loadPrivacy(),
       ]);
-      setForm(formFromProfile(unwrap(profileRes)));
+      const nextForm = formFromProfile(unwrap(profileRes));
+      setForm(nextForm);
       setHealth(healthFromProfile(unwrap(healthRes)));
+      const countryList = masterOptions(await getRegistrationCountries().catch(() => []), ["countryId", "CountryId"], ["countryName", "CountryName"]);
+      setCountries(countryList);
+      if (nextForm.countryId) {
+        setStates(masterOptions(await getRegistrationStates(nextForm.countryId).catch(() => []), ["stateId", "StateId"], ["stateName", "StateName"]));
+      }
+      if (nextForm.stateId) {
+        setDistricts(masterOptions(await getRegistrationDistricts(nextForm.stateId).catch(() => []), ["districtId", "DistrictId"], ["districtName", "DistrictName"]));
+      }
+      if (nextForm.districtId) {
+        setCities(masterOptions(await getRegistrationCities(nextForm.districtId).catch(() => []), ["cityId", "CityId"], ["cityName", "CityName"]));
+      }
+      if (nextForm.cityId) {
+        const pinRows = await getRegistrationPinCodes(nextForm.cityId).catch(() => []);
+        setPins((Array.isArray(pinRows) ? pinRows : []).map((row) => ({
+          id: row.pinCodeId || row.PinCodeId,
+          name: String(row.pinCode || row.PinCode || ""),
+        })).filter((row) => row.id && row.name));
+      }
     } catch (err) {
       setLoadError(errorText(err, "Profile could not be loaded."));
     } finally {
@@ -163,6 +208,11 @@ const PatientProfileFields = () => {
         email: form.email.trim(),
         dateOfBirth: form.dateOfBirth || null,
         gender: form.gender === "" ? null : Number(form.gender),
+        countryId: form.countryId ? Number(form.countryId) : 0,
+        stateId: form.stateId ? Number(form.stateId) : 0,
+        districtId: form.districtId ? Number(form.districtId) : 0,
+        cityId: form.cityId ? Number(form.cityId) : 0,
+        pinCodeId: form.pinCodeId ? Number(form.pinCodeId) : 0,
       };
       const response = await savePatientProfileMe(payload);
       const saved = unwrap(response);
@@ -285,6 +335,68 @@ const PatientProfileFields = () => {
             onChange={(e) => setField("dateOfBirth", e.target.value)}
           />
           {errors.dateOfBirth ? <FormFeedback>{errors.dateOfBirth}</FormFeedback> : null}
+        </Col>
+        <Col md={4}>
+          <Label>Country</Label>
+          <Input type="select" value={form.countryId} onChange={async (e) => {
+            const countryId = e.target.value;
+            setField("countryId", countryId);
+            setForm((prev) => ({ ...prev, countryId, stateId: "", districtId: "", cityId: "", pinCodeId: "" }));
+            setStates(countryId ? masterOptions(await getRegistrationStates(countryId).catch(() => []), ["stateId", "StateId"], ["stateName", "StateName"]) : []);
+            setDistricts([]);
+            setCities([]);
+            setPins([]);
+          }}>
+            <option value="">Select</option>
+            {countries.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </Input>
+        </Col>
+        <Col md={4}>
+          <Label>State</Label>
+          <Input type="select" value={form.stateId} onChange={async (e) => {
+            const stateId = e.target.value;
+            setForm((prev) => ({ ...prev, stateId, districtId: "", cityId: "", pinCodeId: "" }));
+            setDistricts(stateId ? masterOptions(await getRegistrationDistricts(stateId).catch(() => []), ["districtId", "DistrictId"], ["districtName", "DistrictName"]) : []);
+            setCities([]);
+            setPins([]);
+          }}>
+            <option value="">Select</option>
+            {states.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </Input>
+        </Col>
+        <Col md={4}>
+          <Label>District</Label>
+          <Input type="select" value={form.districtId} onChange={async (e) => {
+            const districtId = e.target.value;
+            setForm((prev) => ({ ...prev, districtId, cityId: "", pinCodeId: "" }));
+            setCities(districtId ? masterOptions(await getRegistrationCities(districtId).catch(() => []), ["cityId", "CityId"], ["cityName", "CityName"]) : []);
+            setPins([]);
+          }}>
+            <option value="">Select</option>
+            {districts.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </Input>
+        </Col>
+        <Col md={4}>
+          <Label>City</Label>
+          <Input type="select" value={form.cityId} onChange={async (e) => {
+            const cityId = e.target.value;
+            setForm((prev) => ({ ...prev, cityId, pinCodeId: "" }));
+            const pinRows = cityId ? await getRegistrationPinCodes(cityId).catch(() => []) : [];
+            setPins((Array.isArray(pinRows) ? pinRows : []).map((row) => ({
+              id: row.pinCodeId || row.PinCodeId,
+              name: String(row.pinCode || row.PinCode || ""),
+            })).filter((row) => row.id && row.name));
+          }}>
+            <option value="">Select</option>
+            {cities.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </Input>
+        </Col>
+        <Col md={4}>
+          <Label>Pincode</Label>
+          <Input type="select" value={form.pinCodeId} onChange={(e) => setField("pinCodeId", e.target.value)}>
+            <option value="">Select</option>
+            {pins.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </Input>
         </Col>
         <Col md={6}>
           <Label>Gender</Label>

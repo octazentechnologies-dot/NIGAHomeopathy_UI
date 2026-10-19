@@ -62,6 +62,7 @@ const REPORT_LINKS = [
   { to: "/account/settlements", label: "Settlements", icon: "ri-shake-hands-line", hint: "Settlement runs and their lines." },
   { to: "/account/exceptions", label: "Exceptions", icon: "ri-error-warning-line", hint: "Open payment exceptions to resolve." },
   { to: "/account/payees", label: "Payees", icon: "ri-bank-line", hint: "Bank and KYC records." },
+  { to: "/account/trail", label: "Account trail", icon: "ri-route-line", hint: "Orders and exceptions for one doctor, visit, or payment." },
 ];
 
 const money = (value) => {
@@ -135,7 +136,7 @@ const maskBank = (value) => {
 
 const LedgerLinesTable = ({ rows }) => (
   <div className="table-responsive">
-    <Table className="table-nowrap align-middle mb-0" size="sm">
+    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
       <thead>
         <tr>
           <th>When</th>
@@ -168,7 +169,7 @@ const LedgerLinesTable = ({ rows }) => (
 
 const OrderLinesTable = ({ rows, rowKey = "ord" }) => (
   <div className="table-responsive">
-    <Table className="table-nowrap align-middle mb-0" size="sm">
+    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
       <thead>
         <tr>
           <th>When</th>
@@ -667,38 +668,52 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   return (
     <div className="page-content admin-dashboard-page account-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div className="clinic-page-header">
           <div>
             <h2 className="clinic-page-title account-page-title">{meta.title}</h2>
             <p className="clinic-page-subtitle account-page-subtitle mb-0">{meta.subtitle}</p>
           </div>
-          <div className="d-flex flex-wrap gap-2">
-            <Link to="/accountdashboard" className="btn btn-sm btn-soft-secondary">
+          <div className="clinic-table-actions">
+            <Link to="/accountdashboard" className="btn btn-sm btn-soft-secondary clinic-action-btn">
+              <i className="ri-home-4-line" aria-hidden="true" />
               Account home
             </Link>
-            <Button size="sm" className="account-primary-btn" onClick={load} disabled={loading}>
+            <button type="button" className="btn btn-sm clinic-primary-btn" onClick={load} disabled={loading}>
+              <i className="ri-refresh-line" aria-hidden="true" />
               Refresh
-            </Button>
+            </button>
             {section === "consult-recon" || section === "reports" ? (
-              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportReconciliation, "reconciliation.csv")}>
+              <button
+                type="button"
+                className="btn btn-sm btn-soft-secondary clinic-action-btn"
+                onClick={() => runReportExport(exportReconciliation, "reconciliation.csv")}
+              >
                 Export reconciliation
-              </Button>
+              </button>
             ) : null}
             {section === "settlements" || section === "reports" ? (
-              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportSettlements, "settlements.csv")}>
+              <button
+                type="button"
+                className="btn btn-sm btn-soft-secondary clinic-action-btn"
+                onClick={() => runReportExport(exportSettlements, "settlements.csv")}
+              >
                 Export settlements
-              </Button>
+              </button>
             ) : null}
             {section === "payouts" || section === "reports" ? (
-              <Button size="sm" color="soft-secondary" onClick={() => runReportExport(exportPayouts, "payouts.csv")}>
+              <button
+                type="button"
+                className="btn btn-sm btn-soft-secondary clinic-action-btn"
+                onClick={() => runReportExport(exportPayouts, "payouts.csv")}
+              >
                 Export payouts
-              </Button>
+              </button>
             ) : null}
           </div>
         </div>
 
-        {error ? <Alert color="danger">{error}</Alert> : null}
-        {note ? <Alert color="success">{note}</Alert> : null}
+        {error ? <Alert color="danger" className="py-2 small">{error}</Alert> : null}
+        {note ? <Alert color="success" className="py-2 small">{note}</Alert> : null}
 
         {section === "tax" ? (
           <Card className="admin-dash-card mb-3">
@@ -778,7 +793,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 <CardBody>
                   <h5 className="mb-3">By doctor</h5>
                   <div className="table-responsive">
-                    <Table className="table-nowrap align-middle mb-0" size="sm">
+                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                       <thead>
                         <tr>
                           <th>Doctor</th>
@@ -1108,7 +1123,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               <LedgerLinesTable rows={rows} />
             ) : section === "settlements" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Run</th>
@@ -1146,7 +1161,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <p className="text-muted">No online consult collections in this range.</p>
                 ) : (
                   <div className="table-responsive mb-4">
-                    <Table className="table-nowrap align-middle mb-0" size="sm">
+                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                       <thead>
                         <tr>
                           <th>Order</th>
@@ -1180,7 +1195,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <p className="text-muted mb-0">No clinic collections in this range.</p>
                 ) : (
                   <div className="table-responsive">
-                    <Table className="table-nowrap align-middle mb-0" size="sm">
+                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                       <thead>
                         <tr>
                           <th>Order</th>
@@ -1211,7 +1226,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "payouts" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Payout</th>
@@ -1310,7 +1325,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "exceptions" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Exception</th>
@@ -1383,7 +1398,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "refunds" || section === "invoices" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Refund</th>
@@ -1412,7 +1427,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </div>
             ) : section === "payees" ? (
               <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0" size="sm">
+                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
                   <thead>
                     <tr>
                       <th>Payee</th>
@@ -1444,7 +1459,14 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                         <td>{pick(row, "pan", "Pan") || "—"}</td>
                         <td>{pick(row, "kycStatus", "KycStatus") || "—"}</td>
                         <td>
-                          <Button size="sm" color="soft-info" onClick={() => startPayeeEdit(row)}>Edit</Button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-soft-primary clinic-action-btn"
+                            onClick={() => startPayeeEdit(row)}
+                          >
+                            <i className="ri-pencil-line" aria-hidden="true" />
+                            Edit
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1462,7 +1484,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   {pick(detail.run || detail, "status", "Status") || "—"}
                 </div>
                 {Array.isArray(detail.lines) && detail.lines.length > 0 ? (
-                  <Table className="table-nowrap mb-0" size="sm">
+                  <Table className="table-nowrap mb-0 clinic-data-table" size="sm">
                     <thead>
                       <tr>
                         <th>Payee</th>

@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Container, Spinner } from "reactstrap";
+import { Button, Col, Container, Input, Label, Row, Spinner } from "reactstrap";
 import moment from "moment";
-import { listNotifications, patchNotification, s4Message } from "../../helpers/s5Week5Api";
+import {
+  getNotificationPreferences,
+  listNotifications,
+  markAllNotificationsRead,
+  patchNotification,
+  s4Message,
+  saveNotificationPreferences,
+} from "../../helpers/s5Week5Api";
 import "./notificationsPage.css";
 
 const TABS = [
@@ -25,6 +32,8 @@ const NotificationsPage = () => {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [prefs, setPrefs] = useState(null);
+  const [prefsNote, setPrefsNote] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,6 +52,9 @@ const NotificationsPage = () => {
 
   useEffect(() => {
     load();
+    getNotificationPreferences()
+      .then((response) => setPrefs(response?.data ?? response))
+      .catch(() => setPrefs(null));
   }, [load]);
 
   const unreadCount = items.filter((item) => item.unread).length;
@@ -51,6 +63,34 @@ const NotificationsPage = () => {
     () => (activeTab === "unread" ? items.filter((item) => item.unread) : items),
     [items, activeTab]
   );
+
+  const markAll = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await markAllNotificationsRead();
+      setItems((prev) => prev.map((item) => ({ ...item, unread: false })));
+    } catch (err) {
+      setError(s4Message(err) || "Could not mark notifications as read.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const savePrefs = async () => {
+    if (!prefs) return;
+    setBusy(true);
+    setPrefsNote("");
+    try {
+      const response = await saveNotificationPreferences(prefs);
+      setPrefs(response?.data ?? response);
+      setPrefsNote("Preferences saved.");
+    } catch (err) {
+      setError(s4Message(err) || "Preferences could not be saved.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const markRead = async (ids) => {
     if (!ids.length) return;
@@ -104,12 +144,57 @@ const NotificationsPage = () => {
             <button
               type="button"
               className="ntf-mark-all"
-              onClick={() => markRead(items.filter((item) => item.unread).map((item) => item.id))}
+              onClick={markAll}
               disabled={!unreadCount || busy}
             >
               Mark all as read
             </button>
           </div>
+
+          {prefs ? (
+            <div className="admin-dash-card p-3 mb-3">
+              <h5 className="mb-2">Notification preferences</h5>
+              {prefsNote ? <div className="text-success small mb-2">{prefsNote}</div> : null}
+              <Row className="g-2">
+                {[
+                  ["pushEnabled", "Push"],
+                  ["smsEnabled", "SMS"],
+                  ["emailEnabled", "Email"],
+                  ["appointments", "Appointments"],
+                  ["prescriptions", "Prescriptions"],
+                  ["medicines", "Medicines"],
+                  ["marketing", "Marketing"],
+                  ["quietHoursEnabled", "Quiet hours"],
+                ].map(([key, label]) => (
+                  <Col md={3} key={key}>
+                    <Label check>
+                      <Input
+                        type="checkbox"
+                        checked={Boolean(prefs[key])}
+                        onChange={(e) => setPrefs((prev) => ({ ...prev, [key]: e.target.checked }))}
+                      />{" "}
+                      {label}
+                    </Label>
+                  </Col>
+                ))}
+                <Col md={3}>
+                  <Label>Quiet start</Label>
+                  <Input value={prefs.quietStart || ""} onChange={(e) => setPrefs((prev) => ({ ...prev, quietStart: e.target.value }))} />
+                </Col>
+                <Col md={3}>
+                  <Label>Quiet end</Label>
+                  <Input value={prefs.quietEnd || ""} onChange={(e) => setPrefs((prev) => ({ ...prev, quietEnd: e.target.value }))} />
+                </Col>
+                <Col md={4}>
+                  <Label>Reminder offsets (minutes)</Label>
+                  <Input value={prefs.reminderOffsets || ""} onChange={(e) => setPrefs((prev) => ({ ...prev, reminderOffsets: e.target.value }))} />
+                </Col>
+                <Col md={2} className="d-flex align-items-end">
+                  <Button color="primary" disabled={busy} onClick={savePrefs}>Save</Button>
+                </Col>
+              </Row>
+            </div>
+          ) : null}
 
           <div className="ntf-list">
             {loading ? (

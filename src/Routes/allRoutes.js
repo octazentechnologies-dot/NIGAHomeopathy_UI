@@ -163,7 +163,6 @@ import AnatomyPage from "../pages/AnatomyPage";
 import DoctorTeleconsultPage from "../pages/Doctor/Teleconsult/DoctorTeleconsultPage";
 import AccountDashboard from "../pages/Account/Dashboard";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
-import PharmacyComingSoon from "../pages/Pharmacy/components/PharmacyComingSoon";
 import FamilyMembers from "../pages/Family/FamilyMembers";
 import CaregiverAccess from "../pages/Family/CaregiverAccess";
 import ReceptionDashboard from "../pages/Reception/Dashboard";
@@ -193,6 +192,15 @@ import SupportWorkspacePage from "../pages/Support/SupportWorkspacePage";
 import HelpAdminPage from "../pages/Admin/HelpAdminPage";
 import DoctorWaitlistPage from "../pages/Doctor/Waitlist/DoctorWaitlistPage";
 import DoctorSchedulePage from "../pages/Doctor/Schedule/DoctorSchedulePage";
+import DoctorCareLinkPage from "../pages/Doctor/Clinic/DoctorCareLinkPage";
+import DoctorAppointmentRequestsPage from "../pages/Doctor/Clinic/DoctorAppointmentRequestsPage";
+import DoctorPharmacyQueriesPage from "../pages/Doctor/Clinic/DoctorPharmacyQueriesPage";
+import DoctorPracticePage from "../pages/Doctor/Reports/DoctorPracticePage";
+import PatientCareHub from "../pages/Patient/Care/PatientCareHub";
+import SecurityAuditPage from "../pages/Admin/Security/SecurityAuditPage";
+import ConsentAuditPage from "../pages/Admin/Consent/ConsentAuditPage";
+import PackageTopupsPage from "../pages/Admin/Packages/PackageTopupsPage";
+import AccountTrailPage from "../pages/Account/AccountTrailPage";
 
 import DashboardAnalytics from "../pages/DashboardAnalytics";
 import DashboardCrm from "../pages/DashboardCrm";
@@ -637,9 +645,13 @@ const authProtectedRoutes = [
   { path: "doctor/sms", component: <DoctorSmsPage mode="doctor" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/follow-up-analysis", component: <ClinicReportPage mode="followup" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/clinic-performance", component: <ClinicReportPage mode="performance" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/practice", component: <DoctorPracticePage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/erx", component: <DoctorErxPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/waitlist", component: <DoctorWaitlistPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/schedule", component: <DoctorSchedulePage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/carelink", component: <DoctorCareLinkPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/appointment-requests", component: <DoctorAppointmentRequestsPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/pharmacy-queries", component: <DoctorPharmacyQueriesPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/support", component: <SupportWorkspacePage mode="mine" />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "reception", component: <ReceptionHome />, allowedRoles: RECEPTION_ROUTE_ROLES },
   { path: "reception/schedule", component: <ReceptionSchedule />, allowedRoles: RECEPTION_ROUTE_ROLES },
@@ -662,11 +674,15 @@ const authProtectedRoutes = [
   { path: "account/exceptions", component: <AccountFinancePage section="exceptions" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "account/tax", component: <AccountFinancePage section="tax" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "account/payees", component: <AccountFinancePage section="payees" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
+  { path: "account/trail", component: <AccountTrailPage />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "account/clinic-collections", component: <AccountFinancePage section="clinic-collections" />, allowedRoles: ACCOUNT_ROUTE_ROLES },
   { path: "admin/consult-payments", component: <AccountFinancePage section="consult-recon" />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/sms", component: <DoctorSmsPage mode="admin" />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/medicine-report", component: <ClinicReportPage mode="medicine" />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/security", component: <SecurityPosturePage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/security-audit", component: <SecurityAuditPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/consent-audit", component: <ConsentAuditPage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/package-topups", component: <PackageTopupsPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/payment-exceptions", component: <AccountFinancePage section="exceptions" />, allowedRoles: ADMIN_PORTAL_ROLES },
   // Account Side End //
 
@@ -676,8 +692,8 @@ const authProtectedRoutes = [
   { path: "pharmacy/onboard", component: <PharmacyWorkspacePage mode="onboarding" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/orders", component: <PharmacyWorkspacePage mode="orders" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   { path: "pharmacy/quotes", component: <PharmacyWorkspacePage mode="quotes" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/inventory", component: <PharmacyComingSoon title="Inventory" />, allowedRoles: PHARMACY_ROUTE_ROLES },
-  { path: "pharmacy/prescriptions", component: <PharmacyComingSoon title="Prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/inventory", component: <PharmacyWorkspacePage mode="stock" />, allowedRoles: PHARMACY_ROUTE_ROLES },
+  { path: "pharmacy/prescriptions", component: <PharmacyWorkspacePage mode="prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   // Pharmacy Side End //
 
   { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
@@ -689,6 +705,11 @@ const authProtectedRoutes = [
   { path: "patient/medicine-orders", component: <PatientMedicineOrdersPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/prescriptions", component: <PatientPrescriptionsPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/support", component: <SupportWorkspacePage mode="mine" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/addresses", component: <PatientCareHub tab="addresses" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/reminders", component: <PatientCareHub tab="reminders" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/appointment-requests", component: <PatientCareHub tab="requests" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/waitlist", component: <PatientCareHub tab="waitlist" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/check-in", component: <PatientCareHub tab="checkin" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   // Reception Side //
   { path: "receptiondashboard", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
   { path: "reception/appointments", component: <ReceptionHome />, allowedRoles: RECEPTION_ROUTE_ROLES },

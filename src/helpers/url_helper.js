@@ -514,6 +514,8 @@ export const TELE_INSTANT_OFFERS = "/Tele/Instant/Offers";
 export const TELE_INSTANT_ACCEPT = (requestId) => `/Tele/Instant/${requestId}/Accept`;
 export const TELE_AVAILABILITY = "/Tele/Availability";
 export const TELE_AVAILABILITY_PUBLIC = (doctorId) => `/Tele/Availability/${doctorId}`;
+/** Doctor discovery (Find a Doctor) visibility — separate from Online. */
+export const DOCTOR_DIRECTORY_VISIBILITY = "/Doctor/DirectoryVisibility";
 /** PAT-26.02 — tele device check stub (anonymous; camera/mic checked on device). */
 export const TELE_DEVICE_CHECK = "/Tele/DeviceCheck";
 /** PAT-29.02 — recording consent (doctor + patient; recordAllowed only when both accept). */

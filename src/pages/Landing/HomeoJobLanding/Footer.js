@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Col, Container, Row } from "reactstrap";
 
@@ -11,6 +11,7 @@ import {
 } from "../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../constants/landingRoutes";
 import { submitEnquiry } from "../Minimaltheme/helpers/marketingApi";
+import { getPublicAppConfig, unwrapClinic } from "../../../helpers/doctorClinicApi";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -90,6 +91,27 @@ const Footer = () => {
     const [email, setEmail] = useState("");
     const [subscribing, setSubscribing] = useState(false);
     const [status, setStatus] = useState(null);
+    const [support, setSupport] = useState({
+        phone: SITE.phone,
+        email: SITE.supportEmail,
+    });
+
+    useEffect(() => {
+        let cancelled = false;
+        getPublicAppConfig()
+            .then((response) => {
+                if (cancelled) return;
+                const data = unwrapClinic(response) || {};
+                setSupport({
+                    phone: data.supportPhone || data.SupportPhone || SITE.phone,
+                    email: data.supportEmail || data.SupportEmail || SITE.supportEmail,
+                });
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleSubscribe = async (event) => {
         event.preventDefault();
@@ -140,6 +162,12 @@ const Footer = () => {
                             </h3>
 
                             <p className="homeojob-footer__about">{ABOUT_CONTENT.aboutHome.text}</p>
+
+                            <p className="homeojob-footer__about mb-2">
+                                <a href={`tel:${String(support.phone || "").replace(/\s/g, "")}`}>{support.phone}</a>
+                                {" · "}
+                                <a href={`mailto:${support.email}`}>{support.email}</a>
+                            </p>
 
                             <div className="homeojob-footer__trust">
                                 {TRUST_ITEMS.map((item) => (

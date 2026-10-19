@@ -52,36 +52,25 @@ const SummaryWidgets = ({ values = {}, loading = false }) => (
     {WIDGETS.map((item) => {
       const value = values[item.id] || {};
       return (
-        <Col xs={12} sm={6} lg className="account-kpi-col" key={item.id}>
-          <Card className="card-animate admin-dash-card">
-            <CardBody>
-              <div className="d-flex align-items-center">
-                <div className="flex-grow-1 overflow-hidden">
-                  <p className="text-uppercase fw-bold text-truncate mb-0 account-kpi-label">
-                    {item.label}
-                  </p>
-                </div>
-                <div className="flex-shrink-0">
-                  <h5 className="fs-14 mb-0 text-muted">{value.sub || ""}</h5>
-                </div>
-              </div>
-              <div className="d-flex align-items-end justify-content-between mt-4">
-                <div>
-                  <h4 className="fs-20 fw-semibold ff-secondary mb-4">
-                    {loading ? <Spinner size="sm" /> : <span className="counter-value">{value.main ?? "—"}</span>}
-                  </h4>
-                  <Link to={item.linkPath} className="account-kpi-link">
-                    {item.cta}
-                  </Link>
-                </div>
+        <Col xs={12} sm={6} lg={4} xl={2} className="account-kpi-col" key={item.id}>
+          <Link to={item.linkPath} className="account-kpi-card-link">
+            <Card className="card-animate admin-dash-card account-kpi-card mb-2">
+              <CardBody className="d-flex gap-3 align-items-center">
                 <div className="avatar-sm flex-shrink-0">
-                  <span className="avatar-title rounded fs-3 bg-info-subtle border border-info border-opacity-25">
+                  <span className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-3">
                     <i className={`text-info ${item.icon}`} />
                   </span>
                 </div>
-              </div>
-            </CardBody>
-          </Card>
+                <div className="flex-grow-1 overflow-hidden">
+                  <h5 className="fs-15 mb-0 account-kpi-count">
+                    {loading ? <Spinner size="sm" /> : (value.main ?? "—")}
+                  </h5>
+                  <p className="mb-0 text-muted text-uppercase account-kpi-label">{item.label}</p>
+                  {value.sub ? <p className="mb-0 text-muted small text-truncate">{value.sub}</p> : null}
+                </div>
+              </CardBody>
+            </Card>
+          </Link>
         </Col>
       );
     })}

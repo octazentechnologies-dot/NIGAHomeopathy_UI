@@ -38,6 +38,7 @@ import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid'
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
 import AppointmentChangeActions from './AppointmentChangeActions';
 import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from '../../../helpers/appointmentStatus';
+import { recordMatchesQuery } from '../../../helpers/recordSearch';
 import {
   normalizeAppointmentSlotsResponse,
   formatSlotIntervalLabel,
@@ -1457,28 +1458,9 @@ const BestSellingProducts = () => {
     }));
 
     // Filter data based on search term
-    const filteredTodayPatients = todayPatients.filter(patient => {
-        const needle = searchTerm.toLowerCase();
-        if (!needle) return true;
-        return (
-            patient.name.toLowerCase().includes(needle) ||
-            patient.place.toLowerCase().includes(needle) ||
-            patient.ageSex.toLowerCase().includes(needle) ||
-            (patient.appStatus || '').toLowerCase().includes(needle) ||
-            patient.mobileNo?.toString().includes(needle)
-        );
-    });
+    const filteredTodayPatients = todayPatients.filter((patient) => recordMatchesQuery(patient, searchTerm));
 
-    const filteredAllPatients = allPatients.filter(patient => {
-        const needle = searchTerm.toLowerCase();
-        if (!needle) return true;
-        return (
-            patient.name.toLowerCase().includes(needle) ||
-            patient.place.toLowerCase().includes(needle) ||
-            patient.ageSex.toLowerCase().includes(needle) ||
-            patient.mobileNo?.toString().includes(needle)
-        );
-    });
+    const filteredAllPatients = allPatients.filter((patient) => recordMatchesQuery(patient, searchTerm));
 
     // Pagination calculations
     const todayTotalPages = Math.ceil(filteredTodayPatients.length / pageSize);
@@ -2941,7 +2923,7 @@ const BestSellingProducts = () => {
                                 <input
                                     type="text"
                                     className="form-control form-control-sm search"
-                                    placeholder="Search..."
+                                    placeholder="Name, mobile, email, address"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />

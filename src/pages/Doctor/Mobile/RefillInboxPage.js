@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { HiddenLink } from "../../../helpers/hiddenRouteParams";
-import { Badge, ButtonGroup, Button, Container } from "reactstrap";
+import { Badge, Container } from "reactstrap";
 
 import { listDoctorRefills } from "../../../helpers/realbackend_helper";
 
@@ -72,31 +72,37 @@ const RefillInboxPage = () => {
   return (
     <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page" data-testid="refill-inbox">
       <Container fluid>
-        <h2 className="clinic-page-title mb-2">Refill inbox</h2>
-        <p className="clinic-page-subtitle small mb-3">
-          Approve or reject repeat prescription requests. The signed prescription stays read-only.
-        </p>
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">Refill inbox</h2>
+            <p className="clinic-page-subtitle mb-0">
+              Approve or reject repeat prescription requests. The signed prescription stays read-only.
+            </p>
+          </div>
+          <div className="clinic-table-actions">
+            <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={load} disabled={loading}>
+              <i className="ri-refresh-line" aria-hidden="true" />
+              {loading ? "Loading…" : "Refresh"}
+            </button>
+            <Link className="btn btn-sm btn-soft-primary clinic-action-btn" to="/doctor/mobile/context">
+              <i className="ri-user-heart-line" aria-hidden="true" />
+              Patient context
+            </Link>
+          </div>
+        </div>
 
-        <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-          <ButtonGroup size="sm" aria-label="Filter by status">
-            {STATUS_FILTERS.map((value) => (
-              <Button
-                key={value}
-                color="primary"
-                outline={status !== value}
-                onClick={() => setStatus(value)}
-                disabled={loading}
-              >
-                {value.charAt(0) + value.slice(1).toLowerCase()}
-              </Button>
-            ))}
-          </ButtonGroup>
-          <Button size="sm" color="secondary" outline onClick={load} disabled={loading}>
-            {loading ? "Loading…" : "Refresh"}
-          </Button>
-          <Link className="btn btn-sm btn-link" to="/doctor/mobile/context">
-            Patient context
-          </Link>
+        <div className="clinic-table-actions mb-3" aria-label="Filter by status">
+          {STATUS_FILTERS.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={`btn btn-sm clinic-action-btn ${status === value ? "clinic-primary-btn" : "btn-soft-secondary"}`}
+              onClick={() => setStatus(value)}
+              disabled={loading}
+            >
+              {value.charAt(0) + value.slice(1).toLowerCase()}
+            </button>
+          ))}
         </div>
 
         {loading ? (
@@ -117,49 +123,60 @@ const RefillInboxPage = () => {
           </p>
         ) : null}
 
-        {!loading && !error && rows.length === 0 ? (
-          <div className="border rounded p-4 text-muted" data-testid="refill-inbox-empty">
-            {emptyText}
-          </div>
-        ) : null}
+        <div className="card admin-dash-card">
+          <div className="card-body">
+            {!loading && !error && rows.length === 0 ? (
+              <p className="text-muted mb-0" data-testid="refill-inbox-empty">
+                {emptyText}
+              </p>
+            ) : null}
 
-        {!loading && rows.length > 0 ? (
-          <ul className="list-unstyled" data-testid="refill-inbox-list">
-            {rows.map((row) => {
-              const id = pick(row, "refillRequestId", "RefillRequestId", "id");
-              const rowStatus = String(pick(row, "status", "Status") || "—").toUpperCase();
-              const patientName = pick(row, "patientName", "PatientName");
-              const patientId = pick(row, "patientId", "PatientId");
-              const erxId = pick(row, "erxSnapshotId", "ErxSnapshotId");
-              const appId = pick(row, "patientAppId", "PatientAppId");
-              const reason = pick(row, "reason", "Reason");
-              return (
-                <li key={id} className="border rounded p-3 mb-2 d-flex justify-content-between align-items-start gap-2">
-                  <div>
-                    <div className="d-flex align-items-center gap-2">
-                      <strong>{patientName || `Patient ${patientId ?? "—"}`}</strong>
-                      <Badge color={STATUS_COLOR[rowStatus] || "secondary"}>{rowStatus}</Badge>
-                    </div>
-                    <div className="small text-muted">
-                      Refill #{id} · eRx #{erxId ?? "—"}
-                      {appId ? ` · Appointment #${appId}` : ""}
-                    </div>
-                    <div className="small text-muted">
-                      Requested {formatDateTime(pick(row, "createdAt", "CreatedAt"))}
-                      {pick(row, "decidedAt", "DecidedAt")
-                        ? ` · Decided ${formatDateTime(pick(row, "decidedAt", "DecidedAt"))}`
-                        : ""}
-                    </div>
-                    {reason ? <div className="small text-danger">Reason: {reason}</div> : null}
-                  </div>
-                  <HiddenLink className="btn btn-sm btn-primary" to={`/doctor/mobile/refill/detail?refillId=${id}`}>
-                    {rowStatus === "PENDING" ? "Review" : "Open"}
-                  </HiddenLink>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
+            {!loading && rows.length > 0 ? (
+              <ul className="list-unstyled mb-0" data-testid="refill-inbox-list">
+                {rows.map((row) => {
+                  const id = pick(row, "refillRequestId", "RefillRequestId", "id");
+                  const rowStatus = String(pick(row, "status", "Status") || "—").toUpperCase();
+                  const patientName = pick(row, "patientName", "PatientName");
+                  const patientId = pick(row, "patientId", "PatientId");
+                  const erxId = pick(row, "erxSnapshotId", "ErxSnapshotId");
+                  const appId = pick(row, "patientAppId", "PatientAppId");
+                  const reason = pick(row, "reason", "Reason");
+                  return (
+                    <li
+                      key={id}
+                      className="d-flex justify-content-between align-items-start gap-2 py-3 border-bottom"
+                    >
+                      <div>
+                        <div className="d-flex align-items-center gap-2">
+                          <strong>{patientName || `Patient ${patientId ?? "—"}`}</strong>
+                          <Badge color={STATUS_COLOR[rowStatus] || "secondary"}>{rowStatus}</Badge>
+                        </div>
+                        <div className="small text-muted">
+                          Refill #{id} · eRx #{erxId ?? "—"}
+                          {appId ? ` · Appointment #${appId}` : ""}
+                        </div>
+                        <div className="small text-muted">
+                          Requested {formatDateTime(pick(row, "createdAt", "CreatedAt"))}
+                          {pick(row, "decidedAt", "DecidedAt")
+                            ? ` · Decided ${formatDateTime(pick(row, "decidedAt", "DecidedAt"))}`
+                            : ""}
+                        </div>
+                        {reason ? <div className="small text-danger">Reason: {reason}</div> : null}
+                      </div>
+                      <HiddenLink
+                        className="btn btn-sm btn-soft-primary clinic-action-btn"
+                        to={`/doctor/mobile/refill/detail?refillId=${id}`}
+                      >
+                        <i className="ri-eye-line" aria-hidden="true" />
+                        {rowStatus === "PENDING" ? "Review" : "Open"}
+                      </HiddenLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
+        </div>
       </Container>
     </div>
   );

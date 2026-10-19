@@ -103,12 +103,23 @@ const RefillDetailPage = () => {
   };
 
   return (
-    <div className="page-content" data-testid="refill-detail">
-      <Container fluid className="py-4" style={{ maxWidth: 760 }}>
-        <h4 className="mb-2">Refill {id ? `#${id}` : "—"}</h4>
-        <p className="text-muted small mb-3">
-          Review the signed prescription, then approve or reject. The prescription is not editable here.
-        </p>
+    <div
+      className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page"
+      data-testid="refill-detail"
+    >
+      <Container fluid>
+        <div className="clinic-page-header">
+          <div>
+            <h2 className="clinic-page-title">Refill {id ? `#${id}` : "—"}</h2>
+            <p className="clinic-page-subtitle mb-0">
+              Review the signed prescription, then approve or reject. The prescription is not editable here.
+            </p>
+          </div>
+          <Link className="btn btn-sm btn-soft-secondary clinic-action-btn" to="/doctor/mobile/refill">
+            <i className="ri-arrow-left-line" aria-hidden="true" />
+            Back to inbox
+          </Link>
+        </div>
 
         {!id ? (
           <p className="text-muted" data-testid="refill-detail-empty">
@@ -129,105 +140,107 @@ const RefillDetailPage = () => {
         ) : null}
 
         {!loading && refill ? (
-          <div className="border rounded p-4 mb-3" data-testid="refill-detail-body">
-            <div className="d-flex flex-wrap justify-content-between gap-2 mb-3">
-              <div>
-                <div className="fw-semibold">
-                  {pick(refill, "patientName", "PatientName") || `Patient ${pick(refill, "patientId", "PatientId")}`}
+          <div className="card admin-dash-card mb-3" data-testid="refill-detail-body">
+            <div className="card-body">
+              <div className="d-flex flex-wrap justify-content-between gap-2 mb-3">
+                <div>
+                  <div className="fw-semibold">
+                    {pick(refill, "patientName", "PatientName") || `Patient ${pick(refill, "patientId", "PatientId")}`}
+                  </div>
+                  <div className="small text-muted">
+                    eRx #{pick(refill, "erxSnapshotId", "ErxSnapshotId")}
+                    {pick(refill, "patientAppId", "PatientAppId")
+                      ? ` · Appointment #${pick(refill, "patientAppId", "PatientAppId")}`
+                      : ""}
+                    {` · Signed ${formatDateTime(detail?.signedAt ?? detail?.SignedAt)}`}
+                  </div>
+                  <div className="small text-muted">
+                    Requested {formatDateTime(pick(refill, "createdAt", "CreatedAt"))}
+                    {pick(refill, "decidedAt", "DecidedAt")
+                      ? ` · Decided ${formatDateTime(pick(refill, "decidedAt", "DecidedAt"))}`
+                      : ""}
+                  </div>
                 </div>
-                <div className="small text-muted">
-                  eRx #{pick(refill, "erxSnapshotId", "ErxSnapshotId")}
-                  {pick(refill, "patientAppId", "PatientAppId")
-                    ? ` · Appointment #${pick(refill, "patientAppId", "PatientAppId")}`
-                    : ""}
-                  {` · Signed ${formatDateTime(detail?.signedAt ?? detail?.SignedAt)}`}
-                </div>
-                <div className="small text-muted">
-                  Requested {formatDateTime(pick(refill, "createdAt", "CreatedAt"))}
-                  {pick(refill, "decidedAt", "DecidedAt")
-                    ? ` · Decided ${formatDateTime(pick(refill, "decidedAt", "DecidedAt"))}`
-                    : ""}
-                </div>
-              </div>
-              <div>
-                <Badge color={STATUS_COLOR[status] || "secondary"} className="fs-6">
+                <Badge color={STATUS_COLOR[status] || "secondary"} className="fs-6 align-self-start">
                   {status || "—"}
                 </Badge>
               </div>
-            </div>
 
-            <h6 className="mb-2">Prescription</h6>
-            {items.length === 0 ? (
-              <p className="small text-muted">No medicines on this prescription.</p>
-            ) : (
-              <Table size="sm" bordered responsive className="mb-3">
-                <thead className="table-light">
-                  <tr>
-                    <th>Remedy</th>
-                    <th>Potency</th>
-                    <th>Dose</th>
-                    <th>Frequency</th>
-                    <th>Duration</th>
-                    <th>Instructions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => (
-                    <tr key={`${pick(item, "remedyCode", "RemedyCode")}-${index}`}>
-                      <td>{pick(item, "remedyName", "RemedyName") || pick(item, "remedyCode", "RemedyCode") || "—"}</td>
-                      <td>{pick(item, "potencyCode", "PotencyCode") || "—"}</td>
-                      <td>{pick(item, "dose", "Dose") || "—"}</td>
-                      <td>{pick(item, "frequency", "Frequency") || "—"}</td>
-                      <td>{pick(item, "duration", "Duration") || "—"}</td>
-                      <td>{pick(item, "instructions", "Instructions") || "—"}</td>
+              <h6 className="mb-2">Prescription</h6>
+              {items.length === 0 ? (
+                <p className="small text-muted">No medicines on this prescription.</p>
+              ) : (
+                <Table size="sm" responsive className="mb-3 clinic-data-table">
+                  <thead>
+                    <tr>
+                      <th>Remedy</th>
+                      <th>Potency</th>
+                      <th>Dose</th>
+                      <th>Frequency</th>
+                      <th>Duration</th>
+                      <th>Instructions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            )}
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={`${pick(item, "remedyCode", "RemedyCode")}-${index}`}>
+                        <td>{pick(item, "remedyName", "RemedyName") || pick(item, "remedyCode", "RemedyCode") || "—"}</td>
+                        <td>{pick(item, "potencyCode", "PotencyCode") || "—"}</td>
+                        <td>{pick(item, "dose", "Dose") || "—"}</td>
+                        <td>{pick(item, "frequency", "Frequency") || "—"}</td>
+                        <td>{pick(item, "duration", "Duration") || "—"}</td>
+                        <td>{pick(item, "instructions", "Instructions") || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
 
-            {isPending ? (
-              <>
-                <div className="d-flex flex-wrap gap-2 mb-3">
+              {isPending ? (
+                <>
+                  <div className="clinic-table-actions mb-3">
+                    <button
+                      type="button"
+                      className="btn btn-sm clinic-primary-btn"
+                      disabled={busy}
+                      onClick={handleApprove}
+                      aria-label="Approve refill"
+                    >
+                      <i className="ri-check-line" aria-hidden="true" />
+                      {busy ? "Working…" : "Approve"}
+                    </button>
+                  </div>
+                  <label className="form-label" htmlFor="refill-reject-reason">
+                    Reject reason
+                  </label>
+                  <textarea
+                    id="refill-reject-reason"
+                    className="form-control mb-2"
+                    rows={3}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    aria-label="Reject reason"
+                    placeholder="Required to reject"
+                    disabled={busy}
+                  />
                   <button
                     type="button"
-                    className="btn btn-primary"
-                    disabled={busy}
-                    onClick={handleApprove}
-                    aria-label="Approve refill"
+                    className="btn btn-sm btn-soft-danger clinic-action-btn"
+                    disabled={busy || !reason.trim()}
+                    onClick={handleReject}
+                    aria-label="Reject refill"
                   >
-                    {busy ? "Working…" : "Approve"}
+                    <i className="ri-close-line" aria-hidden="true" />
+                    Reject
                   </button>
-                </div>
-                <label className="form-label" htmlFor="refill-reject-reason">
-                  Reject reason
-                </label>
-                <textarea
-                  id="refill-reject-reason"
-                  className="form-control mb-2"
-                  rows={3}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  aria-label="Reject reason"
-                  placeholder="Required to reject"
-                  disabled={busy}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline-danger"
-                  disabled={busy || !reason.trim()}
-                  onClick={handleReject}
-                  aria-label="Reject refill"
-                >
-                  Reject
-                </button>
-              </>
-            ) : (
-              <p className="small text-muted mb-0">
-                This refill is {status.toLowerCase() || "closed"}. No further action.
-                {pick(refill, "reason", "Reason") ? ` Reason: ${pick(refill, "reason", "Reason")}` : ""}
-              </p>
-            )}
+                </>
+              ) : (
+                <p className="small text-muted mb-0">
+                  This refill is {status.toLowerCase() || "closed"}. No further action.
+                  {pick(refill, "reason", "Reason") ? ` Reason: ${pick(refill, "reason", "Reason")}` : ""}
+                </p>
+              )}
+            </div>
           </div>
         ) : null}
 
@@ -242,10 +255,6 @@ const RefillDetailPage = () => {
             {notice}
           </div>
         ) : null}
-
-        <Link className="btn btn-outline-secondary" to="/doctor/mobile/refill">
-          Back to inbox
-        </Link>
       </Container>
     </div>
   );
