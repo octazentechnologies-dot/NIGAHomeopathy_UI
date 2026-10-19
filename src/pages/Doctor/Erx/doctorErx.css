@@ -1,3 +1,32 @@
+.erx-page--embedded {
+  padding: 0.75rem 0.85rem 1rem;
+  max-height: min(78vh, 820px);
+  overflow: auto;
+}
+
+.erx-page--embedded .clinic-page-subtitle {
+  font-size: 0.78rem;
+}
+
+.erx-page__locked-visit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.erx-page__locked-visit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #e8f4fc;
+  color: #0b6e99;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .erx-page {
   --erx-border: var(--minimal-card-border, #b9b9b9);
   --erx-divider: #eef2f6;

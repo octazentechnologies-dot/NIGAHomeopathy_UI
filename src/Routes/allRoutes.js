@@ -160,7 +160,7 @@ import ListRubricBenchmarkDashboard from "../pages/Admin/RubricIntelligence/List
 import DoctorDashboard from "../pages/Doctor/Dashboard";
 import PatientBoardRoute from "./PatientBoardRoute";
 import AnatomyPage from "../pages/AnatomyPage";
-import DoctorTeleconsultPage from "../pages/Doctor/Teleconsult/DoctorTeleconsultPage";
+import DoctorTeleConsultationPage from "../pages/Doctor/Teleconsult/DoctorTeleConsultationPage";
 import AccountDashboard from "../pages/Account/Dashboard";
 import PharmacyDashboard from "../pages/Pharmacy/Dashboard";
 import FamilyMembers from "../pages/Family/FamilyMembers";
@@ -169,7 +169,6 @@ import ReceptionDashboard from "../pages/Reception/Dashboard";
 import DoctorEarningsSummaryPage from "../pages/Doctor/Earnings/DoctorEarningsSummaryPage";
 import DoctorSmsPage from "../pages/Doctor/Sms/DoctorSmsPage";
 import ClinicReportPage from "../pages/Doctor/Reports/ClinicReportPage";
-import SecurityPosturePage from "../pages/Admin/Security/SecurityPosturePage";
 import DoctorConsultFeesPage from "../pages/Doctor/ConsultFees/DoctorConsultFeesPage";
 import DoctorErxPage from "../pages/Doctor/Erx/DoctorErxPage";
 import AccountFinancePage from "../pages/Account/AccountFinancePage";
@@ -441,7 +440,6 @@ import UserProfile from "../pages/Authentication/user-profile";
 import EnquiryInboxPage from "../pages/Admin/EnquiryInboxPage";
 import AssistedBookingPage from "../pages/Admin/AssistedBookingPage";
 import ReceptionStaffPage from "../pages/Doctor/ReceptionStaff/ReceptionStaffPage";
-import ReceptionHome from "../pages/Reception/ReceptionHome";
 import DoctorMobileContextPage from "../pages/Doctor/Mobile/DoctorMobileContextPage";
 import DoctorVideoRoomPage from "../pages/Doctor/Mobile/DoctorVideoRoomPage";
 import RefillInboxPage from "../pages/Doctor/Mobile/RefillInboxPage";
@@ -634,8 +632,10 @@ const authProtectedRoutes = [
   { path: "doctor/patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   // Legacy URLs must be auth+role guarded; otherwise public /* splat shows the marketing site.
   { path: "patientboard", component: <PatientBoardRoute />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
-  { path: "doctor/tele", component: <DoctorTeleconsultPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
-  { path: "doctor/telemedicine", component: <Navigate to="/doctor/tele" replace />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/tele-consultation", component: <DoctorTeleConsultationPage />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/tele", component: <Navigate to="/doctor/tele-consultation" replace />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/telemedicine", component: <Navigate to="/doctor/tele-consultation" replace />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
+  { path: "doctor/teleconsultation", component: <Navigate to="/doctor/tele-consultation" replace />, allowedRoles: DOCTOR_DASHBOARD_ROUTE_ROLES },
   { path: "doctor/anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "anatomy", component: <AnatomyPage />, allowedRoles: DOCTOR_CASE_ROUTE_ROLES },
   { path: "doctor/reception-staff", component: <ReceptionStaffPage />, allowedRoles: DOCTOR_STAFF_ROUTE_ROLES },
@@ -693,7 +693,7 @@ const authProtectedRoutes = [
   { path: "admin/reports/trail", component: <AccountTrailPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/sms", component: <DoctorSmsPage mode="admin" />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/medicine-report", component: <ClinicReportPage mode="medicine" />, allowedRoles: ADMIN_PORTAL_ROLES },
-  { path: "admin/security", component: <SecurityPosturePage />, allowedRoles: ADMIN_PORTAL_ROLES },
+  { path: "admin/security", component: <Navigate to="/admin/security-audit" replace />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/security-audit", component: <SecurityAuditPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   { path: "admin/consent-audit", component: <ConsentAuditPage />, allowedRoles: ADMIN_PORTAL_ROLES },
   // Package top-ups UI removed from admin nav; keep a quiet redirect if bookmarked.
@@ -726,10 +726,10 @@ const authProtectedRoutes = [
   { path: "patient/waitlist", component: <PatientCareHub tab="waitlist" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/check-in", component: <PatientCareHub tab="checkin" />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   // Reception Side //
-  // Desk UI = Reception/Dashboard (widgets + quick actions + today's list).
-  // ReceptionHome remains available at /reception/home for the older layout.
+  // Desk UI = UI-developer layout (SummaryWidgets + Quick Actions + Today's list).
+  // Legacy ReceptionHome is retired; all reception desk routes use Dashboard.
   { path: "receptiondashboard", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
-  { path: "reception/home", component: <ReceptionHome />, allowedRoles: RECEPTION_ROUTE_ROLES },
+  { path: "reception/home", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
   { path: "reception/appointments", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
   { path: "reception/patients", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },
   { path: "reception/payments", component: <ReceptionDashboard />, allowedRoles: RECEPTION_ROUTE_ROLES },

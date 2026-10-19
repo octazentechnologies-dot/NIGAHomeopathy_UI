@@ -37,7 +37,7 @@ const AdminDashboard = () => {
     ["/admin/sms", "SMS templates"],
     ["/admin/medicine-report", "Medicine report"],
     ["/admin/consult-payments", "Consult payments"],
-    ["/admin/security", "Security posture"],
+    ["/admin/security-audit", "Security audit"],
     ["/admin/listusers", "Users"],
     ["/admin/trust-queue", "Trust queue"],
   ];

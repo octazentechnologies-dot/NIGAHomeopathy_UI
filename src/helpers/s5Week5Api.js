@@ -33,7 +33,6 @@ export const medicineReport = () => nigahomeoAPI.get("/Reports/MedicineOrders", 
 export const earningsBuckets = (params) => nigahomeoAPI.get("/Earnings/Buckets", params || {});
 export const exportUsers = () => nigahomeoAPI.get("/Admin/Users/Export", null);
 export const importUsers = (payload) => nigahomeoAPI.post("/Admin/Users/Import", payload);
-export const securityPosture = () => nigahomeoAPI.get("/Security/Posture", null);
 export const whatsAppBulk = () => nigahomeoAPI.get("/WhatsApp/Bulk", null);
 export const whatsAppAudience = () => nigahomeoAPI.get("/WhatsApp/Audience", null);
 export const registerDevice = (payload) => nigahomeoAPI.post("/Devices/Register", payload);

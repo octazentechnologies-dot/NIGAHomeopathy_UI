@@ -1,4 +1,4 @@
-.telemedicine-dashboard-page {
+.tele-consultation-dashboard-page {
   --tele-title: #1e3a5f;
   --tele-muted: #64748b;
   --tele-blue: #25a0e2;
@@ -6,31 +6,31 @@
   --tele-card-border: #e8eef5;
 }
 
-.telemedicine-dashboard-page .telemedicine-kpi-row.doctor-dashboard-kpi-row {
+.tele-consultation-dashboard-page .tele-consultation-kpi-row.doctor-dashboard-kpi-row {
   display: flex;
   flex-wrap: wrap;
   margin-left: -0.35rem;
   margin-right: -0.35rem;
 }
 
-.telemedicine-dashboard-page .telemedicine-kpi-col {
+.tele-consultation-dashboard-page .tele-consultation-kpi-col {
   flex: 1 1 0;
   min-width: 0;
   padding-left: 0.35rem;
   padding-right: 0.35rem;
 }
 
-.telemedicine-dashboard-page .telemedicine-kpi-col .doctor-kpi-card {
+.tele-consultation-dashboard-page .tele-consultation-kpi-col .doctor-kpi-card {
   width: 100%;
   height: 100%;
   margin-bottom: 0.5rem !important;
 }
 
-.telemedicine-dashboard-page .telemedicine-status-kpi .card-body {
+.tele-consultation-dashboard-page .tele-consultation-status-kpi .card-body {
   min-height: 4.1rem;
 }
 
-.telemedicine-toggle {
+.tele-consultation-toggle {
   position: relative;
   display: inline-flex;
   flex: 0 0 auto;
@@ -40,14 +40,14 @@
   cursor: pointer;
 }
 
-.telemedicine-toggle input {
+.tele-consultation-toggle input {
   position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.telemedicine-toggle__track {
+.tele-consultation-toggle__track {
   position: absolute;
   inset: 0;
   border-radius: 999px;
@@ -55,7 +55,7 @@
   transition: background-color 0.2s ease;
 }
 
-.telemedicine-toggle__track::after {
+.tele-consultation-toggle__track::after {
   content: "";
   position: absolute;
   top: 0.15rem;
@@ -68,15 +68,15 @@
   transition: transform 0.2s ease;
 }
 
-.telemedicine-toggle input:checked + .telemedicine-toggle__track {
+.tele-consultation-toggle input:checked + .tele-consultation-toggle__track {
   background: var(--tele-online);
 }
 
-.telemedicine-toggle input:checked + .telemedicine-toggle__track::after {
+.tele-consultation-toggle input:checked + .tele-consultation-toggle__track::after {
   transform: translateX(1.3rem);
 }
 
-.telemedicine-edit-link {
+.tele-consultation-edit-link {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -89,18 +89,18 @@
   cursor: pointer;
 }
 
-.telemedicine-edit-link:hover {
+.tele-consultation-edit-link:hover {
   color: #1a8bc9;
 }
 
-.telemedicine-panel-card {
+.tele-consultation-panel-card {
   border: 1px solid var(--tele-card-border) !important;
   border-radius: 0.65rem !important;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06) !important;
   overflow: hidden;
 }
 
-.telemedicine-panel-card__header {
+.tele-consultation-panel-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -111,26 +111,26 @@
   padding: 0.85rem 1rem !important;
 }
 
-.telemedicine-panel-card__title {
+.tele-consultation-panel-card__title {
   color: var(--tele-title);
   font-size: 0.875rem;
   font-weight: 600;
 }
 
-.telemedicine-panel-search {
+.tele-consultation-panel-search {
   position: relative;
   width: min(100%, 14rem);
 }
 
-.telemedicine-panel-search .form-control,
-.telemedicine-panel-search .form-control-sm {
+.tele-consultation-panel-search .form-control,
+.tele-consultation-panel-search .form-control-sm {
   min-height: 1.5rem;
   height: 1.5rem;
   padding: 0.1rem 0.45rem 0.1rem 1.85rem !important;
   font-size: 0.75rem;
 }
 
-.telemedicine-panel-search .search-icon {
+.tele-consultation-panel-search .search-icon {
   position: absolute;
   left: 0.45rem;
   top: 50%;
@@ -142,13 +142,13 @@
   z-index: 2;
 }
 
-.telemedicine-dashboard-page .telemedicine-patient-table.dashboard-patient-table {
+.tele-consultation-dashboard-page .tele-consultation-patient-table.dashboard-patient-table {
   --bs-table-bg: #ffffff;
   --bs-table-hover-bg: #f0f9ff;
   margin-bottom: 0 !important;
 }
 
-.telemedicine-dashboard-page .telemedicine-patient-table.dashboard-patient-table > :not(caption) > * > * {
+.tele-consultation-dashboard-page .tele-consultation-patient-table.dashboard-patient-table > :not(caption) > * > * {
   padding: 0.45rem 0.4rem !important;
   line-height: 1.15 !important;
   vertical-align: middle;
@@ -156,7 +156,7 @@
   background-color: #ffffff;
 }
 
-.telemedicine-dashboard-page .telemedicine-patient-table.dashboard-patient-table thead th {
+.tele-consultation-dashboard-page .tele-consultation-patient-table.dashboard-patient-table thead th {
   padding: 0.45rem 0.4rem !important;
   font-weight: 600;
   font-size: 0.6875rem !important;
@@ -168,20 +168,20 @@
   white-space: nowrap;
 }
 
-.telemedicine-dashboard-page .telemedicine-patient-table .btn.btn-sm {
+.tele-consultation-dashboard-page .tele-consultation-patient-table .btn.btn-sm {
   padding: 0.12rem 0.4rem;
   font-size: 0.7rem;
   line-height: 1.2;
 }
 
-.telemedicine-patient-name {
+.tele-consultation-patient-name {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   min-width: 0;
 }
 
-.telemedicine-instant-icon {
+.tele-consultation-instant-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -195,7 +195,7 @@
   line-height: 1;
 }
 
-.telemedicine-chat-history {
+.tele-consultation-chat-history {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -203,16 +203,16 @@
   overflow: auto;
 }
 
-.telemedicine-chat-history__msg {
+.tele-consultation-chat-history__msg {
   max-width: 92%;
 }
 
-.telemedicine-chat-history__msg--mine {
+.tele-consultation-chat-history__msg--mine {
   align-self: flex-end;
   text-align: right;
 }
 
-.telemedicine-chat-history__meta {
+.tele-consultation-chat-history__meta {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
@@ -220,19 +220,19 @@
   font-size: 0.6875rem;
 }
 
-.telemedicine-chat-history__msg--mine .telemedicine-chat-history__meta {
+.tele-consultation-chat-history__msg--mine .tele-consultation-chat-history__meta {
   justify-content: flex-end;
 }
 
-.telemedicine-chat-history__meta strong {
+.tele-consultation-chat-history__meta strong {
   color: #495057;
 }
 
-.telemedicine-chat-history__meta span {
+.tele-consultation-chat-history__meta span {
   color: #878a99;
 }
 
-.telemedicine-chat-history__bubble {
+.tele-consultation-chat-history__bubble {
   display: inline-block;
   background: #eef2f7;
   color: #495057;
@@ -243,11 +243,11 @@
   text-align: left;
 }
 
-.telemedicine-chat-history__msg--mine .telemedicine-chat-history__bubble {
+.tele-consultation-chat-history__msg--mine .tele-consultation-chat-history__bubble {
   background: #dbeafe;
 }
 
-.telemedicine-chat-history__file {
+.tele-consultation-chat-history__file {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -257,29 +257,29 @@
   text-align: left;
 }
 
-.telemedicine-chat-history__file i {
+.tele-consultation-chat-history__file i {
   color: #405189;
   font-size: 1.1rem;
 }
 
-.telemedicine-chat-history__file strong {
+.tele-consultation-chat-history__file strong {
   display: block;
   font-size: 0.75rem;
   color: #495057;
 }
 
-.telemedicine-chat-history__file span {
+.tele-consultation-chat-history__file span {
   font-size: 0.625rem;
   color: #878a99;
 }
 
-.telemedicine-rx-detail {
+.tele-consultation-rx-detail {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
 }
 
-.telemedicine-rx-detail__row {
+.tele-consultation-rx-detail__row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -288,26 +288,26 @@
   border-bottom: 1px solid #e9ebec;
 }
 
-.telemedicine-rx-detail__row--block {
+.tele-consultation-rx-detail__row--block {
   flex-direction: column;
   align-items: flex-start;
   border-bottom: none;
   padding-bottom: 0;
 }
 
-.telemedicine-rx-detail__row span {
+.tele-consultation-rx-detail__row span {
   color: #878a99;
   font-size: 0.6875rem;
   font-weight: 500;
 }
 
-.telemedicine-rx-detail__row strong {
+.tele-consultation-rx-detail__row strong {
   color: #495057;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
-.telemedicine-hours-list {
+.tele-consultation-hours-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -316,7 +316,7 @@
   gap: 0.4rem;
 }
 
-.telemedicine-hours-list li {
+.tele-consultation-hours-list li {
   display: flex;
   align-items: flex-start;
   gap: 0.45rem;
@@ -326,7 +326,7 @@
   line-height: 1.45;
 }
 
-.telemedicine-hours-list__content {
+.tele-consultation-hours-list__content {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -334,7 +334,7 @@
   gap: 0.15rem;
 }
 
-.telemedicine-hours-list__row {
+.tele-consultation-hours-list__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -342,7 +342,7 @@
   line-height: 1.4;
 }
 
-.telemedicine-hours-list__session {
+.tele-consultation-hours-list__session {
   color: #64748b;
   font-size: 0.6875rem;
   font-weight: 600;
@@ -351,21 +351,21 @@
   line-height: 1.4;
 }
 
-.telemedicine-hours-list__duration {
+.tele-consultation-hours-list__duration {
   color: #16a34a;
   font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.4;
 }
 
-.telemedicine-hours-list__time {
+.tele-consultation-hours-list__time {
   font-size: 0.75rem;
   font-weight: 500;
   color: #334155;
   line-height: 1.45;
 }
 
-.telemedicine-hours-list__icon {
+.tele-consultation-hours-list__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -379,26 +379,26 @@
   flex: 0 0 auto;
 }
 
-.telemedicine-date-hours-body {
+.tele-consultation-date-hours-body {
   padding: 0.65rem 0.75rem !important;
   max-height: 28rem;
   overflow: auto;
 }
 
-.telemedicine-date-hours-list {
+.tele-consultation-date-hours-list {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
 }
 
-.telemedicine-date-hours-item {
+.tele-consultation-date-hours-item {
   padding: 0.5rem 0.6rem;
   border: 1px solid #e8eef5;
   border-radius: 0.4rem;
   background: #f8fafc;
 }
 
-.telemedicine-date-hours-item__head {
+.tele-consultation-date-hours-item__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -407,7 +407,7 @@
   line-height: 1.4;
 }
 
-.telemedicine-date-hours-item__title {
+.tele-consultation-date-hours-item__title {
   display: flex;
   align-items: baseline;
   gap: 0.35rem;
@@ -415,21 +415,21 @@
   line-height: 1.4;
 }
 
-.telemedicine-date-hours-item__label {
+.tele-consultation-date-hours-item__label {
   color: #334155;
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.4;
 }
 
-.telemedicine-date-hours-item__date {
+.tele-consultation-date-hours-item__date {
   color: var(--tele-muted, #94a3b8);
   font-size: 0.6875rem;
   font-weight: 400;
   line-height: 1.4;
 }
 
-.telemedicine-date-hours-item__meta {
+.tele-consultation-date-hours-item__meta {
   flex: 0 0 auto;
   color: #64748b;
   font-size: 0.6875rem;
@@ -438,20 +438,20 @@
   line-height: 1.4;
 }
 
-.telemedicine-date-hours-item__closed {
+.tele-consultation-date-hours-item__closed {
   color: #94a3b8;
   font-size: 0.6875rem;
   font-weight: 400;
   line-height: 1.4;
 }
 
-.telemedicine-days-checkboxes {
+.tele-consultation-days-checkboxes {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem 0.65rem;
 }
 
-.telemedicine-day-check {
+.tele-consultation-day-check {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -467,28 +467,28 @@
   user-select: none;
 }
 
-.telemedicine-day-check .form-check-input,
-.telemedicine-day-check input[type="checkbox"] {
+.tele-consultation-day-check .form-check-input,
+.tele-consultation-day-check input[type="checkbox"] {
   margin: 0;
   width: 0.9rem;
   height: 0.9rem;
   cursor: pointer;
 }
 
-.telemedicine-day-check:has(input:checked) {
+.tele-consultation-day-check:has(input:checked) {
   border-color: #93c5fd;
   background: #eff6ff;
   color: #1d4ed8;
 }
 
 @media (max-width: 991.98px) {
-  .telemedicine-dashboard-page .telemedicine-kpi-col {
+  .tele-consultation-dashboard-page .tele-consultation-kpi-col {
     flex: 1 1 45%;
   }
 }
 
 @media (max-width: 575.98px) {
-  .telemedicine-dashboard-page .telemedicine-kpi-col {
+  .tele-consultation-dashboard-page .tele-consultation-kpi-col {
     flex: 1 1 100%;
   }
 }

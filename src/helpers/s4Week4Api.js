@@ -58,7 +58,7 @@ export const requestPayoutOtp = (id) => nigahomeoAPI.post(`/Account/Payouts/${id
 export const approvePayout = (id, payload) => nigahomeoAPI.post(`/Account/Payouts/${id}/Approve`, payload);
 export const rejectPayout = (id, payload) => nigahomeoAPI.post(`/Account/Payouts/${id}/Reject`, payload);
 export const listExceptions = (status) =>
-  nigahomeoAPI.get("/Account/Exceptions", status ? { status } : { status: "OPEN" });
+  nigahomeoAPI.get("/Account/Exceptions", { status: status || "OPEN" });
 export const retryException = (id) => nigahomeoAPI.post(`/Account/Exceptions/${id}/Retry`, null);
 export const resolveException = (id, payload) =>
   nigahomeoAPI.post(`/Account/Exceptions/${id}/Resolve`, payload);
@@ -80,6 +80,7 @@ export const listPharmacySellers = (area) =>
   nigahomeoAPI.get("/Pharmacy/Sellers", area ? { area } : null);
 export const listPharmacyPartners = () => nigahomeoAPI.get("/Pharmacy/Partners", null);
 export const activatePharmacy = (id) => nigahomeoAPI.post(`/Pharmacy/${id}/Activate`, null);
+export const suspendPharmacy = (id) => nigahomeoAPI.post(`/Pharmacy/${id}/Suspend`, null);
 export const pharmacyQueue = () => nigahomeoAPI.get("/Pharmacy/Orders", null);
 export const markMedicineReady = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Ready`, null);
 export const dispatchMedicine = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Dispatch`, null);

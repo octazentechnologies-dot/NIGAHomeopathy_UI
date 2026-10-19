@@ -59,6 +59,13 @@ const ACCOUNT_REPORT_LINKS = [
   { path: "consult-recon", label: "Consultation recon", icon: "ri-exchange-line", hint: "Online vs clinic consult collections by doctor." },
   { path: "doctor-earnings", label: "Doctor earnings", icon: "ri-money-dollar-circle-line", hint: "Per-doctor visit totals." },
   { path: "medicine-ledger", label: "Medicine ledger", icon: "ri-capsule-line", hint: "Medicine money kept apart from consults." },
+  {
+    path: "medicine-orders",
+    label: "Medicine orders",
+    icon: "ri-capsule-fill",
+    hint: "Order counts, quotes, patients, and recent order detail.",
+    adminTo: "/admin/medicine-report",
+  },
   { path: "tax", label: "GST & tax", icon: "ri-percent-line", hint: "GST rate, totals and download." },
   { path: "settlements", label: "Settlements", icon: "ri-shake-hands-line", hint: "Settlement runs and their lines." },
   { path: "exceptions", label: "Exceptions", icon: "ri-error-warning-line", hint: "Open payment exceptions to resolve." },
@@ -306,11 +313,21 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   const adminReportsBase = location.pathname.startsWith("/admin");
   const reportsHome = adminReportsBase ? "/admin/reports" : "/account/reports";
   const dashboardHome = adminReportsBase ? "/dashboard" : "/accountdashboard";
+  /** Opened from Reports hub card (/admin/reports/…) vs standalone More menu (/admin/payment-exceptions). */
+  const fromReportsHub =
+    /^\/admin\/reports\//i.test(location.pathname) ||
+    (!adminReportsBase && section !== "reports" && location.pathname.startsWith("/account/"));
+  const standaloneAdminFinance =
+    adminReportsBase && !location.pathname.startsWith("/admin/reports");
   const reportLinks = useMemo(
     () =>
-      ACCOUNT_REPORT_LINKS.map((item) => ({
+      ACCOUNT_REPORT_LINKS.filter((item) => !(item.adminTo && !adminReportsBase)).map((item) => ({
         ...item,
-        to: adminReportsBase ? `/admin/reports/${item.path}` : `/account/${item.path}`,
+        to: item.adminTo
+          ? item.adminTo
+          : adminReportsBase
+            ? `/admin/reports/${item.path}`
+            : `/account/${item.path}`,
       })),
     [adminReportsBase]
   );
@@ -320,6 +337,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [exceptionStatus, setExceptionStatus] = useState("OPEN");
   const [otpById, setOtpById] = useState({});
   const [otpMetaById, setOtpMetaById] = useState({});
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -394,7 +412,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           response = await listSettlements();
           break;
         case "exceptions":
-          response = await listExceptions("OPEN");
+          response = await listExceptions(exceptionStatus || "OPEN");
           break;
         case "tax":
           response = await getTaxReport({ from: taxFrom, to: taxTo });
@@ -448,7 +466,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     } finally {
       setLoading(false);
     }
-  }, [section, taxFrom, taxTo, ledgerFrom, ledgerTo, ledgerStream, clinicFrom, clinicTo]);
+  }, [section, taxFrom, taxTo, ledgerFrom, ledgerTo, ledgerStream, clinicFrom, clinicTo, exceptionStatus]);
 
   useEffect(() => {
     load();
@@ -460,6 +478,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
     setDetail(null);
     setReconDoctorId(null);
     setReconPatientId(null);
+    setExceptionStatus("OPEN");
   }, [section]);
 
   const clinicOrders = useMemo(() => rows.filter(isClinicCollection), [rows]);
@@ -864,11 +883,18 @@ const AccountFinancePage = ({ section = "ledger" }) => {
             <p className="clinic-page-subtitle account-page-subtitle mb-0">{meta.subtitle}</p>
           </div>
           <div className="clinic-table-actions">
-            <Link to={dashboardHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
-              <i className="ri-home-4-line" aria-hidden="true" />
-              {adminReportsBase ? "Admin home" : "Account home"}
-            </Link>
-            {adminReportsBase && section !== "reports" ? (
+            {fromReportsHub ? (
+              <Link to={reportsHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
+                <i className="ri-arrow-left-line" aria-hidden="true" />
+                Back to reports
+              </Link>
+            ) : (
+              <Link to={dashboardHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
+                <i className="ri-home-4-line" aria-hidden="true" />
+                {adminReportsBase ? "Admin home" : "Account home"}
+              </Link>
+            )}
+            {standaloneAdminFinance ? (
               <Link to={reportsHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
                 <i className="ri-bar-chart-line" aria-hidden="true" />
                 Reports
@@ -1342,7 +1368,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               <div className="text-center py-4">
                 <Spinner size="sm" /> Loading…
               </div>
-            ) : rows.length === 0 ? (
+            ) : rows.length === 0 && section !== "exceptions" ? (
               <p className="text-muted mb-0">
                 {section === "doctor-earnings" ? "Summary loaded above. Line items appear when visits have captures."
                   : section === "tax" ? "No ledger GST lines in this date range. Rate and totals above are live from TaxConfig."
@@ -1663,77 +1689,128 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 </Table>
               </div>
             ) : section === "exceptions" ? (
-              <div className="table-responsive">
-                <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
-                  <thead>
-                    <tr>
-                      <th>Exception</th>
-                      <th>When</th>
-                      <th>Order</th>
-                      <th>Kind</th>
-                      <th>Detail</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, index) => {
-                      const id = pick(row, "paymentExceptionId", "PaymentExceptionId") || index;
-                      return (
-                        <tr key={`${id}-${index}`}>
-                          <td>{id}</td>
-                          <td>{formatWhen(pick(row, "createdAt", "CreatedAt"))}</td>
-                          <td>{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
-                          <td>{pick(row, "kind", "Kind") || "—"}</td>
-                          <td className="small">{pick(row, "detail", "Detail") || "—"}</td>
-                          <td>{pick(row, "status", "Status") || "—"}</td>
-                          <td>
-                            <div className="d-flex gap-1">
-                              <Button
-                                size="sm"
-                                color="soft-primary"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await retryException(id);
-                                    setNote("Retry queued.");
-                                    await load();
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Retry
-                              </Button>
-                              <Button
-                                size="sm"
-                                color="soft-success"
-                                disabled={busyId === id}
-                                onClick={async () => {
-                                  setBusyId(id);
-                                  try {
-                                    await resolveException(id, { note: "Resolved from Account screen" });
-                                    setNote("Exception resolved.");
-                                    await load();
-                                  } catch (err) {
-                                    setError(s4Message(err));
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                }}
-                              >
-                                Resolve
-                              </Button>
-                            </div>
-                          </td>
+              <div>
+                <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+                  {[
+                    { id: "OPEN", label: "Open" },
+                    { id: "RETRIED", label: "Retried" },
+                    { id: "RESOLVED", label: "Resolved" },
+                    { id: "ALL", label: "All" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`btn btn-sm ${exceptionStatus === tab.id ? "btn-primary" : "btn-soft-secondary"}`}
+                      onClick={() => setExceptionStatus(tab.id)}
+                      disabled={loading}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                {rows.length === 0 ? (
+                  <p className="text-muted mb-0">
+                    {exceptionStatus === "OPEN"
+                      ? "No open payment exceptions. New gateway or collection failures will appear here."
+                      : `No ${exceptionStatus === "ALL" ? "" : exceptionStatus.toLowerCase() + " "}exceptions found.`}
+                  </p>
+                ) : (
+                  <div className="table-responsive">
+                    <Table className="table-nowrap align-middle mb-0 clinic-data-table" size="sm">
+                      <thead>
+                        <tr>
+                          <th>Exception</th>
+                          <th>When</th>
+                          <th>Order</th>
+                          <th>Kind</th>
+                          <th>Detail</th>
+                          <th>Status</th>
+                          <th>Actions</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
+                      </thead>
+                      <tbody>
+                        {rows.map((row, index) => {
+                          const id = pick(row, "paymentExceptionId", "PaymentExceptionId") || index;
+                          const status = String(pick(row, "status", "Status") || "").toUpperCase();
+                          const isOpen = status === "OPEN";
+                          return (
+                            <tr key={`${id}-${index}`}>
+                              <td>{id}</td>
+                              <td>{formatWhen(pick(row, "createdAt", "CreatedAt"))}</td>
+                              <td>{pick(row, "paymentOrderId", "PaymentOrderId") || "—"}</td>
+                              <td>{pick(row, "kind", "Kind") || "—"}</td>
+                              <td className="small">{pick(row, "detail", "Detail") || "—"}</td>
+                              <td>{status || "—"}</td>
+                              <td>
+                                {isOpen ? (
+                                  <div className="d-flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      color="soft-primary"
+                                      disabled={busyId === id}
+                                      onClick={async () => {
+                                        setBusyId(id);
+                                        try {
+                                          await retryException(id);
+                                          setNote(`Exception #${id} marked for retry.`);
+                                          await load();
+                                        } catch (err) {
+                                          setError(s4Message(err));
+                                        } finally {
+                                          setBusyId(null);
+                                        }
+                                      }}
+                                    >
+                                      Retry
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      color="soft-success"
+                                      disabled={busyId === id}
+                                      onClick={async () => {
+                                        const result = await Swal.fire({
+                                          title: `Resolve exception #${id}?`,
+                                          input: "textarea",
+                                          inputLabel: "Resolution note",
+                                          inputPlaceholder: "What was done to close this exception?",
+                                          inputAttributes: { maxlength: 500 },
+                                          showCancelButton: true,
+                                          confirmButtonText: "Resolve",
+                                          confirmButtonColor: "#25a0e2",
+                                          inputValidator: (value) => {
+                                            if (!value || value.trim().length < 3) {
+                                              return "Enter a short resolution note (at least 3 characters).";
+                                            }
+                                            return undefined;
+                                          },
+                                        });
+                                        if (!result.isConfirmed) return;
+                                        setBusyId(id);
+                                        try {
+                                          await resolveException(id, { note: String(result.value).trim() });
+                                          setNote(`Exception #${id} resolved.`);
+                                          await load();
+                                        } catch (err) {
+                                          setError(s4Message(err));
+                                        } finally {
+                                          setBusyId(null);
+                                        }
+                                      }}
+                                    >
+                                      Resolve
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span className="small text-muted">No action</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </Table>
+                  </div>
+                )}
               </div>
             ) : section === "refunds" || section === "invoices" ? (
               <div className="table-responsive">

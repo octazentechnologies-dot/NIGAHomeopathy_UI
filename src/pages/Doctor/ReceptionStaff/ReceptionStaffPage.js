@@ -319,7 +319,7 @@ const ReceptionStaffPage = () => {
                         const active = isRowActive(row);
                         const busy = actionId === id;
                         return (
-                          <tr key={id} className={active ? undefined : "table-secondary"}>
+                          <tr key={id}>
                             <td className="fw-medium">{row.fullName ?? row.FullName}</td>
                             <td>{row.userID ?? row.UserID}</td>
                             <td>{(row.emailId ?? row.EmailId) || "—"}</td>
@@ -330,7 +330,7 @@ const ReceptionStaffPage = () => {
                                   Active
                                 </Badge>
                               ) : (
-                                <Badge color="secondary" pill>
+                                <Badge color="warning" pill>
                                   Disabled
                                 </Badge>
                               )}

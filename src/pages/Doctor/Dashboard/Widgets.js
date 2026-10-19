@@ -116,6 +116,15 @@ const statusMatches = (appointmentStatus, targetStatus) => {
         normalizedAppStatus.toUpperCase() === normalizedTarget.toUpperCase();
 };
 
+/** Matches doctor dashboard teleQueueCount: IsTele flag or E-Consult status. */
+const isTeleConsultationAppointment = (appointment) => {
+    if (!appointment) return false;
+    if (appointment.isTele === true || appointment.IsTele === true) return true;
+    const mode = appointment.consultMode || appointment.ConsultMode || '';
+    if (typeof mode === 'string' && /tele|video/i.test(mode)) return true;
+    return statusMatches(appointment.status, 'E-Consult') || statusMatches(appointment.status, 'E-CONSULT');
+};
+
 const formatPatientListAppointmentDisplay = (appointment) => {
     if (appointment?.appointmentDate && appointment?.appointmentTime) {
         return `${moment(appointment.appointmentDate).format('MMM DD, YYYY')} ${moment(appointment.appointmentTime, "HH:mm:ss").format("hh:mm A")}`;
@@ -269,7 +278,7 @@ const PatientListTimeCell = ({ appointment }) => (
 
 const formatPatientListStatusLabel = (status) => {
     if (statusMatches(status, 'E-Consult') || statusMatches(status, 'E-CONSULT')) {
-        return 'Telemedicine';
+        return 'Tele Consultation';
     }
     return status || 'N/A';
 };
@@ -2271,24 +2280,22 @@ const Widgets = () => {
 
     useEffect(() => {
         let cancelled = false;
-        getDirectoryVisibility()
-            .then((raw) => {
-                if (cancelled) return;
-                const data = raw?.data ?? raw?.Data ?? raw;
+        (async () => {
             try {
+                const doctorId = getAuthDoctorId();
+                if (!doctorId) return;
                 const schedule = await getDailySchedule({
                     doctorId,
                     scheduleDate: moment().format('YYYY-MM-DD'),
                 });
-                if (!isMounted || schedule) return;
+                if (cancelled || schedule) return;
                 openScheduleSetupModal(doctorId, moment().format('YYYY-MM-DD'), true, 'dashboard');
             } catch (error) {
                 console.error('Failed to check daily schedule:', error);
             }
         })();
-
         return () => {
-            isMounted = false;
+            cancelled = true;
         };
     }, []);
 
@@ -2830,14 +2837,12 @@ const Widgets = () => {
     const [econsultPage, setEconsultPage] = useState(1);
     const econsultPageSize = 10;
 
-    // Filter appointments by status = "E-Consult" or "E-CONSULT" and search term
+    // Tele consultation modal: IsTele / Tele mode / E-Consult (same as teleQueueCount + Tele page)
     const econsultFiltered = appointmentList.filter((appointment) => {
-        // First filter by status (handle both "E-Consult" and "E-CONSULT")
-        if (!statusMatches(appointment.status, 'E-Consult') && !statusMatches(appointment.status, 'E-CONSULT')) {
+        if (!isTeleConsultationAppointment(appointment)) {
             return false;
         }
 
-        // Then filter by search term
         const needle = econsultSearch.trim().toLowerCase();
         if (!needle) return true;
 
@@ -2849,6 +2854,7 @@ const Widgets = () => {
             (appointment.mobileNo || '').toString().includes(needle)
         );
     });
+    const econsultTotalCount = appointmentList.filter(isTeleConsultationAppointment).length;
 
     const econsultTotalPages = Math.max(1, Math.ceil(econsultFiltered.length / econsultPageSize));
     const econsultSafePage = Math.min(econsultPage, econsultTotalPages);
@@ -3043,11 +3049,9 @@ const Widgets = () => {
                     className="col-6 col-md-4 col-lg-2"
                     role="button"
                     tabIndex={0}
-                    title="Click to toggle online / offline"
-                    onClick={async (event) => {
-                        event.preventDefault();
-                        if (availabilityBusy) return;
-                        const currentlyOnline = !!(counts?.isOnline || counts?.IsOnline);
+                    title="Open today's appointment slots"
+                    onClick={() => openTodaySlotsSetup()}
+                    onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             openTodaySlotsSetup();
@@ -3112,13 +3116,13 @@ const Widgets = () => {
                 </div>
                 <div
                     className="col-6 col-md-4 col-lg-2"
-                    onClick={() => navigate('/doctor/telemedicine')}
+                    onClick={() => navigate('/doctor/tele-consultation')}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            navigate('/doctor/telemedicine');
+                            navigate('/doctor/tele-consultation');
                         }
                     }}
                 >
@@ -3130,8 +3134,8 @@ const Widgets = () => {
                                 </div>
                             </div>
                             <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppEConsult ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">TELEMEDICINE</p>
+                                <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
+                                <p className="mb-0 text-muted doctor-kpi-label">TELE CONSULTATION</p>
                             </div>
                         </div>
                     </div>
@@ -4095,7 +4099,7 @@ const Widgets = () => {
                 <ModalHeader id="myModalLabel" className="patient-list-modal__header" toggle={() => { tog_econsult(); }}>
                     <PatientListModalTitle
                         icon="ri-vidicon-line"
-                        title="Telemedicine Patients"
+                        title="Tele Consultation Patients"
                         variant="simple"
                         iconColor="#25a0e2"
                     />
@@ -4116,7 +4120,7 @@ const Widgets = () => {
                                                 <div className="spinner-border spinner-border-sm me-2" role="status">
                                                     <span className="visually-hidden">Loading...</span>
                                                 </div>
-                                                Loading telemedicine patients...
+                                                Loading tele consultation patients...
                                             </div>
                                         </td>
                                     </tr>
@@ -4139,7 +4143,7 @@ const Widgets = () => {
                                             <td>
                                                 <PatientListStatusBadge
                                                     status={appointment.status}
-                                                    badgeClass={appointment.status === 'E-Consult' ? 'bg-purple' : 'bg-secondary'}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
                                             </td>
                                         </tr>
@@ -4148,7 +4152,7 @@ const Widgets = () => {
                                 {econsultPageItems.length === 0 && !appointmentListLoading && (
                                     <tr>
                                         <PatientListEmptyCell
-                                            message={econsultSearch ? 'No telemedicine patients found matching your search' : 'No telemedicine patients available'}
+                                            message={econsultSearch ? 'No tele consultation patients found matching your search' : 'No tele consultation patients available'}
                                         />
                                     </tr>
                                 )}
@@ -4160,7 +4164,7 @@ const Widgets = () => {
                             {appointmentListLoading ? (
                                 'Loading...'
                             ) : (
-                                `Showing ${econsultPageItems.length} of ${econsultFiltered.length} Telemedicine Patients ${econsultSearch ? `(filtered from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total telemedicine)` : `(from ${appointmentList.filter(apt => statusMatches(apt.status, 'E-Consult') || statusMatches(apt.status, 'E-CONSULT')).length} total telemedicine)`}`
+                                `Showing ${econsultPageItems.length} of ${econsultFiltered.length} Tele Consultation Patients ${econsultSearch ? `(filtered from ${econsultTotalCount} total tele consultation)` : `(from ${econsultTotalCount} total tele consultation)`}`
                             )}
                         </div>
                         {!appointmentListLoading && econsultTotalPages > 1 && (

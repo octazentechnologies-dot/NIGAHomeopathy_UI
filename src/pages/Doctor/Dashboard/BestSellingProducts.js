@@ -42,6 +42,7 @@ import {
   formatSlotIntervalLabel,
 } from '../../../helpers/appointmentSlotHelper';
 import {
+    getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentListByPatientId,
     getPrescriptionDetailsByAppointmentId,
     updateAppointmentTime,
@@ -415,7 +416,7 @@ const AppointmentTimeCell = ({
             : `Dr. ${String(rawDoctorName).trim()}`;
     const appointmentTypeLabel = patient?.appointmentType
         || patient?.consultType
-        || (String(appStatus || '').toUpperCase() === 'E-CONSULT' ? 'Telemedicine' : 'In-Clinic');
+        || (String(appStatus || '').toUpperCase() === 'E-CONSULT' ? 'Tele Consultation' : 'In-Clinic');
     const appointmentSummaryWhen = (() => {
         const datePart = moment(appointmentDate, ['YYYY-MM-DD', DOB_DISPLAY_FORMAT], true);
         const timePart = selectedSlot?.label || displayTime || formatAppointmentTime(rawTime);
@@ -779,8 +780,12 @@ const BestSellingProducts = () => {
 
     // Search functionality
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedAppointmentDate, setSelectedAppointmentDate] = useState(() => moment().format(DOB_DISPLAY_FORMAT));
+    /** All-tab date: empty = full patient list; set = appointments for that day. */
+    const [allListDate, setAllListDate] = useState("");
+    const [allDateAppointments, setAllDateAppointments] = useState([]);
+    const [allDateLoading, setAllDateLoading] = useState(false);
     const [editingAppointmentTimeId, setEditingAppointmentTimeId] = useState(null);
+    const getTodayDisplayDate = () => moment().format(DOB_DISPLAY_FORMAT);
 
     // Pagination state
     const [todayPage, setTodayPage] = useState(1);
@@ -1476,28 +1481,30 @@ const BestSellingProducts = () => {
         );
     };
 
+    const mapAppointmentRows = (list) =>
+        extractApiList(list).map((appointment) => {
+            const patientId = appointment.patientId ?? appointment.patientID ?? appointment.PatientId ?? null;
+            const patientAppId = appointment.patientAppId ?? appointment.patientAppID ?? appointment.PatientAppId ?? null;
+            const patientName = appointment.patientName ?? appointment.PatientName ?? '';
+            return {
+                ...appointment,
+                id: patientAppId,
+                patientAppId,
+                patientId,
+                patientID: patientId,
+                name: patientName,
+                patientName,
+                ageSex: getAgeSexDisplay(appointment.dateOfBirth, appointment.gender),
+                place: appointment.address || '-',
+                appStatus: appointment.status || '-',
+                paymentStatus: appointment.paymentStatus ?? appointment.PaymentStatus ?? null,
+            };
+        });
+
     // Use appointment data for Today tab
-    const todayPatients = (appointmentList || []).map((appointment) => {
-        const patientId = appointment.patientId ?? appointment.patientID ?? appointment.PatientId ?? null;
-        const patientAppId = appointment.patientAppId ?? appointment.patientAppID ?? appointment.PatientAppId ?? null;
-        const patientName = appointment.patientName ?? appointment.PatientName ?? '';
+    const todayPatients = mapAppointmentRows(appointmentList);
 
-        return {
-            ...appointment,
-            id: patientAppId,
-            patientAppId,
-            patientId,
-            patientID: patientId,
-            name: patientName,
-            patientName,
-            ageSex: getAgeSexDisplay(appointment.dateOfBirth, appointment.gender),
-            place: appointment.address || '-',
-            appStatus: appointment.status || '-',
-            paymentStatus: appointment.paymentStatus ?? appointment.PaymentStatus ?? null,
-        };
-    });
-
-    // Use patient data for All tab
+    // Use patient data for All tab (when no date is selected)
     const allPatients = (patientList || []).map((patient, index) => ({
         id: patient.patientID,
         name: patient.patientName,
@@ -1511,10 +1518,15 @@ const BestSellingProducts = () => {
     const filteredTodayPatients = todayPatients.filter((patient) => recordMatchesQuery(patient, searchTerm));
 
     const filteredAllPatients = allPatients.filter((patient) => recordMatchesQuery(patient, searchTerm));
+    const showingAllByDate = Boolean(allListDate);
+    const allDatePatients = mapAppointmentRows(allDateAppointments);
+    const filteredAllDatePatients = allDatePatients.filter((patient) => recordMatchesQuery(patient, searchTerm));
+    const allTabFiltered = showingAllByDate ? filteredAllDatePatients : filteredAllPatients;
+    const allTabLoading = showingAllByDate ? allDateLoading : patientListLoading;
 
     // Pagination calculations
     const todayTotalPages = Math.ceil(filteredTodayPatients.length / pageSize);
-    const allTotalPages = Math.ceil(filteredAllPatients.length / pageSize);
+    const allTotalPages = Math.ceil(allTabFiltered.length / pageSize);
 
     const todayStartIndex = (todayPage - 1) * pageSize;
     const todayEndIndex = todayStartIndex + pageSize;
@@ -1522,7 +1534,7 @@ const BestSellingProducts = () => {
 
     const allStartIndex = (allPage - 1) * pageSize;
     const allEndIndex = allStartIndex + pageSize;
-    const allPageData = filteredAllPatients.slice(allStartIndex, allEndIndex);
+    const allPageData = allTabFiltered.slice(allStartIndex, allEndIndex);
 
 
     const importFileInputRef = useRef(null);
@@ -1634,7 +1646,7 @@ const BestSellingProducts = () => {
             if (hasAppointments) {
                 dispatch(getAppointmentList({
                     userId,
-                    appointmentDate: toDashboardAppointmentDateIso(selectedAppointmentDate),
+                    appointmentDate: toDashboardAppointmentDateIso(getTodayDisplayDate()),
                     status: '',
                 }));
             }
@@ -1689,11 +1701,11 @@ const BestSellingProducts = () => {
         }));
     };
 
-    // Reset pagination when search changes
+    // Reset pagination when search / All-date filter changes
     useEffect(() => {
         setTodayPage(1);
         setAllPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, allListDate]);
 
     // Load patient list for All tab on mount
     useEffect(() => {
@@ -1703,10 +1715,41 @@ const BestSellingProducts = () => {
         }
     }, [dispatch]);
 
-    // Load appointment list for Today tab when calendar date changes
+    // Today tab always loads today's appointments (no date picker)
     useEffect(() => {
-        loadAppointmentListForDate(selectedAppointmentDate);
-    }, [selectedAppointmentDate, dispatch]);
+        loadAppointmentListForDate(getTodayDisplayDate());
+    }, [dispatch]);
+
+    // All tab: optional date loads that day's appointments without touching Today's list
+    useEffect(() => {
+        if (!allListDate) {
+            setAllDateAppointments([]);
+            setAllDateLoading(false);
+            return undefined;
+        }
+        let active = true;
+        const load = async () => {
+            const { userId } = getPatientAuthContext();
+            if (!userId) return;
+            setAllDateLoading(true);
+            try {
+                const response = await fetchAppointmentListByDateApi({
+                    userId,
+                    appointmentDate: toDashboardAppointmentDateIso(allListDate),
+                });
+                const list = extractApiList(response);
+                if (active) setAllDateAppointments(Array.isArray(list) ? list : []);
+            } catch (_) {
+                if (active) setAllDateAppointments([]);
+            } finally {
+                if (active) setAllDateLoading(false);
+            }
+        };
+        load();
+        return () => {
+            active = false;
+        };
+    }, [allListDate]);
 
     // Refresh lists when a new patient is registered
     useEffect(() => {
@@ -1737,9 +1780,9 @@ const BestSellingProducts = () => {
             // Refresh patient list for All tab
             dispatch(getPatientList({ userId }));
 
-            // Refresh appointment list for Today tab
+            // Refresh appointment list for Today tab (always calendar today)
             dispatch(getAppointmentList({
-                appointmentDate: toDashboardAppointmentDateIso(selectedAppointmentDate),
+                appointmentDate: toDashboardAppointmentDateIso(getTodayDisplayDate()),
                 status: '',
                 userId,
             }));
@@ -1751,7 +1794,7 @@ const BestSellingProducts = () => {
                 dispatch(setAppointmentSuccess(null));
             }, 100);
         }
-    }, [appointmentSuccess, dispatch, selectedAppointmentDate]);
+    }, [appointmentSuccess, dispatch]);
 
     // Edit Patient Modal state
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -1861,25 +1904,15 @@ const BestSellingProducts = () => {
             return;
         }
 
-        if (exportScope === 'today' && !selectedAppointmentDate) {
-            Swal.fire({
-                title: 'Error!',
-                text: 'Please select a date for Today export.',
-                icon: 'error',
-                timer: 2000,
-                showConfirmButton: false,
-            });
-            return;
-        }
-
         setExportLoading(true);
         try {
+            const todayDisplay = getTodayDisplayDate();
             const response = await exportPatients({
                 userId,
                 scope: exportScope,
                 format: exportFormat,
                 date: exportScope === 'today'
-                    ? toDashboardAppointmentDateIso(selectedAppointmentDate)
+                    ? toDashboardAppointmentDateIso(todayDisplay)
                     : undefined,
             });
 
@@ -1891,7 +1924,7 @@ const BestSellingProducts = () => {
 
             const extension = exportFormat === 'pdf' ? 'pdf' : exportFormat === 'csv' ? 'csv' : 'xlsx';
             const dateSuffix = exportScope === 'today'
-                ? `_${moment(selectedAppointmentDate, DOB_DISPLAY_FORMAT).format('YYYY-MM-DD')}`
+                ? `_${moment(todayDisplay, DOB_DISPLAY_FORMAT).format('YYYY-MM-DD')}`
                 : '';
             const fileName = `Patients_${exportScope}${dateSuffix}.${extension}`;
 
@@ -1945,7 +1978,7 @@ const BestSellingProducts = () => {
 
             // Refresh the appointment list and counts after status change
             const { userId } = getPatientAuthContext();
-            const appointmentDateIso = toDashboardAppointmentDateIso(selectedAppointmentDate);
+            const appointmentDateIso = toDashboardAppointmentDateIso(getTodayDisplayDate());
 
             // Refresh appointment list to reflect the status change
             await dispatch(getAppointmentList({
@@ -2049,8 +2082,9 @@ const BestSellingProducts = () => {
 
     const handleAppointmentTimeUpdated = async () => {
         const { userId } = getPatientAuthContext();
-        const appointmentDateIso = toDashboardAppointmentDateIso(selectedAppointmentDate);
-        await loadAppointmentListForDate(selectedAppointmentDate);
+        const todayDisplay = getTodayDisplayDate();
+        const appointmentDateIso = toDashboardAppointmentDateIso(todayDisplay);
+        await loadAppointmentListForDate(todayDisplay);
         try {
             await dispatch(fetchDoctorDashboardCounts({
                 appointmentDate: appointmentDateIso,
@@ -2062,8 +2096,9 @@ const BestSellingProducts = () => {
         }
     };
 
-    // Helper function to render table rows (Today tab shows Appointment Time + History + F/U)
-    const renderTableRows = (pageData, startIndex, idPrefix, isTodayTab = false) => {
+    // Helper function to render table rows (Today / All-by-date show Appointment Time + History + F/U)
+    const renderTableRows = (pageData, startIndex, idPrefix, isTodayTab = false, appointmentDateFallback = null) => {
+        const dateFallback = appointmentDateFallback || getTodayDisplayDate();
         return pageData.map((patient, index) => {
             const rowAppId = getPatientAppIdFromRow(patient);
             const isEditingTime = isTodayTab && editingAppointmentTimeId === rowAppId;
@@ -2142,7 +2177,7 @@ const BestSellingProducts = () => {
                                     onClick={() => handleStatusChange(patient, 'E-CONSULT')}
                                     active={patient.appStatus === 'E-CONSULT'}
                                 >
-                                    TELEMEDICINE
+                                    TELE CONSULTATION
                                 </DropdownItem>
                                 <DropdownItem
                                     onClick={() => handleStatusChange(patient, 'REMAINING')}
@@ -2180,7 +2215,7 @@ const BestSellingProducts = () => {
                             onStartEdit={() => setEditingAppointmentTimeId(rowAppId)}
                             onCancelEdit={() => setEditingAppointmentTimeId(null)}
                             onTimeUpdated={handleAppointmentTimeUpdated}
-                            appointmentDateFallback={selectedAppointmentDate}
+                            appointmentDateFallback={dateFallback}
                         />
                     </td>
                 ) : (
@@ -2858,19 +2893,35 @@ const BestSellingProducts = () => {
                             </NavItem>
                             ) : null}
                         </Nav>
-                        <div className="doctor-dashboard-appointment-date flex-shrink-0">
+                        {customHoverTab === "2" ? (
+                        <div className="doctor-dashboard-appointment-date flex-shrink-0 d-inline-flex align-items-center gap-1">
                             <DateOfBirthPicker
-                                name="dashboardAppointmentDate"
-                                value={selectedAppointmentDate}
+                                name="dashboardAllListDate"
+                                value={allListDate}
                                 minDate={null}
                                 maxDate={null}
-                                placeholder={DOB_DISPLAY_FORMAT}
+                                placeholder="All dates"
                                 onChange={(dateStr) => {
-                                    setSelectedAppointmentDate(dateStr);
-                                    setTodayPage(1);
+                                    setAllListDate(dateStr || "");
+                                    setAllPage(1);
                                 }}
                             />
+                            {allListDate ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-soft-secondary"
+                                    title="Clear date — show all patients"
+                                    aria-label="Clear date"
+                                    onClick={() => {
+                                        setAllListDate("");
+                                        setAllPage(1);
+                                    }}
+                                >
+                                    <i className="ri-close-line" aria-hidden="true" />
+                                </button>
+                            ) : null}
                         </div>
+                        ) : null}
                         </div>
                         <div className="d-flex align-items-center flex-wrap gap-2 ms-sm-auto doctor-appointments-toolbar__actions">
                             <div className="search-box doctor-appointments-toolbar__search">
@@ -2945,7 +2996,7 @@ const BestSellingProducts = () => {
 
                             <TabPane tabId="2" id="custom-hover-customere">
                                 <div className="table-responsive">
-                                    <table className="table table-hover mb-0 dashboard-patient-table">
+                                    <table className={`table table-hover mb-0 dashboard-patient-table${showingAllByDate ? ' dashboard-patient-table--today' : ''}`}>
                                         <thead>
                                             <tr>
                                                 <th scope="col" className='text-center dashboard-patient-col-index'>#</th>
@@ -2953,7 +3004,14 @@ const BestSellingProducts = () => {
                                                 <th scope="col" className="dashboard-patient-col-agesex">Age/Sex</th>
                                                 <th scope="col" className="dashboard-patient-col-place">Place</th>
                                                 <th scope="col" className="dashboard-patient-col-mobile">Mobile</th>
-                                                <th scope="col" className="dashboard-patient-col-lastvisit">Last visit</th>
+                                                {showingAllByDate ? (
+                                                    <>
+                                                        <th scope="col" className="dashboard-patient-col-status">App.Status</th>
+                                                        <th scope="col" className="dashboard-patient-col-apptime">App.Time</th>
+                                                    </>
+                                                ) : (
+                                                    <th scope="col" className="dashboard-patient-col-lastvisit">Last visit</th>
+                                                )}
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
                                                     <div className="dashboard-patient-actions-header">
                                                         <span className="dashboard-patient-actions-header__history">History</span>
@@ -2963,24 +3021,28 @@ const BestSellingProducts = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {patientListLoading ? (
+                                            {allTabLoading ? (
                                                 <tr>
-                                                    <td colSpan={7} className='text-center text-muted'>
+                                                    <td colSpan={showingAllByDate ? 8 : 7} className='text-center text-muted'>
                                                         <div className="d-flex justify-content-center align-items-center">
                                                             <div className="spinner-border spinner-border-sm me-2" role="status">
                                                                 <span className="visually-hidden">Loading...</span>
                                                             </div>
-                                                            Loading patients...
+                                                            {showingAllByDate ? 'Loading appointments...' : 'Loading patients...'}
                                                         </div>
                                                     </td>
                                                 </tr>
                                             ) : (
                                                 <>
-                                                    {renderTableRows(allPageData, allStartIndex, 'all')}
-                                                    {allPageData.length === 0 && !patientListLoading && (
+                                                    {renderTableRows(allPageData, allStartIndex, 'all', showingAllByDate, allListDate || null)}
+                                                    {allPageData.length === 0 && !allTabLoading && (
                                                         <tr>
-                                                            <td colSpan={7} className='text-center text-muted'>
-                                                                {searchTerm ? 'No patients found matching your search' : 'No patients available'}
+                                                            <td colSpan={showingAllByDate ? 8 : 7} className='text-center text-muted'>
+                                                                {searchTerm
+                                                                    ? (showingAllByDate ? 'No appointments found matching your search' : 'No patients found matching your search')
+                                                                    : showingAllByDate
+                                                                        ? `No appointments on ${allListDate}`
+                                                                        : 'No patients available'}
                                                             </td>
                                                         </tr>
                                                     )}
@@ -2989,7 +3051,7 @@ const BestSellingProducts = () => {
                                         </tbody>
                                     </table>
                                 </div>
-                                {!patientListLoading && renderPagination(allPage, allTotalPages, handleAllPageChange, filteredAllPatients.length)}
+                                {!allTabLoading && renderPagination(allPage, allTotalPages, handleAllPageChange, allTabFiltered.length)}
                             </TabPane>
 
 
@@ -3115,7 +3177,7 @@ const BestSellingProducts = () => {
                                 </div>
                                 {exportScope === 'today' && (
                                     <small className="text-muted d-block mt-2">
-                                        Uses dashboard date: {selectedAppointmentDate}
+                                        Uses today: {getTodayDisplayDate()}
                                     </small>
                                 )}
                             </div>

@@ -229,6 +229,30 @@
   font-weight: 500;
 }
 
+.phc-config__success {
+  margin: 0;
+  color: #15803d;
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.phc-config__req {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.phc-config .form-control.is-invalid,
+.phc-config__tags.is-invalid,
+.phc-config__days.is-invalid {
+  border-color: #fca5a5 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.phc-config__saved.is-saved {
+  color: #15803d;
+  font-weight: 600;
+}
+
 .phc-config__footer {
   display: flex;
   align-items: center;

@@ -150,7 +150,9 @@ export const LayoutMenuProvider = ({ children }) => {
             moreMenuItems: withDropdownState(
               ADMIN_WEEK4_MENU.filter(
                 (item) =>
-                  !mainLinks.has(String(item.link || '').toLowerCase()) && !isHiddenAdminNavItem(item)
+                  !mainLinks.has(String(item.link || '').toLowerCase()) &&
+                  !isAdminEnquiriesNavItem(item) &&
+                  !isHiddenAdminNavItem(item)
               )
             ),
           };
@@ -193,6 +195,8 @@ export const LayoutMenuProvider = ({ children }) => {
           '/doctor/anatomy',
           '/doctor/tele',
           '/doctor/telemedicine',
+          '/doctor/tele-consultation',
+          '/doctor/teleconsultation',
           '/doctor/reception-staff',
           '/doctor/consult-fees',
           '/doctor/erx',

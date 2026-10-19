@@ -610,7 +610,7 @@ export const updateSupportTicketMessage = (ticketId, messageId, data) =>
   nigahomeoAPI.put(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId), data);
 export const deleteSupportTicketMessage = (ticketId, messageId) =>
   nigahomeoAPI.delete(url.SUPPORT_TICKET_MESSAGE(ticketId, messageId));
-export const listAdminSupportTickets = (params) => nigahomeoAPI.get(url.SUPPORT_TICKETS, params || {});
+export const listAdminSupportTickets = (params) => nigahomeoAPI.get(url.SUPPORT_TICKETS, params ?? null);
 export const updateSupportTicket = (ticketId, data) => nigahomeoAPI.put(url.SUPPORT_TICKET(ticketId), data);
 export const saveHelpArticle = (data) => nigahomeoAPI.post(url.HELP_ARTICLES, data);
 export const getDoctorWaitlist = (doctorId) => nigahomeoAPI.get("/Waitlist", { doctorId });

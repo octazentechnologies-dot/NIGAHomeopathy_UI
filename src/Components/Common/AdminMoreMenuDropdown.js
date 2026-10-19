@@ -3,9 +3,23 @@ import { Collapse, Dropdown, DropdownMenu, DropdownToggle } from 'reactstrap';
 import { Link } from 'react-router-dom';
 
 import { useLayoutMenu } from '../../Layouts/LayoutMenuContext';
+import { isAdminEnquiriesNavItem } from '../../helpers/menuByRole';
+
+const withoutEnquiries = (items) =>
+  (items || [])
+    .filter((item) => !isAdminEnquiriesNavItem(item))
+    .map((item) => {
+      const kids = item.subItems || item.childItems;
+      if (!kids?.length) return item;
+      const filtered = withoutEnquiries(kids);
+      return item.subItems
+        ? { ...item, subItems: filtered }
+        : { ...item, childItems: filtered };
+    });
 
 const AdminMoreMenuDropdown = ({ showLabel = false }) => {
-  const { moreMenuItems } = useLayoutMenu();
+  const { moreMenuItems: rawMoreMenuItems } = useLayoutMenu();
+  const moreMenuItems = withoutEnquiries(rawMoreMenuItems);
   const [isOpen, setIsOpen] = useState(false);
   const [expandedKey, setExpandedKey] = useState(null);
 

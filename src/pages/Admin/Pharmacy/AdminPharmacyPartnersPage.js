@@ -5,6 +5,7 @@ import {
   activatePharmacy,
   listPharmacyPartners,
   s4Message,
+  suspendPharmacy,
   sweepPharmacyLicences,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
@@ -35,6 +36,12 @@ const initialsOf = (name) =>
     .slice(0, 2)
     .map((part) => part[0].toUpperCase())
     .join("");
+
+/** Platform / HomeoMeds filling pharmacies — admin may view config but not edit it. */
+const isFillingPharmacy = (partner) => {
+  const name = String(partner?.name || "").toLowerCase();
+  return /homeomeds|filling|central\s*fill|fulfil/.test(name);
+};
 
 /** MED-05 — admin pharmacy partners: activation, licence sweep and per-partner configuration. */
 const AdminPharmacyPartnersPage = () => {
@@ -110,6 +117,20 @@ const AdminPharmacyPartnersPage = () => {
       await activatePharmacy(partner.id);
       setPartners((prev) => prev.map((row) => (row.id === partner.id ? { ...row, status: "ACTIVE" } : row)));
       setNotice(`${partner.name} activated.`);
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const suspend = async (partner) => {
+    setBusyId(`sus-${partner.id}`);
+    setError("");
+    try {
+      await suspendPharmacy(partner.id);
+      setPartners((prev) => prev.map((row) => (row.id === partner.id ? { ...row, status: "SUSPENDED" } : row)));
+      setNotice(`${partner.name} suspended.`);
     } catch (err) {
       setError(s4Message(err));
     } finally {
@@ -254,7 +275,7 @@ const AdminPharmacyPartnersPage = () => {
                                     type="button"
                                     className="phc-icon-btn phc-icon-btn--approve"
                                     title="Activate"
-                                    disabled={busyId === `act-${partner.id}`}
+                                    disabled={busyId === `act-${partner.id}` || busyId === `sus-${partner.id}`}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       activate(partner);
@@ -262,7 +283,20 @@ const AdminPharmacyPartnersPage = () => {
                                   >
                                     <i className="ri-check-line" aria-hidden="true" />
                                   </button>
-                                ) : null}
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="phc-icon-btn phc-icon-btn--suspend"
+                                    title="Suspend"
+                                    disabled={busyId === `act-${partner.id}` || busyId === `sus-${partner.id}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      suspend(partner);
+                                    }}
+                                  >
+                                    <i className="ri-pause-circle-line" aria-hidden="true" />
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   className={`phc-icon-btn${partner.id === selectedId ? " is-active" : ""}`}
@@ -289,10 +323,16 @@ const AdminPharmacyPartnersPage = () => {
             <section className="phc-card">
               <header className="phc-card__head">
                 <span className="phc-card__title">
-                  <i className="ri-eye-line" aria-hidden="true" />
+                  <i className="ri-settings-3-line" aria-hidden="true" />
                   Pharmacy Configuration
                 </span>
-                <span className="phc-card__meta">View only</span>
+                <span className="phc-card__meta">
+                  {selected && isFillingPharmacy(selected)
+                    ? "Filling pharmacy · view only"
+                    : selected
+                      ? "Partner can also edit on their dashboard"
+                      : ""}
+                </span>
               </header>
               {!selected ? (
                 <div className="phc-card__body">
@@ -310,6 +350,7 @@ const AdminPharmacyPartnersPage = () => {
                       <span>
                         {`Partner #${selected.id}`}
                         {selected.area ? ` · ${selected.area}` : ""}
+                        {isFillingPharmacy(selected) ? " · Filling pharmacy" : ""}
                       </span>
                     </div>
                     <span
@@ -319,7 +360,20 @@ const AdminPharmacyPartnersPage = () => {
                     </span>
                   </div>
 
-                  <PharmacyConfigForm partner={selected} readOnly onError={setError} />
+                  <PharmacyConfigForm
+                    partner={selected}
+                    readOnly={isFillingPharmacy(selected)}
+                    disabled={isFillingPharmacy(selected)}
+                    onError={setError}
+                    onSaved={() => {
+                      setError("");
+                      setNotice(
+                        isFillingPharmacy(selected)
+                          ? "Configuration viewed."
+                          : `${selected.name} configuration saved.`
+                      );
+                    }}
+                  />
                 </div>
               )}
             </section>

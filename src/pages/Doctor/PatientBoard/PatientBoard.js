@@ -13241,7 +13241,12 @@ const PatientBoard = () => {
               isOpen={continuityModalOpen}
               toggle={() => setContinuityModalOpen(false)}
               patientName={resolvedPatientName || patientDetails?.patientName}
-              patientId={patientId}
+              patientId={
+                patientDetails?.patientID ??
+                patientDetails?.patientId ??
+                patientDetails?.PatientId ??
+                patientId
+              }
             />
             <div className="pb-info__aside">
               <span className={`pb-info__chip pb-appointment-date${formattedAppointmentDate ? '' : ' pb-info__chip--placeholder'}`}>

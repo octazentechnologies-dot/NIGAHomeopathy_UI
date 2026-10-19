@@ -198,7 +198,29 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
   const closeModal = () => setModalOpen(false);
 
+  const selectDay = (day) => {
+    const next = day.clone().startOf('day');
+    setSelectedDate(next);
+    setWeekAnchor(next.clone());
+  };
+
+  /** Move one day. On the last day of the week, next advances into the following week. */
+  const shiftDay = (direction) => {
+    selectDay(selectedDate.clone().add(direction, 'day'));
+  };
+
   const shiftWeek = (direction) => {
+    const lastDayOfWeek = weekStart.clone().add(6, 'day');
+    const firstDayOfWeek = weekStart.clone();
+    // From the last visible day, next arrow goes to the next calendar day (new week).
+    if (direction > 0 && selectedDate.isSame(lastDayOfWeek, 'day')) {
+      shiftDay(1);
+      return;
+    }
+    if (direction < 0 && selectedDate.isSame(firstDayOfWeek, 'day')) {
+      shiftDay(-1);
+      return;
+    }
     setWeekAnchor((prev) => {
       const nextWeekStart = getWeekStart(prev).add(direction * 7, 'day');
       const weekdayOffset = selectedDate.clone().startOf('day').diff(getWeekStart(selectedDate), 'days');
@@ -215,10 +237,9 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
     });
   };
 
-  const selectDay = (day) => {
-    const next = day.clone().startOf('day');
-    setSelectedDate(next);
-    setWeekAnchor(next.clone());
+  const handleRefresh = () => {
+    if (loading) return;
+    refreshAll({ silent: false });
   };
 
   const slots = daySchedule?.slots || [];
@@ -273,7 +294,15 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
               <div className="doctor-schedule-calendar__range">
                 <span>{weekRangeLabel}</span>
-                <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="doctor-schedule-calendar__range-next"
+                  onClick={() => shiftDay(1)}
+                  aria-label="Next day"
+                  title="Next day"
+                >
+                  <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                </button>
               </div>
 
               <div className="doctor-schedule-calendar__week-nav">
@@ -282,6 +311,7 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
                   className="doctor-schedule-calendar__nav-btn doctor-schedule-calendar__nav-btn--sm"
                   onClick={() => shiftWeek(-1)}
                   aria-label="Previous week"
+                  title="Previous week"
                 >
                   <i className="ri-arrow-left-s-line" />
                 </button>
@@ -290,6 +320,7 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
                   className="doctor-schedule-calendar__nav-btn doctor-schedule-calendar__nav-btn--sm"
                   onClick={() => shiftWeek(1)}
                   aria-label="Next week"
+                  title="Next week"
                 >
                   <i className="ri-arrow-right-s-line" />
                 </button>
@@ -319,16 +350,23 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
               })}
             </div>
 
-            {hoursNote ? (
-              <div className="doctor-schedule-calendar__meta">
-                <span>{hoursNote}</span>
-                {lastSyncedAt ? (
-                  <span className="doctor-schedule-calendar__synced">
-                    Synced {lastSyncedAt.format('hh:mm:ss A')}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
+            <div className="doctor-schedule-calendar__meta">
+              <span>{hoursNote || selectedDate.format('ddd D MMM YYYY')}</span>
+              <span className="doctor-schedule-calendar__synced">
+                {lastSyncedAt ? <span>Synced {lastSyncedAt.format('hh:mm:ss A')}</span> : null}
+                <button
+                  type="button"
+                  className="doctor-schedule-calendar__refresh-btn"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  aria-label="Refresh schedule"
+                  title="Refresh latest schedule"
+                >
+                  <i className={`ri-refresh-line${loading ? ' spinning' : ''}`} aria-hidden="true" />
+                  Refresh
+                </button>
+              </span>
+            </div>
 
             {daySchedule?.hasSchedule ? (
               <div className="doctor-schedule-calendar__summary">

@@ -175,17 +175,29 @@ export const ADMIN_WEEK4_MENU = [
   { id: "payment-exceptions", label: "Payment exceptions", icon: "ri-error-warning-line", link: "/admin/payment-exceptions" },
   { id: "admin-sms", label: "SMS templates", icon: "ri-message-2-line", link: "/admin/sms" },
   { id: "medicine-report", label: "Medicine report", icon: "ri-capsule-line", link: "/admin/medicine-report" },
-  { id: "security-posture", label: "Security posture", icon: "ri-shield-keyhole-line", link: "/admin/security" },
   { id: "security-audit", label: "Security audit", icon: "ri-file-shield-2-line", link: "/admin/security-audit" },
   { id: "consent-audit", label: "Consent audit", icon: "ri-file-list-3-line", link: "/admin/consent-audit" },
 ];
 
-/** Admin Enquiries live on the Help & Support header control — omit from More / horizontal nav. */
+/** Admin Enquiries live on Help & Support (Ticket Enquiries) — omit from More / horizontal nav. */
 export const isAdminEnquiriesNavItem = (item) => {
   const label = String(item?.label || "").trim().toLowerCase();
-  if (label === "enquiries" || label === "enquiry" || label === "enquiry inbox") return true;
+  if (
+    label === "enquiries" ||
+    label === "enquiry" ||
+    label === "enquiry inbox" ||
+    label === "ticket enquiries" ||
+    label.includes("enquir")
+  ) {
+    return true;
+  }
   const link = String(item?.link || "").split("?")[0].toLowerCase();
-  return link === "/enquiries" || link === "/admin/enquiries";
+  return (
+    link === "/enquiries" ||
+    link === "/admin/enquiries" ||
+    link === "/enquiry" ||
+    link.endsWith("/enquiries")
+  );
 };
 
 /** Package top-ups admin screen removed from nav (route redirects to dashboard). */
@@ -286,7 +298,7 @@ export const isDoctorSpaLink = (link) => {
 export const DOCTOR_FALLBACK_MENU = [
   { id: "doctor-home", label: "Dashboard", icon: "ri-dashboard-2-line", link: "/doctordashboard" },
   { id: "doctor-board", label: "Patient Board", icon: "ri-user-heart-line", link: "/doctor/patientboard" },
-  { id: "doctor-tele", label: "Teleconsult", icon: "ri-vidicon-line", link: "/doctor/tele" },
+  { id: "doctor-tele", label: "Tele Consultation", icon: "ri-vidicon-line", link: "/doctor/tele-consultation" },
   { id: "doctor-anatomy", label: "Anatomy", icon: "ri-body-scan-line", link: "/doctor/anatomy" },
   { id: "doctor-staff", label: "Reception Staff", icon: "ri-user-star-line", link: "/doctor/reception-staff" },
   { id: "doctor-fees", label: "Consult fees", icon: "ri-money-dollar-circle-line", link: "/doctor/consult-fees" },

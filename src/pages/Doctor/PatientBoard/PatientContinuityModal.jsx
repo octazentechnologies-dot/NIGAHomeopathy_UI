@@ -27,19 +27,32 @@ const pick = (row, ...keys) => {
 
 const asList = (payload) => {
   if (Array.isArray(payload)) return payload;
-  for (const key of ["data", "items", "entries", "tasks"]) {
-    if (Array.isArray(payload?.[key])) return payload[key];
+  if (!payload || typeof payload !== "object") return [];
+  for (const key of ["data", "items", "Items", "entries", "tasks", "resultObject", "ResultObject"]) {
+    if (Array.isArray(payload[key])) return payload[key];
   }
   return [];
 };
 
-const diaryIcon = (note) => {
+const diaryCategory = (note) => {
   const text = String(note || "").toLowerCase();
-  if (/sleep|insomnia|rest/.test(text)) return "ri-moon-line";
-  if (/acid|digest|stomach|nausea|fire/.test(text)) return "ri-fire-line";
-  if (/joint|knee|arthritis|pain|walk/.test(text)) return "ri-walk-line";
-  if (/head|migraine|brain|mind/.test(text)) return "ri-brain-line";
-  return "ri-heart-pulse-line";
+  if (/sleep|insomnia|restless sleep|rest/.test(text)) {
+    return { key: "sleep", label: "Sleep", icon: "ri-moon-line" };
+  }
+  if (/acid|digest|stomach|nausea|gastr|fire|heartburn/.test(text)) {
+    return { key: "acidity", label: "Acidity", icon: "ri-fire-line" };
+  }
+  if (/joint|knee|arthritis|rheumat|walk|limb/.test(text)) {
+    return { key: "joint", label: "Joint pain", icon: "ri-walk-line" };
+  }
+  if (/head|migraine|brain|mind|vertigo/.test(text)) {
+    return { key: "head", label: "Headache", icon: "ri-brain-line" };
+  }
+  if (/cough|throat|cold|fever|breath/.test(text)) {
+    return { key: "resp", label: "Cough / cold", icon: "ri-lungs-line" };
+  }
+  const short = String(note || "Symptom").trim().slice(0, 42);
+  return { key: `note:${short.toLowerCase()}`, label: short || "Symptom", icon: "ri-heart-pulse-line" };
 };
 
 const emptyData = () => ({
@@ -54,14 +67,19 @@ const emptyData = () => ({
 
 const buildContinuity = ({ followUps, diaryRows, progressRaw, visits }) => {
   const tasks = followUps
-    .map((row, index) => ({
-      id: pick(row, "followUpTaskId", "FollowUpTaskId", "taskId", "TaskId", "id") || `f${index}`,
-      title: pick(row, "title", "Title") || "Follow-up task",
-      due: pick(row, "dueDate", "DueDate"),
-      done:
+    .map((row, index) => {
+      const status = String(pick(row, "status", "Status") || "");
+      const done =
         Boolean(pick(row, "completedAt", "CompletedAt")) ||
-        /done|complete/i.test(String(pick(row, "status", "Status") || "")),
-    }))
+        /^(done|complete|completed)$/i.test(status.trim()) ||
+        /done|complete/i.test(status);
+      return {
+        id: pick(row, "followUpTaskId", "FollowUpTaskId", "taskId", "TaskId", "id") || `f${index}`,
+        title: pick(row, "title", "Title") || "Follow-up task",
+        due: pick(row, "dueDate", "DueDate"),
+        done,
+      };
+    })
     .sort((a, b) => String(a.due || "").localeCompare(String(b.due || "")));
 
   const nextOpen = tasks
@@ -69,42 +87,71 @@ const buildContinuity = ({ followUps, diaryRows, progressRaw, visits }) => {
     .sort((a, b) => String(a.due).localeCompare(String(b.due)))[0];
 
   const diarySorted = [...diaryRows].sort((a, b) =>
-    String(pick(b, "entryDate", "EntryDate") || "").localeCompare(String(pick(a, "entryDate", "EntryDate") || ""))
+    String(pick(a, "entryDate", "EntryDate") || "").localeCompare(String(pick(b, "entryDate", "EntryDate") || ""))
   );
 
-  const diary = diarySorted.slice(0, 8).map((row, index) => {
+  // Latest entry per symptom category, trend vs previous entry in the same category
+  const byCategory = new Map();
+  diarySorted.forEach((row) => {
     const note = pick(row, "note", "Note", "body", "Body") || "Symptom entry";
+    const cat = diaryCategory(note);
     const severity = Number(pick(row, "severity", "Severity"));
     const at = pick(row, "entryDate", "EntryDate", "createdAt", "CreatedAt");
-    const older = diarySorted[index + 1];
-    const prevSeverity = older != null ? Number(pick(older, "severity", "Severity")) : null;
-    let trend = "same";
-    if (Number.isFinite(severity) && Number.isFinite(prevSeverity)) {
-      if (severity < prevSeverity) trend = "better";
-      else if (severity > prevSeverity) trend = "worse";
-    }
-    const days = at ? Math.max(0, moment().startOf("day").diff(moment(at).startOf("day"), "days")) : null;
-    return {
-      id: pick(row, "symptomDiaryId", "SymptomDiaryId", "id") || `d${index}`,
-      symptom: note,
-      icon: diaryIcon(note),
-      days: days == null ? "—" : days,
-      severity: Number.isFinite(severity) ? severity : "—",
-      trend,
-    };
+    const bucket = byCategory.get(cat.key) || [];
+    bucket.push({
+      id: pick(row, "symptomDiaryId", "SymptomDiaryId", "id"),
+      note,
+      cat,
+      severity: Number.isFinite(severity) ? severity : null,
+      at,
+    });
+    byCategory.set(cat.key, bucket);
   });
 
-  const seriesSource = asList(pick(progressRaw, "series", "Series") || []);
-  const severitySeries = seriesSource
-    .map((row) => Number(pick(row, "severity", "Severity") ?? row))
+  const diary = [...byCategory.values()]
+    .map((bucket, index) => {
+      const latest = bucket[bucket.length - 1];
+      const previous = bucket.length > 1 ? bucket[bucket.length - 2] : null;
+      let trend = "same";
+      if (latest.severity != null && previous?.severity != null) {
+        if (latest.severity < previous.severity) trend = "better";
+        else if (latest.severity > previous.severity) trend = "worse";
+      }
+      const days = latest.at
+        ? Math.max(0, moment().startOf("day").diff(moment(latest.at).startOf("day"), "days"))
+        : null;
+      return {
+        id: latest.id || `d${index}`,
+        symptom: latest.cat.label,
+        detail: latest.note,
+        icon: latest.cat.icon,
+        days: days == null ? "—" : days,
+        severity: latest.severity == null ? "—" : latest.severity,
+        trend,
+        at: latest.at,
+      };
+    })
+    .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")))
+    .slice(0, 8);
+
+  const seriesSource = asList(pick(progressRaw, "series", "Series") || progressRaw?.series || []);
+  let severitySeries = seriesSource
+    .map((row) => Number(pick(row, "severity", "Severity") ?? (typeof row === "number" ? row : null)))
     .filter((n) => Number.isFinite(n));
+
+  // Fallback: chronological diary severities if progress payload has no series
+  if (!severitySeries.length) {
+    severitySeries = diarySorted
+      .map((row) => Number(pick(row, "severity", "Severity")))
+      .filter((n) => Number.isFinite(n));
+  }
 
   const first = severitySeries[0];
   const last = severitySeries.length ? severitySeries[severitySeries.length - 1] : null;
   const improvement =
     first > 0 && last != null
       ? Math.max(0, Math.min(100, Math.round(((first - last) / first) * 100)))
-      : 0;
+      : Number(pick(progressRaw, "improvementPercent", "ImprovementPercent")) || 0;
 
   const visitList = asList(visits);
   const lastVisitRow = visitList
@@ -115,13 +162,18 @@ const buildContinuity = ({ followUps, diaryRows, progressRaw, visits }) => {
     .filter((row) => row.at && row.status !== "CANCELLED")
     .sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
 
+  const visitCount =
+    Number(pick(progressRaw, "visitCount", "VisitCount")) ||
+    visitList.filter((row) => String(pick(row, "status", "Status") || "").toUpperCase() !== "CANCELLED").length ||
+    0;
+
   return {
     lastVisit: lastVisitRow?.at ? moment(lastVisitRow.at) : null,
     nextFollowUp: nextOpen?.due ? moment(nextOpen.due) : null,
     tasks,
     diary,
-    improvement,
-    visits: Number(pick(progressRaw, "visitCount", "VisitCount") || visitList.length || 0),
+    improvement: Number.isFinite(improvement) ? improvement : 0,
+    visits: visitCount,
     severitySeries,
   };
 };
@@ -142,12 +194,15 @@ const Card = ({ icon, title, extra, children }) => (
 const PatientContinuityModal = ({ isOpen, toggle, patientName, patientId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [partialError, setPartialError] = useState("");
   const [data, setData] = useState(emptyData);
 
   useEffect(() => {
     if (!isOpen) return undefined;
-    if (!patientId) {
+    const id = Number(patientId);
+    if (!Number.isFinite(id) || id <= 0) {
       setError("Patient id is missing for this board.");
+      setPartialError("");
       setData(emptyData());
       setLoading(false);
       return undefined;
@@ -157,8 +212,8 @@ const PatientContinuityModal = ({ isOpen, toggle, patientName, patientId }) => {
     const load = async () => {
       setLoading(true);
       setError("");
+      setPartialError("");
       try {
-        const id = Number(patientId);
         const results = await Promise.allSettled([
           getPatientFollowUps(id),
           getPatientDiary(id),
@@ -172,15 +227,24 @@ const PatientContinuityModal = ({ isOpen, toggle, patientName, patientId }) => {
 
         const followUps = asList(value(0));
         const diaryRows = asList(value(1));
-        const progressRaw = value(2) || {};
+        const progressRaw = value(2) && typeof value(2) === "object" ? value(2) : {};
         const visitsRaw = value(3);
         const visits = Array.isArray(visitsRaw) ? visitsRaw : asList(visitsRaw);
 
+        const failed = results
+          .map((row, index) =>
+            row.status === "rejected" ? ["Follow-ups", "Diary", "Progress", "Visits"][index] : null
+          )
+          .filter(Boolean);
+
         if (results.every((r) => r.status === "rejected")) {
-          setError(s4Message(results[0].reason));
+          setError(s4Message(results[0].reason) || "Could not load continuity data.");
           setData(emptyData());
         } else {
           setData(buildContinuity({ followUps, diaryRows, progressRaw, visits }));
+          if (failed.length) {
+            setPartialError(`Some sections could not load: ${failed.join(", ")}.`);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -232,6 +296,7 @@ const PatientContinuityModal = ({ isOpen, toggle, patientName, patientId }) => {
         ) : null}
 
         {!loading && error ? <div className="pc-state pc-state--error">{error}</div> : null}
+        {!loading && !error && partialError ? <div className="pc-state pc-state--warn">{partialError}</div> : null}
 
         {!loading && !error ? (
           <div className="pc-grid">
@@ -254,13 +319,18 @@ const PatientContinuityModal = ({ isOpen, toggle, patientName, patientId }) => {
                 <span>{data.tasks.length ? `${doneTasks}/${data.tasks.length} done` : "None yet"}</span>
               </div>
               {data.tasks.length === 0 ? (
-                <p className="pc-note mb-0">No follow-up tasks for this patient.</p>
+                <p className="pc-note mb-0">No follow-up tasks for this patient yet. Tasks appear when you set a follow-up from eRx / tele complete.</p>
               ) : (
                 <ul className="pc-tasks">
                   {data.tasks.map((task) => (
                     <li key={task.id} className={task.done ? "is-done" : ""}>
                       <i className={task.done ? "ri-checkbox-circle-fill" : "ri-time-line"} aria-hidden="true" />
-                      {task.title}
+                      <span>
+                        {task.title}
+                        {task.due ? (
+                          <small className="pc-task-due"> · due {moment(task.due).format("DD MMM YYYY")}</small>
+                        ) : null}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -278,7 +348,7 @@ const PatientContinuityModal = ({ isOpen, toggle, patientName, patientId }) => {
               }
             >
               {data.diary.length === 0 ? (
-                <p className="pc-note">No diary entries yet.</p>
+                <p className="pc-note">No diary entries yet. Patients add these from Care continuity in the patient app.</p>
               ) : (
                 <ul className="pc-diary">
                   {data.diary.map((row) => {
@@ -348,11 +418,11 @@ const PatientContinuityModal = ({ isOpen, toggle, patientName, patientId }) => {
               {data.severitySeries.length === 0 ? (
                 <p className="pc-note mb-0">No severity history yet.</p>
               ) : (
-                <div className="pc-trendbars" aria-label="Severity by diary entry">
+                <div className="pc-trendbars" aria-label="Severity over time">
                   {data.severitySeries.map((value, index) => (
-                    <span key={index} className="pc-trendbars__col" title={`Entry ${index + 1}: ${value}/10`}>
+                    <span key={index} className="pc-trendbars__col" title={`V${index + 1}: ${value}/10`}>
                       <span className="pc-trendbars__bar" style={{ height: `${(value / maxSeverity) * 100}%` }} />
-                      <span className="pc-trendbars__tick">E{index + 1}</span>
+                      <span className="pc-trendbars__tick">V{index + 1}</span>
                     </span>
                   ))}
                 </div>

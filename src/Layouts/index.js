@@ -275,7 +275,11 @@ const Layout = (props) => {
             path.startsWith('/doctor/patientboard');
         const isTelemedicine =
             path === '/doctor/telemedicine' ||
-            path.startsWith('/doctor/telemedicine');
+            path.startsWith('/doctor/telemedicine') ||
+            path === '/doctor/tele-consultation' ||
+            path.startsWith('/doctor/tele-consultation') ||
+            path === '/doctor/tele' ||
+            path.startsWith('/doctor/tele');
 
         if (isAdminPath) {
             document.body.classList.add('admin-forms-ui');

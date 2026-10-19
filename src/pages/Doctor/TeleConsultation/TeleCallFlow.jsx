@@ -16,10 +16,11 @@ import {
   saveTeleConsultationSummary,
   startTeleSession,
 } from "../../../helpers/realbackend_helper";
-import { erxByAppointment, postFollowUp } from "../../../helpers/s4Week4Api";
+import { erxByAppointment, postFollowUp, unwrapS4 } from "../../../helpers/s4Week4Api";
 import { teleRunningLate } from "../../../helpers/doctorClinicApi";
 import { apiHelpers } from "../../../helpers/api_helper";
 import { mapChatMessage } from "./teleApi";
+import TeleErxAppModal from "./TeleErxAppModal";
 import "./teleCallFlow.css";
 
 const CHAT_POLL_MS = 5000;
@@ -575,11 +576,6 @@ const rxSummaryText = (erx) => {
   return items.length > 1 ? `${label} +${items.length - 1} more` : `${label}${first.duration ? ` · ${first.duration}` : ""}`;
 };
 
-const openErxPage = (patientAppId) => {
-  if (!patientAppId) return;
-  window.location.assign(`/doctor/erx?patientAppId=${patientAppId}`);
-};
-
 const InCallStep = ({
   patient,
   context,
@@ -604,29 +600,69 @@ const InCallStep = ({
   onSendChat,
   onEndCall,
   onConnectionLost,
+  onRefreshErx,
 }) => {
   const genderAge = patient?.ageSex || "—";
   const mobile = patient?.mobile ? `+91 ${patient.mobile}` : "—";
   const localVideoRef = useRef(null);
+  const miniVideoRef = useRef(null);
   const [popup, setPopup] = useState(null);
   const [draftCaseNotes, setDraftCaseNotes] = useState(caseNotes);
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [callMinimized, setCallMinimized] = useState(false);
+  const [erxAppOpen, setErxAppOpen] = useState(false);
 
   const previousVisits = visits.filter((v) => v.patientAppId !== patient?.patientAppId);
   const lastVisit = context?.lastVisit || previousVisits[0]?.appointmentDate || null;
 
+  const bindLocalVideo = useCallback(
+    (videoEl) => {
+      if (!videoEl) return;
+      if (localStream) {
+        if (videoEl.srcObject !== localStream) videoEl.srcObject = localStream;
+        const playPromise = videoEl.play();
+        if (playPromise?.catch) playPromise.catch(() => {});
+      } else {
+        videoEl.srcObject = null;
+      }
+    },
+    [localStream]
+  );
+
   useEffect(() => {
-    const video = localVideoRef.current;
-    if (!video) return undefined;
-    if (localStream) {
-      video.srcObject = localStream;
-      const playPromise = video.play();
-      if (playPromise?.catch) playPromise.catch(() => {});
-    } else {
-      video.srcObject = null;
-    }
+    bindLocalVideo(localVideoRef.current);
+  }, [bindLocalVideo, callMinimized]);
+
+  useEffect(() => {
+    if (!callMinimized) return undefined;
+    bindLocalVideo(miniVideoRef.current);
     return undefined;
-  }, [localStream]);
+  }, [bindLocalVideo, callMinimized]);
+
+  const minimizeCall = () => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    setPopup(null);
+    setCallMinimized(true);
+  };
+
+  const maximizeCall = () => setCallMinimized(false);
+
+  const openErxDuringCall = () => {
+    minimizeCall();
+    setErxAppOpen(true);
+  };
+
+  const erxAppModal = (
+    <TeleErxAppModal
+      isOpen={erxAppOpen}
+      toggle={() => setErxAppOpen(false)}
+      patientAppId={patient?.patientAppId}
+      patientName={patient?.patient}
+      onClosed={onRefreshErx}
+    />
+  );
 
   const openHistory = () => setPopup("history");
   const openCaseEdit = () => {
@@ -640,7 +676,105 @@ const InCallStep = ({
     closePopup();
   };
 
+  if (callMinimized) {
+    return (
+      <>
+        <div className="tele-call-mini" role="dialog" aria-label="Minimized call">
+          <div className="tele-call-mini__video">
+            {localStream && !videoOff ? (
+              <video ref={miniVideoRef} className="tele-call-mini__video-el" autoPlay playsInline muted />
+            ) : (
+              <InitialsAvatar name={patient?.patient} className="tele-call-mini__avatar" />
+            )}
+            <span className="tele-call-mini__live" aria-hidden="true" />
+          </div>
+          <div className="tele-call-mini__meta">
+            <strong className="tele-call-mini__name">{patient?.patient || "Patient"}</strong>
+            <span className="tele-call-mini__timer">{formatTimer(elapsed)}</span>
+          </div>
+          <div className="tele-call-mini__actions">
+            <button
+              type="button"
+              className={`tele-call-mini__btn ${muted ? "is-off" : ""}`}
+              onClick={onToggleMute}
+              aria-label={muted ? "Unmute" : "Mute"}
+              title={muted ? "Unmute" : "Mute"}
+            >
+              <i className={muted ? "ri-mic-off-fill" : "ri-mic-fill"} />
+            </button>
+            <button
+              type="button"
+              className={`tele-call-mini__btn ${videoOff ? "is-off" : ""}`}
+              onClick={onToggleVideo}
+              aria-label={videoOff ? "Start video" : "Stop video"}
+              title={videoOff ? "Start video" : "Stop video"}
+            >
+              <i className={videoOff ? "ri-camera-off-fill" : "ri-vidicon-fill"} />
+            </button>
+            <button
+              type="button"
+              className="tele-call-mini__btn tele-call-mini__btn--max"
+              onClick={maximizeCall}
+              aria-label="Maximize call"
+              title="Maximize call"
+            >
+              <i className="ri-picture-in-picture-exit-line" />
+            </button>
+            <button
+              type="button"
+              className="tele-call-mini__btn tele-call-mini__btn--end"
+              onClick={() => setEndConfirmOpen(true)}
+              aria-label="End call"
+              title="End call"
+            >
+              <i className="ri-close-circle-fill" />
+            </button>
+          </div>
+        </div>
+
+        <Modal
+          isOpen={endConfirmOpen}
+          toggle={() => setEndConfirmOpen(false)}
+          className="patient-list-modal tele-call-modal tele-call-modal--alert tele-end-confirm-modal"
+          backdrop="static"
+          centered
+          zIndex={21000}
+        >
+          <ModalHeader toggle={() => setEndConfirmOpen(false)} className="patient-list-modal__header tele-call-modal__header">
+            <span className="patient-list-modal__title patient-list-modal__title--simple">
+              <span className="tele-alert-icon tele-alert-icon--danger tele-alert-icon--inline" aria-hidden="true">
+                <i className="ri-close-circle-fill" />
+              </span>
+              <span className="patient-list-modal__title-text">End Consultation?</span>
+            </span>
+          </ModalHeader>
+          <ModalBody className="tele-call-modal__body tele-alert-body">
+            <p className="tele-alert-text mb-0">
+              Are you sure you want to end this call with <strong>{patient?.patient || "the patient"}</strong>? You can
+              complete notes and prescription after ending.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <ModalActionButton action="cancel" onClick={() => setEndConfirmOpen(false)} />
+            <ModalActionButton
+              action="delete"
+              iconClassName="ri-close-circle-fill"
+              onClick={() => {
+                setEndConfirmOpen(false);
+                onEndCall();
+              }}
+            >
+              End Call
+            </ModalActionButton>
+          </ModalFooter>
+        </Modal>
+        {erxAppModal}
+      </>
+    );
+  }
+
   return (
+    <>
     <div className="tele-call-stage">
       <div className="tele-call-stage__main">
         <div className="tele-call-video">
@@ -648,18 +782,30 @@ const InCallStep = ({
           <div className="tele-call-video__top">
             <span className="tele-call-video__patient">{patient?.patient || "Patient"}</span>
             <span className="tele-call-video__timer">{formatTimer(elapsed)}</span>
-            <button
-              type="button"
-              className="tele-call-video__fs"
-              aria-label="Fullscreen"
-              onClick={() => {
-                const el = document.querySelector(".tele-call-stage");
-                if (!document.fullscreenElement && el?.requestFullscreen) el.requestFullscreen().catch(() => {});
-                else if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-              }}
-            >
-              <i className="ri-fullscreen-line" />
-            </button>
+            <div className="tele-call-video__top-actions">
+              <button
+                type="button"
+                className="tele-call-video__fs"
+                aria-label="Minimize call"
+                title="Minimize call"
+                onClick={minimizeCall}
+              >
+                <i className="ri-subtract-line" />
+              </button>
+              <button
+                type="button"
+                className="tele-call-video__fs"
+                aria-label="Fullscreen"
+                title="Fullscreen"
+                onClick={() => {
+                  const el = document.querySelector(".tele-call-stage");
+                  if (!document.fullscreenElement && el?.requestFullscreen) el.requestFullscreen().catch(() => {});
+                  else if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+                }}
+              >
+                <i className="ri-fullscreen-line" />
+              </button>
+            </div>
           </div>
           <div className="tele-call-video__pip">
             {localStream ? (
@@ -687,7 +833,7 @@ const InCallStep = ({
               <span>Reconnect</span>
             </button>
             <button type="button" className="tele-call-ctrl tele-call-ctrl--end" onClick={() => setEndConfirmOpen(true)}>
-              <i className="ri-phone-fill" />
+              <i className="ri-close-circle-fill" />
               <span>End Call</span>
             </button>
           </div>
@@ -824,7 +970,7 @@ const InCallStep = ({
                 previousVisits.map((visit) => (
                   <tr key={visit.patientAppId}>
                     <td>{visit.appointmentDate ? moment(visit.appointmentDate).format("DD MMM YYYY") : "—"}</td>
-                    <td>{visit.isTele ? "Telemedicine" : visit.consultMode || "In-clinic"}</td>
+                    <td>{visit.isTele ? "Tele Consultation" : visit.consultMode || "In-clinic"}</td>
                     <td>{visit.doctorName || "—"}</td>
                     <td>{visit.status || "—"}</td>
                   </tr>
@@ -857,7 +1003,7 @@ const InCallStep = ({
         toggle={closePopup}
         title="Prescription"
         icon="ri-file-list-3-line"
-        onSave={() => openErxPage(patient?.patientAppId)}
+        onSave={openErxDuringCall}
         saveLabel="Open eRx"
       >
         <RxItems erx={erx} loading={erxLoading} />
@@ -874,7 +1020,7 @@ const InCallStep = ({
         <ModalHeader toggle={() => setEndConfirmOpen(false)} className="patient-list-modal__header tele-call-modal__header">
           <span className="patient-list-modal__title patient-list-modal__title--simple">
             <span className="tele-alert-icon tele-alert-icon--danger tele-alert-icon--inline" aria-hidden="true">
-              <i className="ri-phone-fill" />
+              <i className="ri-close-circle-fill" />
             </span>
             <span className="patient-list-modal__title-text">End Consultation?</span>
           </span>
@@ -889,7 +1035,7 @@ const InCallStep = ({
           <ModalActionButton action="cancel" onClick={() => setEndConfirmOpen(false)} />
           <ModalActionButton
             action="delete"
-            iconClassName="ri-phone-fill"
+            iconClassName="ri-close-circle-fill"
             onClick={() => {
               setEndConfirmOpen(false);
               onEndCall();
@@ -900,15 +1046,18 @@ const InCallStep = ({
         </ModalFooter>
       </Modal>
     </div>
+    {erxAppModal}
+    </>
   );
 };
 
-const CompletedStep = ({ patient, durationMin, initialSummary, erx, erxLoading, onClose, onSave }) => {
+const CompletedStep = ({ patient, durationMin, initialSummary, erx, erxLoading, onClose, onSave, onRefreshErx }) => {
   const [summary, setSummary] = useState(initialSummary || "");
   const [diagnosis, setDiagnosis] = useState("");
   const [followUp, setFollowUp] = useState("15 Days");
   const [saving, setSaving] = useState(false);
   const [rxOpen, setRxOpen] = useState(false);
+  const [erxAppOpen, setErxAppOpen] = useState(false);
 
   const handleSave = async () => {
     if (!summary.trim()) {
@@ -1007,7 +1156,7 @@ const CompletedStep = ({ patient, durationMin, initialSummary, erx, erxLoading, 
                 <button
                   type="button"
                   className="btn btn-soft-primary btn-sm w-100"
-                  onClick={() => openErxPage(patient?.patientAppId)}
+                  onClick={() => setErxAppOpen(true)}
                 >
                   <i className="ri-file-list-3-line me-1" aria-hidden="true" />
                   Open eRx to sign prescription
@@ -1029,11 +1178,22 @@ const CompletedStep = ({ patient, durationMin, initialSummary, erx, erxLoading, 
         toggle={() => setRxOpen(false)}
         title="Prescription"
         icon="ri-file-list-3-line"
-        onSave={() => openErxPage(patient?.patientAppId)}
+        onSave={() => {
+          setRxOpen(false);
+          setErxAppOpen(true);
+        }}
         saveLabel="Open eRx"
       >
         <RxItems erx={erx} loading={erxLoading} />
       </SidebarViewEditModal>
+
+      <TeleErxAppModal
+        isOpen={erxAppOpen}
+        toggle={() => setErxAppOpen(false)}
+        patientAppId={patient?.patientAppId}
+        patientName={patient?.patient}
+        onClosed={onRefreshErx}
+      />
     </>
   );
 };
@@ -1144,14 +1304,32 @@ const TeleCallFlow = ({ isOpen, patient, onClose, onSessionChanged }) => {
         .then((res) => active && setVisits(Array.isArray(res?.data) ? res.data : []))
         .catch(() => {});
     }
-    erxByAppointment(patient.patientAppId)
-      .then((res) => active && setErx(res?.data || null))
-      .catch(() => active && setErx(null))
-      .finally(() => active && setErxLoading(false));
+    const loadErx = () =>
+      erxByAppointment(patient.patientAppId)
+        .then((res) => {
+          if (!active) return;
+          const next = unwrapS4(res);
+          setErx(next && typeof next === "object" ? next : null);
+        })
+        .catch(() => active && setErx(null))
+        .finally(() => active && setErxLoading(false));
+    loadErx();
     return () => {
       active = false;
     };
   }, [isOpen, patient?.patientAppId, patient?.patientId]);
+
+  const refreshErx = useCallback(() => {
+    if (!patient?.patientAppId) return;
+    setErxLoading(true);
+    erxByAppointment(patient.patientAppId)
+      .then((res) => {
+        const next = unwrapS4(res);
+        setErx(next && typeof next === "object" ? next : null);
+      })
+      .catch(() => setErx(null))
+      .finally(() => setErxLoading(false));
+  }, [patient?.patientAppId]);
 
   useEffect(() => {
     if (!isOpen || step !== CALL_STEPS.DEVICE) return undefined;
@@ -1488,6 +1666,7 @@ const TeleCallFlow = ({ isOpen, patient, onClose, onSessionChanged }) => {
           setInterruptedMinimized(false);
           setStep(CALL_STEPS.INTERRUPTED);
         }}
+        onRefreshErx={refreshErx}
       />,
       document.body
     );
@@ -1503,6 +1682,7 @@ const TeleCallFlow = ({ isOpen, patient, onClose, onSessionChanged }) => {
         erxLoading={erxLoading}
         onClose={closeFlow}
         onSave={handleSaveSummary}
+        onRefreshErx={refreshErx}
       />
     );
   }

@@ -66,12 +66,6 @@ const formatDate = (value, format = "DD MMM YYYY") => (value ? moment(value).for
 const escapeHtml = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
-const NOTE_TABS = [
-  { id: "chief", label: "Chief Complaint" },
-  { id: "followUp", label: "Follow-up" },
-  { id: "general", label: "General" },
-];
-
 const lineIdOf = (row) =>
   pick(
     row,
@@ -106,11 +100,18 @@ const FormatBadge = ({ label = ERX_DOWNLOAD_FORMAT }) => (
 );
 
 /**
- * ERX — prescription lines, dosage, notes, sign & lock, record, print / download, history and refill inbox.
+ * ERX — prescription lines, dosage, sign & lock, record, print / download PDF, history and refill inbox.
+ * @param {object} [props]
+ * @param {string|number|null} [props.lockedPatientAppId] When set, only this visit is editable (no visit picker / other patients).
+ * @param {boolean} [props.embedded] Render inside an app modal (tele call) without page chrome title side-effects.
+ * @param {() => void} [props.onClose] Optional close handler for embedded mode.
  */
-const DoctorErxPage = () => {
+const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = null } = {}) => {
   const [searchParams] = useHiddenSearchParams();
-  const [patientAppId, setPatientAppId] = useState(() => searchParams.get("patientAppId") || "");
+  const lockVisit = lockedPatientAppId != null && Number(lockedPatientAppId) > 0;
+  const [patientAppId, setPatientAppId] = useState(() =>
+    lockVisit ? String(lockedPatientAppId) : searchParams.get("patientAppId") || ""
+  );
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -118,8 +119,6 @@ const DoctorErxPage = () => {
   const [visits, setVisits] = useState([]);
   const [lineDrafts, setLineDrafts] = useState({});
   const [savingLineId, setSavingLineId] = useState(null);
-  const [noteTab, setNoteTab] = useState("chief");
-  const [notes, setNotes] = useState({ chief: "", followUp: "", general: "" });
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [refills, setRefills] = useState([]);
@@ -135,7 +134,9 @@ const DoctorErxPage = () => {
 
   const doctorName = useMemo(getDoctorName, []);
 
-  document.title = "Digital Prescription | Niga Homeocentrum";
+  if (!embedded) {
+    document.title = "Digital Prescription | Niga Homeocentrum";
+  }
 
   const load = useCallback(
     async (idOverride) => {
@@ -185,14 +186,28 @@ const DoctorErxPage = () => {
   };
 
   useEffect(() => {
+    if (lockVisit) {
+      const id = Number(lockedPatientAppId);
+      setPatientAppId(String(id));
+      load(id);
+      return;
+    }
     const fromQuery = Number(searchParams.get("patientAppId"));
     if (fromQuery > 0) {
       setPatientAppId(String(fromQuery));
       load(fromQuery);
     }
-  }, [searchParams]);
+  }, [searchParams, lockVisit, lockedPatientAppId]);
 
   useEffect(() => {
+    if (lockVisit) {
+      setHistory([]);
+      setHistoryLoading(false);
+      setRefills([]);
+      setRefillsLoading(false);
+      setVisits([]);
+      return undefined;
+    }
     loadHistory();
     loadRefills();
     const user = readAuthUser();
@@ -211,7 +226,7 @@ const DoctorErxPage = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [lockVisit]);
 
   const visitIdOf = (row) =>
     row?.patientAppId || row?.patientAppID || row?.PatientAppId || row?.appointmentId || row?.AppointmentId || "";
@@ -422,50 +437,52 @@ const DoctorErxPage = () => {
     }
   };
 
-  const onPrint = () => {
-    if (!snapshot) return;
-    const rows = items
-      .map(
-        (row, index) => `<tr>
-          <td>${index + 1}</td>
-          <td>${escapeHtml(pick(row, "remedyName", "RemedyName", "remedyCode", "RemedyCode") || "—")}</td>
-          <td>${escapeHtml(pick(row, "potencyCode", "PotencyCode") || "—")}</td>
-          <td>${escapeHtml(formatDosage(draftFor(row)) || pick(row, "dose", "Dose") || "—")}</td>
-        </tr>`
-      )
-      .join("");
-    const noteBlocks = NOTE_TABS.filter((tab) => notes[tab.id].trim())
-      .map((tab) => `<p><strong>${tab.label}:</strong> ${escapeHtml(notes[tab.id])}</p>`)
-      .join("");
-    const win = window.open("", "_blank", "width=820,height=900");
-    if (!win) {
-      setError("Allow pop-ups to print the prescription.");
+  /** ERX-07 — Print uses the same signed PDF as Download (no clinical notes on the sheet). */
+  const onPrint = async () => {
+    if (!erxId) {
+      Swal.fire({
+        title: "Sign first",
+        text: "Print is available after Sign. It opens the same signed PDF as Download.",
+        icon: "info",
+      });
       return;
     }
-    win.document.write(`<!doctype html><html><head><title>eRx ${escapeHtml(erxId || "")}</title>
-      <style>
-        body{font-family:Arial,sans-serif;color:#0f172a;margin:32px}
-        h1{font-size:20px;margin:0;color:#25a0e2}
-        .meta{display:flex;justify-content:space-between;font-size:13px;margin:16px 0;padding:10px 0;border-top:2px solid #25a0e2;border-bottom:1px solid #e2e8f0}
-        table{width:100%;border-collapse:collapse;font-size:13px}
-        th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:left}
-        th{background:#f1f8fd}
-        .notes{font-size:13px;margin-top:16px}
-        .sign{margin-top:48px;text-align:right;font-size:13px}
-        .sign span{display:inline-block;border-top:1px solid #0f172a;padding-top:4px;min-width:180px;text-align:center}
-      </style></head><body>
-      <h1>Niga Homeocentrum · Digital Prescription</h1>
-      <div class="meta">
-        <div><strong>Patient:</strong> ${escapeHtml(patientName)}<br/><strong>Visit:</strong> ${escapeHtml(patientAppId)}</div>
-        <div><strong>eRx:</strong> ${escapeHtml(erxId || "—")}<br/><strong>Date:</strong> ${escapeHtml(formatDate(signedAt || new Date()))}</div>
-      </div>
-      <table><thead><tr><th>#</th><th>Remedy</th><th>Potency</th><th>Dosage</th></tr></thead><tbody>${rows || '<tr><td colspan="4">No remedies</td></tr>'}</tbody></table>
-      ${noteBlocks ? `<div class="notes">${noteBlocks}</div>` : ""}
-      <div class="sign"><span>${escapeHtml(doctorName)}${isLocked ? " · Digitally signed" : ""}</span></div>
-      </body></html>`);
-    win.document.close();
-    win.focus();
-    win.print();
+    setDownloading(true);
+    setError("");
+    try {
+      const response = await erxPdf(erxId);
+      const blob = response?.data instanceof Blob ? response.data : response;
+      if (!(blob instanceof Blob)) throw new Error("The server did not return a PDF file.");
+      if (blob.type && blob.type.includes("json")) {
+        const payload = JSON.parse(await blob.text());
+        const url = pick(payload?.data || payload, "url", "Url", "pdfUrl", "PdfUrl", "fileUrl", "FileUrl");
+        if (!url) throw new Error(payload?.message || "The server did not return a PDF file.");
+        window.open(url, "_blank", "noopener");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener");
+      if (!win) {
+        setError("Allow pop-ups to print the prescription PDF.");
+        URL.revokeObjectURL(url);
+        return;
+      }
+      const revoke = () => setTimeout(() => URL.revokeObjectURL(url), 60000);
+      win.addEventListener("load", () => {
+        try {
+          win.focus();
+          win.print();
+        } catch (_) {
+          /* browser may block auto-print; PDF tab is still open */
+        }
+        revoke();
+      });
+      revoke();
+    } catch (err) {
+      setError(s4Message(err) || "Could not open the prescription PDF.");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const decideRefill = async (row, approve) => {
@@ -500,6 +517,7 @@ const DoctorErxPage = () => {
   };
 
   const openFromHistory = (row) => {
+    if (lockVisit) return;
     const id = pick(row, "patientAppId", "PatientAppId", "appointmentId", "AppointmentId");
     if (!id) return;
     setPatientAppId(String(id));
@@ -529,53 +547,81 @@ const DoctorErxPage = () => {
   };
 
   return (
-    <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page erx-page">
+    <div
+      className={`erx-page ${embedded ? "erx-page--embedded" : "page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page"}`}
+    >
       <Container fluid>
         <div className="erx-page__header">
           <div>
-            <h2 className="clinic-page-title mb-1">Digital Prescription</h2>
-            <p className="clinic-page-subtitle mb-0">
-              Complete required fields, Sign the prescription, then download the file as PDF (.pdf).
+            {!embedded ? <h2 className="clinic-page-title mb-1">Digital Prescription</h2> : null}
+            <p className={`clinic-page-subtitle mb-0 ${embedded ? "mt-0" : ""}`}>
+              {lockVisit
+                ? "Prescription for this consultation only. Complete fields, then Sign & download PDF."
+                : "Complete required fields, Sign the prescription, then download the file as PDF (.pdf)."}
             </p>
           </div>
-          <div className="erx-page__picker">
-            <Input
-              type="select"
-              bsSize="sm"
-              value={selectedVisit ? String(patientAppId) : ""}
-              onChange={(e) => {
-                setPatientAppId(e.target.value);
-                if (e.target.value) load(e.target.value);
-              }}
-            >
-              <option value="">{visits.length ? "Today's visits" : "No visits today"}</option>
-              {visits.map((row) => {
-                const id = visitIdOf(row);
-                if (!id) return null;
-                return (
-                  <option key={id} value={id}>
-                    {visitLabel(row)}
-                  </option>
-                );
-              })}
-            </Input>
-            <Input
-              type="number"
-              bsSize="sm"
-              min={1}
-              placeholder="Visit id"
-              className="erx-page__visit-id"
-              value={patientAppId}
-              onChange={(e) => setPatientAppId(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") load();
-              }}
-            />
-            <button type="button" className="btn btn-sm erx-btn erx-btn--primary" disabled={loading || !patientAppId} onClick={() => load()}>
-              {loading ? <Spinner size="sm" /> : <i className="ri-refresh-line" aria-hidden="true" />}
-              Load
-            </button>
-          </div>
+          {lockVisit ? (
+            <div className="erx-page__locked-visit">
+              <span className="erx-page__locked-visit-label">
+                <i className="ri-lock-line" aria-hidden="true" />
+                Visit {patientAppId}
+                {patientName && patientName !== "—" ? ` · ${patientName}` : ""}
+              </span>
+              <button
+                type="button"
+                className="btn btn-sm erx-btn erx-btn--primary"
+                disabled={loading || !patientAppId}
+                onClick={() => load(patientAppId)}
+              >
+                {loading ? <Spinner size="sm" /> : <i className="ri-refresh-line" aria-hidden="true" />}
+                Refresh
+              </button>
+              {embedded && onClose ? (
+                <button type="button" className="btn btn-sm btn-soft-secondary" onClick={onClose}>
+                  Close
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="erx-page__picker">
+              <Input
+                type="select"
+                bsSize="sm"
+                value={selectedVisit ? String(patientAppId) : ""}
+                onChange={(e) => {
+                  setPatientAppId(e.target.value);
+                  if (e.target.value) load(e.target.value);
+                }}
+              >
+                <option value="">{visits.length ? "Today's visits" : "No visits today"}</option>
+                {visits.map((row) => {
+                  const id = visitIdOf(row);
+                  if (!id) return null;
+                  return (
+                    <option key={id} value={id}>
+                      {visitLabel(row)}
+                    </option>
+                  );
+                })}
+              </Input>
+              <Input
+                type="number"
+                bsSize="sm"
+                min={1}
+                placeholder="Visit id"
+                className="erx-page__visit-id"
+                value={patientAppId}
+                onChange={(e) => setPatientAppId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") load();
+                }}
+              />
+              <button type="button" className="btn btn-sm erx-btn erx-btn--primary" disabled={loading || !patientAppId} onClick={() => load()}>
+                {loading ? <Spinner size="sm" /> : <i className="ri-refresh-line" aria-hidden="true" />}
+                Load
+              </button>
+            </div>
+          )}
         </div>
 
         {error ? (
@@ -801,31 +847,13 @@ const DoctorErxPage = () => {
 
           <Col xl={4} md={6}>
             <ErxCard icon="ri-sticky-note-line" title="Clinical Notes">
-              <div className="erx-tabs" role="tablist">
-                {NOTE_TABS.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={noteTab === tab.id}
-                    className={`erx-tabs__tab${noteTab === tab.id ? " is-active" : ""}`}
-                    onClick={() => setNoteTab(tab.id)}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+              <div className="erx-empty erx-empty--sm">
+                <i className="ri-lock-line" aria-hidden="true" />
+                Clinical notes (Chief Complaint, Follow-up, General) stay on the{" "}
+                <strong>Patient Board</strong> history. They are never printed or downloaded on the eRx.
               </div>
-              <Input
-                type="textarea"
-                className="erx-notes__input"
-                placeholder="Enter notes..."
-                value={notes[noteTab]}
-                disabled={isLocked}
-                onChange={(e) => setNotes((prev) => ({ ...prev, [noteTab]: e.target.value }))}
-              />
-              <p className="erx-card__note mb-0">
-                Notes print on the eRx. History notes:{" "}
-                <strong>{pick(snapshot, "notesIncluded", "NotesIncluded") ? "included" : "not included"}</strong>.
+              <p className="erx-card__note mb-0 mt-2">
+                Patient / pharmacy prescription shows remedies and dosage only.
               </p>
             </ErxCard>
           </Col>
@@ -865,8 +893,14 @@ const DoctorErxPage = () => {
           <Col xl={4} md={6}>
             <ErxCard icon="ri-printer-line" title="Print / Download Prescription">
               <div className="erx-actions">
-                <button type="button" className="erx-action" disabled={!snapshot} onClick={onPrint}>
-                  <i className="ri-printer-line" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="erx-action"
+                  disabled={!erxId || downloading}
+                  onClick={onPrint}
+                  title="Print the signed PDF (same file as Download)"
+                >
+                  {downloading ? <Spinner size="sm" /> : <i className="ri-printer-line" aria-hidden="true" />}
                   Print
                 </button>
                 <button
@@ -881,11 +915,12 @@ const DoctorErxPage = () => {
                 </button>
               </div>
               <p className="erx-card__note mb-0">
-                Download file format: <FormatBadge /> · Available after Sign.
+                Print and Download use the same signed <FormatBadge /> · Available after Sign · No clinical notes on the sheet.
               </p>
             </ErxCard>
           </Col>
 
+          {!lockVisit ? (
           <Col xl={6}>
             <ErxCard
               icon="ri-history-line"
@@ -959,7 +994,9 @@ const DoctorErxPage = () => {
               )}
             </ErxCard>
           </Col>
+          ) : null}
 
+          {!lockVisit ? (
           <Col xl={6}>
             <ErxCard
               icon="ri-inbox-line"
@@ -1036,6 +1073,7 @@ const DoctorErxPage = () => {
               )}
             </ErxCard>
           </Col>
+          ) : null}
         </Row>
       </Container>
     </div>

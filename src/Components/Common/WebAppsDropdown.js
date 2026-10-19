@@ -14,7 +14,7 @@ const LINKS_BY_ROLE = {
         { to: '/admin/consult-payments', icon: 'ri-bank-card-line', label: 'Payments' },
         { to: '/admin/reports', icon: 'ri-bar-chart-line', label: 'Reports' },
         { to: '/admin/support-tickets', icon: 'ri-customer-service-2-line', label: 'Support' },
-        { to: '/admin/security', icon: 'ri-lock-2-line', label: 'Security' },
+        { to: '/admin/security-audit', icon: 'ri-lock-2-line', label: 'Security audit' },
     ],
     [UserRole.RECEPTION]: [
         { to: '/reception', icon: 'ri-dashboard-line', label: 'Home' },

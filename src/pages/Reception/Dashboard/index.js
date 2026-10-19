@@ -3,8 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
   Button,
-  Card,
-  CardBody,
   Col,
   Container,
   Input,
@@ -25,41 +23,23 @@ import {
   normalizeAppointmentSlotsResponse,
   timeInputToApiTime,
 } from "../../../helpers/appointmentSlotHelper";
-import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from "../../../helpers/appointmentStatus";
 import {
   callNextAppointment,
-  getAppointmentQueue,
   getAppointmentSlots,
   updateAppointmentTime,
 } from "../../../helpers/realbackend_helper";
-import { collectAtReception, getPublicFee, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
-import { paymentStatusMeta } from "../../../helpers/paymentStatusBadge";
-import { apiMessage, readReceptionDoctorId, unwrap } from "../receptionSession";
+import { getPublicFee, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
+import { apiMessage, readReceptionDoctorId } from "../receptionSession";
 import ReceptionCheckInFlow from "../components/ReceptionCheckInFlow";
 import ReceptionNewPatientForm from "../components/ReceptionNewPatientForm";
 import SummaryWidgets from "../components/SummaryWidgets";
 import TodaysAppointments from "../components/TodaysAppointments";
 import "../components/receptionDashboard.css";
 
-const formatWaitLabel = (waitMinutes) => {
-  if (waitMinutes == null || Number.isNaN(Number(waitMinutes))) return "—";
-  const mins = Math.trunc(Number(waitMinutes));
-  if (mins > 0) return `${mins}m wait`;
-  if (mins < 0) return `in ${Math.abs(mins)}m`;
-  return "due now";
-};
-
-const METHOD_OPTIONS = [
-  { label: "Cash", value: "CASH" },
-  { label: "UPI (offline)", value: "UPI_OFFLINE" },
-  { label: "Card (POS)", value: "CARD_POS" },
-  { label: "Payment link", value: "PAY_LINK" },
-];
-
 /**
- * Real reception desk UI (image-1 components): SummaryWidgets + Quick Actions +
- * queue / collect + today's list. Bound to live APIs.
- * Primary route: /reception (not ReceptionHome).
+ * Reception desk — UI-developer layout only:
+ * SummaryWidgets + Quick Actions (check-in steps) + Today's appointments.
+ * All steps are API-bound (queue, vitals, case paper, payment, booking).
  */
 const ReceptionDashboard = () => {
   document.title = "Reception | Homeocentrum";
@@ -72,7 +52,7 @@ const ReceptionDashboard = () => {
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [paymentPatch, setPaymentPatch] = useState(null);
   const [feeByType, setFeeByType] = useState({ inClinic: null, tele: null });
-  const [deskPanel, setDeskPanel] = useState(null); // null | "patient" | "appointment" | "collect"
+  const [deskPanel, setDeskPanel] = useState(null); // null | "patient" | "appointment"
   const [assistedPatientId, setAssistedPatientId] = useState("");
   const [assistedPatientName, setAssistedPatientName] = useState("");
   const [assistedPickKey, setAssistedPickKey] = useState(0);
@@ -81,13 +61,7 @@ const ReceptionDashboard = () => {
   const [cancelRow, setCancelRow] = useState(null);
   const [banner, setBanner] = useState("");
   const [error, setError] = useState("");
-  const [queue, setQueue] = useState([]);
-  const [dayVisits, setDayVisits] = useState([]);
-  const [queueLoading, setQueueLoading] = useState(false);
-  const [receipt, setReceipt] = useState(null);
-  const [collecting, setCollecting] = useState(false);
-  const [issuedReceipt, setIssuedReceipt] = useState(null);
-  const [collectError, setCollectError] = useState("");
+  const [callingNext, setCallingNext] = useState(false);
 
   const clearCheckIn = useCallback(() => setCheckInRow(null), []);
   const bumpList = useCallback(() => setListRefreshKey((n) => n + 1), []);
@@ -101,45 +75,6 @@ const ReceptionDashboard = () => {
     setDeskPanel("appointment");
     setBanner("");
   }, []);
-
-  const asRows = (response) => {
-    const body = unwrap(response);
-    const rows = body.queue || body.Queue || body.data || body;
-    return Array.isArray(rows) ? rows : [];
-  };
-
-  const loadQueue = useCallback(async () => {
-    if (!doctorId) return;
-    setQueueLoading(true);
-    try {
-      const localIso = (offsetDays) => {
-        const d = new Date();
-        d.setDate(d.getDate() + offsetDays);
-        const pad = (n) => String(n).padStart(2, "0");
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-      };
-      const [waitRes, todayRes, tomorrowRes] = await Promise.all([
-        getAppointmentQueue(doctorId),
-        getAppointmentQueue(doctorId, { date: localIso(0), scope: "day" }),
-        getAppointmentQueue(doctorId, { date: localIso(1), scope: "day" }),
-      ]);
-      const waitRows = asRows(waitRes);
-      const merged = [];
-      const seen = new Set();
-      [...asRows(todayRes), ...asRows(tomorrowRes), ...waitRows].forEach((row) => {
-        const id = row.patientAppId || row.PatientAppId;
-        if (!id || seen.has(String(id))) return;
-        seen.add(String(id));
-        merged.push(row);
-      });
-      setQueue(waitRows);
-      setDayVisits(merged);
-    } catch (err) {
-      setError(apiMessage(err, "Queue failed"));
-    } finally {
-      setQueueLoading(false);
-    }
-  }, [doctorId]);
 
   useEffect(() => {
     const hash = (location.hash || "").replace(/^#/, "");
@@ -168,14 +103,6 @@ const ReceptionDashboard = () => {
     };
   }, [doctorId]);
 
-  useEffect(() => {
-    loadQueue().catch(() => {});
-  }, [loadQueue, listRefreshKey]);
-
-  const waitingCount = queue.filter(
-    (row) => String(row.status || row.Status || "").toUpperCase() === "WAITING"
-  ).length;
-
   const consultationFee = useMemo(() => {
     const row = selectedRow || checkInRow;
     if (!row) return feeByType.inClinic;
@@ -184,16 +111,6 @@ const ReceptionDashboard = () => {
     if (Number.isFinite(fromRow) && fromRow > 0) return fromRow;
     return tele ? feeByType.tele : feeByType.inClinic;
   }, [selectedRow, checkInRow, feeByType]);
-
-  const markRowPaid = (patientAppId, method) => {
-    const patch = (row) =>
-      String(row.patientAppId || row.PatientAppId) === String(patientAppId)
-        ? { ...row, paymentStatus: "PAID", PaymentStatus: "PAID", paymentMethod: method, PaymentMethod: method }
-        : row;
-    setQueue((rows) => rows.map(patch));
-    setDayVisits((rows) => rows.map(patch));
-    setPaymentPatch({ patientAppId, paymentStatus: "PAID", paymentMethod: method, at: Date.now() });
-  };
 
   const pickSharedPatient = (patientId, label) => {
     if (!patientId) return;
@@ -205,144 +122,62 @@ const ReceptionDashboard = () => {
   };
 
   const callNext = async () => {
+    if (!doctorId || callingNext) return;
+    setCallingNext(true);
+    setError("");
     try {
       const response = await callNextAppointment(doctorId);
-      setBanner(unwrap(response).message || unwrap(response).Message || "Next patient called.");
+      const body = response?.data ?? response ?? {};
+      const data = body.data || body.Data || body;
+      const name = data.patientName || data.PatientName || "Patient";
+      const id = data.patientAppId || data.PatientAppId;
+      setBanner(id ? `Called next: ${name} (#${id})` : `Called next: ${name}`);
       bumpList();
-      await loadQueue();
     } catch (err) {
-      setError(apiMessage(err, "No waiting patient"));
-    }
-  };
-
-  const openCollect = (appointmentId = "") => {
-    const source = dayVisits.length ? dayVisits : queue;
-    const firstUnpaid =
-      source.find((row) => {
-        const status = String(row.paymentStatus || row.PaymentStatus || "UNPAID").toUpperCase();
-        return status !== "PAID" && status !== "REFUNDED";
-      }) || source[0];
-    const firstApp = appointmentId
-      || (firstUnpaid ? String(firstUnpaid.patientAppId || firstUnpaid.PatientAppId || "") : "");
-    setIssuedReceipt(null);
-    setCollectError("");
-    setReceipt({
-      amount: "",
-      method: "CASH",
-      appointmentId: firstApp,
-      gst: "GST applied by API on collection",
-    });
-    setDeskPanel("collect");
-  };
-
-  const printReceiptWindow = (printed, method) => {
-    const orderId = printed?.paymentOrderId ?? printed?.PaymentOrderId ?? "—";
-    const visitId = printed?.patientAppId ?? printed?.PatientAppId ?? receipt?.appointmentId ?? "—";
-    const amount = printed?.amount ?? printed?.Amount ?? receipt?.amount ?? "—";
-    const gst = printed?.gstAmount ?? printed?.GstAmount ?? "—";
-    const gstNote = printed?.gstNote ?? printed?.GstNote ?? "";
-    const payMethod = printed?.method ?? printed?.Method ?? method ?? "CASH";
-    const html = `<!DOCTYPE html><html><head><title>Receipt ${orderId}</title>
-      <style>body{font-family:Segoe UI,Arial,sans-serif;padding:24px;color:#111}
-      h1{font-size:18px;margin:0 0 12px} .row{margin:6px 0} .muted{color:#666;font-size:12px}</style></head>
-      <body><h1>Homeocentrum receipt</h1>
-      <div class="row">Order ${orderId}</div>
-      <div class="row">Visit ${visitId}</div>
-      <div class="row">Amount ₹ ${amount}</div>
-      <div class="row">Method ${payMethod}</div>
-      <div class="row">GST ₹ ${gst}</div>
-      <div class="muted">${gstNote}</div>
-      </body></html>`;
-    const popup = window.open("", "receipt-print", "width=480,height=640");
-    if (!popup) return;
-    popup.document.write(html);
-    popup.document.close();
-    popup.focus();
-    popup.print();
-  };
-
-  const submitCollect = async (event) => {
-    event?.preventDefault?.();
-    if (!receipt?.appointmentId) {
-      setCollectError("Select an appointment before collecting.");
-      return;
-    }
-    setCollecting(true);
-    setCollectError("");
-    try {
-      const payload = {
-        patientAppId: Number(receipt.appointmentId),
-        method: receipt.method || "CASH",
-      };
-      if (receipt.amount !== "" && receipt.amount != null) {
-        payload.amount = Number(receipt.amount);
-      }
-      const response = await collectAtReception(payload);
-      const body = unwrapS4(response) || response || {};
-      const printed = body?.receipt || response?.receipt || body?.data?.receipt || body;
-      setIssuedReceipt(printed);
-      setBanner(
-        body?.message ||
-          response?.message ||
-          (payload.method === "PAY_LINK"
-            ? "Pay link reserved. Visit stays unpaid until collection or webhook."
-            : "Collected at reception.")
-      );
-      if (payload.method !== "PAY_LINK") {
-        markRowPaid(payload.patientAppId, payload.method);
-      }
-      window.setTimeout(() => printReceiptWindow(printed, payload.method), 50);
-      bumpList();
-      await loadQueue();
-    } catch (err) {
-      setCollectError(s4Message(err) || apiMessage(err, "Collection failed"));
+      setError(apiMessage(err, "Could not call next patient."));
     } finally {
-      setCollecting(false);
+      setCallingNext(false);
     }
   };
-
-  if (!doctorId) {
-    return (
-      <div className="page-content clinic-workspace-page">
-        <Container fluid>
-          <Alert color="warning" className="mt-3">
-            No doctor is linked to this reception login. Ask the clinic admin to map reception staff to a doctor.
-          </Alert>
-        </Container>
-      </div>
-    );
-  }
 
   return (
-    <div className="page-content admin-dashboard-page doctor-dashboard-page reception-dashboard-page clinic-workspace-page">
+    <div className="page-content doctor-dashboard-page admin-dashboard-page reception-dashboard-page">
       <Container fluid>
-        <div className="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+        <div className="clinic-page-header d-flex flex-wrap align-items-start justify-content-between gap-2">
           <div>
-            <h2 className="clinic-page-title mb-1">Reception</h2>
-            <p className="clinic-page-subtitle mb-0">
-              KPI widgets, check-in steps, live queue, collect payment, and today&apos;s appointments.
-            </p>
+            <h2 className="clinic-page-title mb-0">Reception</h2>
+            <p className="clinic-page-subtitle mb-0">Check-in, vitals, payment, and today’s visits</p>
           </div>
           <div className="d-flex flex-wrap gap-2">
-            <button type="button" className="btn btn-sm btn-soft-primary" onClick={openNewPatient}>
-              New patient
-            </button>
-            <button type="button" className="btn btn-sm btn-primary" onClick={openBookAppointment}>
-              Book appointment
-            </button>
-            <button type="button" className="btn btn-sm btn-soft-warning" onClick={() => openCollect()}>
-              Collect payment
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-soft-secondary"
-              onClick={() => navigate("/reception/schedule")}
+            <Button
+              size="sm"
+              color="soft-success"
+              disabled={!doctorId || callingNext}
+              onClick={callNext}
             >
+              {callingNext ? <Spinner size="sm" /> : <i className="ri-volume-up-line me-1" aria-hidden="true" />}
+              Call next
+            </Button>
+            <Button size="sm" color="soft-primary" onClick={openNewPatient}>
+              <i className="ri-user-add-line me-1" aria-hidden="true" />
+              New patient
+            </Button>
+            <Button size="sm" className="reception-primary-btn" onClick={openBookAppointment}>
+              <i className="ri-calendar-check-line me-1" aria-hidden="true" />
+              Book appointment
+            </Button>
+            <Button size="sm" color="soft-info" onClick={() => navigate("/reception/schedule")}>
+              <i className="ri-calendar-line me-1" aria-hidden="true" />
               Schedule
-            </button>
+            </Button>
           </div>
         </div>
 
+        {!doctorId ? (
+          <Alert color="warning" className="mt-2">
+            Reception doctor context is missing. Sign in again with a reception account linked to a doctor.
+          </Alert>
+        ) : null}
         {error ? (
           <Alert color="danger" toggle={() => setError("")} className="mt-2">
             {error}
@@ -368,200 +203,16 @@ const ReceptionDashboard = () => {
           onPaymentConfirmed={(details, row) => {
             const patientAppId = row?.patientAppId || details?.patientAppId;
             if (!patientAppId) return;
-            markRowPaid(patientAppId, details?.paymentMethod);
+            setPaymentPatch({
+              patientAppId,
+              paymentStatus: "PAID",
+              paymentMethod: details?.paymentMethod || details?.method,
+              at: Date.now(),
+            });
             bumpList();
             setBanner("Payment recorded for this visit.");
           }}
         />
-
-        <Row className="g-3 mt-1">
-          <Col md={6}>
-            <Card className="admin-dash-card">
-              <CardBody>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="mb-0">Queue</h5>
-                  <Button
-                    size="sm"
-                    className="reception-primary-btn"
-                    onClick={callNext}
-                    disabled={!doctorId || waitingCount === 0 || queueLoading}
-                  >
-                    Call next
-                  </Button>
-                </div>
-                {queueLoading ? (
-                  <div className="text-center py-3">
-                    <Spinner size="sm" /> Loading queue…
-                  </div>
-                ) : queue.length === 0 ? (
-                  <p className="text-muted mb-0">No patients in queue.</p>
-                ) : (
-                  <ul className="list-unstyled mb-0">
-                    {queue.map((row) => {
-                      const id = row.patientAppId || row.PatientAppId;
-                      const name = row.patientName || row.PatientName || "Patient";
-                      const wait = formatWaitLabel(row.waitMinutes ?? row.WaitMinutes);
-                      const pay = paymentStatusMeta(row.paymentStatus || row.PaymentStatus);
-                      return (
-                        <li
-                          key={id}
-                          className="d-flex justify-content-between align-items-start border-bottom py-2 gap-2"
-                        >
-                          <div>
-                            <div className="fw-medium">
-                              {id} · {name}
-                            </div>
-                            <div className="text-muted small">
-                              {row.appointmentTime || row.AppointmentTime || "—"} · {wait}
-                              {" · "}
-                              {row.status || row.Status || "—"}
-                              {" · "}
-                              <span className={`badge bg-${pay.tone}-subtle text-${pay.tone}`}>{pay.label}</span>
-                            </div>
-                          </div>
-                          <div className="d-flex flex-shrink-0 gap-1">
-                            <Button size="sm" color="soft-warning" onClick={() => openCollect(String(id))}>
-                              Collect
-                            </Button>
-                            <span
-                              className="d-flex gap-1"
-                              title={
-                                isAppointmentCompleted(row.status || row.Status)
-                                  ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE
-                                  : undefined
-                              }
-                            >
-                              <Button
-                                size="sm"
-                                color="soft-info"
-                                disabled={isAppointmentCompleted(row.status || row.Status)}
-                                onClick={() => setRescheduleRow(row)}
-                              >
-                                Reschedule
-                              </Button>
-                              <Button
-                                size="sm"
-                                color="soft-danger"
-                                disabled={isAppointmentCompleted(row.status || row.Status)}
-                                onClick={() => setCancelRow(row)}
-                              >
-                                Cancel
-                              </Button>
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardBody>
-            </Card>
-          </Col>
-
-          {deskPanel === "collect" && receipt ? (
-            <Col md={6}>
-              <Card className="admin-dash-card" style={{ position: "relative", zIndex: 6 }}>
-                <CardBody>
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="mb-0">Collect at reception</h5>
-                    <Button
-                      size="sm"
-                      color="link"
-                      className="p-0"
-                      type="button"
-                      onClick={() => {
-                        setDeskPanel(null);
-                        setReceipt(null);
-                        setIssuedReceipt(null);
-                        setCollectError("");
-                      }}
-                    >
-                      Close
-                    </Button>
-                  </div>
-                  {collectError ? <Alert color="danger">{collectError}</Alert> : null}
-                  <Label htmlFor="reception-receipt-amount">Amount (optional)</Label>
-                  <Input
-                    id="reception-receipt-amount"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={receipt.amount}
-                    onChange={(event) => setReceipt({ ...receipt, amount: event.target.value })}
-                  />
-                  <Label className="mt-2" htmlFor="reception-receipt-method">
-                    Method
-                  </Label>
-                  <Input
-                    id="reception-receipt-method"
-                    type="select"
-                    value={receipt.method}
-                    onChange={(event) => setReceipt({ ...receipt, method: event.target.value })}
-                  >
-                    {METHOD_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </Input>
-                  <Label className="mt-2" htmlFor="reception-receipt-appointment">
-                    Appointment
-                  </Label>
-                  <Input
-                    id="reception-receipt-appointment"
-                    type="select"
-                    value={receipt.appointmentId}
-                    onChange={(event) => setReceipt({ ...receipt, appointmentId: event.target.value })}
-                  >
-                    <option value="">Select appointment</option>
-                    {(dayVisits.length ? dayVisits : queue).map((row) => {
-                      const id = row.patientAppId || row.PatientAppId;
-                      const name = row.patientName || row.PatientName || "Patient";
-                      const time = row.appointmentTime || row.AppointmentTime || "";
-                      return (
-                        <option key={id} value={String(id)}>
-                          {id} · {name}
-                          {time ? ` · ${time}` : ""}
-                        </option>
-                      );
-                    })}
-                  </Input>
-                  <Button
-                    type="button"
-                    className="reception-primary-btn mt-3"
-                    disabled={collecting || !receipt.appointmentId}
-                    onClick={submitCollect}
-                  >
-                    {collecting
-                      ? "Collecting…"
-                      : receipt.method === "PAY_LINK"
-                        ? "Reserve pay link"
-                        : "Collect & print receipt"}
-                  </Button>
-                  {issuedReceipt ? (
-                    <div className="mt-3 border rounded p-3 bg-light">
-                      <div className="fw-medium mb-1">Receipt</div>
-                      <div className="small">
-                        Order {issuedReceipt.paymentOrderId || issuedReceipt.PaymentOrderId || "—"}
-                      </div>
-                      <div className="small">
-                        Visit {issuedReceipt.patientAppId || issuedReceipt.PatientAppId || receipt.appointmentId}
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="reception-primary-btn mt-2"
-                        onClick={() => printReceiptWindow(issuedReceipt, receipt.method)}
-                      >
-                        Print again
-                      </Button>
-                    </div>
-                  ) : null}
-                </CardBody>
-              </Card>
-            </Col>
-          ) : null}
-        </Row>
 
         <TodaysAppointments
           refreshKey={listRefreshKey}
@@ -575,12 +226,7 @@ const ReceptionDashboard = () => {
           onCancel={(row) => setCancelRow(row)}
         />
 
-        <Modal
-          isOpen={deskPanel === "patient"}
-          toggle={() => setDeskPanel(null)}
-          size="md"
-          centered
-        >
+        <Modal isOpen={deskPanel === "patient"} toggle={() => setDeskPanel(null)} size="md" centered>
           <ModalHeader toggle={() => setDeskPanel(null)}>New patient</ModalHeader>
           <ModalBody>
             <ReceptionNewPatientForm
@@ -616,7 +262,6 @@ const ReceptionDashboard = () => {
                 bumpList();
                 setDeskPanel(null);
                 setBanner("Appointment booked.");
-                loadQueue().catch(() => {});
               }}
             />
           </ModalBody>

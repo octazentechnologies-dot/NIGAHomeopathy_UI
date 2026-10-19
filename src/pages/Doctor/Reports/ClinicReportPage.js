@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Alert, Card, CardBody, Col, Container, Row, Spinner, Table } from "reactstrap";
 import {
   clinicPerformance,
@@ -45,9 +46,15 @@ const ClinicReportPage = ({ mode = "followup" }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const [title, subtitle] = titles[mode] || titles.followup;
+  const isMedicineAdmin = mode === "medicine";
 
   document.title = `${title} | Niga Homeocentrum`;
+
+  const load = useCallback(() => {
+    setReloadKey((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +78,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [mode, reloadKey]);
 
   const due = mode === "followup" ? unwrapS4(data?.[0]) : [];
   const summary = mode === "followup" ? unwrapS4(data?.[1]) : [];
@@ -98,25 +105,45 @@ const ClinicReportPage = ({ mode = "followup" }) => {
     const body = unwrapped?.data && !Array.isArray(unwrapped.data) ? unwrapped.data : unwrapped || {};
     const byStatusRaw = body.byStatus || body.ByStatus || body.rows || body.Rows || [];
     const recentRaw = body.recent || body.Recent || [];
-    const totals = body.totals || body.Totals || null;
+    const recent = Array.isArray(recentRaw) ? recentRaw : [];
+    const byStatus = (Array.isArray(byStatusRaw) ? byStatusRaw : []).map((row) => ({
+      status: row.status || row.Status || row.name || row.Name || "—",
+      orders: row.orders ?? row.Orders ?? row.cnt ?? row.Cnt ?? 0,
+      patients: row.patients ?? row.Patients ?? 0,
+      pharmacies: row.pharmacies ?? row.Pharmacies ?? 0,
+      quoteTotal: row.quoteTotal ?? row.QuoteTotal ?? 0,
+      lastCreatedAt: row.lastCreatedAt ?? row.LastCreatedAt ?? null,
+    }));
+    const totalsRaw = body.totals || body.Totals || null;
+    const orderCount =
+      totalsRaw?.orders ?? totalsRaw?.Orders ?? byStatus.reduce((n, r) => n + Number(r.orders || 0), 0);
+    const quoteTotal =
+      totalsRaw?.quoteTotal ??
+      totalsRaw?.QuoteTotal ??
+      byStatus.reduce((n, r) => n + Number(r.quoteTotal || 0), 0);
+    // Prefer distinct counts from recent when it covers all orders (avoids summing per-status).
+    const coversAll = recent.length > 0 && recent.length >= Number(orderCount || 0);
+    const distinct = (camel, pascal) => {
+      const set = new Set();
+      for (const row of recent) {
+        const value = pick(row, camel, pascal);
+        if (value != null && value !== "") set.add(String(value));
+      }
+      return set.size;
+    };
     return {
-      byStatus: (Array.isArray(byStatusRaw) ? byStatusRaw : []).map((row) => ({
-        status: row.status || row.Status || row.name || row.Name || "—",
-        orders: row.orders ?? row.Orders ?? row.cnt ?? row.Cnt ?? 0,
-        patients: row.patients ?? row.Patients ?? 0,
-        pharmacies: row.pharmacies ?? row.Pharmacies ?? 0,
-        quoteTotal: row.quoteTotal ?? row.QuoteTotal ?? 0,
-        lastCreatedAt: row.lastCreatedAt ?? row.LastCreatedAt ?? null,
-      })),
-      recent: Array.isArray(recentRaw) ? recentRaw : [],
-      totals: totals
-        ? {
-            orders: totals.orders ?? totals.Orders ?? 0,
-            patients: totals.patients ?? totals.Patients ?? 0,
-            pharmacies: totals.pharmacies ?? totals.Pharmacies ?? 0,
-            quoteTotal: totals.quoteTotal ?? totals.QuoteTotal ?? 0,
-          }
-        : null,
+      byStatus,
+      recent,
+      totals: {
+        orders: orderCount,
+        patients: coversAll
+          ? distinct("patientId", "PatientId")
+          : (totalsRaw?.patients ?? totalsRaw?.Patients ?? null),
+        pharmacies: coversAll
+          ? distinct("pharmacyPartnerId", "PharmacyPartnerId")
+          : (totalsRaw?.pharmacies ?? totalsRaw?.Pharmacies ?? null),
+        quoteTotal,
+      },
     };
   }, [mode, data]);
 
@@ -128,6 +155,27 @@ const ClinicReportPage = ({ mode = "followup" }) => {
             <h2 className="clinic-page-title">{title}</h2>
             <p className="clinic-page-subtitle mb-0">{subtitle}</p>
           </div>
+          {isMedicineAdmin ? (
+            <div className="clinic-table-actions">
+              <Link to="/dashboard" className="btn btn-sm btn-soft-secondary clinic-action-btn">
+                <i className="ri-home-4-line" aria-hidden="true" />
+                Admin home
+              </Link>
+              <Link to="/admin/reports" className="btn btn-sm btn-soft-secondary clinic-action-btn">
+                <i className="ri-bar-chart-line" aria-hidden="true" />
+                Reports
+              </Link>
+              <button
+                type="button"
+                className="btn btn-sm clinic-primary-btn"
+                onClick={load}
+                disabled={loading}
+              >
+                <i className="ri-refresh-line" aria-hidden="true" />
+                Refresh
+              </button>
+            </div>
+          ) : null}
         </div>
         {error ? (
           <Alert color="danger" className="py-2 small">
@@ -237,8 +285,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
                   <CardBody>
                     <div className="text-muted small">Patients</div>
                     <div className="fs-4">
-                      {medicinePayload.totals?.patients ??
-                        medicinePayload.byStatus.reduce((n, r) => n + Number(r.patients || 0), 0)}
+                      {medicinePayload.totals?.patients ?? "—"}
                     </div>
                   </CardBody>
                 </Card>
@@ -248,8 +295,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
                   <CardBody>
                     <div className="text-muted small">Pharmacies</div>
                     <div className="fs-4">
-                      {medicinePayload.totals?.pharmacies ??
-                        medicinePayload.byStatus.reduce((n, r) => n + Number(r.pharmacies || 0), 0)}
+                      {medicinePayload.totals?.pharmacies ?? "—"}
                     </div>
                   </CardBody>
                 </Card>
@@ -330,7 +376,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
                     {medicinePayload.recent.length === 0 ? (
                       <tr>
                         <td colSpan={10} className="text-muted">
-                          No recent order detail yet. Republish the API to load the richer medicine report.
+                          No medicine orders yet. Empty is valid until a patient places an order.
                         </td>
                       </tr>
                     ) : (

@@ -5,15 +5,18 @@ import { getDoctorProfileMe } from "../../../helpers/realbackend_helper";
 import { feeHistory, getPublicFee, saveFee, s4Message, unwrapS4 } from "../../../helpers/s4Week4Api";
 
 /**
- * Doctor consult fees — Present (in-clinic / profile) + Tele only.
- * Saves through /Fees and mirrors onto doctor profile ConsultFee* columns.
+ * Doctor consult fees — Present (in-clinic / profile) + Tele, instant surcharge,
+ * pay-at-clinic, effective-from, and change history.
  */
 const DoctorConsultFeesPage = () => {
   const doctorId = Number(getAuthDoctorId() || 0);
   const [form, setForm] = useState({
     presentFee: "",
     teleFee: "",
+    instantSurcharge: "",
     currency: "INR",
+    payAtClinicEnabled: true,
+    effectiveFrom: new Date().toISOString().slice(0, 10),
   });
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +38,9 @@ const DoctorConsultFeesPage = () => {
       let present = "";
       let tele = "";
       let currency = "INR";
+      let instantSurcharge = "";
+      let payAtClinicEnabled = true;
+      let effectiveFrom = new Date().toISOString().slice(0, 10);
 
       try {
         const profile = await getDoctorProfileMe();
@@ -57,6 +63,9 @@ const DoctorConsultFeesPage = () => {
         present = String(latest.inClinicFee ?? latest.InClinicFee ?? present);
         tele = String(latest.teleFee ?? latest.TeleFee ?? tele);
         currency = latest.currency || latest.Currency || currency;
+        instantSurcharge = String(latest.instantSurcharge ?? latest.InstantSurcharge ?? "");
+        payAtClinicEnabled = latest.payAtClinicEnabled ?? latest.PayAtClinicEnabled ?? true;
+        effectiveFrom = String(latest.effectiveFrom || latest.EffectiveFrom || effectiveFrom).slice(0, 10);
       } else if (!present && !tele) {
         const published = unwrapS4(await getPublicFee(doctorId));
         const fee = published?.data && typeof published.data === "object" ? published.data : published;
@@ -64,13 +73,18 @@ const DoctorConsultFeesPage = () => {
           present = String(fee.inClinicFee ?? fee.InClinicFee ?? present);
           tele = String(fee.teleFee ?? fee.TeleFee ?? tele);
           currency = fee.currency || fee.Currency || currency;
+          instantSurcharge = String(fee.instantSurcharge ?? fee.InstantSurcharge ?? "");
+          payAtClinicEnabled = fee.payAtClinicEnabled ?? fee.PayAtClinicEnabled ?? true;
         }
       }
 
       setForm({
         presentFee: present === "null" || present === "undefined" ? "" : present,
         teleFee: tele === "null" || tele === "undefined" ? "" : tele,
+        instantSurcharge: instantSurcharge === "null" || instantSurcharge === "undefined" ? "" : instantSurcharge,
         currency: currency || "INR",
+        payAtClinicEnabled: Boolean(payAtClinicEnabled),
+        effectiveFrom,
       });
     } catch (err) {
       setError(s4Message(err));
@@ -89,9 +103,18 @@ const DoctorConsultFeesPage = () => {
     setNote("");
     const present = Number(form.presentFee);
     const tele = Number(form.teleFee);
+    const surchargeRaw = Number(form.instantSurcharge);
+    const instantSurcharge = Number.isFinite(surchargeRaw) && surchargeRaw >= 0 ? surchargeRaw : 0;
+    const effectiveFrom =
+      String(form.effectiveFrom || "").trim().slice(0, 10) || new Date().toISOString().slice(0, 10);
     if (!Number.isFinite(present) || present <= 0 || !Number.isFinite(tele) || tele <= 0) {
       setSaving(false);
       setError("Enter Present and Tele fees greater than 0.");
+      return;
+    }
+    if (!effectiveFrom) {
+      setSaving(false);
+      setError("Effective from date is required.");
       return;
     }
     try {
@@ -99,10 +122,10 @@ const DoctorConsultFeesPage = () => {
         doctorId,
         inClinicFee: present,
         teleFee: tele,
-        instantSurcharge: 0,
+        instantSurcharge,
         currency: form.currency || "INR",
-        payAtClinicEnabled: true,
-        effectiveFrom: new Date().toISOString().slice(0, 10),
+        payAtClinicEnabled: Boolean(form.payAtClinicEnabled),
+        effectiveFrom,
       });
       setNote("Fees saved. Present fee syncs with your doctor profile.");
       await load();
@@ -120,7 +143,7 @@ const DoctorConsultFeesPage = () => {
           <div>
             <h2 className="clinic-page-title">Consult fees</h2>
             <p className="clinic-page-subtitle mb-0">
-              Present fee matches your profile in-clinic fee. Tele fee is for online visits.
+              Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the API.
             </p>
           </div>
         </div>
@@ -136,7 +159,7 @@ const DoctorConsultFeesPage = () => {
               <Card className="admin-dash-card">
                 <CardBody>
                   <FormGroup>
-                    <Label>Present</Label>
+                    <Label>In-clinic fee</Label>
                     <Input
                       type="number"
                       min={0}
@@ -152,6 +175,34 @@ const DoctorConsultFeesPage = () => {
                       value={form.teleFee}
                       onChange={(e) => setForm({ ...form, teleFee: e.target.value })}
                     />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Instant surcharge</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.instantSurcharge}
+                      onChange={(e) => setForm({ ...form, instantSurcharge: e.target.value })}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Effective from</Label>
+                    <Input
+                      type="date"
+                      value={form.effectiveFrom}
+                      onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value })}
+                    />
+                  </FormGroup>
+                  <FormGroup check className="mb-3">
+                    <Input
+                      id="consultFeesPayAtClinic"
+                      type="checkbox"
+                      checked={Boolean(form.payAtClinicEnabled)}
+                      onChange={(e) => setForm({ ...form, payAtClinicEnabled: e.target.checked })}
+                    />
+                    <Label check htmlFor="consultFeesPayAtClinic">
+                      Allow pay at clinic
+                    </Label>
                   </FormGroup>
                   <button
                     type="button"
@@ -174,14 +225,19 @@ const DoctorConsultFeesPage = () => {
                     <ul className="list-unstyled mb-0">
                       {history.map((row) => {
                         const id = row.consultFeeConfigId || row.ConsultFeeConfigId;
+                        const surcharge = row.instantSurcharge ?? row.InstantSurcharge;
+                        const payClinic = row.payAtClinicEnabled ?? row.PayAtClinicEnabled;
                         return (
                           <li key={id} className="border-bottom py-2">
                             <div className="fw-medium">
-                              Present ₹{row.inClinicFee ?? row.InClinicFee} · Tele ₹
+                              In-clinic ₹{row.inClinicFee ?? row.InClinicFee} · Tele ₹
                               {row.teleFee ?? row.TeleFee}
+                              {surcharge != null && Number(surcharge) > 0 ? ` · Instant ₹${surcharge}` : ""}
                             </div>
                             <div className="text-muted small">
                               From {String(row.effectiveFrom || row.EffectiveFrom || "").slice(0, 10)}
+                              {" · Pay at clinic "}
+                              {payClinic === false ? "off" : "on"}
                             </div>
                           </li>
                         );
