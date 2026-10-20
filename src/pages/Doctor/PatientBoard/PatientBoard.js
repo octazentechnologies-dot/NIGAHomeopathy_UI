@@ -2059,6 +2059,7 @@ const PatientBoard = () => {
   // ###### Dj UI Code Start - Remedy Abbreviation Hover Tooltip State ######
   const [hoveredRemedyAbbrev, setHoveredRemedyAbbrev] = useState(null);
   const hoveredRemedyAbbrevIdRef = useRef(null);
+  const remedyInfoCacheRef = useRef(new Map());
   // ###### Dj UI Code End - Remedy Abbreviation Hover Tooltip State ######
   // Prescription Modal State
   const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
