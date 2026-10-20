@@ -32,6 +32,7 @@ const normalizeVisit = (row) => ({
   status: String(field(row, "status") || "").toUpperCase(),
   mode: field(row, "consultMode") || (field(row, "isTele") ? "Online" : "In clinic"),
   isTele: Boolean(field(row, "isTele")),
+  isExpired: Boolean(field(row, "isExpired")),
   doctorName: field(row, "doctorName") || "Doctor",
   sessionId: field(row, "teleSessionId"),
   sessionStatus: String(field(row, "sessionStatus") || ""),
@@ -40,9 +41,10 @@ const normalizeVisit = (row) => ({
 });
 
 const visitLabel = (visit) =>
-  `${visit.date ? moment(visit.date).format("DD MMM YYYY") : "—"}${visit.time ? ` ${visit.time}` : ""} · ${visit.doctorName}`;
+  `${visit.date ? moment(visit.date).format("DD MMM YYYY") : "—"}${visit.time ? ` ${visit.time}` : ""} · ${visit.doctorName}${visit.isExpired ? " · Expired" : ""}`;
 
-const isLiveSession = (visit) => /^(active|waiting|started|live)$/i.test(visit.sessionStatus);
+const isLiveSession = (visit) =>
+  !visit.isExpired && /^(active|waiting|started|live)$/i.test(visit.sessionStatus);
 
 const Shell = ({ title, subtitle, children }) => (
   <div className="page-content admin-dashboard-page clinic-workspace-page prx-page">

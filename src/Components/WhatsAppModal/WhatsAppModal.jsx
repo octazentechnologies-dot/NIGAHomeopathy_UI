@@ -47,6 +47,7 @@ import {
 } from "../../helpers/whatsapp_helper";
 import { dedupeRepeatedBlocks } from "../../utils/formatForWhatsApp";
 import { whatsAppBulk } from "../../helpers/s5Week5Api";
+import { getDoctorProfileMe } from "../../helpers/realbackend_helper";
 
 const TABS = {
   SERVICES: "services",
@@ -56,7 +57,7 @@ const TABS = {
 
 const defaultComposeState = () => ({
   doctorName: "",
-  hospitalName: "Homeo Centrum",
+  hospitalName: "",
   messageDate: new Date(),
   templateID: null,
   templateOption: null,
@@ -118,6 +119,30 @@ export default function WhatsAppModal({ isOpen, toggle }) {
     () => resolveDoctorID(doctorList),
     [doctorList]
   );
+  const [clinicHospitalName, setClinicHospitalName] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await getDoctorProfileMe();
+        const profile = me?.resultObject ?? me?.data ?? me ?? {};
+        const clinic =
+          profile.clinicName
+          ?? profile.ClinicName
+          ?? profile.hospitalName
+          ?? profile.HospitalName
+          ?? "";
+        if (!cancelled) setClinicHospitalName(String(clinic || "").trim());
+      } catch {
+        if (!cancelled) setClinicHospitalName("");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const handleEditorReady = useCallback((api) => {
     editorApiRef.current = api;
@@ -191,12 +216,12 @@ export default function WhatsAppModal({ isOpen, toggle }) {
           ...defaultComposeState(),
           ...next[key],
           doctorName: next[key].doctorName || defaultDoctorName || "",
-          hospitalName: next[key].hospitalName || "Homeo Centrum",
+          hospitalName: next[key].hospitalName || clinicHospitalName || "",
         };
       });
       return next;
     });
-  }, [defaultDoctorName]);
+  }, [defaultDoctorName, clinicHospitalName]);
 
   const clearTemplateSelection = useCallback(() => {
     setComposePatch({

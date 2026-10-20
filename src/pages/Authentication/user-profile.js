@@ -57,6 +57,7 @@ import {
   getRegistrationPinCodes,
   getUserById,
   updateUser,
+  getQualificationList,
 } from "../../helpers/realbackend_helper";
 import { clinicMessage, deleteDoctorTimeOff, listDoctorTimeOff, saveDoctorTimeOff, unwrapClinic } from "../../helpers/doctorClinicApi";
 
@@ -395,7 +396,7 @@ const DEFAULT_BANK_FORM = {
   pan: "",
 };
 
-const DEGREE_OPTIONS = ["BHMS", "MD", "BAMS", "DHMS", "MBBS", "PhD", "Other"];
+const FALLBACK_DEGREE_OPTIONS = ["BHMS", "MD", "BAMS", "DHMS", "MBBS", "PhD", "Other"];
 
 const EMPTY_QUALIFICATION_FORM = {
   degree: "",
@@ -601,6 +602,7 @@ const UserProfile = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const photoInputRef = useRef(null);
   const [qualifications, setQualifications] = useState([]);
+  const [degreeOptions, setDegreeOptions] = useState(FALLBACK_DEGREE_OPTIONS);
   const [qualificationBusy, setQualificationBusy] = useState(false);
   const [qualificationForm, setQualificationForm] = useState(EMPTY_QUALIFICATION_FORM);
   const [editingQualificationId, setEditingQualificationId] = useState(null);
@@ -913,6 +915,28 @@ const UserProfile = () => {
       })
       .catch(() => {});
     loadQualifications(() => cancelled);
+    getQualificationList({ PageNumber: 1, PageSize: 200 })
+      .then((payload) => {
+        if (cancelled) return;
+        const rows = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.resultObject)
+            ? payload.resultObject
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : Array.isArray(payload?.items)
+                ? payload.items
+                : [];
+        const names = rows
+          .map((row) => String(row?.qualificationName ?? row?.QualificationName ?? "").trim())
+          .filter(Boolean);
+        if (names.length) {
+          const unique = [...new Set(names)];
+          if (!unique.includes("Other")) unique.push("Other");
+          setDegreeOptions(unique);
+        }
+      })
+      .catch(() => {});
     getAvailabilityMe()
       .then((payload) => {
         if (cancelled) return;
@@ -2976,7 +3000,7 @@ const UserProfile = () => {
                               onChange={(e) => updateQualificationField("degree", e.target.value)}
                             >
                               <option value="">Select degree</option>
-                              {DEGREE_OPTIONS.map((degree) => (
+                              {degreeOptions.map((degree) => (
                                 <option key={degree} value={degree}>
                                   {degree}
                                 </option>

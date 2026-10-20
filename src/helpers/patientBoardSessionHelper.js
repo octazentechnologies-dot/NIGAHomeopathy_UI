@@ -70,7 +70,6 @@ export const buildPatientBoardResumePath = ({
   if (patientName != null && String(patientName).trim() !== '') {
     params.set('patientName', String(patientName).trim());
   }
-  // CLN-01.01 — header placeholders until Phase 4/6 live booking flags.
   if (visitType != null && String(visitType).trim() !== '') params.set('visitType', String(visitType).trim());
   if (consultMode != null && String(consultMode).trim() !== '') params.set('consultMode', String(consultMode).trim());
   if (isTruthyFlag(isTele)) params.set('isTele', 'true');

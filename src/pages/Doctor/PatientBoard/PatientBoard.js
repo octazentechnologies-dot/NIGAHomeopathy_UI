@@ -94,6 +94,7 @@ import {
   savePatientCaseDetails,
   getAppointmentListByPatientId,
   getPrescriptionDetailsByAppointmentId,
+  getAllTermalDDL,
 } from '../../../helpers/realbackend_helper';
 import {
   extractApiList,
@@ -175,14 +176,37 @@ const mapQuestionSubGroupFromApi = (subGroup) => ({
 });
 
 
-const thermalCircles = [
+const THERMAL_COLOR_BY_KEY = {
+  na: '#9a5b5d',
+  'n/a': '#9a5b5d',
+  'extreme chilly': '#2b8db0',
+  chilly: '#9bbdcd',
+  ambithermal: '#343a40',
+  hot: '#da3a39',
+  'extreme hot': '#8b1214',
+};
+const THERMAL_FALLBACK_COLORS = ['#9a5b5d', '#2b8db0', '#9bbdcd', '#343a40', '#da3a39', '#8b1214'];
+const DEFAULT_THERMAL_CIRCLES = [
   { id: 0, label: 'N/A', color: '#9a5b5d' },
-  { id: 1, label: 'Extreme Chilly', color: '#2b8db0' },
-  { id: 2, label: 'Chilly', color: '#9bbdcd' },
-  { id: 3, label: 'Ambithermal', color: '#343a40' },
-  { id: 4, label: 'Hot', color: '#da3a39' },
-  { id: 5, label: 'Extreme Hot', color: '#8b1214' }
 ];
+
+const mapThermalCircles = (rows = []) => {
+  const list = Array.isArray(rows) ? rows : [];
+  const mapped = list
+    .map((row, index) => {
+      const id = Number(row?.thermalId ?? row?.ThermalId ?? row?.id);
+      const label = String(row?.thermalName ?? row?.ThermalName ?? row?.name ?? '').trim();
+      if (!Number.isFinite(id) || !label) return null;
+      const key = label.toLowerCase();
+      return {
+        id,
+        label,
+        color: THERMAL_COLOR_BY_KEY[key] || THERMAL_FALLBACK_COLORS[index % THERMAL_FALLBACK_COLORS.length],
+      };
+    })
+    .filter(Boolean);
+  return [{ id: 0, label: 'N/A', color: '#9a5b5d' }, ...mapped];
+};
 
 const ACCORDION_PAGE_SIZE = 10;
 const SECTION_PAGE_SIZE = 20;
@@ -1391,18 +1415,25 @@ const PatientBoard = () => {
     return parsed.isValid() ? parsed.format('Do MMMM, YYYY') : '';
   }, [appointmentDateParam]);
 
-  // CLN-01.01 — header placeholders. Live VisitType/ConsultMode bind in Phases 4 and 6.
+  const [appointmentHeader, setAppointmentHeader] = useState({
+    visitType: '',
+    consultMode: '',
+    isTele: false,
+  });
+  const [thermalCircles, setThermalCircles] = useState(DEFAULT_THERMAL_CIRCLES);
+
+  // VisitType / ConsultMode: URL params first, then appointment for this patientAppId (or latest).
   const headerVisitType = useMemo(() => {
-    const raw = String(visitTypeParam || '').trim();
+    const raw = String(visitTypeParam || appointmentHeader.visitType || '').trim();
     return raw || '—';
-  }, [visitTypeParam]);
+  }, [visitTypeParam, appointmentHeader.visitType]);
   const headerConsultMode = useMemo(() => {
-    const raw = String(consultModeParam || '').trim();
+    const raw = String(consultModeParam || appointmentHeader.consultMode || '').trim();
     if (raw) return raw;
     const tele = String(isTeleParam || '').trim().toLowerCase();
-    if (tele === 'true' || tele === '1' || tele === 'yes') return 'Tele';
+    if (tele === 'true' || tele === '1' || tele === 'yes' || appointmentHeader.isTele) return 'Tele';
     return '—';
-  }, [consultModeParam, isTeleParam]);
+  }, [consultModeParam, isTeleParam, appointmentHeader.consultMode, appointmentHeader.isTele]);
 
   const eliminationRemedyData = useMemo(() => resolveRemedyLists(eliminationDataList), [eliminationDataList]);
   const baseRemedyData = useMemo(() => resolveRemedyLists(commanUnCommanRubricsDetailsList), [commanUnCommanRubricsDetailsList]);
@@ -1427,6 +1458,70 @@ const PatientBoard = () => {
       dispatch(getPatientDetails({ patientId: patientId, caseId: caseId }));
     }
   }, [dispatch, patientId, caseId]);
+
+  // Bind VisitType / ConsultMode from appointment API when URL does not already carry them.
+  useEffect(() => {
+    if (!patientId) {
+      setAppointmentHeader({ visitType: '', consultMode: '', isTele: false });
+      return undefined;
+    }
+    if (visitTypeParam && consultModeParam) {
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await getAppointmentListByPatientId({
+          patientId,
+          pageNumber: 1,
+          pageSize: 50,
+        });
+        const rows = extractApiList(response);
+        if (cancelled || !rows.length) return;
+        const match = patientAppId
+          ? rows.find((row) => String(row.patientAppId ?? row.PatientAppId) === String(patientAppId))
+          : null;
+        const row = match || rows[0];
+        if (!row) return;
+        const visitType = row.visitType ?? row.VisitType ?? '';
+        const consultMode = row.consultMode ?? row.ConsultMode ?? '';
+        const isTele = Boolean(
+          row.isTele
+          ?? row.IsTele
+          ?? /tele|online/i.test(String(consultMode))
+        );
+        setAppointmentHeader({ visitType, consultMode, isTele });
+      } catch {
+        if (!cancelled) {
+          setAppointmentHeader({ visitType: '', consultMode: '', isTele: false });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, patientAppId, visitTypeParam, consultModeParam]);
+
+  // Thermal circles from master DDL (colors stay local for UI).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await getAllTermalDDL({});
+        const rows = extractApiList(response);
+        if (!cancelled) {
+          setThermalCircles(mapThermalCircles(rows));
+        }
+      } catch {
+        if (!cancelled) {
+          setThermalCircles(DEFAULT_THERMAL_CIRCLES);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const buildRemedyIndexModelList = (remedies = []) => {
     if (!Array.isArray(remedies)) {

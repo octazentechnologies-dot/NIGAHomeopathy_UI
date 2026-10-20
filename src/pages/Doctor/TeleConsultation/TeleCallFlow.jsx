@@ -972,7 +972,12 @@ const InCallStep = ({
                     <td>{visit.appointmentDate ? moment(visit.appointmentDate).format("DD MMM YYYY") : "—"}</td>
                     <td>{visit.isTele ? "Tele Consultation" : visit.consultMode || "In-clinic"}</td>
                     <td>{visit.doctorName || "—"}</td>
-                    <td>{visit.status || "—"}</td>
+                    <td>
+                      {visit.status || "—"}
+                      {visit.isExpired || visit.IsExpired ? (
+                        <span className="badge bg-secondary-subtle text-secondary ms-1">Expired</span>
+                      ) : null}
+                    </td>
                   </tr>
                 ))
               )}
@@ -1301,7 +1306,18 @@ const TeleCallFlow = ({ isOpen, patient, onClose, onSessionChanged }) => {
       .catch(() => {});
     if (patient.patientId) {
       getPatientVisitsFor(patient.patientId)
-        .then((res) => active && setVisits(Array.isArray(res?.data) ? res.data : []))
+        .then((res) => {
+          if (!active) return;
+          const data = unwrapS4(res);
+          const list = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.items)
+              ? data.items
+              : Array.isArray(res?.data)
+                ? res.data
+                : [];
+          setVisits(list);
+        })
         .catch(() => {});
     }
     const loadErx = () =>

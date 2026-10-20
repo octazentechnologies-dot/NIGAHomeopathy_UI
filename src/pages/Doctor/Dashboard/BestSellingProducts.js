@@ -1363,6 +1363,18 @@ const BestSellingProducts = () => {
         const patientId = patient?.patientId ?? patient?.patientID ?? patient?.PatientId ?? null;
         const patientAppId = getPatientAppIdFromRow(patient);
         const fullName = getPatientRowFullName(patient);
+        const visitType = patient?.visitType ?? patient?.VisitType ?? '';
+        const consultMode =
+            patient?.consultMode
+            ?? patient?.ConsultMode
+            ?? (String(patient?.appStatus ?? patient?.status ?? '').toUpperCase() === 'E-CONSULT'
+                ? 'Tele'
+                : '');
+        const isTele =
+            patient?.isTele
+            ?? patient?.IsTele
+            ?? (/tele|e-consult|online/i.test(String(consultMode))
+                || String(patient?.appStatus ?? patient?.status ?? '').toUpperCase() === 'E-CONSULT');
 
         return {
             ...patient,
@@ -1371,6 +1383,9 @@ const BestSellingProducts = () => {
             patientAppId,
             patientName: fullName,
             name: fullName,
+            visitType,
+            consultMode,
+            isTele,
         };
     };
 
@@ -1481,6 +1496,11 @@ const BestSellingProducts = () => {
             const patientId = appointment.patientId ?? appointment.patientID ?? appointment.PatientId ?? null;
             const patientAppId = appointment.patientAppId ?? appointment.patientAppID ?? appointment.PatientAppId ?? null;
             const patientName = appointment.patientName ?? appointment.PatientName ?? '';
+            const visitType = appointment.visitType ?? appointment.VisitType ?? '';
+            const consultMode = appointment.consultMode ?? appointment.ConsultMode ?? '';
+            const isTele = appointment.isTele ?? appointment.IsTele
+                ?? (/tele|online/i.test(String(consultMode))
+                    || String(appointment.status || '').toUpperCase() === 'E-CONSULT');
             return {
                 ...appointment,
                 id: patientAppId,
@@ -1493,6 +1513,9 @@ const BestSellingProducts = () => {
                 place: appointment.address || '-',
                 appStatus: appointment.status || '-',
                 paymentStatus: appointment.paymentStatus ?? appointment.PaymentStatus ?? null,
+                visitType,
+                consultMode,
+                isTele,
             };
         });
 

@@ -158,13 +158,17 @@ const buildContinuity = ({ followUps, diaryRows, progressRaw, visits }) => {
     .map((row) => ({
       at: pick(row, "appointmentDate", "AppointmentDate"),
       status: String(pick(row, "status", "Status") || "").toUpperCase(),
+      isExpired: Boolean(pick(row, "isExpired", "IsExpired")),
     }))
     .filter((row) => row.at && row.status !== "CANCELLED")
     .sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
 
   const visitCount =
     Number(pick(progressRaw, "visitCount", "VisitCount")) ||
-    visitList.filter((row) => String(pick(row, "status", "Status") || "").toUpperCase() !== "CANCELLED").length ||
+    visitList.filter((row) => {
+      const status = String(pick(row, "status", "Status") || "").toUpperCase();
+      return status !== "CANCELLED" && !pick(row, "isExpired", "IsExpired");
+    }).length ||
     0;
 
   return {
