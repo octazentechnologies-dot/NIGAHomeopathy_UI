@@ -196,6 +196,7 @@ import DoctorAppointmentRequestsPage from "../pages/Doctor/Clinic/DoctorAppointm
 import DoctorPharmacyQueriesPage from "../pages/Doctor/Clinic/DoctorPharmacyQueriesPage";
 import DoctorPracticePage from "../pages/Doctor/Reports/DoctorPracticePage";
 import PatientCareHub from "../pages/Patient/Care/PatientCareHub";
+import PatientDashboard from "../pages/Patient/Dashboard";
 import SecurityAuditPage from "../pages/Admin/Security/SecurityAuditPage";
 import ConsentAuditPage from "../pages/Admin/Consent/ConsentAuditPage";
 import AccountTrailPage from "../pages/Account/AccountTrailPage";
@@ -709,6 +710,8 @@ const authProtectedRoutes = [
   { path: "pharmacy/prescriptions", component: <PharmacyWorkspacePage mode="prescriptions" />, allowedRoles: PHARMACY_ROUTE_ROLES },
   // Pharmacy Side End //
 
+  { path: "patientdashboard", component: <PatientDashboard />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
+  { path: "patient/home", component: <PatientDashboard />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "family", component: <FamilyMembers />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "caregiver", component: <CaregiverAccess />, allowedRoles: PATIENT_APP_ROUTE_ROLES },
   { path: "patient/continuity", component: <PatientContinuityPage />, allowedRoles: PATIENT_APP_ROUTE_ROLES },

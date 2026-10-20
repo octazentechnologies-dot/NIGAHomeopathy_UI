@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Collapse, Dropdown, DropdownMenu, DropdownToggle } from 'reactstrap';
+import React, { useMemo, useState } from 'react';
+import { Dropdown, DropdownMenu, DropdownToggle } from 'reactstrap';
 import { Link } from 'react-router-dom';
 
 import { useLayoutMenu } from '../../Layouts/LayoutMenuContext';
-import { isAdminEnquiriesNavItem } from '../../helpers/menuByRole';
+import { groupMoreMenuFlyoutItems, isAdminEnquiriesNavItem } from '../../helpers/menuByRole';
 
 const withoutEnquiries = (items) =>
   (items || [])
@@ -19,20 +19,31 @@ const withoutEnquiries = (items) =>
 
 const AdminMoreMenuDropdown = ({ showLabel = false }) => {
   const { moreMenuItems: rawMoreMenuItems } = useLayoutMenu();
-  const moreMenuItems = withoutEnquiries(rawMoreMenuItems);
+  const moreMenuItems = useMemo(
+    () => groupMoreMenuFlyoutItems(withoutEnquiries(rawMoreMenuItems)),
+    [rawMoreMenuItems]
+  );
   const [isOpen, setIsOpen] = useState(false);
-  const [expandedKey, setExpandedKey] = useState(null);
+  const [hoveredKey, setHoveredKey] = useState(null);
 
   const toggle = () => setIsOpen((open) => !open);
 
-  const toggleExpanded = (key) => {
-    setExpandedKey((current) => (current === key ? null : key));
-  };
-
   const closeDropdown = () => {
     setIsOpen(false);
-    setExpandedKey(null);
+    setHoveredKey(null);
   };
+
+  const renderLeaf = (item, depth = 0) => (
+    <Link
+      key={item.id || `${item.label}-${depth}`}
+      to={item.link || '/#'}
+      className="dropdown-item admin-more-menu-link"
+      onClick={closeDropdown}
+    >
+      {item.icon ? <i className={`${item.icon} me-2`} /> : null}
+      {item.label}
+    </Link>
+  );
 
   const renderMenuItems = (items, depth = 0) =>
     (items || []).map((item, index) => {
@@ -49,43 +60,39 @@ const AdminMoreMenuDropdown = ({ showLabel = false }) => {
       const children = item.childItems || item.subItems;
 
       if (children?.length) {
+        const open = hoveredKey === key;
         return (
-          <div key={key} className="admin-more-menu-group">
+          <div
+            key={key}
+            className={`admin-more-menu-flyout${open ? ' is-open' : ''}`}
+            onMouseEnter={() => setHoveredKey(key)}
+            onMouseLeave={() => setHoveredKey((current) => (current === key ? null : current))}
+            onFocus={() => setHoveredKey(key)}
+          >
             <button
               type="button"
-              className={`dropdown-item d-flex align-items-center justify-content-between admin-more-menu-parent${expandedKey === key ? ' active' : ''}`}
+              className={`dropdown-item d-flex align-items-center justify-content-between admin-more-menu-parent${open ? ' active' : ''}`}
+              aria-expanded={open}
+              aria-haspopup="true"
               onClick={(e) => {
                 e.preventDefault();
-                toggleExpanded(key);
+                setHoveredKey((current) => (current === key ? null : key));
               }}
             >
               <span className="d-flex align-items-center gap-2">
                 {item.icon ? <i className={item.icon} /> : null}
                 <span>{item.label}</span>
               </span>
-              <i className="ri-arrow-right-s-line" />
+              <i className="ri-arrow-right-s-line" aria-hidden="true" />
             </button>
-            <Collapse isOpen={expandedKey === key}>
-              <div className="admin-more-submenu">
-                {renderMenuItems(children, depth + 1)}
-              </div>
-            </Collapse>
+            <div className="admin-more-menu-flyout-panel" role="menu">
+              {children.map((child) => renderLeaf(child, depth + 1))}
+            </div>
           </div>
         );
       }
 
-      return (
-        <Link
-          key={key}
-          to={item.link || '/#'}
-          className="dropdown-item admin-more-menu-link"
-          style={depth > 0 ? { paddingLeft: `${0.75 + depth * 0.75}rem` } : undefined}
-          onClick={closeDropdown}
-        >
-          {item.icon ? <i className={`${item.icon} me-2`} /> : null}
-          {item.label}
-        </Link>
-      );
+      return renderLeaf(item, depth);
     });
 
   if (!moreMenuItems.length) {
@@ -97,6 +104,7 @@ const AdminMoreMenuDropdown = ({ showLabel = false }) => {
       isOpen={isOpen}
       toggle={toggle}
       className="topbar-head-dropdown ms-1 header-item admin-more-menu-dropdown"
+      onMouseLeave={() => setHoveredKey(null)}
     >
       <DropdownToggle
         tag="button"
