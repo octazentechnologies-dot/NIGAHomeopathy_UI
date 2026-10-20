@@ -583,6 +583,7 @@ const UserProfile = () => {
   const isReceptionProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.RECEPTION.toLowerCase();
   const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
+  const [contactNumberError, setContactNumberError] = useState("");
   const [countries, setCountries] = useState([]);
   const [locationStates, setLocationStates] = useState([]);
   const [districts, setDistricts] = useState([]);
