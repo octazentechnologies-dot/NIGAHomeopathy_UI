@@ -41,9 +41,11 @@ const usesAdminDashboardLayout = (role) =>
     usesPatientDashboardLayout(role) ||
     usesReceptionDashboardLayout(role);
 
-/** Topbar briefcase "More" overflow menu (admin + doctor) */
+/** Topbar briefcase "More" overflow menu (admin + doctor + patient) */
 const usesTopbarMoreMenu = (role) =>
-    role === UserRole.ADMIN || usesDoctorDashboardLayout(role);
+    role === UserRole.ADMIN ||
+    usesDoctorDashboardLayout(role) ||
+    usesPatientDashboardLayout(role);
 
 const resolveUserRole = (userProfile) => {
     if (userProfile?.role) return userProfile.role;
