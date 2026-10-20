@@ -584,6 +584,8 @@ const UserProfile = () => {
   const isPatientProfile = String(resolveUserRole(userData) || "").toLowerCase() === UserRole.PATIENT.toLowerCase();
   const [clinicForm, setClinicForm] = useState(DEFAULT_CLINIC_FORM);
   const [contactNumberError, setContactNumberError] = useState("");
+  const [pincodeError, setPincodeError] = useState("");
+  const [googleMapsLinkError, setGoogleMapsLinkError] = useState("");
   const [countries, setCountries] = useState([]);
   const [locationStates, setLocationStates] = useState([]);
   const [districts, setDistricts] = useState([]);
@@ -2549,7 +2551,15 @@ const UserProfile = () => {
                             Pincode
                             <RequiredMark />
                           </Label>
-                          <Input id="clinicPincode" type="select" value={clinicForm.pinCodeId} onChange={(e) => choosePin(e.target.value)}>
+                          <Input
+                            id="clinicPincode"
+                            type="select"
+                            value={clinicForm.pinCodeId}
+                            onChange={(e) => {
+                              choosePin(e.target.value);
+                              if (pincodeError) setPincodeError("");
+                            }}
+                          >
                             <option value="">Select pincode</option>
                             {clinicForm.pinCodeId && !pinCodes.some((row) => String(row.id) === String(clinicForm.pinCodeId)) ? (
                               <option value={clinicForm.pinCodeId}>{clinicForm.pincode || "Saved pincode"}</option>
@@ -2558,6 +2568,11 @@ const UserProfile = () => {
                               <option key={row.id} value={row.id}>{row.name}</option>
                             ))}
                           </Input>
+                          {pincodeError && (
+                            <div className="text-danger mt-1" style={{ fontSize: "0.875rem" }}>
+                              {pincodeError}
+                            </div>
+                          )}
                         </Col>
 
                         <Col lg={4} md={6} xs={12}>
