@@ -171,13 +171,128 @@ export const ADMIN_WEEK4_MENU = [
   { id: "homemeds-exceptions", label: "HomeoMeds exceptions", icon: "ri-capsule-line", link: "/admin/homemeds-exceptions" },
   { id: "pharmacy-partners", label: "Pharmacy configuration", icon: "ri-store-3-line", link: "/admin/pharmacy-partners" },
   { id: "consult-payments", label: "Consult payments", icon: "ri-secure-payment-line", link: "/admin/consult-payments" },
-  { id: "admin-reports", label: "Reports", icon: "ri-bar-chart-line", link: "/admin/reports" },
+  { id: "admin-reports", label: "Clinic reports", icon: "ri-bar-chart-line", link: "/admin/reports" },
   { id: "payment-exceptions", label: "Payment exceptions", icon: "ri-error-warning-line", link: "/admin/payment-exceptions" },
   { id: "admin-sms", label: "SMS templates", icon: "ri-message-2-line", link: "/admin/sms" },
   { id: "medicine-report", label: "Medicine report", icon: "ri-capsule-line", link: "/admin/medicine-report" },
   { id: "security-audit", label: "Security audit", icon: "ri-file-shield-2-line", link: "/admin/security-audit" },
   { id: "consent-audit", label: "Consent audit", icon: "ri-file-list-3-line", link: "/admin/consent-audit" },
 ];
+
+const moreMenuKey = (item) =>
+  `${String(item?.id || "").toLowerCase()}|${String(item?.link || "").split("?")[0].toLowerCase()}|${String(item?.label || "").trim().toLowerCase()}`;
+
+const matchesMoreGroup = (item, { ids = [], linkParts = [], labelParts = [] }) => {
+  const id = String(item?.id || "").toLowerCase();
+  const link = String(item?.link || "").split("?")[0].toLowerCase();
+  const label = String(item?.label || "").trim().toLowerCase();
+  if (ids.some((value) => id === value || id.includes(value))) return true;
+  if (linkParts.some((part) => link.includes(part))) return true;
+  if (labelParts.some((part) => label.includes(part))) return true;
+  return false;
+};
+
+const MORE_MENU_GROUPS = [
+  {
+    id: "more-exceptions",
+    label: "Exceptions",
+    icon: "ri-error-warning-line",
+    match: {
+      ids: ["homemeds-exceptions", "payment-exceptions"],
+      linkParts: ["homemeds-exception", "payment-exception"],
+      labelParts: ["homemeds exception", "payment exception"],
+    },
+  },
+  {
+    id: "more-audit",
+    label: "Audit",
+    icon: "ri-shield-keyhole-line",
+    match: {
+      ids: ["security-audit", "consent-audit"],
+      linkParts: ["security-audit", "consent-audit", "/admin/security"],
+      labelParts: ["security audit", "consent audit"],
+    },
+  },
+  {
+    id: "more-reports",
+    label: "Reports",
+    icon: "ri-bar-chart-box-line",
+    match: {
+      ids: [
+        "admin-reports",
+        "medicine-report",
+        "clinic-report",
+        "clinic-reports",
+        "doctor-performance",
+        "doctor-followup",
+        "doctor-practice-analysis",
+        "doctor-earning-analysis",
+      ],
+      linkParts: [
+        "/admin/reports",
+        "medicine-report",
+        "clinic-report",
+        "clinic-performance",
+        "follow-up-analysis",
+        "practice-analysis",
+        "earning-analysis",
+        "/doctor/reports",
+      ],
+      labelParts: [
+        "clinic report",
+        "medicine report",
+        "clinic performance",
+        "follow-up analysis",
+        "practice analysis",
+        "earning analysis",
+        "reports",
+      ],
+    },
+  },
+];
+
+/**
+ * Nest flat More-menu links into Exceptions / Audit / Reports parents for hover flyouts.
+ * Leaves other items (Trust, Pharmacy, SMS, …) as top-level entries; keeps relative order.
+ */
+export const groupMoreMenuFlyoutItems = (items = []) => {
+  const buckets = Object.fromEntries(MORE_MENU_GROUPS.map((group) => [group.id, []]));
+  const emittedGroup = new Set();
+  const out = [];
+
+  const normalizeChild = (child) =>
+    child.id === "admin-reports" || String(child.label || "").trim().toLowerCase() === "reports"
+      ? { ...child, label: "Clinic reports" }
+      : child;
+
+  (items || []).forEach((item) => {
+    if (item?.isHeader || item?.childItems?.length || item?.subItems?.length) {
+      out.push(item);
+      return;
+    }
+    const group = MORE_MENU_GROUPS.find((entry) => matchesMoreGroup(item, entry.match));
+    if (!group) {
+      out.push(item);
+      return;
+    }
+    buckets[group.id].push(normalizeChild(item));
+    if (emittedGroup.has(group.id)) return;
+    emittedGroup.add(group.id);
+    out.push({
+      id: group.id,
+      label: group.label,
+      icon: group.icon,
+      // Placeholder; children filled after the full pass so all matches are included.
+      childItems: buckets[group.id],
+    });
+  });
+
+  return out.map((item) => {
+    const group = MORE_MENU_GROUPS.find((entry) => entry.id === item.id);
+    if (!group) return item;
+    return { ...item, childItems: buckets[group.id] };
+  });
+};
 
 /** Admin Enquiries live on Help & Support (Ticket Enquiries) — omit from More / horizontal nav. */
 export const isAdminEnquiriesNavItem = (item) => {
@@ -340,22 +455,35 @@ export const PATIENT_FALLBACK_MENU = [
   { id: "patient-requests", label: "Appointment requests", icon: "ri-mail-send-line", link: "/patient/appointment-requests" },
   { id: "patient-waitlist", label: "Waitlist offers", icon: "ri-time-line", link: "/patient/waitlist" },
   { id: "patient-checkin", label: "Check in", icon: "ri-checkbox-circle-line", link: "/patient/check-in" },
+  { id: "patient-support", label: "Support", icon: "ri-customer-service-2-line", link: "/patient/support" },
+  { id: "patient-profile", label: "Profile", icon: "ri-user-settings-line", link: "/profile" },
 ];
+
+const normalizePatientMenuLink = (link) => {
+  const path = String(link || "").split("?")[0].toLowerCase();
+  return path.startsWith("/") ? path : path ? `/${path}` : "";
+};
+
+/** Primary patient top-nav links (rest go to topbar More). */
+const PATIENT_PRIMARY_LINKS = new Set([
+  "/patientdashboard",
+  "/patient/home",
+  "/family",
+  "/caregiver",
+  "/patient/medicine-orders",
+  "/patient/prescriptions",
+]);
 
 /** Drop Profile (header avatar) and Support (Help icon); keep Dashboard first. */
 export const normalizePatientHorizontalMenu = (items) => {
-  const hidden = new Set(["/profile", "/patient/support", "/patient/support/"]);
   const isDashboard = (link) => {
-    const path = String(link || "").split("?")[0].toLowerCase();
-    const normalized = path.startsWith("/") ? path : `/${path}`;
+    const normalized = normalizePatientMenuLink(link);
     return normalized === "/patientdashboard" || normalized === "/patient/home";
   };
   const isHidden = (link) => {
-    const path = String(link || "").split("?")[0].toLowerCase();
-    const normalized = path.startsWith("/") ? path : `/${path}`;
-    if (hidden.has(normalized)) return true;
-    if (normalized.startsWith("/profile")) return true;
-    if (normalized.startsWith("/patient/support")) return true;
+    const normalized = normalizePatientMenuLink(link);
+    if (normalized === "/profile" || normalized.startsWith("/profile")) return true;
+    if (normalized === "/patient/support" || normalized.startsWith("/patient/support")) return true;
     return false;
   };
   const cleaned = (items || []).filter((item) => !isHidden(item.link));
@@ -366,6 +494,57 @@ export const normalizePatientHorizontalMenu = (items) => {
     PATIENT_FALLBACK_MENU.find((item) => isDashboard(item.link)) ||
     PATIENT_FALLBACK_MENU[0];
   return [home, ...rest];
+};
+
+/**
+ * Slim patient nav strip (Dashboard / Family / Caregiver / Medicine / Prescriptions).
+ * Remaining care links live in the topbar More menu (same pattern as admin/doctor).
+ */
+export const splitPatientNavItems = (items = []) => {
+  const cleaned = normalizePatientHorizontalMenu(items);
+  const byLink = new Map();
+  cleaned.forEach((item) => {
+    const link = normalizePatientMenuLink(item.link);
+    if (link) byLink.set(link, item);
+  });
+
+  const primaryOrder = [
+    "/patientdashboard",
+    "/family",
+    "/caregiver",
+    "/patient/medicine-orders",
+    "/patient/prescriptions",
+  ];
+  const primaryFallbackByLink = new Map(
+    PATIENT_FALLBACK_MENU.map((item) => [normalizePatientMenuLink(item.link), item])
+  );
+
+  const menuItems = [];
+  const seenPrimary = new Set();
+  primaryOrder.forEach((link) => {
+    const item =
+      byLink.get(link) ||
+      (link === "/patientdashboard" ? byLink.get("/patient/home") : null) ||
+      primaryFallbackByLink.get(link);
+    if (!item) return;
+    const key = normalizePatientMenuLink(item.link) || link;
+    if (seenPrimary.has(key)) return;
+    seenPrimary.add(key);
+    if (key === "/patient/home") seenPrimary.add("/patientdashboard");
+    if (key === "/patientdashboard") seenPrimary.add("/patient/home");
+    menuItems.push(item);
+  });
+
+  const moreMenuItems = [];
+  const seenMore = new Set();
+  cleaned.forEach((item) => {
+    const link = normalizePatientMenuLink(item.link);
+    if (!link || PATIENT_PRIMARY_LINKS.has(link) || seenMore.has(link)) return;
+    seenMore.add(link);
+    moreMenuItems.push(item);
+  });
+
+  return { menuItems, moreMenuItems };
 };
 
 /** ADM-B04.03 — keep API menus that map to SPA paths (drop legacy MVC URLs). */

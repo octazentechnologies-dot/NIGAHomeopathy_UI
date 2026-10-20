@@ -20,7 +20,7 @@ import {
   ADMIN_WEEK4_MENU,
   isHiddenAdminNavItem,
   mergeMissingMenuItems,
-  normalizePatientHorizontalMenu,
+  splitPatientNavItems,
   receptionChromeFromApi,
   isDoctorSpaLink,
   isAdminEnquiriesNavItem,
@@ -104,9 +104,10 @@ export const LayoutMenuProvider = ({ children }) => {
         };
       }
       if (role === UserRole.PATIENT) {
+        const split = splitPatientNavItems(PATIENT_FALLBACK_MENU);
         return {
-          menuItems: normalizePatientHorizontalMenu(PATIENT_FALLBACK_MENU),
-          moreMenuItems: [],
+          menuItems: split.menuItems,
+          moreMenuItems: split.moreMenuItems,
         };
       }
       if (role === UserRole.RECEPTION) {
@@ -190,9 +191,10 @@ export const LayoutMenuProvider = ({ children }) => {
       }
       if (role === UserRole.PATIENT) {
         const merged = mergeMissingMenuItems(spaItems, PATIENT_FALLBACK_MENU);
+        const split = splitPatientNavItems(merged);
         return {
-          menuItems: withDropdownState(normalizePatientHorizontalMenu(merged)),
-          moreMenuItems: [],
+          menuItems: withDropdownState(split.menuItems),
+          moreMenuItems: withDropdownState(split.moreMenuItems),
         };
       }
       // Doctor chrome hides the sidebar. Extra UserDetails menus (Tufan_Doctor

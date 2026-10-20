@@ -3105,7 +3105,7 @@ const Widgets = () => {
                             </div>
                             <div className="flex-grow-1">
                                 <h5 className="fs-15 doctor-kpi-count">{todaySlotCount == null ? '…' : todaySlotCount}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">Appointment Slots</p>
+                                <p className="mb-0 text-muted doctor-kpi-label">App. Slots</p>
                             </div>
                         </div>
                     </div>
@@ -3173,7 +3173,7 @@ const Widgets = () => {
                             </div>
                             <div className="flex-grow-1">
                                 <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">TELE CONSULTATION</p>
+                                <p className="mb-0 text-muted doctor-kpi-label">Tele Consult</p>
                             </div>
                         </div>
                     </div>

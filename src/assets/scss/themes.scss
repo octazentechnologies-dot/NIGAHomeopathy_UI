@@ -5294,7 +5294,8 @@ body.admin-layout {
 .admin-more-menu-panel {
   min-width: 14rem;
   max-height: 70vh;
-  overflow-y: auto;
+  /* Keep visible so Exceptions/Audit/Reports hover flyouts are not clipped */
+  overflow: visible;
   z-index: 1200 !important;
 }
 
@@ -5337,6 +5338,62 @@ body.admin-layout {
   }
 }
 
+/* Hover flyout: Exceptions / Audit / Reports → child links */
+.admin-more-menu-flyout {
+  position: relative;
+}
+
+.admin-more-menu-flyout-panel {
+  position: absolute;
+  top: 0;
+  right: calc(100% - 0.15rem);
+  min-width: 12.5rem;
+  padding: 0.35rem 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.4rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(4px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+  z-index: 1300;
+}
+
+.admin-more-menu-flyout.is-open > .admin-more-menu-flyout-panel,
+.admin-more-menu-flyout:hover > .admin-more-menu-flyout-panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.admin-more-menu-flyout-panel .admin-more-menu-link {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+  .admin-more-menu-flyout-panel {
+    position: static;
+    right: auto;
+    min-width: 0;
+    margin: 0.15rem 0.5rem 0.35rem;
+    box-shadow: none;
+    border-color: #edf2f7;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    display: none;
+  }
+
+  .admin-more-menu-flyout.is-open > .admin-more-menu-flyout-panel {
+    display: block;
+  }
+}
+
 html:not([data-bs-theme="dark"]) {
   .admin-more-menu-panel {
     .dropdown-item,
@@ -5350,6 +5407,14 @@ html:not([data-bs-theme="dark"]) {
         color: #25a0e2 !important;
         background-color: transparent !important;
       }
+    }
+  }
+
+  .admin-more-menu-flyout-panel {
+    .admin-more-menu-link:hover,
+    .admin-more-menu-link:focus {
+      color: #25a0e2 !important;
+      background-color: #f3f9fe !important;
     }
   }
 }
