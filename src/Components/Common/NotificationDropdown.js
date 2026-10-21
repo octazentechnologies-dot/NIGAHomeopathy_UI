@@ -11,6 +11,9 @@ import { listNotifications, patchNotification, followUpDue } from '../../helpers
 
 const noteId = (row) => row.appNotificationId ?? row.AppNotificationId;
 const noteRead = (row) => Boolean(row.isRead ?? row.IsRead);
+const noteDeepLink = (row) => row.deepLink || row.DeepLink || "";
+const INBOX_REFRESH_EVENT = "homeocentrum-inbox-refresh";
+const INBOX_POLL_MS = 30000;
 
 const timeAgo = (value) => {
     if (!value) return '';
@@ -30,9 +33,10 @@ const EmptyRow = ({ text }) => (
     <div className="text-center text-muted py-4 fs-13">{text}</div>
 );
 
-const NoteItem = ({ row, onRead }) => {
+const NoteItem = ({ row, onOpen, onRead }) => {
     const id = noteId(row);
     const read = noteRead(row);
+    const link = noteDeepLink(row);
     return (
         <div className={`text-reset notification-item d-block dropdown-item position-relative${read ? '' : ' active'}`}>
             <div className="d-flex">
@@ -49,6 +53,11 @@ const NoteItem = ({ row, onRead }) => {
                     <p className="mb-0 fs-11 fw-medium text-uppercase text-muted">
                         <span><i className="mdi mdi-clock-outline"></i> {timeAgo(row.createdAt || row.CreatedAt)}</span>
                     </p>
+                    {link ? (
+                        <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onOpen(row)}>
+                            Open
+                        </button>
+                    ) : null}
                 </div>
                 {!read ? (
                     <div className="px-2">
@@ -167,6 +176,13 @@ const NotificationDropdown = () => {
 
     useEffect(() => {
         loadData();
+        const timer = window.setInterval(loadData, INBOX_POLL_MS);
+        const onRefresh = () => loadData();
+        window.addEventListener(INBOX_REFRESH_EVENT, onRefresh);
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener(INBOX_REFRESH_EVENT, onRefresh);
+        };
     }, [loadData]);
 
     const toggleNotificationDropdown = () => {
@@ -190,6 +206,14 @@ const NotificationDropdown = () => {
         } catch {
             /* keep the row unread if the update fails */
         }
+    };
+
+    const openNote = async (row) => {
+        const id = noteId(row);
+        if (id && !noteRead(row)) await markRead(id);
+        const link = noteDeepLink(row);
+        if (link && link.startsWith('/')) openPage(link);
+        else setIsNotificationDropdown(false);
     };
 
     const unreadNotes = notes.filter((row) => !noteRead(row)).length;
@@ -259,7 +283,7 @@ const NotificationDropdown = () => {
                         <TabPane tabId="1" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
                                 {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openPage} />)}
-                                {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} />)}
+                                {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} onOpen={openNote} />)}
                                 {alerts.length === 0 && notes.length === 0 ? <EmptyRow text="You are all caught up." /> : null}
                                 {viewAll}
                             </SimpleBar>
@@ -267,7 +291,7 @@ const NotificationDropdown = () => {
 
                         <TabPane tabId="2" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
-                                {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} />)}
+                                {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} onOpen={openNote} />)}
                                 {notes.length === 0 ? <EmptyRow text="No messages yet." /> : null}
                                 {viewAll}
                             </SimpleBar>

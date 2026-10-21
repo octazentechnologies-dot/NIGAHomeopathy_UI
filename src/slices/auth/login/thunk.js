@@ -108,6 +108,12 @@ export const logoutUser = () => async (dispatch) => {
     dispatch(clearPatientBoardSession());
     dispatch(clearPatientBoardBackupSummary());
     try {
+      const { unregisterWebFcmToken } = await import("../../../helpers/fcm_helper");
+      await unregisterWebFcmToken();
+    } catch {
+      /* push optional */
+    }
+    try {
       const { logoutApi } = await import("../../../helpers/realbackend_helper");
       await logoutApi();
     } catch {

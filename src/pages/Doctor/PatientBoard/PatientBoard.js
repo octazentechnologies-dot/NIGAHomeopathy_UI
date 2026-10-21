@@ -16274,8 +16274,8 @@ const PatientBoard = () => {
                 <div style={{ flex: '0 0 160px' }}>
                   <Select
                     isSearchable
-                    isClearable={false}
-                    placeholder="Potency (required)"
+                    isClearable
+                    placeholder="Potency (optional)"
                     options={potencyOptions}
                     value={selectedPotency}
                     onChange={(selected) => setSelectedPotency(selected)}
@@ -16352,23 +16352,13 @@ const PatientBoard = () => {
                       return;
                     }
 
-                    if (!selectedPotency?.value) {
-                      Swal.fire({
-                        icon: 'warning',
-                        title: 'Warning',
-                        text: 'Potency is required before this remedy can be added. Signing the eRx refuses a line without potency.',
-                        confirmButtonColor: '#000000'
-                      });
-                      return;
-                    }
-
                     const newRemedy = {
                       remedyId: selectedPrescriptionRemedy.value,
                       remedyName: selectedPrescriptionRemedy.label,
                       description: prescriptionRemedyDescription.trim(),
-                      dose: selectedPotency.label || '',
-                      potencyId: selectedPotency.value,
-                      potencyCode: selectedPotency.label || '',
+                      dose: selectedPotency?.label || '',
+                      potencyId: selectedPotency?.value || null,
+                      potencyCode: selectedPotency?.label || '',
                       frequency: prescriptionFrequency,
                       duration: prescriptionDuration,
                       instructions: prescriptionInstructions
@@ -17014,20 +17004,6 @@ const PatientBoard = () => {
                   icon: 'warning',
                   title: 'Warning',
                   text: 'Patient appointment ID is missing. Please navigate from the patient list.',
-                  confirmButtonColor: '#000000'
-                });
-                return;
-              }
-
-              const missingPotency = prescriptionRemedyDetailList.filter((item) => !item.potencyId);
-              if (missingPotency.length) {
-                const names = missingPotency.map((item) => item.remedyName).filter(Boolean).join(', ');
-                Swal.fire({
-                  icon: 'warning',
-                  title: 'Warning',
-                  text: names
-                    ? `Potency is required before this prescription can be saved. Missing on: ${names}.`
-                    : 'Potency is required on every remedy before this prescription can be saved.',
                   confirmButtonColor: '#000000'
                 });
                 return;

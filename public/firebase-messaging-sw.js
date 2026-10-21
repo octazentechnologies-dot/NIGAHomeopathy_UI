@@ -12,4 +12,28 @@ firebase.initializeApp({
   measurementId: "G-NDL3H9Y401",
 });
 
-firebase.messaging();
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  const title = payload?.notification?.title || payload?.data?.title || "Homeocentrum";
+  const body = payload?.notification?.body || payload?.data?.body || "";
+  const options = {
+    body,
+    icon: "/favicon.ico",
+    data: payload?.data || {},
+  };
+  return self.registration.showNotification(title, options);
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow("/");
+      return undefined;
+    })
+  );
+});

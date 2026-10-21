@@ -284,11 +284,9 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
     }
   };
 
-  const missingPotencyRows = items.filter((row) => !pick(row, "potencyCode", "PotencyCode"));
   const signRequirements = useMemo(() => {
     const visitOk = Number(patientAppId) > 0;
     const hasLines = items.length > 0 || Boolean(isUnsigned);
-    const potencyOk = items.length === 0 ? !/missing potency/i.test(unsignedHint || "") : missingPotencyRows.length === 0;
     const notYetSigned = !isLocked;
     return [
       {
@@ -308,26 +306,13 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
           : "Add remedies on Patient Board before signing",
       },
       {
-        id: "potency",
-        label: "Potency on every remedy",
-        ok: potencyOk,
-        detail: potencyOk
-          ? "All remedies have a potency"
-          : missingPotencyRows.length
-            ? `Missing on: ${missingPotencyRows
-                .map((row) => pick(row, "remedyName", "RemedyName", "remedyCode", "RemedyCode"))
-                .filter(Boolean)
-                .join(", ")}`
-            : unsignedHint || "Set potency on Patient Board for each remedy",
-      },
-      {
         id: "lock",
         label: "Not already signed",
         ok: notYetSigned,
         detail: notYetSigned ? "Ready to sign & lock" : "Already signed — download the PDF below",
       },
     ];
-  }, [patientAppId, items, isUnsigned, isLocked, missingPotencyRows, unsignedHint]);
+  }, [patientAppId, items, isUnsigned, isLocked, unsignedHint]);
 
   const canSign = signRequirements.every((row) => row.ok) && !signing;
 
@@ -356,14 +341,6 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
     const id = Number(patientAppId);
     if (!id) {
       Swal.fire({ title: "Visit required", text: "Select a visit before signing.", icon: "warning" });
-      return;
-    }
-    if (missingPotencyRows.length) {
-      Swal.fire({
-        title: "Required fields missing",
-        text: "Every remedy needs a potency before you can Sign. Fix potency on Patient Board or save dosage here.",
-        icon: "warning",
-      });
       return;
     }
     const unmet = signRequirements.filter((row) => !row.ok);

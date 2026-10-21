@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, Col, Container, Input, Label, Row, Spinner } from "reactstrap";
 import moment from "moment";
 import {
@@ -86,8 +87,11 @@ const normalize = (row) => ({
   deepLink: row.deepLink || null,
 });
 
+const INBOX_REFRESH_EVENT = "homeocentrum-inbox-refresh";
+
 const NotificationsPage = () => {
   document.title = "Notifications | Niga Homeocentrum";
+  const navigate = useNavigate();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,12 +119,15 @@ const NotificationsPage = () => {
 
   useEffect(() => {
     load();
+    const onRefresh = () => load();
+    window.addEventListener(INBOX_REFRESH_EVENT, onRefresh);
     getNotificationPreferences()
       .then((response) => setPrefs(normalizePrefs(response?.data ?? response)))
       .catch(() => {
         setPrefs(normalizePrefs(null));
         setPrefsError("Preferences could not be loaded. You can still edit and try Save.");
       });
+    return () => window.removeEventListener(INBOX_REFRESH_EVENT, onRefresh);
   }, [load]);
 
   const unreadCount = items.filter((item) => item.unread).length;
@@ -171,6 +178,11 @@ const NotificationsPage = () => {
     setItems((prev) => prev.map((item) => (done.has(item.id) ? { ...item, unread: false } : item)));
     if (done.size < ids.length) setError("Some notifications could not be marked as read.");
     setBusy(false);
+  };
+
+  const openItem = async (item) => {
+    if (item.unread) await markRead([item.id]);
+    if (item.deepLink && String(item.deepLink).startsWith("/")) navigate(item.deepLink);
   };
 
   const emptyLabel =
@@ -298,7 +310,7 @@ const NotificationsPage = () => {
                   key={item.id}
                   type="button"
                   className={`ntf-item ntf-item--${item.unread ? "blue" : "slate"}${item.unread ? " is-unread" : " is-static"}`}
-                  onClick={() => (item.unread ? markRead([item.id]) : undefined)}
+                  onClick={() => openItem(item)}
                 >
                   <span className="ntf-item__icon" aria-hidden="true">
                     <i className="ri-notification-3-line" />
