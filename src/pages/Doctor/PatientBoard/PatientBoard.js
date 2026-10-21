@@ -10867,15 +10867,15 @@ const PatientBoard = () => {
       background:#f5faff;
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-row--related {
-      background:#e7f5fd !important;
-      box-shadow:inset 3px 0 0 #25a0e2;
+      background:transparent !important;
+      box-shadow:none !important;
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-row--related:hover {
-      background:#d9effb !important;
+      background:#f5faff !important;
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-row--related .pb-repertorization-rubric-label {
       font-weight:700 !important;
-      color:#0b5cab !important;
+      color:#dc2626 !important;
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-label {
       flex:1 1 0 !important;
