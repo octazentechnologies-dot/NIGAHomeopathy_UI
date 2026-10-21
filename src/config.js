@@ -3,7 +3,7 @@
 module.exports = {
   api: {
          /* 1. Production */
-         //  API_Base_URL: "https://api1.homeocentrum.com/api",
+          //API_Base_URL: "https://api1.homeocentrum.com/api",
 
           /* 2. Stage */
           //API_Base_URL: "https://stageapi1.homeocentrum.com/api",
