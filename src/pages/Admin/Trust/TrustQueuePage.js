@@ -189,6 +189,8 @@ const TrustQueuePage = () => {
   const [doctorTab, setDoctorTab] = useState("all");
   const [doctorSearch, setDoctorSearch] = useState("");
   const [docsByDoctor, setDocsByDoctor] = useState({});
+  /** @type {Record<number, { events: any[], latestNote: string|null, lastResubmittedAt: string|null, latestDecisionStatus: string|null }>} */
+  const [trustMetaByDoctor, setTrustMetaByDoctor] = useState({});
   const [appeals, setAppeals] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [reviewTab, setReviewTab] = useState(REVIEW_STATUS.APPROVED);
@@ -302,6 +304,11 @@ const TrustQueuePage = () => {
         delete next[doctor.id];
         return next;
       });
+      setTrustMetaByDoctor((prev) => {
+        const next = { ...prev };
+        delete next[doctor.id];
+        return next;
+      });
       return;
     }
     setBusyId(`files-${doctor.id}`);
@@ -309,7 +316,17 @@ const TrustQueuePage = () => {
     try {
       const detail = unwrapS4(await getTrust(doctor.id));
       const docs = detail?.documents || detail?.Documents || [];
+      const events = detail?.events || detail?.Events || [];
       setDocsByDoctor((prev) => ({ ...prev, [doctor.id]: Array.isArray(docs) ? docs : [] }));
+      setTrustMetaByDoctor((prev) => ({
+        ...prev,
+        [doctor.id]: {
+          events: Array.isArray(events) ? events : [],
+          latestNote: detail?.latestNote || detail?.LatestNote || null,
+          lastResubmittedAt: detail?.lastResubmittedAt || detail?.LastResubmittedAt || null,
+          latestDecisionStatus: detail?.latestDecisionStatus || detail?.LatestDecisionStatus || null,
+        },
+      }));
     } catch (err) {
       setError(s4Message(err));
     } finally {
@@ -680,26 +697,52 @@ const TrustQueuePage = () => {
                             {docs ? (
                               <tr className="tv-docs-row">
                                 <td colSpan={8}>
-                                  {docs.length === 0 ? (
-                                    <span className="tv-docs-empty">No credential files uploaded for this doctor.</span>
-                                  ) : (
-                                    <ul className="tv-docs">
-                                      {docs.map((doc) => {
-                                        const docId = doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId;
-                                        return (
-                                          <li key={docId}>
-                                            <i className="ri-file-text-line" aria-hidden="true" />
-                                            <span>
-                                              {doc.documentType || doc.DocumentType} — {doc.fileName || doc.FileName || "document"}
-                                            </span>
-                                            <button type="button" onClick={() => openDocument(docId)}>
-                                              View
-                                            </button>
-                                          </li>
-                                        );
-                                      })}
-                                    </ul>
-                                  )}
+                                  {(() => {
+                                    const meta = trustMetaByDoctor[doctor.id];
+                                    const note = meta?.latestNote;
+                                    const resubmittedAt = meta?.lastResubmittedAt;
+                                    return (
+                                      <div className="tv-docs-panel">
+                                        {note ? (
+                                          <p className="tv-docs-note">
+                                            <strong>Last admin note</strong>
+                                            {meta?.latestDecisionStatus ? ` (${meta.latestDecisionStatus})` : ""}: {note}
+                                          </p>
+                                        ) : null}
+                                        {resubmittedAt ? (
+                                          <p className="tv-docs-resubmit">
+                                            <span className="tv-chip tv-chip--pending">Resubmitted</span>
+                                            {" "}
+                                            Documents re-uploaded {moment(resubmittedAt).format("DD MMM YYYY, HH:mm")} — review new files and Approve / Needs info / Reject.
+                                          </p>
+                                        ) : null}
+                                        {docs.length === 0 ? (
+                                          <span className="tv-docs-empty">No credential files uploaded for this doctor.</span>
+                                        ) : (
+                                          <ul className="tv-docs">
+                                            {docs.map((doc) => {
+                                              const docId = doc.doctorCredentialDocumentId || doc.DoctorCredentialDocumentId;
+                                              const entered = doc.enteredDate || doc.EnteredDate;
+                                              return (
+                                                <li key={docId}>
+                                                  <i className="ri-file-text-line" aria-hidden="true" />
+                                                  <span>
+                                                    {doc.documentType || doc.DocumentType} — {doc.fileName || doc.FileName || "document"}
+                                                    {entered ? (
+                                                      <span className="tv-muted"> · {moment(entered).format("DD MMM YYYY")}</span>
+                                                    ) : null}
+                                                  </span>
+                                                  <button type="button" onClick={() => openDocument(docId)}>
+                                                    View
+                                                  </button>
+                                                </li>
+                                              );
+                                            })}
+                                          </ul>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </td>
                               </tr>
                             ) : null}
