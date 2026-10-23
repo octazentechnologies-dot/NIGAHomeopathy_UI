@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, CardBody, Col, Container, Input, Label, Row, Spinner, Table } from "reactstrap";
 import { clinicMessage, unwrapClinic } from "../../../helpers/doctorClinicApi";
 import {
@@ -25,6 +25,31 @@ import {
   getRegistrationPinCodes,
   getRegistrationStates,
 } from "../../../helpers/realbackend_helper";
+import { listPublicDoctors, mapPublicDoctorCard } from "../../../helpers/publicBookingApi";
+import "./patientCare.css";
+
+const doctorInitials = (name) => {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
+};
+
+const requestStatusClass = (status) => {
+  const key = String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+  if (key.includes("accept")) return "pc-status--accepted";
+  if (key.includes("declin")) return "pc-status--declined";
+  if (key.includes("propos")) return "pc-status--proposed";
+  if (key.includes("cancel")) return "pc-status--cancelled";
+  if (key.includes("pend")) return "pc-status--pending";
+  return "pc-status--pending";
+};
 
 const emptyAddress = { label: "", line1: "", line2: "", city: "", state: "", pincode: "", phone: "", isDefault: false, countryId: "", stateId: "", districtId: "", cityId: "" };
 const emptyReminder = { title: "", dueAt: "", kind: "", isDone: false };
@@ -48,6 +73,13 @@ const PatientCareHub = ({ tab = "addresses" }) => {
   const [reminder, setReminder] = useState(emptyReminder);
   const [reminderId, setReminderId] = useState(null);
   const [request, setRequest] = useState({ doctorId: "", requestedDate: "", requestedTime: "10:00", consultMode: "CLINIC", reason: "" });
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [doctorOptions, setDoctorOptions] = useState([]);
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
+  const [doctorPickerOpen, setDoctorPickerOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null); // { id, name, clinicName, location }
+  const doctorSearchSeq = useRef(0);
+  const doctorPickerRef = useRef(null);
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
   const [districts, setDistricts] = useState([]);
@@ -98,6 +130,92 @@ const PatientCareHub = ({ tab = "addresses" }) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const recentDoctorsFromRows = useCallback(() => {
+    const recent = [];
+    const seen = new Set();
+    (rows || []).forEach((row) => {
+      const id = Number(row.doctorId ?? row.DoctorId);
+      if (!Number.isFinite(id) || id <= 0 || seen.has(id)) return;
+      seen.add(id);
+      const name = String(row.doctorName || row.DoctorName || `Doctor #${id}`).trim();
+      recent.push({ id, name, clinicName: "", location: "" });
+    });
+    return recent.slice(0, 8);
+  }, [rows]);
+
+  // Appointment-request doctor picker: search Verified + DirectoryVisible doctors by name/clinic.
+  // Keep previous options while loading so the overlay does not flicker / collapse.
+  useEffect(() => {
+    if (tab !== "requests" || selectedDoctor) return undefined;
+    const q = doctorSearch.trim();
+    if (!q) {
+      doctorSearchSeq.current += 1;
+      setDoctorsLoading(false);
+      setDoctorOptions(recentDoctorsFromRows());
+      return undefined;
+    }
+    const seq = ++doctorSearchSeq.current;
+    const handle = setTimeout(async () => {
+      setDoctorsLoading(true);
+      try {
+        const result = await listPublicDoctors({ q, pageNumber: 1, pageSize: 20, sortBy: "name" });
+        if (seq !== doctorSearchSeq.current) return;
+        const mapped = (result.data || []).map((row) => mapPublicDoctorCard(row));
+        setDoctorOptions(
+          mapped
+            .map((d) => ({
+              id: Number(d.id),
+              name: d.name || "Doctor",
+              clinicName: d.clinicName || "",
+              location: d.location || "",
+            }))
+            .filter((d) => Number.isFinite(d.id) && d.id > 0)
+        );
+      } catch {
+        if (seq !== doctorSearchSeq.current) return;
+        setDoctorOptions([]);
+      } finally {
+        if (seq === doctorSearchSeq.current) setDoctorsLoading(false);
+      }
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [tab, doctorSearch, selectedDoctor, recentDoctorsFromRows]);
+
+  useEffect(() => {
+    if (!doctorPickerOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (doctorPickerRef.current && !doctorPickerRef.current.contains(event.target)) {
+        setDoctorPickerOpen(false);
+      }
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setDoctorPickerOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [doctorPickerOpen]);
+
+  const selectRequestDoctor = (doc) => {
+    if (!doc?.id) return;
+    setSelectedDoctor(doc);
+    setRequest((prev) => ({ ...prev, doctorId: String(doc.id) }));
+    setDoctorSearch("");
+    setDoctorPickerOpen(false);
+    setDoctorsLoading(false);
+  };
+
+  const clearRequestDoctor = () => {
+    setSelectedDoctor(null);
+    setRequest((prev) => ({ ...prev, doctorId: "" }));
+    setDoctorSearch("");
+    setDoctorOptions(recentDoctorsFromRows());
+    setDoctorPickerOpen(false);
+  };
 
   useEffect(() => {
     if (tab !== "addresses") return;
@@ -201,7 +319,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
   const [title, subtitle] = titles[tab] || titles.addresses;
 
   return (
-    <div className="page-content admin-dashboard-page clinic-workspace-page">
+    <div className="page-content admin-dashboard-page clinic-workspace-page patient-care-page">
       <Container fluid>
         <h2 className="clinic-page-title">{title}</h2>
         <p className="clinic-page-subtitle">{subtitle}</p>
@@ -312,55 +430,242 @@ const PatientCareHub = ({ tab = "addresses" }) => {
 
         {tab === "requests" ? (
           <>
-            <Card className="admin-dash-card mb-3"><CardBody>
-              <Row className="g-2 align-items-end">
-                <Col md={2}><Label>Doctor id</Label><Input value={request.doctorId} onChange={(e) => setRequest({ ...request, doctorId: e.target.value })} /></Col>
-                <Col md={2}><Label>Date</Label><Input type="date" value={request.requestedDate} onChange={(e) => setRequest({ ...request, requestedDate: e.target.value })} /></Col>
-                <Col md={2}><Label>Time</Label><Input type="time" value={request.requestedTime} onChange={(e) => setRequest({ ...request, requestedTime: e.target.value })} /></Col>
-                <Col md={2}><Label>Mode</Label>
-                  <Input type="select" value={request.consultMode} onChange={(e) => setRequest({ ...request, consultMode: e.target.value })}>
-                    <option value="CLINIC">Clinic</option>
-                    <option value="TELE">Tele</option>
-                  </Input>
-                </Col>
-                <Col md={3}><Label>Reason</Label><Input value={request.reason} onChange={(e) => setRequest({ ...request, reason: e.target.value })} /></Col>
-                <Col md={1}>
-                  <Button color="primary" disabled={busy} onClick={() => run(async () => {
-                    await createPatientAppointmentRequest({
-                      doctorId: Number(request.doctorId),
-                      requestedDate: request.requestedDate,
-                      requestedTime: request.requestedTime,
-                      consultMode: request.consultMode,
-                      reason: request.reason || null,
-                    });
-                    setNote("Request sent.");
-                  })}>Send</Button>
-                </Col>
-              </Row>
-            </CardBody></Card>
-            <Table responsive>
-              <thead><tr><th>Doctor</th><th>Requested</th><th>Status</th><th>Proposed</th><th /></tr></thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.appointmentRequestId}>
-                    <td>{row.doctorName || row.doctorId}</td>
-                    <td>{row.requestedDate} {row.requestedTime}</td>
-                    <td>{row.status}</td>
-                    <td>{row.proposedDate ? `${row.proposedDate} ${row.proposedTime || ""}` : "—"}</td>
-                    <td className="text-end">
-                      {String(row.status).toUpperCase() === "PROPOSED" ? (
-                        <>
-                          <Button size="sm" color="success" className="me-2" disabled={busy} onClick={() => run(() => respondPatientAppointmentRequest(row.appointmentRequestId, "ACCEPT"))}>Accept</Button>
-                          <Button size="sm" color="danger" outline disabled={busy} onClick={() => run(() => respondPatientAppointmentRequest(row.appointmentRequestId, "DECLINE"))}>Decline</Button>
-                        </>
+            <Card className="admin-dash-card mb-3">
+              <CardBody className="py-3">
+                <div className="pc-request-form">
+                  <div className="pc-request-toolbar">
+                    <div ref={doctorPickerRef} className="pc-field pc-field--doctor">
+                      <label className="pc-request-form__label" htmlFor="patient-appt-doctor-search">
+                        Doctor
+                      </label>
+                      {selectedDoctor ? (
+                        <div className="pc-doctor-chip" title={selectedDoctor.name}>
+                          <span className="pc-doctor-chip__avatar" aria-hidden="true">
+                            {doctorInitials(selectedDoctor.name)}
+                          </span>
+                          <div className="pc-doctor-chip__main">
+                            <div className="pc-doctor-chip__name">{selectedDoctor.name}</div>
+                          </div>
+                          <button type="button" className="pc-doctor-chip__clear" onClick={clearRequestDoctor}>
+                            Change
+                          </button>
+                        </div>
                       ) : (
-                        <Button size="sm" color="light" disabled={busy} onClick={() => run(() => cancelPatientAppointmentRequest(row.appointmentRequestId))}>Cancel</Button>
+                        <>
+                          <div className="pc-doctor-search">
+                            <span className="pc-doctor-search__addon" aria-hidden="true">
+                              <i className="ri-search-line" />
+                            </span>
+                            <div className="pc-doctor-search__field">
+                              <Input
+                                id="patient-appt-doctor-search"
+                                className="pc-doctor-search__input"
+                                value={doctorSearch}
+                                onChange={(e) => {
+                                  setDoctorSearch(e.target.value);
+                                  setDoctorPickerOpen(true);
+                                }}
+                                onFocus={() => setDoctorPickerOpen(true)}
+                                placeholder="Name or clinic"
+                                autoComplete="off"
+                                aria-autocomplete="list"
+                                aria-expanded={doctorPickerOpen}
+                              />
+                              {doctorsLoading ? <span className="pc-doctor-search__spinner" aria-hidden="true" /> : null}
+                            </div>
+                          </div>
+                          {doctorPickerOpen ? (
+                            <div className="pc-doctor-dropdown" role="listbox">
+                              {doctorOptions.length > 0 ? (
+                                doctorOptions.map((doc) => (
+                                  <button
+                                    key={doc.id}
+                                    type="button"
+                                    className="pc-doctor-option"
+                                    role="option"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => selectRequestDoctor(doc)}
+                                  >
+                                    <span className="pc-doctor-option__avatar" aria-hidden="true">
+                                      {doctorInitials(doc.name)}
+                                    </span>
+                                    <span className="pc-doctor-option__main">
+                                      <span className="pc-doctor-option__name">{doc.name}</span>
+                                      <span className="pc-doctor-option__meta">
+                                        {[doc.clinicName, doc.location].filter(Boolean).join(" · ") ||
+                                          (doctorSearch.trim() ? "Verified doctor" : "Recent")}
+                                      </span>
+                                    </span>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="pc-doctor-dropdown__empty">
+                                  {doctorsLoading
+                                    ? "Searching…"
+                                    : doctorSearch.trim()
+                                      ? "No doctor found."
+                                      : "Type a name to search."}
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+                        </>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+                    </div>
+
+                    <div className="pc-field pc-field--date">
+                      <label className="pc-request-form__label" htmlFor="patient-appt-date">
+                        Date
+                      </label>
+                      <Input
+                        id="patient-appt-date"
+                        type="date"
+                        value={request.requestedDate}
+                        onChange={(e) => setRequest({ ...request, requestedDate: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="pc-field pc-field--time">
+                      <label className="pc-request-form__label" htmlFor="patient-appt-time">
+                        Time
+                      </label>
+                      <Input
+                        id="patient-appt-time"
+                        type="time"
+                        value={request.requestedTime}
+                        onChange={(e) => setRequest({ ...request, requestedTime: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="pc-field pc-field--mode">
+                      <label className="pc-request-form__label" htmlFor="patient-appt-mode">
+                        Mode
+                      </label>
+                      <Input
+                        id="patient-appt-mode"
+                        type="select"
+                        value={request.consultMode}
+                        onChange={(e) => setRequest({ ...request, consultMode: e.target.value })}
+                      >
+                        <option value="CLINIC">Clinic</option>
+                        <option value="TELE">Tele</option>
+                      </Input>
+                    </div>
+
+                    <div className="pc-field pc-field--reason">
+                      <label className="pc-request-form__label" htmlFor="patient-appt-reason">
+                        Reason
+                      </label>
+                      <Input
+                        id="patient-appt-reason"
+                        value={request.reason}
+                        onChange={(e) => setRequest({ ...request, reason: e.target.value })}
+                        placeholder="Optional"
+                      />
+                    </div>
+
+                    <div className="pc-field pc-field--action">
+                      <Button
+                        className="pc-send-btn"
+                        disabled={busy || !Number(request.doctorId) || !request.requestedDate || !request.requestedTime}
+                        onClick={() =>
+                          run(async () => {
+                            if (!Number(request.doctorId)) {
+                              throw new Error("Please select a doctor from the search list.");
+                            }
+                            await createPatientAppointmentRequest({
+                              doctorId: Number(request.doctorId),
+                              requestedDate: request.requestedDate,
+                              requestedTime: request.requestedTime,
+                              consultMode: request.consultMode,
+                              reason: request.reason || null,
+                            });
+                            setNote("Request sent.");
+                            setRequest({ doctorId: "", requestedDate: "", requestedTime: "10:00", consultMode: "CLINIC", reason: "" });
+                            clearRequestDoctor();
+                          })
+                        }
+                      >
+                        {busy ? "Sending…" : "Send"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+            <Card className="admin-dash-card">
+              <CardBody className="p-0">
+                <Table responsive className="pc-requests-table mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th>Doctor</th>
+                      <th>Requested</th>
+                      <th>Status</th>
+                      <th>Proposed</th>
+                      <th className="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-muted px-3 py-4">
+                          No appointment requests yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      rows.map((row) => (
+                        <tr key={row.appointmentRequestId}>
+                          <td className="px-3">{row.doctorName || row.doctorId}</td>
+                          <td>
+                            {row.requestedDate} {row.requestedTime}
+                          </td>
+                          <td>
+                            <span className={`pc-status ${requestStatusClass(row.status)}`}>{row.status}</span>
+                          </td>
+                          <td>{row.proposedDate ? `${row.proposedDate} ${row.proposedTime || ""}` : "—"}</td>
+                          <td className="text-end pe-3">
+                            <div className="pc-table-actions">
+                              {String(row.status).toUpperCase() === "PROPOSED" ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    color="success"
+                                    className="pc-action-btn"
+                                    disabled={busy}
+                                    onClick={() => run(() => respondPatientAppointmentRequest(row.appointmentRequestId, "ACCEPT"))}
+                                  >
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    color="danger"
+                                    outline
+                                    className="pc-action-btn"
+                                    disabled={busy}
+                                    onClick={() => run(() => respondPatientAppointmentRequest(row.appointmentRequestId, "DECLINE"))}
+                                  >
+                                    Decline
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  className="pc-action-btn pc-action-btn--cancel"
+                                  disabled={busy}
+                                  onClick={() => run(() => cancelPatientAppointmentRequest(row.appointmentRequestId))}
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
+              </CardBody>
+            </Card>
           </>
         ) : null}
 

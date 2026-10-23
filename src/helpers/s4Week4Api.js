@@ -130,7 +130,8 @@ export const erxHistory = (params) => nigahomeoAPI.get("/Erx/History", params ||
 export const erxPatient = (appointmentId) => nigahomeoAPI.get(`/Erx/Patient/${appointmentId}`, null);
 export const erxPdf = (id) => nigahomeoAPI.get(`/Erx/${id}/Pdf`, { responseType: "blob" });
 export const createErxRefill = (payload) => nigahomeoAPI.post("/Erx/Refills", payload);
-export const cloneMedicineRefill = (refillId) => nigahomeoAPI.post(`/MedicineOrders/Refill/${refillId}`, null);
+export const cloneMedicineRefill = (refillId, payload = {}) =>
+  nigahomeoAPI.post(`/MedicineOrders/Refill/${refillId}`, payload || {});
 export const listErxRefills = (status) => nigahomeoAPI.get("/Erx/Refills", status ? { status } : null);
 export const approveErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Approve`, payload);
 export const rejectErxRefill = (id, payload) => nigahomeoAPI.post(`/Erx/Refills/${id}/Reject`, payload);

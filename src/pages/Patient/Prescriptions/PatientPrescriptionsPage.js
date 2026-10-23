@@ -144,7 +144,7 @@ const PatientPrescriptionsPage = () => {
       await createErxRefill({ erxSnapshotId: erxId });
       Swal.fire({
         title: "Refill requested",
-        text: "Your doctor must approve it. After that, start the order from Medicine orders.",
+        text: "My Orders will show “Waiting for doctor approval”. After approval, use Start order and pick a pharmacy.",
         icon: "success",
       });
     } catch (err) {

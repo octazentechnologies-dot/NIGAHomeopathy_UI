@@ -9,6 +9,126 @@
   --prx-soft: #94a3b8;
 }
 
+/* Refill banners on My Orders */
+.med-refill-banner {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--prx-divider);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.med-refill-banner--pending {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.med-refill-banner--approved {
+  border-color: #b6dff5;
+  background: #f3f9fe;
+}
+
+.med-refill-banner__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.med-refill-banner__head > i {
+  margin-top: 0.1rem;
+  color: var(--prx-blue);
+  font-size: 1.1rem;
+}
+
+.med-refill-banner--pending .med-refill-banner__head > i {
+  color: #b45309;
+}
+
+.med-refill-banner__head strong {
+  display: block;
+  color: var(--prx-ink);
+  font-size: 0.88rem;
+}
+
+.med-refill-banner__head p {
+  margin: 0.1rem 0 0;
+  color: var(--prx-muted);
+  font-size: 0.75rem;
+}
+
+.med-refill-banner__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.med-refill-banner__list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #e2ebf3;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.med-refill-banner__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.med-refill-banner__main strong {
+  display: block;
+  overflow: hidden;
+  color: var(--prx-ink);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.med-refill-banner__main span {
+  display: block;
+  overflow: hidden;
+  color: var(--prx-muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.med-refill-banner__chip {
+  flex-shrink: 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #b45309;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.med-refill-banner__btn {
+  flex-shrink: 0;
+  height: 32px !important;
+  padding: 0 0.85rem !important;
+  font-size: 0.75rem !important;
+}
+
+@media (max-width: 575.98px) {
+  .med-refill-banner__list > li {
+    flex-wrap: wrap;
+  }
+
+  .med-refill-banner__btn {
+    width: 100%;
+  }
+}
+
 /* Modal shell */
 .med-modal .modal-body {
   display: flex;

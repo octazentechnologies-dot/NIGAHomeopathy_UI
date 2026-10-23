@@ -9,7 +9,7 @@ import {
   rejectDoctorRefill,
 } from "../../../helpers/realbackend_helper";
 
-const STATUS_COLOR = { PENDING: "warning", APPROVED: "success", REJECTED: "danger" };
+const STATUS_COLOR = { PENDING: "warning", APPROVED: "success", ORDERED: "info", REJECTED: "danger" };
 
 const pick = (row, ...keys) => {
   for (const key of keys) {

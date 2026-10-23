@@ -5,7 +5,6 @@ import Swal from "sweetalert2";
 
 import {
   acceptMedicineQuote,
-  cloneMedicineRefill,
   createMedicineOrder,
   createMedicinePayment,
   grantMedicineConsent,
@@ -17,6 +16,7 @@ import {
 } from "../../../helpers/s4Week4Api";
 import { patientMedicineHistory, reviewMedicineOrder } from "../../../helpers/s5Week5Api";
 import OrderDetailsModal from "./OrderDetailsModal";
+import OrderMedicinesModal from "./OrderMedicinesModal";
 import {
   formatDate,
   formatINR,
@@ -27,6 +27,39 @@ import {
 } from "./medicineOrderData";
 import "../Prescriptions/patientPrescriptions.css";
 import "./patientMedicine.css";
+
+const refillStatusOf = (row) => String(pick(row, "status", "Status") || "").toUpperCase();
+
+const refillTitle = (row) => {
+  const first = pick(row, "firstRemedyName", "FirstRemedyName");
+  const count = Number(pick(row, "itemCount", "ItemCount") || 0);
+  if (first) {
+    return count > 1 ? `${first} + ${count - 1} more` : first;
+  }
+  const erxId = pick(row, "erxSnapshotId", "ErxSnapshotId");
+  return erxId ? `Prescription #${erxId}` : "Approved refill";
+};
+
+const refillSubtitle = (row) => {
+  const doctor = pick(row, "doctorName", "DoctorName") || "Your doctor";
+  const signed = pick(row, "signedAt", "SignedAt") || pick(row, "decidedAt", "DecidedAt") || pick(row, "createdAt", "CreatedAt");
+  const erxId = pick(row, "erxSnapshotId", "ErxSnapshotId");
+  return [doctor, erxId ? `eRx #${erxId}` : null, signed ? formatDate(signed) : null].filter(Boolean).join(" · ");
+};
+
+const toRefillPrescription = (row) => {
+  const erxId = Number(pick(row, "erxSnapshotId", "ErxSnapshotId"));
+  const first = pick(row, "firstRemedyName", "FirstRemedyName");
+  return {
+    erxId,
+    erxNo: erxId ? `eRx #${erxId}` : "Prescription",
+    doctorName: pick(row, "doctorName", "DoctorName") || "Doctor",
+    date: pick(row, "signedAt", "SignedAt") || pick(row, "createdAt", "CreatedAt"),
+    remedies: first
+      ? [{ name: first, potency: "", dose: "", frequency: "", duration: "", instructions: "" }]
+      : [],
+  };
+};
 
 const asList = (payload) => {
   const data = unwrapS4(payload);
@@ -44,6 +77,7 @@ const ORDER_TABS = [
 
 const HOW_IT_WORKS = [
   { icon: "ri-file-list-3-line", title: "Order from eRx", text: "Pick a signed prescription and a pharmacy." },
+  { icon: "ri-refresh-line", title: "Refills", text: "Request refill → doctor approves → Start order here." },
   { icon: "ri-price-tag-3-line", title: "Get a quote", text: "The pharmacy confirms stock and price." },
   { icon: "ri-wallet-3-line", title: "Accept & pay", text: "Pay online or choose cash on delivery." },
   { icon: "ri-truck-line", title: "Track delivery", text: "Follow your order until it arrives." },
@@ -66,7 +100,9 @@ const PatientMedicineOrdersPage = () => {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [pendingRefills, setPendingRefills] = useState([]);
   const [approvedRefills, setApprovedRefills] = useState([]);
+  const [refillOrderFor, setRefillOrderFor] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,9 +120,8 @@ const PatientMedicineOrdersPage = () => {
     if (ordersResult.status === "rejected") setError(s4Message(ordersResult.reason));
     setPayments(paymentsResult.status === "fulfilled" ? asList(paymentsResult.value) : []);
     const refills = refillResult.status === "fulfilled" ? asList(refillResult.value) : [];
-    setApprovedRefills(
-      refills.filter((row) => String(row.status || row.Status || "").toUpperCase() === "APPROVED")
-    );
+    setPendingRefills(refills.filter((row) => refillStatusOf(row) === "PENDING"));
+    setApprovedRefills(refills.filter((row) => refillStatusOf(row) === "APPROVED"));
     setLoading(false);
   }, []);
 
@@ -178,20 +213,22 @@ const PatientMedicineOrdersPage = () => {
       });
     });
 
-  const onStartRefill = async (row) => {
-    const id = Number(row.refillRequestId || row.RefillRequestId || row.id || row.Id);
+  const onStartRefill = (row) => {
+    const id = Number(pick(row, "refillRequestId", "RefillRequestId", "id", "Id"));
     if (!id) return;
-    setBusy(true);
-    setError("");
-    try {
-      await cloneMedicineRefill(id);
-      Swal.fire({ title: "Refill order started", text: "The pharmacy will send a quote.", icon: "success", timer: 1600, showConfirmButton: false });
-      await load();
-    } catch (err) {
-      setError(s4Message(err));
-    } finally {
-      setBusy(false);
-    }
+    setRefillOrderFor({ refillId: id, prescription: toRefillPrescription(row) });
+  };
+
+  const onRefillOrderPlaced = async (order) => {
+    setRefillOrderFor(null);
+    await load();
+    Swal.fire({
+      title: "Refill order started",
+      text: `${order?.orderNo ? `Order ${order.orderNo} created. ` : ""}The pharmacy will send a quote.`,
+      icon: "success",
+      timer: 1800,
+      showConfirmButton: false,
+    });
   };
 
   const onReorder = (order) =>
@@ -229,21 +266,64 @@ const PatientMedicineOrdersPage = () => {
         </div>
 
         {error ? <Alert color="danger">{error}</Alert> : null}
+
+        {pendingRefills.length ? (
+          <div className="med-refill-banner med-refill-banner--pending">
+            <div className="med-refill-banner__head">
+              <i className="ri-time-line" aria-hidden="true" />
+              <div>
+                <strong>Waiting for doctor approval</strong>
+                <p>You requested a refill. Start order appears here after your doctor approves.</p>
+              </div>
+            </div>
+            <ul className="med-refill-banner__list">
+              {pendingRefills.map((row) => {
+                const id = pick(row, "refillRequestId", "RefillRequestId");
+                return (
+                  <li key={id}>
+                    <div className="med-refill-banner__main">
+                      <strong>{refillTitle(row)}</strong>
+                      <span>{refillSubtitle(row)}</span>
+                    </div>
+                    <span className="med-refill-banner__chip">Pending</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
+
         {approvedRefills.length ? (
-          <Alert color="info">
-            <div className="fw-semibold mb-2">Approved refills</div>
-            {approvedRefills.map((row) => {
-              const id = row.refillRequestId || row.RefillRequestId;
-              return (
-                <div key={id} className="d-flex align-items-center justify-content-between gap-2 mb-1">
-                  <span>Prescription {row.erxSnapshotId || row.ErxSnapshotId}</span>
-                  <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => onStartRefill(row)}>
-                    Start order
-                  </button>
-                </div>
-              );
-            })}
-          </Alert>
+          <div className="med-refill-banner med-refill-banner--approved">
+            <div className="med-refill-banner__head">
+              <i className="ri-checkbox-circle-line" aria-hidden="true" />
+              <div>
+                <strong>Approved refills</strong>
+                <p>Your doctor approved these. Pick a pharmacy to start the medicine order.</p>
+              </div>
+            </div>
+            <ul className="med-refill-banner__list">
+              {approvedRefills.map((row) => {
+                const id = pick(row, "refillRequestId", "RefillRequestId");
+                return (
+                  <li key={id}>
+                    <div className="med-refill-banner__main">
+                      <strong>{refillTitle(row)}</strong>
+                      <span>{refillSubtitle(row)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="prx-btn prx-btn--primary med-refill-banner__btn"
+                      disabled={busy}
+                      onClick={() => onStartRefill(row)}
+                    >
+                      Start order
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         ) : null}
 
         <div className="prx-stats">
@@ -443,6 +523,14 @@ const PatientMedicineOrdersPage = () => {
           onTrack={onTrack}
           onReorder={onReorder}
           onReview={onReview}
+        />
+
+        <OrderMedicinesModal
+          isOpen={Boolean(refillOrderFor)}
+          toggle={() => setRefillOrderFor(null)}
+          prescription={refillOrderFor?.prescription || null}
+          refillId={refillOrderFor?.refillId || null}
+          onPlaced={onRefillOrderPlaced}
         />
       </Container>
     </div>

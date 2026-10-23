@@ -23,6 +23,7 @@ import {
   unwrapClinic,
 } from "../../../helpers/doctorClinicApi";
 import ModalActionButton from "../../../Components/Common/ModalActionButton";
+import { subscribeAppointmentRequests } from "../../../helpers/clinicRealtime";
 
 const asRows = (payload) => {
   const data = unwrapClinic(payload);
@@ -57,6 +58,52 @@ const DoctorAppointmentRequestsPage = () => {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  // Live inbox: SignalR push (no polling). Merge event or soft-reload list.
+  useEffect(() => {
+    const unsub = subscribeAppointmentRequests((payload) => {
+      const id = payload?.appointmentRequestId ?? payload?.AppointmentRequestId;
+      const status = payload?.status ?? payload?.Status;
+      const eventType = String(payload?.eventType || payload?.EventType || "").toLowerCase();
+      if (eventType === "created" && id != null) {
+        setRows((prev) => {
+          if (prev.some((r) => (r.appointmentRequestId ?? r.AppointmentRequestId) === id)) return prev;
+          const row = {
+            appointmentRequestId: id,
+            patientId: payload.patientId ?? payload.PatientId,
+            patientName: payload.patientName ?? payload.PatientName,
+            requestedDate: payload.requestedDate ?? payload.RequestedDate,
+            requestedTime: payload.requestedTime ?? payload.RequestedTime,
+            consultMode: payload.consultMode ?? payload.ConsultMode,
+            status: status || "PENDING",
+            reason: payload.reason ?? payload.Reason,
+            proposedDate: payload.proposedDate ?? payload.ProposedDate,
+            proposedTime: payload.proposedTime ?? payload.ProposedTime,
+            createdAt: payload.createdAt ?? payload.CreatedAt,
+          };
+          return [row, ...prev];
+        });
+        return;
+      }
+      if (id != null && status) {
+        setRows((prev) =>
+          prev.map((r) => {
+            const rid = r.appointmentRequestId ?? r.AppointmentRequestId;
+            if (rid !== id) return r;
+            return {
+              ...r,
+              status,
+              proposedDate: payload.proposedDate ?? payload.ProposedDate ?? r.proposedDate ?? r.ProposedDate,
+              proposedTime: payload.proposedTime ?? payload.ProposedTime ?? r.proposedTime ?? r.ProposedTime,
+            };
+          })
+        );
+        return;
+      }
+      load();
+    });
+    return unsub;
   }, [load]);
 
   const onAccept = async (id) => {

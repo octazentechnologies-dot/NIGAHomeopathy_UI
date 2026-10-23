@@ -5,9 +5,9 @@ import { Badge, Container } from "reactstrap";
 
 import { listDoctorRefills } from "../../../helpers/realbackend_helper";
 
-const STATUS_FILTERS = ["PENDING", "APPROVED", "REJECTED", "ALL"];
+const STATUS_FILTERS = ["PENDING", "APPROVED", "ORDERED", "REJECTED", "ALL"];
 
-const STATUS_COLOR = { PENDING: "warning", APPROVED: "success", REJECTED: "danger" };
+const STATUS_COLOR = { PENDING: "warning", APPROVED: "success", ORDERED: "info", REJECTED: "danger" };
 
 const unwrapList = (payload) => {
   const body = payload?.data !== undefined && !Array.isArray(payload) && payload?.success === undefined

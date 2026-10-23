@@ -3,6 +3,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader, Spinner } from "reactstrap"
 
 import ModalActionButton from "../../../Components/Common/ModalActionButton";
 import {
+  cloneMedicineRefill,
   createMedicineOrder,
   grantMedicineConsent,
   listPharmacySellers,
@@ -17,14 +18,16 @@ const AUTO_ROUTE = "auto";
 
 /**
  * MED-03.03 — order medicines from a signed eRx: pick a pharmacy, review remedies, place order.
+ * Also used for approved refill "Start order" (refillId) — consent + ORDERED handled by API.
  * No payment here; the pharmacy quotes first.
  */
-const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
+const OrderMedicinesModal = ({ isOpen, toggle, prescription, refillId = null, onPlaced }) => {
   const [pharmacies, setPharmacies] = useState([]);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
   const [pharmacyId, setPharmacyId] = useState(AUTO_ROUTE);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
+  const isRefill = Number(refillId) > 0;
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -54,19 +57,26 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
 
   const remedies = prescription?.remedies || [];
   const selectedPharmacy = pharmacies.find((row) => String(row.id) === String(pharmacyId)) || null;
-  const canOrder = Boolean(prescription?.erxId);
+  const canOrder = isRefill ? Number(refillId) > 0 : Boolean(prescription?.erxId);
 
   const placeOrder = async () => {
     if (!canOrder) return;
     setPlacing(true);
     setError("");
     try {
-      const payload = { erxSnapshotId: prescription.erxId };
+      const payload = {};
       if (selectedPharmacy) payload.pharmacyPartnerId = Number(selectedPharmacy.id);
-      const created = unwrapS4(await createMedicineOrder(payload));
+      let created;
+      if (isRefill) {
+        created = unwrapS4(await cloneMedicineRefill(Number(refillId), payload));
+      } else {
+        payload.erxSnapshotId = prescription.erxId;
+        created = unwrapS4(await createMedicineOrder(payload));
+        const orderId = created?.medicineOrderId || created?.MedicineOrderId;
+        if (orderId) await grantMedicineConsent(orderId);
+      }
       const orderId = created?.medicineOrderId || created?.MedicineOrderId;
-      if (orderId) await grantMedicineConsent(orderId);
-      onPlaced?.({ id: orderId, orderNo: orderId ? `HM${String(orderId).padStart(6, "0")}` : "" });
+      onPlaced?.({ id: orderId, orderNo: orderId ? `HM${String(orderId).padStart(6, "0")}` : "", refill: isRefill });
     } catch (err) {
       setError(s4Message(err));
     } finally {
@@ -79,7 +89,7 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
       <ModalHeader className="patient-list-modal__header" toggle={toggle}>
         <span className="patient-list-modal__title patient-list-modal__title--simple">
           <i className="ri-capsule-line" style={{ color: "#25a0e2", fontSize: 15 }} aria-hidden="true" />
-          <span className="patient-list-modal__title-text">Order Medicines</span>
+          <span className="patient-list-modal__title-text">{isRefill ? "Start refill order" : "Order Medicines"}</span>
         </span>
       </ModalHeader>
       <ModalBody>
@@ -186,8 +196,9 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
         <div className="med-note">
           <i className="ri-information-line" aria-hidden="true" />
           <span>
-            No payment now. The pharmacy confirms stock and sends a quote. You pay online or choose cash on delivery only
-            after you accept it.
+            {isRefill
+              ? "Your doctor already approved this refill. Pick a pharmacy to create the order. No payment now — you pay after you accept the quote."
+              : "No payment now. The pharmacy confirms stock and sends a quote. You pay online or choose cash on delivery only after you accept it."}
           </span>
         </div>
       </ModalBody>
@@ -197,11 +208,11 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, onPlaced }) => {
           action="confirm"
           iconClassName="ri-shopping-bag-3-line"
           loading={placing}
-          loadingLabel="Placing…"
+          loadingLabel={isRefill ? "Starting…" : "Placing…"}
           disabled={!canOrder}
           onClick={placeOrder}
         >
-          Place Order
+          {isRefill ? "Start order" : "Place Order"}
         </ModalActionButton>
       </ModalFooter>
     </Modal>

@@ -2,12 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { UserRole } from '../constants/roles';
 import DoctorReportsDropdown from '../../pages/Doctor/Reports/DoctorReportsDropdown';
+import DoctorAppointmentRequestsHeaderButton from './DoctorAppointmentRequestsHeaderButton';
 
 const DoctorMobileHeaderButtons = ({ userRole }) => {
   if (userRole !== UserRole.DOCTOR) return null;
 
   return (
     <>
+      <DoctorAppointmentRequestsHeaderButton userRole={userRole} />
       <div className="ms-1 header-item">
         <Link
           to="/doctor/erx"
