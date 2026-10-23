@@ -26,6 +26,13 @@ function App() {
       } catch (e) { /* document is unloading */ }
     };
     bootToLoginIfSignedOut();
+    try {
+      if (sessionStorage.getItem("authUser")) {
+        import("./helpers/fcm_helper").then((m) => m.bootWebFcm()).catch(() => {});
+      }
+    } catch {
+      /* push optional */
+    }
     window.addEventListener('pageshow', bounceIfLoggedOut);
     window.addEventListener('popstate', bounceIfLoggedOut);
     window.addEventListener('pagehide', blankClinicOnLeave);

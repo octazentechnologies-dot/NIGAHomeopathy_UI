@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
-import { registerDevicePushToken } from "./realbackend_helper";
+import { registerDevicePushToken, unregisterDevicePushToken } from "./realbackend_helper";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyB2X-8zpA8xot-17nCpTafNbOt-otrXgIo",
@@ -16,6 +16,8 @@ const firebaseConfig = {
 const vapidKey = (process.env.REACT_APP_FIREBASE_VAPID_KEY || "").trim();
 
 let messagingInstance = null;
+let foregroundUnsub = null;
+let bootPromise = null;
 
 function getFirebaseApp() {
   if (getApps().length > 0) return getApps()[0];
@@ -29,12 +31,64 @@ async function getMessagingSafe() {
   return messagingInstance;
 }
 
+async function ensureMessagingWorker() {
+  if (!("serviceWorker" in navigator)) return null;
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  await navigator.serviceWorker.ready;
+  return registration;
+}
+
+function currentUserId() {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem("authUser") || "null");
+    const data = raw?.data || raw;
+    return Number(data?.userId || data?.UserId || 0);
+  } catch {
+    return 0;
+  }
+}
+
+export const INBOX_REFRESH_EVENT = "homeocentrum-inbox-refresh";
+
+function notifyInboxRefresh(payload) {
+  try {
+    window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT, { detail: payload || {} }));
+  } catch {
+    /* ignore */
+  }
+}
+
+function showForegroundNotification(payload) {
+  notifyInboxRefresh(payload);
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const title = payload?.notification?.title || payload?.data?.title || "Homeocentrum";
+  const body = payload?.notification?.body || payload?.data?.body || "";
+  try {
+    const n = new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      data: payload?.data || {},
+    });
+    n.onclick = () => {
+      window.focus();
+      n.close();
+      const link = payload?.data?.deepLink || payload?.data?.deeplink;
+      if (link && typeof link === "string" && link.startsWith("/")) {
+        window.location.assign(link);
+      }
+    };
+  } catch {
+    /* Notifications constructor can fail in insecure contexts */
+  }
+}
+
 /**
- * After login: request notification permission, get FCM token, POST /api/Device/Register.
+ * After login (and on session restore): permission, FCM token, POST /api/Device/Register.
  * deviceType is always Website for this SPA.
  */
 export async function registerWebFcmToken(userId) {
-  if (!userId || userId <= 0) return { ok: false, reason: "no-user" };
+  const uid = Number(userId || currentUserId() || 0);
+  if (!uid || uid <= 0) return { ok: false, reason: "no-user" };
   if (!vapidKey) {
     console.warn(
       "[FCM] Set REACT_APP_FIREBASE_VAPID_KEY (Firebase Console → Project settings → Cloud Messaging → Web Push certificates → Generate key pair)."
@@ -53,16 +107,16 @@ export async function registerWebFcmToken(userId) {
     const messaging = await getMessagingSafe();
     if (!messaging) return { ok: false, reason: "not-supported" };
 
-    if ("serviceWorker" in navigator) {
-      await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-    }
-
-    const token = await getToken(messaging, { vapidKey });
+    const registration = await ensureMessagingWorker();
+    const token = await getToken(messaging, {
+      vapidKey,
+      serviceWorkerRegistration: registration || undefined,
+    });
     if (!token) return { ok: false, reason: "no-token" };
 
     await registerDevicePushToken({
       token,
-      userId,
+      userId: uid,
       deviceType: "Website",
       deviceId: "web-" + (window.location.hostname || "local"),
     });
@@ -73,6 +127,7 @@ export async function registerWebFcmToken(userId) {
       /* ignore */
     }
 
+    await listenForegroundFcm(showForegroundNotification);
     return { ok: true, token };
   } catch (err) {
     console.warn("[FCM] register failed", err);
@@ -80,11 +135,56 @@ export async function registerWebFcmToken(userId) {
   }
 }
 
+/** Call once after login or when authUser is already in sessionStorage (page refresh). */
+export function bootWebFcm() {
+  if (bootPromise) return bootPromise;
+  bootPromise = registerWebFcmToken(currentUserId()).finally(() => {
+    bootPromise = null;
+  });
+  return bootPromise;
+}
+
+export async function unregisterWebFcmToken() {
+  if (typeof foregroundUnsub === "function") {
+    try {
+      foregroundUnsub();
+    } catch {
+      /* ignore */
+    }
+    foregroundUnsub = null;
+  }
+  let token = "";
+  try {
+    token = sessionStorage.getItem("fcmToken") || "";
+  } catch {
+    token = "";
+  }
+  try {
+    sessionStorage.removeItem("fcmToken");
+  } catch {
+    /* ignore */
+  }
+  if (!token) return;
+  try {
+    await unregisterDevicePushToken({ token });
+  } catch {
+    /* logout still proceeds; Account/Logout also clears tokens */
+  }
+}
+
 /** Foreground messages while the tab is open. */
 export async function listenForegroundFcm(handler) {
   const messaging = await getMessagingSafe();
   if (!messaging) return () => {};
-  return onMessage(messaging, (payload) => {
+  if (typeof foregroundUnsub === "function") {
+    try {
+      foregroundUnsub();
+    } catch {
+      /* ignore */
+    }
+  }
+  foregroundUnsub = onMessage(messaging, (payload) => {
     if (typeof handler === "function") handler(payload);
   });
+  return foregroundUnsub;
 }
