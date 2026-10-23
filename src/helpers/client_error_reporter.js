@@ -46,6 +46,10 @@ export function pickSubscriptionStatus(payload) {
     islastFiveDays: status?.islastFiveDays === true || status?.IslastFiveDays === true,
     daysRemaining: status?.daysRemaining ?? status?.DaysRemaining ?? 0,
     userName: status?.userName ?? status?.UserName,
+    caseCount: status?.caseCount ?? status?.CaseCount ?? status?.allowedCaseCount ?? status?.AllowedCaseCount ?? null,
+    usedCaseCount: status?.usedCaseCount ?? status?.UsedCaseCount ?? status?.patientCaseCount ?? status?.PatientCaseCount ?? null,
+    remainingCaseCount: status?.remainingCaseCount ?? status?.RemainingCaseCount ?? status?.casesRemaining ?? status?.CasesRemaining ?? null,
+    balance: status?.balance ?? status?.Balance ?? status?.walletBalance ?? status?.WalletBalance ?? null,
   };
 }
 

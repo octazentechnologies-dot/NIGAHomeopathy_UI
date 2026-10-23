@@ -34,7 +34,8 @@ import DoctorReviewsPanel from "./DoctorReviewsPanel";
 import { feeHistory, rankingExplain, saveFee, unwrapS4 } from "../../helpers/s4Week4Api";
 import { getAuthDoctorId } from "../../helpers/appointmentSlotHelper";
 import defaultAvatar from "../../assets/images/users/user-dummy-img.jpg";
-import { notifyProfilePhotoChanged } from "../../helpers/profilePhotoEvents";
+import { notifyProfilePhotoChanged, notifyProfileIdentityChanged } from "../../helpers/profilePhotoEvents";
+import { setDoctorScreenLocked } from "../../helpers/doctorScreenLockHelper";
 import { dispatchDoctorScheduleChanged } from "../../helpers/dashboard_helper";
 import {
   getDoctorProfileMe,
@@ -362,6 +363,8 @@ const toOptionalNumber = (value) => {
   const n = Number(text);
   return Number.isFinite(n) ? n : undefined;
 };
+
+const IFSC_PATTERN = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 
 const CURRENCY_OPTIONS = [
   { value: "INR", label: "INR (₹)" },
@@ -844,8 +847,10 @@ const UserProfile = () => {
           packageName: me.packageName || "",
           registrationNo: me.registrationNo || me.passingCertNo || "",
           practiceActivated: Boolean(me.practiceActivated),
+          balance: me.balance ?? me.Balance ?? me.walletBalance ?? me.WalletBalance ?? null,
         }));
-        const currency = me.feeCurrency || "";
+        const currency = me.feeCurrency || me.FeeCurrency || "INR";
+        const teleCurrency = me.teleFeeCurrency || me.TeleFeeCurrency || currency;
         const teleOn = me.consultFeeTele != null;
         setFeesForm({
           inClinic: {
@@ -858,7 +863,7 @@ const UserProfile = () => {
             enabled: teleOn,
             consultationFee: toFieldText(me.consultFeeTele),
             followUpFee: toFieldText(me.followUpFeeTele),
-            currency,
+            currency: teleCurrency,
             freeFollowUpDays: toFieldText(me.freeFollowUpDaysTele),
           },
           instantSurcharge: "",
@@ -935,12 +940,13 @@ const UserProfile = () => {
             const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
             const breakFrom = hmsToAmPm(row.breakStartTime || row.BreakStartTime);
             const breakTo = hmsToAmPm(row.breakEndTime || row.BreakEndTime);
+            const includeBreak = row.includeBreak ?? row.IncludeBreak;
             next[id] = {
               ...createDefaultHoursDay(),
               available: true,
               startTime: start,
               endTime: end,
-              breakEnabled: Boolean(breakFrom && breakTo),
+              breakEnabled: includeBreak === true || Boolean(breakFrom && breakTo),
               breakFrom,
               breakTo,
             };
@@ -1007,6 +1013,7 @@ const UserProfile = () => {
       target.lastName = extra.lastName ?? target.lastName;
       target.mobileNo = mobileValue;
       sessionStorage.setItem("authUser", JSON.stringify(stored));
+      notifyProfileIdentityChanged();
     } catch (_) {
       /* session copy is display-only */
     }
@@ -1266,14 +1273,6 @@ const UserProfile = () => {
   };
 
   const updateFeesSection = (section, field, value) => {
-    if (field === "currency") {
-      setFeesForm((prev) => ({
-        ...prev,
-        inClinic: { ...prev.inClinic, currency: value },
-        tele: { ...prev.tele, currency: value },
-      }));
-      return;
-    }
     setFeesForm((prev) => ({
       ...prev,
       [section]: {
@@ -1407,6 +1406,7 @@ const UserProfile = () => {
         freeFollowUpDaysInClinic: toOptionalNumber(feesForm.inClinic.freeFollowUpDays),
         freeFollowUpDaysTele: teleOn ? toOptionalNumber(feesForm.tele.freeFollowUpDays) : null,
         feeCurrency: currency,
+        ...(teleOn && feesForm.tele.currency ? { teleFeeCurrency: feesForm.tele.currency } : {}),
         teleDisabled: !teleOn,
       });
       const doctorId = Number(getAuthDoctorId() || 0);
@@ -1421,7 +1421,7 @@ const UserProfile = () => {
             inClinicFee: presentFee,
             teleFee,
             instantSurcharge,
-            currency,
+            currency: teleOn ? (feesForm.tele.currency || currency) : currency,
             payAtClinicEnabled: Boolean(feesForm.payAtClinicEnabled),
             effectiveFrom,
           });
@@ -1828,12 +1828,13 @@ const UserProfile = () => {
               const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
               const breakFrom = hmsToAmPm(row.breakStartTime || row.BreakStartTime);
               const breakTo = hmsToAmPm(row.breakEndTime || row.BreakEndTime);
+              const includeBreak = row.includeBreak ?? row.IncludeBreak;
               next[id] = {
                 ...createDefaultHoursDay(),
                 available: true,
                 startTime: start,
                 endTime: end,
-                breakEnabled: Boolean(breakFrom && breakTo),
+                breakEnabled: includeBreak === true || Boolean(breakFrom && breakTo),
                 breakFrom,
                 breakTo,
               };
@@ -1876,6 +1877,14 @@ const UserProfile = () => {
   };
 
   const updateBankField = (field, value) => {
+    if (field === "ifscCode") {
+      const cleaned = String(value || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 11);
+      setBankForm((prev) => ({ ...prev, ifscCode: cleaned }));
+      return;
+    }
     setBankForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -1910,13 +1919,25 @@ const UserProfile = () => {
       return;
     }
 
+    const ifscValue = bankForm.ifscCode.trim().toUpperCase();
+    if (!IFSC_PATTERN.test(ifscValue)) {
+      Swal.fire({
+        title: "Invalid IFSC code",
+        text: "Enter a valid 11-character IFSC (e.g. ABCD0123456).",
+        icon: "warning",
+        timer: 2400,
+        showConfirmButton: false,
+      });
+      return;
+    }
+
     try {
       await updateDoctorProfileMe({
         kyc: {
           accountHolder: bankForm.accountHolderName.trim(),
           bankName: bankForm.bankName.trim(),
           accountNumber: bankForm.accountNumber.trim(),
-          ifsc: bankForm.ifscCode.trim().toUpperCase(),
+          ifsc: ifscValue,
           branchName: (bankForm.branchName || "").trim(),
           accountType: bankForm.accountType.trim(),
           pan: (bankForm.pan || "").trim().toUpperCase(),
@@ -2040,6 +2061,46 @@ const UserProfile = () => {
                     ) : null}
                   </div>
                 </div>
+
+                {userData?.role === UserRole.DOCTOR ? (
+                  <div className="user-profile-page__quick-links d-flex flex-wrap gap-2 mb-3">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-soft-primary"
+                      onClick={() => navigate("/doctor/support")}
+                    >
+                      <i className="ri-question-line me-1" aria-hidden="true" />
+                      Help
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-soft-primary"
+                      onClick={() => setActiveTab("profile")}
+                    >
+                      <i className="ri-settings-3-line me-1" aria-hidden="true" />
+                      Settings
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-soft-primary"
+                      onClick={() => navigate("/doctor/sms")}
+                    >
+                      <i className="ri-chat-1-line me-1" aria-hidden="true" />
+                      Message
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-soft-secondary"
+                      onClick={() => {
+                        setDoctorScreenLocked(true);
+                        navigate("/doctor/lock");
+                      }}
+                    >
+                      <i className="ri-lock-2-line me-1" aria-hidden="true" />
+                      Lock screen
+                    </button>
+                  </div>
+                ) : null}
 
                 <Nav
                   tabs
@@ -2303,6 +2364,13 @@ const UserProfile = () => {
                           {showsDoctorPlanFields(userData.role) && userData.packageName ? (
                             <ProfileInfoField icon="ri-vip-diamond-line" label="Package">
                               {userData.packageName}
+                            </ProfileInfoField>
+                          ) : null}
+                          {userData.role === UserRole.DOCTOR && userData.balance != null && userData.balance !== "" ? (
+                            <ProfileInfoField icon="ri-wallet-3-line" label="Balance">
+                              {Number.isFinite(Number(userData.balance))
+                                ? `₹${Number(userData.balance).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
+                                : userData.balance}
                             </ProfileInfoField>
                           ) : null}
                           {userData.role === UserRole.DOCTOR ? (
@@ -3463,7 +3531,8 @@ const UserProfile = () => {
                             id="bankIfscCode"
                             type="text"
                             value={bankForm.ifscCode}
-                            onChange={(e) => updateBankField("ifscCode", e.target.value.toUpperCase())}
+                            maxLength={11}
+                            onChange={(e) => updateBankField("ifscCode", e.target.value)}
                           />
                         </Col>
                         <Col lg={4} md={6} xs={12}>

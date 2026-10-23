@@ -177,6 +177,13 @@ const applySubscriptionStatusToAuthStorage = (status) => {
     IsPlanActive: active,
     islastFiveDays: parsed.islastFiveDays,
     IslastFiveDays: parsed.islastFiveDays,
+    ...(parsed.caseCount != null ? { caseCount: parsed.caseCount, CaseCount: parsed.caseCount } : {}),
+    ...(parsed.usedCaseCount != null ? { usedCaseCount: parsed.usedCaseCount, UsedCaseCount: parsed.usedCaseCount } : {}),
+    ...(parsed.remainingCaseCount != null ? {
+      remainingCaseCount: parsed.remainingCaseCount,
+      RemainingCaseCount: parsed.remainingCaseCount,
+    } : {}),
+    ...(parsed.balance != null ? { balance: parsed.balance, Balance: parsed.balance } : {}),
   };
 
   const updatedAuth = auth?.data

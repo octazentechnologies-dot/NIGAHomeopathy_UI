@@ -16,7 +16,7 @@ import {
     setDirectoryVisibility,
     updateAvailabilityMe,
 } from '../../helpers/realbackend_helper';
-import { PROFILE_PHOTO_CHANGED_EVENT } from '../../helpers/profilePhotoEvents';
+import { PROFILE_IDENTITY_CHANGED_EVENT, PROFILE_PHOTO_CHANGED_EVENT } from '../../helpers/profilePhotoEvents';
 import { setCounts } from '../../slices/doctor/dashboard/reducer';
 
 const readOnlineFlag = (source) => {
@@ -87,22 +87,30 @@ const ProfileDropdown = () => {
         );
     }, []);
 
-    useEffect(() => {
+    const refreshFromSession = useCallback(() => {
         const authUserStr = sessionStorage.getItem('authUser');
-        if (authUserStr) {
-            try {
-                const obj = JSON.parse(authUserStr);
-                const userInfo = obj.data || obj;
-
-                if (userInfo) {
-                    setUserRole(userInfo.role || userInfo.Role || '');
-                    applyPersonName(userInfo);
-                }
-            } catch (error) {
-                console.error('Error parsing authUser:', error);
+        if (!authUserStr) return;
+        try {
+            const obj = JSON.parse(authUserStr);
+            const userInfo = obj.data || obj;
+            if (userInfo) {
+                setUserRole(userInfo.role || userInfo.Role || '');
+                applyPersonName(userInfo);
             }
+        } catch (error) {
+            console.error('Error parsing authUser:', error);
         }
-    }, [user, applyPersonName]);
+    }, [applyPersonName]);
+
+    useEffect(() => {
+        refreshFromSession();
+    }, [user, refreshFromSession]);
+
+    useEffect(() => {
+        const onIdentityChanged = () => refreshFromSession();
+        window.addEventListener(PROFILE_IDENTITY_CHANGED_EVENT, onIdentityChanged);
+        return () => window.removeEventListener(PROFILE_IDENTITY_CHANGED_EVENT, onIdentityChanged);
+    }, [refreshFromSession]);
 
     useEffect(() => {
         if (userRole !== UserRole.PATIENT) {

@@ -197,6 +197,23 @@ body {
   }
 }
 
+// Table header icons — match compact body icon scale
+.table thead th,
+table.table thead th,
+.patient-list-modal__table thead th,
+th.gridjs-th {
+  i,
+  i[class^="ri-"],
+  i[class*=" ri-"],
+  i[class^="mdi-"],
+  i[class*=" mdi-"],
+  span[class^="ri-"],
+  span[class*=" ri-"] {
+    font-size: 0.8125rem !important;
+    line-height: 1 !important;
+  }
+}
+
 // Table body icons only — keep smaller than global icon scale
 .table tbody td,
 table.table tbody td,
