@@ -134,3 +134,28 @@ export const getSlotStatusSummary = (slots = []) => {
   });
   return summary;
 };
+
+/** Mark bookable slots in the past as `past` when the API omits that status (same local day). */
+export const applyClientPastSlotGuard = (slots = [], appointmentDate) => {
+  const dateKey = formatApiDate(appointmentDate);
+  const todayKey = moment().format('YYYY-MM-DD');
+  if (!dateKey || dateKey !== todayKey || !Array.isArray(slots)) {
+    return slots;
+  }
+  const now = moment();
+  return slots.map((slot) => {
+    const status = String(slot.status || 'available').toLowerCase();
+    if (status !== 'available' && status !== 'current') {
+      return slot;
+    }
+    const slotMoment = moment(slot.time, ['HH:mm:ss', 'HH:mm'], true);
+    if (!slotMoment.isValid()) {
+      return slot;
+    }
+    const slotAt = moment(`${dateKey} ${slotMoment.format('HH:mm:ss')}`, 'YYYY-MM-DD HH:mm:ss');
+    if (slotAt.isBefore(now)) {
+      return { ...slot, status: 'past' };
+    }
+    return slot;
+  });
+};
