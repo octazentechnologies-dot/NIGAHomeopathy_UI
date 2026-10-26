@@ -107,10 +107,12 @@ import {
   buildSubSectionSearchTree,
   getSubSectionSearchSuggestions,
   getSubSectionSuggestionDropdownLayout,
+  getSubSectionSuggestionLabel,
   getSubSectionTreeDisplayName,
   highlightSubSectionSuggestion,
   highlightSubSectionTreeLabel,
   mergeSubSectionSearchResultPages,
+  mergeSuggestionAndTreeSearchResults,
   CLINICAL_PATTERN_RUBRIC_PAGE_SIZE,
   getClinicalPatternRubricId,
   mergeClinicalPatternRubricPages,
@@ -118,6 +120,7 @@ import {
   MIN_SUBSECTION_SEARCH_LENGTH,
   normalizeClinicalPatternRubricPagedResponse,
   normalizeSubSectionSearchPagedResponse,
+  resolveSubSectionPagedHasMore,
   SUBSECTION_SEARCH_DEBOUNCE_MS,
   SUBSECTION_SEARCH_TOP,
   SUBSECTION_SUGGESTION_DISPLAY,
@@ -4467,9 +4470,19 @@ const PatientBoard = () => {
   const paginatedSubSectionOptions = subSectionOptions;
   const totalSubSectionPages = Math.ceil((subSectionList?.totalCount || 0) / subSectionPageSize);
 
-  const normalizeSubSectionSearchApiResults = (response) => (
-    Array.isArray(response) ? response : (response?.data || response?.resultObject || [])
-  );
+  const normalizeSubSectionSearchApiResults = (response) => {
+    const items = Array.isArray(response)
+      ? response
+      : (response?.data || response?.resultObject || []);
+    if (!Array.isArray(items)) return [];
+    // Keep highest-score hits first for suggestions + tree seed order.
+    return [...items].sort((a, b) => {
+      const scoreDiff = Number(b.score ?? b.Score ?? 0) - Number(a.score ?? a.Score ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return Number(b.matchedTokenCount ?? b.MatchedTokenCount ?? 0)
+        - Number(a.matchedTokenCount ?? a.MatchedTokenCount ?? 0);
+    });
+  };
 
   const applySubSectionSearchResultsToTree = (results) => {
     const { treeData, childrenMap, expandedIds } = buildSubSectionSearchTree(results);
@@ -4635,33 +4648,54 @@ const PatientBoard = () => {
 
     const timer = setTimeout(async () => {
       setGlobalSubSectionSearchLoading(true);
-      try {
-        const [suggestionsResponse, treeResponse] = await Promise.all([
-          searchSubSectionsGlobal({
-            query: term,
-            top: SUBSECTION_SEARCH_TOP,
-          }),
-          searchSubSectionsGlobalPaged({
-            query: term,
-            pageNumber: 1,
-            pageSize: SUBSECTION_TREE_PAGE_SIZE,
-          }),
-        ]);
+      const suggestionsPromise = searchSubSectionsGlobal({
+        query: term,
+        top: SUBSECTION_SEARCH_TOP,
+      });
+      const treePromise = searchSubSectionsGlobalPaged({
+        query: term,
+        pageNumber: 1,
+        pageSize: SUBSECTION_TREE_PAGE_SIZE,
+      });
 
+      try {
+        // Show top suggestions as soon as the light endpoint returns (do not wait for tree).
+        const suggestionsResponse = await suggestionsPromise;
         if (requestId !== globalSubSectionSearchRequestRef.current) {
           return;
         }
 
         const results = normalizeSubSectionSearchApiResults(suggestionsResponse);
-        const pagedTree = normalizeSubSectionSearchPagedResponse(treeResponse);
-
         setGlobalSubSectionSearchResults(results);
-        setGlobalSubSectionSearchTreeResults(pagedTree.items);
-        setGlobalSubSectionSearchTreePage(pagedTree.pageNumber);
-        setGlobalSubSectionSearchTreeHasMore(pagedTree.hasMore);
         setIsGlobalSubSectionSearchActive(true);
         setShowGlobalSubSectionSuggestions(true);
-        applySubSectionSearchResultsToTree(pagedTree.items);
+        if (results.length > 0) {
+          applySubSectionSearchResultsToTree(results);
+        }
+        setGlobalSubSectionSearchLoading(false);
+        if (globalSubSectionSearchFocusedRef.current && globalSubSectionSearchInputRef.current) {
+          requestAnimationFrame(() => {
+            globalSubSectionSearchInputRef.current?.focus({ preventScroll: true });
+          });
+        }
+
+        const treeResponse = await treePromise;
+        if (requestId !== globalSubSectionSearchRequestRef.current) {
+          return;
+        }
+
+        const pagedTree = normalizeSubSectionSearchPagedResponse(treeResponse, term);
+        const mergedTree = mergeSuggestionAndTreeSearchResults(results, pagedTree.items, term);
+        setGlobalSubSectionSearchTreeResults(mergedTree);
+        setGlobalSubSectionSearchTreePage(pagedTree.pageNumber);
+        setGlobalSubSectionSearchTreeHasMore(
+          resolveSubSectionPagedHasMore({
+            items: pagedTree.items,
+            pageSize: pagedTree.pageSize || SUBSECTION_TREE_PAGE_SIZE,
+            apiHasMore: pagedTree.hasMore,
+          })
+        );
+        applySubSectionSearchResultsToTree(mergedTree);
       } catch (error) {
         if (requestId === globalSubSectionSearchRequestRef.current) {
           console.error('Error in global subsection search:', error);
@@ -4670,20 +4704,12 @@ const PatientBoard = () => {
           setGlobalSubSectionSearchTreeHasMore(false);
           setIsGlobalSubSectionSearchActive(false);
           setShowGlobalSubSectionSuggestions(false);
+          setGlobalSubSectionSearchLoading(false);
           Swal.fire({
             icon: 'error',
             title: 'Search failed',
             text: 'Global subsection search timed out or failed. Please ensure SearchNormalized is configured on the server, or try a more specific term.',
           });
-        }
-      } finally {
-        if (requestId === globalSubSectionSearchRequestRef.current) {
-          setGlobalSubSectionSearchLoading(false);
-          if (globalSubSectionSearchFocusedRef.current && globalSubSectionSearchInputRef.current) {
-            requestAnimationFrame(() => {
-              globalSubSectionSearchInputRef.current?.focus({ preventScroll: true });
-            });
-          }
         }
       }
     }, SUBSECTION_SEARCH_DEBOUNCE_MS);
@@ -4713,44 +4739,57 @@ const PatientBoard = () => {
 
     const timer = setTimeout(async () => {
       setSubSectionSearchTreeLoading(true);
-      try {
-        const [suggestionsResponse, treeResponse] = await Promise.all([
-          searchSubSectionsBySection({
-            sectionId: selectedSection.sectionId,
-            query: term,
-            top: SUBSECTION_SEARCH_TOP,
-          }),
-          searchSubSectionsBySectionPaged({
-            sectionId: selectedSection.sectionId,
-            query: term,
-            pageNumber: 1,
-            pageSize: SUBSECTION_TREE_PAGE_SIZE,
-          }),
-        ]);
+      const suggestionsPromise = searchSubSectionsBySection({
+        sectionId: selectedSection.sectionId,
+        query: term,
+        top: SUBSECTION_SEARCH_TOP,
+      });
+      const treePromise = searchSubSectionsBySectionPaged({
+        sectionId: selectedSection.sectionId,
+        query: term,
+        pageNumber: 1,
+        pageSize: SUBSECTION_TREE_PAGE_SIZE,
+      });
 
+      try {
+        // Suggestions first — user sees best matches without waiting for the tree page.
+        const suggestionsResponse = await suggestionsPromise;
         if (requestId !== subSectionSearchRequestRef.current) {
           return;
         }
 
         const results = normalizeSubSectionSearchApiResults(suggestionsResponse);
-        const pagedTree = normalizeSubSectionSearchPagedResponse(treeResponse);
-
         setSubSectionSearchResults(results);
-        setSubSectionSearchTreeResults(pagedTree.items);
-        setSubSectionSearchTreePage(pagedTree.pageNumber);
-        setSubSectionSearchTreeHasMore(pagedTree.hasMore);
         setIsSubSectionSearchActive(true);
         setShowSubSectionSuggestions(true);
-        applySubSectionSearchResultsToTree(pagedTree.items);
+        if (results.length > 0) {
+          applySubSectionSearchResultsToTree(results);
+        }
+        setSubSectionSearchTreeLoading(false);
+
+        const treeResponse = await treePromise;
+        if (requestId !== subSectionSearchRequestRef.current) {
+          return;
+        }
+
+        const pagedTree = normalizeSubSectionSearchPagedResponse(treeResponse, term);
+        const mergedTree = mergeSuggestionAndTreeSearchResults(results, pagedTree.items, term);
+        setSubSectionSearchTreeResults(mergedTree);
+        setSubSectionSearchTreePage(pagedTree.pageNumber);
+        setSubSectionSearchTreeHasMore(
+          resolveSubSectionPagedHasMore({
+            items: pagedTree.items,
+            pageSize: pagedTree.pageSize || SUBSECTION_TREE_PAGE_SIZE,
+            apiHasMore: pagedTree.hasMore,
+          })
+        );
+        applySubSectionSearchResultsToTree(mergedTree);
       } catch (error) {
         if (requestId === subSectionSearchRequestRef.current) {
           console.error('Error searching subsections:', error);
           setSubSectionSearchResults([]);
           setSubSectionSearchTreeResults([]);
           setSubSectionSearchTreeHasMore(false);
-        }
-      } finally {
-        if (requestId === subSectionSearchRequestRef.current) {
           setSubSectionSearchTreeLoading(false);
         }
       }
@@ -4760,13 +4799,21 @@ const PatientBoard = () => {
   }, [subSectionSearch, selectedSection?.sectionId, globalSubSectionSearch, isGlobalSubSectionSearchActive]);
 
   const subSectionSearchSuggestions = useMemo(
-    () => getSubSectionSearchSuggestions(subSectionSearchResults, SUBSECTION_SUGGESTION_DISPLAY),
-    [subSectionSearchResults]
+    () => getSubSectionSearchSuggestions(
+      subSectionSearchResults,
+      SUBSECTION_SUGGESTION_DISPLAY,
+      subSectionSearch
+    ),
+    [subSectionSearchResults, subSectionSearch]
   );
 
   const globalSubSectionSearchSuggestions = useMemo(
-    () => getSubSectionSearchSuggestions(globalSubSectionSearchResults, SUBSECTION_SUGGESTION_DISPLAY),
-    [globalSubSectionSearchResults]
+    () => getSubSectionSearchSuggestions(
+      globalSubSectionSearchResults,
+      SUBSECTION_SUGGESTION_DISPLAY,
+      globalSubSectionSearch
+    ),
+    [globalSubSectionSearchResults, globalSubSectionSearch]
   );
 
   const loadMoreGlobalSubSectionSearchTree = useCallback(async () => {
@@ -4797,24 +4844,37 @@ const PatientBoard = () => {
         return;
       }
 
-      const pagedTree = normalizeSubSectionSearchPagedResponse(response);
+      const pagedTree = normalizeSubSectionSearchPagedResponse(
+        response,
+        globalSubSectionSearch.trim()
+      );
+      const previousCount = globalSubSectionSearchTreeResults.length;
       const mergedResults = mergeSubSectionSearchResultPages(
         globalSubSectionSearchTreeResults,
         pagedTree.items
       );
+      const addedCount = mergedResults.length - previousCount;
 
       setGlobalSubSectionSearchTreeResults(mergedResults);
       setGlobalSubSectionSearchTreePage(pagedTree.pageNumber);
-      setGlobalSubSectionSearchTreeHasMore(pagedTree.hasMore);
+      setGlobalSubSectionSearchTreeHasMore(
+        resolveSubSectionPagedHasMore({
+          items: pagedTree.items,
+          pageSize: pagedTree.pageSize || SUBSECTION_TREE_PAGE_SIZE,
+          apiHasMore: pagedTree.hasMore,
+          addedCount,
+        })
+      );
       applySubSectionSearchResultsToTree(mergedResults);
     } catch (error) {
       console.error('Error loading more global subsection search results:', error);
-      setGlobalSubSectionSearchTreeHasMore(false);
-    } finally {
       if (requestId === globalSubSectionSearchRequestRef.current) {
-        globalSubSectionSearchInFlightRef.current = false;
-        setGlobalSubSectionSearchTreeLoadingMore(false);
+        setGlobalSubSectionSearchTreeHasMore(false);
       }
+    } finally {
+      // Always clear this request's load-more spinner (even if a newer search superseded it).
+      globalSubSectionSearchInFlightRef.current = false;
+      setGlobalSubSectionSearchTreeLoadingMore(false);
     }
   }, [
     globalSubSectionSearch,
@@ -4855,24 +4915,37 @@ const PatientBoard = () => {
         return;
       }
 
-      const pagedTree = normalizeSubSectionSearchPagedResponse(response);
+      const pagedTree = normalizeSubSectionSearchPagedResponse(
+        response,
+        subSectionSearch.trim()
+      );
+      const previousCount = subSectionSearchTreeResults.length;
       const mergedResults = mergeSubSectionSearchResultPages(
         subSectionSearchTreeResults,
         pagedTree.items
       );
+      const addedCount = mergedResults.length - previousCount;
 
       setSubSectionSearchTreeResults(mergedResults);
       setSubSectionSearchTreePage(pagedTree.pageNumber);
-      setSubSectionSearchTreeHasMore(pagedTree.hasMore);
+      setSubSectionSearchTreeHasMore(
+        resolveSubSectionPagedHasMore({
+          items: pagedTree.items,
+          pageSize: pagedTree.pageSize || SUBSECTION_TREE_PAGE_SIZE,
+          apiHasMore: pagedTree.hasMore,
+          addedCount,
+        })
+      );
       applySubSectionSearchResultsToTree(mergedResults);
     } catch (error) {
       console.error('Error loading more section subsection search results:', error);
-      setSubSectionSearchTreeHasMore(false);
-    } finally {
       if (requestId === subSectionSearchRequestRef.current) {
-        subSectionSearchInFlightRef.current = false;
-        setSubSectionSearchTreeLoadingMore(false);
+        setSubSectionSearchTreeHasMore(false);
       }
+    } finally {
+      // Always clear this request's load-more spinner (even if a newer search superseded it).
+      subSectionSearchInFlightRef.current = false;
+      setSubSectionSearchTreeLoadingMore(false);
     }
   }, [
     subSectionSearch,
@@ -12798,10 +12871,8 @@ const PatientBoard = () => {
         </div>
         <div className="pb-subsection-search-suggestions-list">
           {suggestions.map((suggestion) => {
-            const highlighted = highlightSubSectionSuggestion(
-              suggestion.subSectionName,
-              searchQuery
-            );
+            const label = getSubSectionSuggestionLabel(suggestion);
+            const highlighted = highlightSubSectionSuggestion(label, searchQuery);
             const selectSuggestion = () => {
               onClose();
               handleSubSectionClick({
@@ -12816,7 +12887,7 @@ const PatientBoard = () => {
                 role="option"
                 tabIndex={0}
                 className="pb-subsection-search-suggestion"
-                title={suggestion.subSectionName}
+                title={label}
                 onClick={selectSuggestion}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
