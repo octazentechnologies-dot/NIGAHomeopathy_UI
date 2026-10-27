@@ -41,6 +41,9 @@ export const createDoctorReminder = (payload) =>
   nigahomeoAPI.post("/Doctor/Reminders", payload, { returnErrorBody: true });
 export const updateDoctorReminder = (id, payload) => nigahomeoAPI.put(`/Doctor/Reminders/${id}`, payload);
 export const deleteDoctorReminder = (id) => nigahomeoAPI.delete(`/Doctor/Reminders/${id}`);
+/** Web reminder interrupt: action = fire | snooze | done */
+export const actOnDoctorReminder = (id, payload) =>
+  nigahomeoAPI.post(`/Doctor/Reminders/${id}/actions`, payload);
 export const practiceReport = (params) => nigahomeoAPI.get("/Reports/Doctor/Practice", params || {});
 export const followUpReport = (params) => nigahomeoAPI.get("/Reports/Doctor/FollowUps", params || {});
 export const updateFollowUpTask = (taskId, payload) => nigahomeoAPI.put(`/Reports/Doctor/FollowUps/${taskId}`, payload);

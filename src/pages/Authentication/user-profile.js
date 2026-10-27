@@ -49,6 +49,7 @@ import {
   getDoctorPhotoBlob,
   getAvailabilityMe,
   updateAvailabilityMe,
+  setDirectoryVisibility,
   confirmMobileAgainstProfile,
   getRegistrationCountries,
   getRegistrationStates,
@@ -60,6 +61,7 @@ import {
   getQualificationList,
 } from "../../helpers/realbackend_helper";
 import { clinicMessage, deleteDoctorTimeOff, listDoctorTimeOff, saveDoctorTimeOff, unwrapClinic } from "../../helpers/doctorClinicApi";
+import { dispatchAvailabilityChanged } from "../../helpers/availabilityEvents";
 
 const PROFILE_TABS = [
   { id: "profile", label: "Profile" },
@@ -504,16 +506,37 @@ const hmsToAmPm = (value) => {
   return `${String(hour).padStart(2, "0")}:${minute} ${period}`;
 };
 
-const nextDateForWeekday = (dayId) => {
-  const map = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
-  const target = map[dayId];
-  const now = new Date();
-  const diff = (target - now.getDay() + 7) % 7;
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
+const WEEKDAY_INDEX = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+/** Matches Availability/Me window (today → today+13). */
+const HOURS_HORIZON_DAYS = 13;
+
+const toYmd = (d) => {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+};
+
+const nextDateForWeekday = (dayId) => {
+  const target = WEEKDAY_INDEX[dayId];
+  const now = new Date();
+  const diff = (target - now.getDay() + 7) % 7;
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
+  return toYmd(d);
+};
+
+/** All calendar dates for a weekday inside the Availability/Me horizon (avoids Wed #2 wiping Wed #1). */
+const datesForWeekdayInHorizon = (dayId, horizonDays = HOURS_HORIZON_DAYS) => {
+  const target = WEEKDAY_INDEX[dayId];
+  if (target == null) return [];
+  const dates = [];
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  for (let i = 0; i <= horizonDays; i += 1) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    if (d.getDay() === target) dates.push(toYmd(d));
+  }
+  return dates;
 };
 
 const weekdayIdFromDate = (value) => {
@@ -525,6 +548,47 @@ const weekdayIdFromDate = (value) => {
     : new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
   return ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][d.getDay()];
+};
+
+const scheduleDateKey = (value) => {
+  const raw = String(value || "").trim();
+  const ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return ymd ? `${ymd[1]}-${ymd[2]}-${ymd[3]}` : raw.slice(0, 10);
+};
+
+/** Map API week rows → Mon–Sun UI. Prefer the soonest date per weekday (not the last overwrite). */
+const mapWeekSchedulesToHoursUi = (rows) => {
+  const next = WEEK_DAYS.reduce((acc, day) => ({ ...acc, [day.id]: { ...UNAVAILABLE_DAY } }), {});
+  const chosenDate = {};
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const id = weekdayIdFromDate(row.scheduleDate || row.ScheduleDate);
+    if (!id) return;
+    const dateKey = scheduleDateKey(row.scheduleDate || row.ScheduleDate);
+    if (chosenDate[id] && chosenDate[id] <= dateKey) return;
+    chosenDate[id] = dateKey;
+    const start = hmsToAmPm(row.workStartTime || row.WorkStartTime);
+    const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
+    const breakFrom = hmsToAmPm(row.breakStartTime || row.BreakStartTime);
+    const breakTo = hmsToAmPm(row.breakEndTime || row.BreakEndTime);
+    next[id] = {
+      ...createDefaultHoursDay(),
+      available: true,
+      startTime: start,
+      endTime: end,
+      breakEnabled: Boolean(breakFrom && breakTo),
+      breakFrom: breakFrom || "",
+      breakTo: breakTo || "",
+    };
+  });
+  return next;
+};
+
+const leaveCoversToday = (startsAt, endsAt) => {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
+  const now = new Date();
+  return start <= now && end >= now;
 };
 
 const showSaveResult = (ok, text) => {
@@ -947,30 +1011,7 @@ const UserProfile = () => {
         });
         const rows = me?.weekSchedules ?? me?.WeekSchedules ?? [];
         if (!Array.isArray(rows) || rows.length === 0) return;
-        setHoursSchedule((prev) => {
-          const next = { ...prev };
-          WEEK_DAYS.forEach((day) => {
-            next[day.id] = { ...UNAVAILABLE_DAY };
-          });
-          rows.forEach((row) => {
-            const id = weekdayIdFromDate(row.scheduleDate || row.ScheduleDate);
-            if (!id) return;
-            const start = hmsToAmPm(row.workStartTime || row.WorkStartTime);
-            const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
-            const breakFrom = hmsToAmPm(row.breakStartTime || row.BreakStartTime);
-            const breakTo = hmsToAmPm(row.breakEndTime || row.BreakEndTime);
-            next[id] = {
-              ...createDefaultHoursDay(),
-              available: true,
-              startTime: start,
-              endTime: end,
-              breakEnabled: Boolean(breakFrom && breakTo),
-              breakFrom,
-              breakTo,
-            };
-          });
-          return next;
-        });
+        setHoursSchedule(mapWeekSchedulesToHoursUi(rows));
       })
       .catch(() => {});
     listDoctorTimeOff()
@@ -1262,14 +1303,40 @@ const UserProfile = () => {
     }
     setTimeOffBusy(true);
     try {
+      const startsAt = `${timeOffForm.start}T00:00:00`;
+      const endsAt = `${timeOffForm.end}T23:59:00`;
       const rows = unwrapClinic(await saveDoctorTimeOff({
-        startsAt: `${timeOffForm.start}T00:00:00`,
-        endsAt: `${timeOffForm.end}T23:59:00`,
+        startsAt,
+        endsAt,
         reason: timeOffForm.reason.trim() || null,
       }));
       setTimeOffRows(Array.isArray(rows) ? rows : []);
       setTimeOffForm({ start: "", end: "", reason: "" });
-      showSaveResult(true, "Leave dates have been saved.");
+      // Active leave (covers now) → default Offline + hide public listing (clinic closed).
+      // Doctor can manually turn Online / Public Visibility back on for tele consultation.
+      if (leaveCoversToday(startsAt, endsAt)) {
+        try {
+          await updateAvailabilityMe({ isOnline: false });
+        } catch {
+          /* API SaveTimeOff already defaults IsOnline=0 */
+        }
+        try {
+          await setDirectoryVisibility({ directoryVisible: false });
+        } catch {
+          /* API SaveTimeOff already defaults DirectoryVisible=0 */
+        }
+        dispatchAvailabilityChanged({
+          isOnline: false,
+          isOnTimeOff: true,
+          directoryVisible: false,
+        });
+        showSaveResult(
+          true,
+          "Leave saved. Clinic is closed (Offline + hidden). You can turn Online / Public Visibility on for tele consultation."
+        );
+      } else {
+        showSaveResult(true, "Leave dates have been saved.");
+      }
     } catch (err) {
       showSaveResult(false, clinicMessage(err));
     } finally {
@@ -1781,10 +1848,9 @@ const UserProfile = () => {
       createDefaultHoursDay();
     const days = WEEK_DAYS.filter(
       (day) => schedule[day.id]?.available && schedule[day.id].startTime && schedule[day.id].endTime
-    ).map((day) => {
+    ).flatMap((day) => {
       const row = schedule[day.id];
-      return {
-        scheduleDate: nextDateForWeekday(day.id),
+      const template = {
         workStartTime: amPmToHms(row.startTime),
         workEndTime: amPmToHms(row.endTime),
         slotIntervalMinutes: 15,
@@ -1792,9 +1858,14 @@ const UserProfile = () => {
         breakStartTime: row.breakEnabled ? amPmToHms(row.breakFrom) : null,
         breakEndTime: row.breakEnabled ? amPmToHms(row.breakTo) : null,
       };
+      // Write every occurrence in the Me() horizon so a later Wednesday cannot wipe Break.
+      return datesForWeekdayInHorizon(day.id).map((scheduleDate) => ({
+        scheduleDate,
+        ...template,
+      }));
     });
-    const clearScheduleDates = WEEK_DAYS.filter((day) => !schedule[day.id]?.available).map((day) =>
-      nextDateForWeekday(day.id)
+    const clearScheduleDates = WEEK_DAYS.filter((day) => !schedule[day.id]?.available).flatMap((day) =>
+      datesForWeekdayInHorizon(day.id)
     );
     return {
       payload: {
@@ -1802,6 +1873,8 @@ const UserProfile = () => {
         workingHoursNote: `Mon-Sat ${sourceDay.startTime || "09:00 AM"}-${sourceDay.endTime || "01:00 PM"}`,
         gapMinutes,
         bookingHorizonDays: horizonDays,
+        // Persist empties / single-field / both — do not keep old DB values.
+        updateBookingRules: true,
         days,
         clearScheduleDates,
       },
@@ -1835,34 +1908,18 @@ const UserProfile = () => {
       const me = saved?.data ?? saved;
       if (me) {
         setBookingRules({
-          gapMinutes: me?.gapMinutes ?? me?.GapMinutes ?? bookingRules.gapMinutes,
-          horizonDays: me?.bookingHorizonDays ?? me?.BookingHorizonDays ?? bookingRules.horizonDays,
+          gapMinutes: me?.gapMinutes ?? me?.GapMinutes ?? "",
+          horizonDays: me?.bookingHorizonDays ?? me?.BookingHorizonDays ?? "",
         });
         const rows = me?.weekSchedules ?? me?.WeekSchedules ?? [];
         if (Array.isArray(rows)) {
-          setHoursSchedule(() => {
-            const next = WEEK_DAYS.reduce(
-              (acc, day) => ({ ...acc, [day.id]: { ...UNAVAILABLE_DAY } }),
-              {}
-            );
-            rows.forEach((row) => {
-              const id = weekdayIdFromDate(row.scheduleDate || row.ScheduleDate);
-              if (!id) return;
-              const start = hmsToAmPm(row.workStartTime || row.WorkStartTime);
-              const end = hmsToAmPm(row.workEndTime || row.WorkEndTime);
-              const breakFrom = hmsToAmPm(row.breakStartTime || row.BreakStartTime);
-              const breakTo = hmsToAmPm(row.breakEndTime || row.BreakEndTime);
-              next[id] = {
-                ...createDefaultHoursDay(),
-                available: true,
-                startTime: start,
-                endTime: end,
-                breakEnabled: Boolean(breakFrom && breakTo),
-                breakFrom,
-                breakTo,
-              };
-            });
-            return next;
+          setHoursSchedule(mapWeekSchedulesToHoursUi(rows));
+        }
+        const online = me?.isOnline ?? me?.IsOnline;
+        if (typeof online === "boolean") {
+          dispatchAvailabilityChanged({
+            isOnline: online,
+            isOnTimeOff: Boolean(me?.isOnTimeOff ?? me?.IsOnTimeOff),
           });
         }
       }

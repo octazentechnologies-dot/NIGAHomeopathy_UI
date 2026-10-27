@@ -7,7 +7,16 @@ import { useSelector } from 'react-redux';
 import SimpleBar from "simplebar-react";
 import { UserRole } from '../constants/roles';
 import { readPlanActive } from '../../helpers/client_error_reporter';
-import { listNotifications, patchNotification, followUpDue } from '../../helpers/s5Week5Api';
+import moment from 'moment';
+import { listNotifications, patchNotification, followUpDue, listDoctorReminders } from '../../helpers/s5Week5Api';
+import {
+    isReminderDueNow,
+    mapDoctorReminder,
+    formatReminderTimeDisplay,
+    openDoctorReminder,
+    isReminderAlertDismissed,
+    REMINDER_DASHBOARD_PATH,
+} from '../../helpers/doctorReminderFire';
 
 const noteId = (row) => row.appNotificationId ?? row.AppNotificationId;
 const noteRead = (row) => Boolean(row.isRead ?? row.IsRead);
@@ -37,8 +46,27 @@ const NoteItem = ({ row, onOpen, onRead }) => {
     const id = noteId(row);
     const read = noteRead(row);
     const link = noteDeepLink(row);
+    const canOpen = Boolean(link);
     return (
-        <div className={`text-reset notification-item d-block dropdown-item position-relative${read ? '' : ' active'}`}>
+        <div
+            className={`text-reset notification-item d-block dropdown-item position-relative${read ? '' : ' active'}${canOpen ? ' notification-item--clickable' : ''}`}
+            role={canOpen ? 'button' : undefined}
+            tabIndex={canOpen ? 0 : undefined}
+            onClick={(e) => {
+                if (!canOpen) return;
+                if (e.target.closest('[data-note-action="mark-read"]')) return;
+                e.preventDefault();
+                e.stopPropagation();
+                onOpen(row);
+            }}
+            onKeyDown={(e) => {
+                if (!canOpen) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpen(row);
+                }
+            }}
+        >
             <div className="d-flex">
                 <div className="avatar-xs me-3">
                     <span className="avatar-title bg-info-subtle text-info rounded-circle fs-16">
@@ -54,14 +82,31 @@ const NoteItem = ({ row, onOpen, onRead }) => {
                         <span><i className="mdi mdi-clock-outline"></i> {timeAgo(row.createdAt || row.CreatedAt)}</span>
                     </p>
                     {link ? (
-                        <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onOpen(row)}>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-link p-0"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onOpen(row);
+                            }}
+                        >
                             Open
                         </button>
                     ) : null}
                 </div>
                 {!read ? (
                     <div className="px-2">
-                        <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onRead(id)}>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-link p-0"
+                            data-note-action="mark-read"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onRead(id);
+                            }}
+                        >
                             Mark read
                         </button>
                     </div>
@@ -72,7 +117,24 @@ const NoteItem = ({ row, onOpen, onRead }) => {
 };
 
 const AlertItem = ({ alert, onOpen }) => (
-    <div className={`text-reset notification-item d-block dropdown-item position-relative${alert.active ? ' active' : ''}`}>
+    <div
+        className={`text-reset notification-item d-block dropdown-item position-relative${alert.active ? ' active' : ''}${alert.to ? ' notification-item--clickable' : ''}`}
+        role={alert.to ? 'button' : undefined}
+        tabIndex={alert.to ? 0 : undefined}
+        onClick={(e) => {
+            if (!alert.to) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onOpen(alert.to);
+        }}
+        onKeyDown={(e) => {
+            if (!alert.to) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen(alert.to);
+            }
+        }}
+    >
         <div className="d-flex">
             <div className="avatar-xs me-3">
                 <span className={`avatar-title ${alert.iconClass} rounded-circle fs-16`}>
@@ -85,7 +147,15 @@ const AlertItem = ({ alert, onOpen }) => (
                     <p className="mb-1">{alert.message}</p>
                 </div>
                 {alert.to ? (
-                    <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onOpen(alert.to)}>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-link p-0"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onOpen(alert.to);
+                        }}
+                    >
                         {alert.linkText || 'Open'}
                     </button>
                 ) : null}
@@ -171,6 +241,42 @@ const NotificationDropdown = () => {
                 /* follow-up alert is optional */
             }
         }
+        if (isDoctor) {
+            try {
+                const today = moment().format('YYYY-MM-DD');
+                const remRes = await listDoctorReminders({ from: today, to: today });
+                const reminders = Array.isArray(remRes?.data) ? remRes.data.map(mapDoctorReminder) : [];
+                const dueNow = reminders.filter((r) => isReminderDueNow(r) && !isReminderAlertDismissed(r.id));
+                dueNow.slice(0, 5).forEach((r) => {
+                    const timeLabel = formatReminderTimeDisplay(r.time);
+                    nextAlerts.push({
+                        id: `doctor-reminder-${r.id}`,
+                        title: r.title || 'Reminder due',
+                        message: timeLabel
+                            ? `Due at ${timeLabel}${r.description ? ` — ${r.description}` : ''}`
+                            : (r.description || 'Due now'),
+                        icon: 'ri-alarm-warning-line',
+                        iconClass: 'bg-info-subtle text-info',
+                        active: true,
+                        to: `/doctordashboard?reminderDate=${encodeURIComponent(r.date)}&reminderId=${r.id}`,
+                        linkText: 'Open reminder',
+                    });
+                });
+                if (dueNow.length > 5) {
+                    nextAlerts.push({
+                        id: 'doctor-reminders-more',
+                        title: 'More reminders due',
+                        message: `${dueNow.length - 5} additional reminder${dueNow.length - 5 === 1 ? '' : 's'} waiting.`,
+                        icon: 'ri-notification-3-line',
+                        iconClass: 'bg-info-subtle text-info',
+                        to: '/doctordashboard',
+                        linkText: 'View dashboard',
+                    });
+                }
+            } catch {
+                /* reminder alerts are optional */
+            }
+        }
         setAlerts(nextAlerts);
     }, [loginUser]);
 
@@ -192,6 +298,13 @@ const NotificationDropdown = () => {
 
     const openPage = (to) => {
         setIsNotificationDropdown(false);
+        const path = String(to || '');
+        if (path.startsWith(REMINDER_DASHBOARD_PATH)) {
+            openDoctorReminder({ to: path, openView: true, navigate });
+            // Refresh after mark-read so badge clears immediately.
+            window.setTimeout(() => loadData(), 350);
+            return;
+        }
         navigate(to);
     };
 
