@@ -78,7 +78,10 @@ const ageSexDisplay = (row) => {
 };
 
 const mapQueueRow = (apiRow, feeByType) => {
-  const pay = paymentStatusMeta(apiRow.paymentStatus ?? apiRow.PaymentStatus);
+  const pay = paymentStatusMeta(apiRow.paymentStatus ?? apiRow.PaymentStatus, {
+    payAtClinicAllowed: apiRow.payAtClinicAllowed ?? apiRow.PayAtClinicAllowed,
+    paymentMethod: apiRow.paymentMethod ?? apiRow.PaymentMethod,
+  });
   const type = consultType(apiRow);
   const fee =
     apiRow.consultFee ??
