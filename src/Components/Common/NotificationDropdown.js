@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Col, Dropdown, DropdownMenu, DropdownToggle, Nav, NavItem, NavLink, Row, TabContent, TabPane } from 'reactstrap';
+import {
+    Col, Dropdown, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader,
+    Nav, NavItem, NavLink, Row, TabContent, TabPane, Button,
+} from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
 import classnames from 'classnames';
 import { useSelector } from 'react-redux';
@@ -9,6 +12,8 @@ import { UserRole } from '../constants/roles';
 import { readPlanActive } from '../../helpers/client_error_reporter';
 import moment from 'moment';
 import { listNotifications, patchNotification, followUpDue, listDoctorReminders } from '../../helpers/s5Week5Api';
+import { listTrustQueue } from '../../helpers/s4Week4Api';
+import { listAdminSupportTickets } from '../../helpers/realbackend_helper';
 import {
     isReminderDueNow,
     mapDoctorReminder,
@@ -17,12 +22,49 @@ import {
     isReminderAlertDismissed,
     REMINDER_DASHBOARD_PATH,
 } from '../../helpers/doctorReminderFire';
+import {
+    resolveNotificationOpenPath,
+    isAdminPortalRole,
+    isAdminRelevantNotification,
+    adminFallbackPathForType,
+} from '../../helpers/notificationDeepLink';
 
 const noteId = (row) => row.appNotificationId ?? row.AppNotificationId;
 const noteRead = (row) => Boolean(row.isRead ?? row.IsRead);
 const noteDeepLink = (row) => row.deepLink || row.DeepLink || "";
+const noteType = (row) => row.type || row.Type || "";
 const INBOX_REFRESH_EVENT = "homeocentrum-inbox-refresh";
 const INBOX_POLL_MS = 30000;
+const DISMISSED_ALERTS_KEY = "homeocentrum-notif-alert-dismissed";
+
+const unwrapList = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.data)) return payload.data.data;
+    if (Array.isArray(payload?.items)) return payload.items;
+    return [];
+};
+
+const readDismissedAlerts = () => {
+    try {
+        const raw = sessionStorage.getItem(DISMISSED_ALERTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+    } catch {
+        return new Set();
+    }
+};
+
+const dismissAlertId = (alertId) => {
+    if (alertId == null || alertId === "") return;
+    const next = readDismissedAlerts();
+    next.add(String(alertId));
+    try {
+        sessionStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify([...next]));
+    } catch {
+        /* ignore quota */
+    }
+};
 
 const timeAgo = (value) => {
     if (!value) return '';
@@ -45,22 +87,18 @@ const EmptyRow = ({ text }) => (
 const NoteItem = ({ row, onOpen, onRead }) => {
     const id = noteId(row);
     const read = noteRead(row);
-    const link = noteDeepLink(row);
-    const canOpen = Boolean(link);
     return (
         <div
-            className={`text-reset notification-item d-block dropdown-item position-relative${read ? '' : ' active'}${canOpen ? ' notification-item--clickable' : ''}`}
-            role={canOpen ? 'button' : undefined}
-            tabIndex={canOpen ? 0 : undefined}
+            className={`text-reset notification-item d-block dropdown-item position-relative notification-item--clickable${read ? '' : ' active'}`}
+            role="button"
+            tabIndex={0}
             onClick={(e) => {
-                if (!canOpen) return;
                 if (e.target.closest('[data-note-action="mark-read"]')) return;
                 e.preventDefault();
                 e.stopPropagation();
                 onOpen(row);
             }}
             onKeyDown={(e) => {
-                if (!canOpen) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     onOpen(row);
@@ -81,19 +119,17 @@ const NoteItem = ({ row, onOpen, onRead }) => {
                     <p className="mb-0 fs-11 fw-medium text-uppercase text-muted">
                         <span><i className="mdi mdi-clock-outline"></i> {timeAgo(row.createdAt || row.CreatedAt)}</span>
                     </p>
-                    {link ? (
-                        <button
-                            type="button"
-                            className="btn btn-sm btn-link p-0"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onOpen(row);
-                            }}
-                        >
-                            Open
-                        </button>
-                    ) : null}
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-link p-0"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onOpen(row);
+                        }}
+                    >
+                        Open
+                    </button>
                 </div>
                 {!read ? (
                     <div className="px-2">
@@ -118,20 +154,18 @@ const NoteItem = ({ row, onOpen, onRead }) => {
 
 const AlertItem = ({ alert, onOpen }) => (
     <div
-        className={`text-reset notification-item d-block dropdown-item position-relative${alert.active ? ' active' : ''}${alert.to ? ' notification-item--clickable' : ''}`}
-        role={alert.to ? 'button' : undefined}
-        tabIndex={alert.to ? 0 : undefined}
+        className={`text-reset notification-item d-block dropdown-item position-relative notification-item--clickable${alert.active ? ' active' : ''}`}
+        role="button"
+        tabIndex={0}
         onClick={(e) => {
-            if (!alert.to) return;
             e.preventDefault();
             e.stopPropagation();
-            onOpen(alert.to);
+            onOpen(alert);
         }}
         onKeyDown={(e) => {
-            if (!alert.to) return;
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onOpen(alert.to);
+                onOpen(alert);
             }
         }}
     >
@@ -146,19 +180,17 @@ const AlertItem = ({ alert, onOpen }) => (
                 <div className="fs-13 text-muted">
                     <p className="mb-1">{alert.message}</p>
                 </div>
-                {alert.to ? (
-                    <button
-                        type="button"
-                        className="btn btn-sm btn-link p-0"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onOpen(alert.to);
-                        }}
-                    >
-                        {alert.linkText || 'Open'}
-                    </button>
-                ) : null}
+                <button
+                    type="button"
+                    className="btn btn-sm btn-link p-0"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onOpen(alert);
+                    }}
+                >
+                    {alert.linkText || 'Open'}
+                </button>
             </div>
         </div>
     </div>
@@ -166,6 +198,7 @@ const AlertItem = ({ alert, onOpen }) => (
 
 const NotificationDropdown = () => {
     const [isNotificationDropdown, setIsNotificationDropdown] = useState(false);
+    const [detailItem, setDetailItem] = useState(null);
     const navigate = useNavigate();
     const loginUser = useSelector((state) => state?.Login?.user);
 
@@ -173,7 +206,7 @@ const NotificationDropdown = () => {
     const [notes, setNotes] = useState([]);
     const [alerts, setAlerts] = useState([]);
 
-    const loadData = useCallback(async () => {
+    const resolveSessionRole = useCallback(() => {
         let auth = null;
         try {
             auth = JSON.parse(sessionStorage.getItem('authUser') || 'null');
@@ -181,18 +214,32 @@ const NotificationDropdown = () => {
             auth = null;
         }
         const session = (loginUser && Object.keys(loginUser).length > 0) ? loginUser : (auth?.data || auth);
+        return {
+            session,
+            role: session?.role || auth?.role,
+        };
+    }, [loginUser]);
+
+    const loadData = useCallback(async () => {
+        const { session, role } = resolveSessionRole();
         if (!session) {
             setNotes([]);
             setAlerts([]);
             return;
         }
-        const role = session?.role || auth?.role;
         const isDoctor = role === UserRole.DOCTOR;
-        const isClinic = isDoctor || role === UserRole.ADMIN || role === UserRole.RECEPTION;
+        const isReception = role === UserRole.RECEPTION;
+        const isAdminPortal = isAdminPortalRole(role);
+        // Follow-ups are clinical — doctor/reception only, never Admin.
+        const showClinicalClinicAlerts = isDoctor || isReception;
 
         try {
             const response = await listNotifications();
-            setNotes(Array.isArray(response?.data) ? response.data : []);
+            let rows = Array.isArray(response?.data) ? response.data : unwrapList(response);
+            if (isAdminPortal) {
+                rows = rows.filter(isAdminRelevantNotification);
+            }
+            setNotes(rows);
         } catch {
             setNotes([]);
         }
@@ -222,7 +269,7 @@ const NotificationDropdown = () => {
                 });
             }
         }
-        if (isClinic) {
+        if (showClinicalClinicAlerts) {
             try {
                 const due = await followUpDue();
                 const rows = Array.isArray(due?.data) ? due.data : [];
@@ -277,8 +324,55 @@ const NotificationDropdown = () => {
                 /* reminder alerts are optional */
             }
         }
-        setAlerts(nextAlerts);
-    }, [loginUser]);
+        if (isAdminPortal) {
+            try {
+                const trustRes = await listTrustQueue('Pending');
+                const trustRows = unwrapList(trustRes?.data ?? trustRes);
+                const pending = trustRows.filter((row) => {
+                    const status = String(row.verificationStatus || row.VerificationStatus || row.status || row.Status || '').toLowerCase();
+                    return status === 'pending' || status === 'needsinfo' || status === 'needs info';
+                });
+                if (pending.length > 0) {
+                    nextAlerts.push({
+                        id: 'admin-verification',
+                        title: 'Doctor verification',
+                        message: `${pending.length} doctor ${pending.length === 1 ? 'profile needs' : 'profiles need'} credential review.`,
+                        icon: 'ri-shield-check-line',
+                        iconClass: 'bg-warning-subtle text-warning',
+                        active: true,
+                        to: '/admin/trust-queue',
+                        linkText: 'Open trust queue',
+                    });
+                }
+            } catch {
+                /* trust queue alert is optional */
+            }
+            try {
+                const ticketsRes = await listAdminSupportTickets({ status: 'Open' });
+                const tickets = unwrapList(ticketsRes?.data ?? ticketsRes);
+                const openTickets = tickets.filter((t) => {
+                    const status = String(t.status || t.Status || '').toLowerCase();
+                    return !status || status === 'open' || status === 'pending' || status === 'new';
+                });
+                if (openTickets.length > 0) {
+                    nextAlerts.push({
+                        id: 'admin-support',
+                        title: 'Support tickets',
+                        message: `${openTickets.length} open support ${openTickets.length === 1 ? 'ticket needs' : 'tickets need'} attention.`,
+                        icon: 'ri-customer-service-2-line',
+                        iconClass: 'bg-primary-subtle text-primary',
+                        active: true,
+                        to: '/admin/support-tickets',
+                        linkText: 'Open support',
+                    });
+                }
+            } catch {
+                /* support alert is optional */
+            }
+        }
+        const dismissed = readDismissedAlerts();
+        setAlerts(nextAlerts.filter((alert) => !dismissed.has(String(alert.id))));
+    }, [loginUser, resolveSessionRole]);
 
     useEffect(() => {
         loadData();
@@ -306,6 +400,7 @@ const NotificationDropdown = () => {
             return;
         }
         navigate(to);
+        window.setTimeout(() => loadData(), 350);
     };
 
     const toggleTab = (tab) => {
@@ -313,22 +408,89 @@ const NotificationDropdown = () => {
     };
 
     const markRead = async (id) => {
+        if (id == null || id === '') return false;
+        // Optimistic UI so the orange badge clears immediately.
+        setNotes((current) =>
+            current.map((row) =>
+                noteId(row) === id || String(noteId(row)) === String(id)
+                    ? { ...row, isRead: true, IsRead: true }
+                    : row
+            )
+        );
         try {
             await patchNotification(id, true);
-            setNotes((current) => current.map((row) => (noteId(row) === id ? { ...row, isRead: true, IsRead: true } : row)));
+            window.dispatchEvent(new Event(INBOX_REFRESH_EVENT));
+            return true;
         } catch {
-            /* keep the row unread if the update fails */
+            // Roll back if API/DB update failed.
+            setNotes((current) =>
+                current.map((row) =>
+                    noteId(row) === id || String(noteId(row)) === String(id)
+                        ? { ...row, isRead: false, IsRead: false }
+                        : row
+                )
+            );
+            return false;
         }
     };
 
     const openNote = async (row) => {
         const id = noteId(row);
-        if (id && !noteRead(row)) await markRead(id);
-        const link = noteDeepLink(row);
-        if (link && link.startsWith('/')) openPage(link);
-        else setIsNotificationDropdown(false);
+        // Opening always marks the AppNotification as read in DB (when unread).
+        if (id != null && id !== '' && !noteRead(row)) {
+            await markRead(id);
+        }
+        setIsNotificationDropdown(false);
+        setDetailItem({
+            kind: 'note',
+            id,
+            title: row.title || row.Title || 'Notification',
+            body: row.body || row.Body || '',
+            when: timeAgo(row.createdAt || row.CreatedAt),
+            type: noteType(row),
+            deepLink: noteDeepLink(row),
+        });
     };
 
+    const openAlert = (alert) => {
+        // Synthetic alerts are not AppNotification rows — dismiss for this session so the badge drops.
+        dismissAlertId(alert.id);
+        setAlerts((current) => current.filter((item) => String(item.id) !== String(alert.id)));
+        setIsNotificationDropdown(false);
+        setDetailItem({
+            kind: 'alert',
+            id: alert.id,
+            title: alert.title || 'Alert',
+            body: alert.message || '',
+            when: '',
+            type: alert.id?.startsWith('admin-verification')
+                ? 'VERIFICATION'
+                : alert.id?.startsWith('admin-support')
+                    ? 'SUPPORT'
+                    : 'SYSTEM',
+            deepLink: alert.to || '',
+            to: alert.to || '',
+            linkText: alert.linkText || 'Open',
+        });
+    };
+
+    const openDetailAction = async () => {
+        if (!detailItem) return;
+        // Safety: if Open raced before mark-read finished, ensure DB is updated.
+        if (detailItem.kind === 'note' && detailItem.id != null && detailItem.id !== '') {
+            await markRead(detailItem.id);
+        }
+        const { role } = resolveSessionRole();
+        const path = resolveNotificationOpenPath(
+            detailItem.deepLink || detailItem.to,
+            role,
+            detailItem.type,
+        ) || detailItem.to || adminFallbackPathForType(detailItem.type);
+        setDetailItem(null);
+        if (path) openPage(path);
+    };
+
+    // Badge = unread inbox rows only + undismissed alerts still shown.
     const unreadNotes = notes.filter((row) => !noteRead(row)).length;
     const badgeCount = unreadNotes + alerts.length;
 
@@ -395,7 +557,7 @@ const NotificationDropdown = () => {
                     <TabContent activeTab={activeTab}>
                         <TabPane tabId="1" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
-                                {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openPage} />)}
+                                {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openAlert} />)}
                                 {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} onOpen={openNote} />)}
                                 {alerts.length === 0 && notes.length === 0 ? <EmptyRow text="You are all caught up." /> : null}
                                 {viewAll}
@@ -412,7 +574,7 @@ const NotificationDropdown = () => {
 
                         <TabPane tabId="3" className="py-2 ps-2">
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
-                                {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openPage} />)}
+                                {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openAlert} />)}
                                 {alerts.length === 0 ? <EmptyRow text="No alerts right now." /> : null}
                                 {viewAll}
                             </SimpleBar>
@@ -420,6 +582,34 @@ const NotificationDropdown = () => {
                     </TabContent>
                 </DropdownMenu>
             </Dropdown>
+
+            <Modal isOpen={Boolean(detailItem)} toggle={() => setDetailItem(null)} centered>
+                <ModalHeader toggle={() => setDetailItem(null)}>
+                    {detailItem?.title || 'Notification'}
+                </ModalHeader>
+                <ModalBody>
+                    {detailItem?.when ? (
+                        <p className="text-muted text-uppercase fs-11 mb-2">
+                            <i className="mdi mdi-clock-outline me-1" />
+                            {detailItem.when}
+                        </p>
+                    ) : null}
+                    {detailItem?.type ? (
+                        <p className="fs-12 text-muted mb-2">Type: {detailItem.type}</p>
+                    ) : null}
+                    <p className="mb-0 fs-14" style={{ whiteSpace: 'pre-wrap' }}>
+                        {detailItem?.body || 'No additional details.'}
+                    </p>
+                </ModalBody>
+                <ModalFooter>
+                    <Button color="light" onClick={() => setDetailItem(null)}>
+                        Close
+                    </Button>
+                    <Button color="primary" onClick={openDetailAction}>
+                        {detailItem?.linkText || 'Go to page'}
+                    </Button>
+                </ModalFooter>
+            </Modal>
         </React.Fragment>
     );
 };

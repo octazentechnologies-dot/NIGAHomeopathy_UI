@@ -27,6 +27,7 @@ import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeade
 import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
 import DoctorScheduleCalendarHeaderButton from '../Components/Common/DoctorScheduleCalendarHeaderButton';
 import DoctorMobileHeaderButtons from '../Components/Common/DoctorMobileHeaderButtons';
+import WebHandoffReturnButton from '../Components/Common/WebHandoffReturnButton';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
 const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
@@ -116,6 +117,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
 
                             {userRole === UserRole.DOCTOR ? (
                                 <div className="d-flex align-items-center header-doctor-session-tools">
+                                    <WebHandoffReturnButton />
                                     <LastWorkBackupHeaderButton userRole={userRole} />
                                     <ReceptionStaffHeaderButton userRole={userRole} />
                                     <DoctorScheduleCalendarHeaderButton userRole={userRole} />

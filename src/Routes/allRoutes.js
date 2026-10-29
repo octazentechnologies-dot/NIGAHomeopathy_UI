@@ -388,6 +388,8 @@ import APIKey from "../pages/APIKey/index";
 
 //login
 import Login from "../pages/Authentication/Login";
+import MobileHandoff from "../pages/Authentication/MobileHandoff";
+import AppReturn from "../pages/Authentication/AppReturn";
 import ForgetPasswordPage from "../pages/Authentication/ForgetPassword";
 import ResetPassword from "../pages/Authentication/ResetPassword";
 import Logout from "../pages/Authentication/Logout";
@@ -968,6 +970,8 @@ const publicRoutes = [
   // Authentication Page
   { path: "/logout", component: <Logout /> },
   { path: "/login", component: <Login /> },
+  { path: "/auth/mobile-handoff", component: <MobileHandoff /> },
+  { path: "/auth/app-return", component: <AppReturn /> },
   { path: "/forgot-password", component: <ForgetPasswordPage /> },
   { path: "/reset-password", component: <ResetPassword /> },
   { path: "/reset-password/:token", component: <ResetPassword /> },

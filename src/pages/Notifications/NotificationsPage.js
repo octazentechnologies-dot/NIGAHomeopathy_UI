@@ -10,6 +10,12 @@ import {
   s4Message,
   saveNotificationPreferences,
 } from "../../helpers/s5Week5Api";
+import {
+  resolveNotificationOpenPath,
+  isAdminPortalRole,
+  isAdminRelevantNotification,
+} from "../../helpers/notificationDeepLink";
+import { getUserRoleFromAuthStorage } from "../../helpers/dashboard_helper";
 import "./notificationsPage.css";
 
 const TABS = [
@@ -107,7 +113,10 @@ const NotificationsPage = () => {
     setError("");
     try {
       const response = await listNotifications();
-      const rows = Array.isArray(response?.data) ? response.data : [];
+      let rows = Array.isArray(response?.data) ? response.data : [];
+      if (isAdminPortalRole(getUserRoleFromAuthStorage())) {
+        rows = rows.filter(isAdminRelevantNotification);
+      }
       setItems(rows.map(normalize));
     } catch (err) {
       setItems([]);
@@ -173,16 +182,29 @@ const NotificationsPage = () => {
     if (!ids.length) return;
     setBusy(true);
     setError("");
+    // Optimistic clear so the top-bar bell badge drops immediately.
+    setItems((prev) => prev.map((item) => (ids.includes(item.id) ? { ...item, unread: false } : item)));
     const results = await Promise.allSettled(ids.map((id) => patchNotification(id, true)));
     const done = new Set(ids.filter((_, index) => results[index].status === "fulfilled"));
-    setItems((prev) => prev.map((item) => (done.has(item.id) ? { ...item, unread: false } : item)));
-    if (done.size < ids.length) setError("Some notifications could not be marked as read.");
+    if (done.size < ids.length) {
+      setItems((prev) =>
+        prev.map((item) => (ids.includes(item.id) && !done.has(item.id) ? { ...item, unread: true } : item))
+      );
+      setError("Some notifications could not be marked as read.");
+    } else {
+      window.dispatchEvent(new Event(INBOX_REFRESH_EVENT));
+    }
     setBusy(false);
   };
 
   const openItem = async (item) => {
-    if (item.unread) await markRead([item.id]);
-    if (item.deepLink && String(item.deepLink).startsWith("/")) navigate(item.deepLink);
+    if (item?.id != null) await markRead([item.id]);
+    const path = resolveNotificationOpenPath(
+      item.deepLink,
+      getUserRoleFromAuthStorage(),
+      item.type,
+    );
+    navigate(path);
   };
 
   const emptyLabel =
