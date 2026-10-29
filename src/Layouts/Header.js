@@ -27,6 +27,7 @@ import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeade
 import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
 import DoctorScheduleCalendarHeaderButton from '../Components/Common/DoctorScheduleCalendarHeaderButton';
 import DoctorMobileHeaderButtons from '../Components/Common/DoctorMobileHeaderButtons';
+import DoctorMobileNavMenu from '../Components/Common/DoctorMobileNavMenu';
 import WebHandoffReturnButton from '../Components/Common/WebHandoffReturnButton';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
@@ -82,6 +83,14 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
             <header id="page-topbar" className={headerClass}>
                 <div className="layout-width">
                     <div className="navbar-header">
+                        {userRole === UserRole.DOCTOR ? (
+                            <DoctorMobileNavMenu
+                                userRole={userRole}
+                                onOpenHelp={() => setSupportTicketsModalOpen(true)}
+                                onOpenWhatsApp={() => setWhatsAppModalOpen(true)}
+                            />
+                        ) : null}
+
                         <div className="navbar-brand-box horizontal-logo header-brand-block">
                             <Link to={homeDashboardPath} className="logo logo-dark">
                                 <span className="logo-sm">
