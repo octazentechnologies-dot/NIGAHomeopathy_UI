@@ -11,6 +11,7 @@ import {
     listDoctorReminders,
     updateDoctorReminder,
 } from '../../../helpers/s5Week5Api';
+import { digitsOnlyPhone } from '../../../helpers/patientPhone';
 import {
     REMINDER_DASHBOARD_REFRESH_EVENT,
     REMINDER_OPEN_EVENT,
@@ -22,6 +23,17 @@ import {
 import '../../../Components/Common/doctorReminderFire.css';
 
 const API_DATE = 'YYYY-MM-DD';
+
+const parseReminderDate = (dateStr) =>
+    moment(dateStr, [DATE_DISPLAY_FORMAT, 'MM/DD/YYYY', API_DATE], true);
+
+const buildReminderMoment = (dateStr, timeStr) => {
+    const parsedDate = parseReminderDate(dateStr);
+    if (!parsedDate.isValid() || !String(timeStr || '').trim()) return null;
+    const timeParts = moment(String(timeStr).slice(0, 5), 'HH:mm', true);
+    if (!timeParts.isValid()) return null;
+    return parsedDate.clone().hour(timeParts.hour()).minute(timeParts.minute()).second(0).millisecond(0);
+};
 
 const emptyReminder = (date) => ({
     date: moment(date).format(DATE_DISPLAY_FORMAT),
@@ -47,6 +59,7 @@ const TopSellers = () => {
     const location = useLocation();
     const today = moment().startOf('day');
     const [selectedDate, setSelectedDate] = useState(today.format(API_DATE));
+    const [calendarMonth, setCalendarMonth] = useState(() => moment().startOf('month'));
     const [monthReminders, setMonthReminders] = useState([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -61,10 +74,11 @@ const TopSellers = () => {
     const lastFocusKeyRef = useRef('');
     const lastFocusAtRef = useRef(0);
 
-    const monthStart = today.clone().startOf('month');
-    const monthEnd = today.clone().endOf('month');
+    const calendarMonthKey = calendarMonth.format('YYYY-MM');
 
-    const loadReminders = useCallback(async () => {
+    const fetchRemindersForMonth = useCallback(async (monthMoment) => {
+        const monthStart = monthMoment.clone().startOf('month');
+        const monthEnd = monthMoment.clone().endOf('month');
         setLoading(true);
         try {
             const res = await listDoctorReminders({
@@ -78,7 +92,12 @@ const TopSellers = () => {
         } finally {
             setLoading(false);
         }
-    }, [monthStart.format(API_DATE)]);
+    }, []);
+
+    const loadReminders = useCallback(
+        () => fetchRemindersForMonth(calendarMonth),
+        [calendarMonthKey, fetchRemindersForMonth, calendarMonth]
+    );
 
     useEffect(() => {
         monthRemindersRef.current = monthReminders;
@@ -93,6 +112,25 @@ const TopSellers = () => {
         window.addEventListener(REMINDER_DASHBOARD_REFRESH_EVENT, onRefresh);
         return () => window.removeEventListener(REMINDER_DASHBOARD_REFRESH_EVENT, onRefresh);
     }, [loadReminders]);
+
+    const selectCalendarDay = (key) => {
+        setSelectedDate(key);
+        const dayMonth = moment(key, API_DATE, true).startOf('month');
+        if (dayMonth.isValid() && !dayMonth.isSame(calendarMonth, 'month')) {
+            setCalendarMonth(dayMonth);
+        }
+    };
+
+    const shiftCalendarMonth = (delta) => {
+        setCalendarMonth((prev) => prev.clone().add(delta, 'month').startOf('month'));
+    };
+
+    const modalMobileDigits = digitsOnlyPhone(newReminder.contact);
+    const canSaveReminder = Boolean(
+        newReminder.title.trim() &&
+        String(newReminder.time || '').trim() &&
+        modalMobileDigits.length === 10
+    );
 
     const openModal = useCallback(() => {
         setEditingId(null);
@@ -202,13 +240,48 @@ const TopSellers = () => {
             Swal.fire({ icon: 'warning', title: 'Title is required', timer: 1600, showConfirmButton: false });
             return;
         }
-        const parsedDate = moment(newReminder.date, [DATE_DISPLAY_FORMAT, 'MM/DD/YYYY', API_DATE], true);
+        const timeRaw = String(newReminder.time || '').trim();
+        if (!timeRaw) {
+            Swal.fire({ icon: 'warning', title: 'Reminder time is required', timer: 1600, showConfirmButton: false });
+            return;
+        }
+        const mobile = digitsOnlyPhone(newReminder.contact);
+        if (!mobile) {
+            Swal.fire({ icon: 'warning', title: 'Mobile number is required', timer: 1600, showConfirmButton: false });
+            return;
+        }
+        if (mobile.length !== 10) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Invalid mobile number',
+                text: 'Please enter a valid 10-digit mobile number.',
+                timer: 2200,
+                showConfirmButton: false,
+            });
+            return;
+        }
+        const parsedDate = parseReminderDate(newReminder.date);
+        if (!parsedDate.isValid()) {
+            Swal.fire({ icon: 'warning', title: 'Please enter a valid reminder date', timer: 1600, showConfirmButton: false });
+            return;
+        }
+        const reminderAt = buildReminderMoment(newReminder.date, timeRaw);
+        if (!reminderAt || reminderAt.isBefore(moment())) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Invalid reminder time',
+                text: 'Reminder cannot be scheduled in the past.',
+                timer: 2200,
+                showConfirmButton: false,
+            });
+            return;
+        }
         const payload = {
-            reminderDate: (parsedDate.isValid() ? parsedDate : moment(selectedDate)).format(API_DATE),
-            reminderTime: newReminder.time || null,
+            reminderDate: parsedDate.format(API_DATE),
+            reminderTime: timeRaw.slice(0, 5),
             title,
             description: newReminder.description.trim() || null,
-            contactNumber: newReminder.contact.trim() || null,
+            contactNumber: mobile,
             isDone: false,
         };
         setSaving(true);
@@ -224,8 +297,11 @@ const TopSellers = () => {
             }
             setIsModalOpen(false);
             setEditingId(null);
-            if (parsedDate.isValid()) setSelectedDate(parsedDate.format(API_DATE));
-            await loadReminders();
+            const apiDate = parsedDate.format(API_DATE);
+            const monthForLoad = parsedDate.clone().startOf('month');
+            setSelectedDate(apiDate);
+            setCalendarMonth(monthForLoad);
+            await fetchRemindersForMonth(monthForLoad);
         } catch (err) {
             Swal.fire({
                 icon: 'error',
@@ -271,8 +347,9 @@ const TopSellers = () => {
         ? `Today's Reminders (${remindersCountLabel})`
         : `Reminders ${moment(selectedDate).format('DD MMM')} (${remindersCountLabel})`;
 
+    const monthStart = calendarMonth.clone().startOf('month');
     const startWeekday = monthStart.day();
-    const daysInMonth = today.daysInMonth();
+    const daysInMonth = calendarMonth.daysInMonth();
 
     const leadingEmptyCells = startWeekday;
     const totalCells = leadingEmptyCells + daysInMonth;
@@ -316,6 +393,26 @@ const TopSellers = () => {
             overflow: hidden;
             background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+        }
+        .doctor-reminders-card .calendar-month-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.35rem 0.5rem;
+            background: #f4f7fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .doctor-reminders-card .calendar-month-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #495057;
+            letter-spacing: 0.02em;
+        }
+        .doctor-reminders-card .calendar-month-nav .btn {
+            padding: 0 0.35rem;
+            font-size: 0.875rem;
+            line-height: 1.2;
+            color: #25a0e2;
         }
         .doctor-reminders-card .calendar-header {
             background: #f4f7fa;
@@ -491,6 +588,29 @@ const TopSellers = () => {
                     </CardHeader>
                     <CardBody className="pb-2 pt-2 d-flex flex-column">
                         <div className="calendar-grid mb-2 flex-shrink-0">
+                            <div className="calendar-month-bar">
+                                <div className="calendar-month-nav">
+                                    <button
+                                        type="button"
+                                        className="btn btn-link btn-sm p-0"
+                                        aria-label="Previous month"
+                                        onClick={() => shiftCalendarMonth(-1)}
+                                    >
+                                        <i className="ri-arrow-left-s-line" aria-hidden="true" />
+                                    </button>
+                                </div>
+                                <span className="calendar-month-label">{calendarMonth.format('MMM YYYY')}</span>
+                                <div className="calendar-month-nav">
+                                    <button
+                                        type="button"
+                                        className="btn btn-link btn-sm p-0"
+                                        aria-label="Next month"
+                                        onClick={() => shiftCalendarMonth(1)}
+                                    >
+                                        <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </div>
                             <div className="calendar-header d-flex">
                                 <div className="calendar-day-header">Sun</div>
                                 <div className="calendar-day-header">Mon</div>
@@ -509,7 +629,7 @@ const TopSellers = () => {
                                                 className={`calendar-day${cell.empty ? ' empty' : ''}${cell.isToday ? ' today' : ''}${cell.isSelected ? ' selected' : ''}${cell.hasReminder ? ' has-reminder' : ''}`}
                                                 title={cell.label}
                                                 role={cell.empty ? undefined : 'button'}
-                                                onClick={cell.empty ? undefined : () => setSelectedDate(cell.key)}
+                                                onClick={cell.empty ? undefined : () => selectCalendarDay(cell.key)}
                                             >
                                                 {cell.label}
                                             </div>
@@ -662,9 +782,15 @@ const TopSellers = () => {
                                         <DateOfBirthPicker
                                             name="reminderDate"
                                             value={newReminder.date}
-                                            minDate={null}
+                                            minDate="today"
                                             maxDate={null}
-                                            onChange={(dateStr) => setNewReminder({ ...newReminder, date: dateStr })}
+                                            onChange={(dateStr) => {
+                                                setNewReminder({ ...newReminder, date: dateStr });
+                                                const parsed = parseReminderDate(dateStr);
+                                                if (parsed.isValid()) {
+                                                    setCalendarMonth(parsed.clone().startOf('month'));
+                                                }
+                                            }}
                                         />
                                     </div>
                                     <div className="col-md-6">
@@ -674,6 +800,7 @@ const TopSellers = () => {
                                         </Label>
                                         <Input
                                             type="time"
+                                            required
                                             value={newReminder.time}
                                             onChange={(e) => setNewReminder({ ...newReminder, time: e.target.value })}
                                         />
@@ -710,16 +837,25 @@ const TopSellers = () => {
                                         </Label>
                                         <Input
                                             type="tel"
-                                            placeholder="Enter contact number"
+                                            inputMode="numeric"
+                                            maxLength={10}
+                                            placeholder="10-digit mobile number"
+                                            invalid={modalMobileDigits.length > 0 && modalMobileDigits.length !== 10}
                                             value={newReminder.contact}
-                                            onChange={(e) => setNewReminder({ ...newReminder, contact: e.target.value })}
+                                            onChange={(e) => {
+                                                const mobile = digitsOnlyPhone(e.target.value).slice(0, 10);
+                                                setNewReminder({ ...newReminder, contact: mobile });
+                                            }}
                                         />
+                                        {modalMobileDigits.length > 0 && modalMobileDigits.length !== 10 ? (
+                                            <small className="text-danger">Please enter a valid 10-digit mobile number.</small>
+                                        ) : null}
                                     </div>
                                 </div>
                             </ModalBody>
                             <ModalFooter className="justify-content-end">
                                 <ModalActionButton action="cancel" onClick={closeModal} />
-                                <ModalActionButton action="save" onClick={saveNewReminder} disabled={saving || !newReminder.title.trim()} />
+                                <ModalActionButton action="save" onClick={saveNewReminder} disabled={saving || !canSaveReminder} />
                             </ModalFooter>
                         </Modal>
 

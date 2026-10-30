@@ -3,7 +3,12 @@ import { Alert, Button, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader
 import Swal from "sweetalert2";
 import moment from "moment";
 import { getAppointmentSlots, rescheduleAppointment } from "../../helpers/realbackend_helper";
-import { formatApiDate, normalizeAppointmentSlotsResponse, timeInputToApiTime } from "../../helpers/appointmentSlotHelper";
+import {
+  applyClientPastSlotGuard,
+  formatApiDate,
+  normalizeAppointmentSlotsResponse,
+  timeInputToApiTime,
+} from "../../helpers/appointmentSlotHelper";
 import { formatRescheduleDate, formatRescheduleTime, readRescheduleFailure } from "../../helpers/rescheduleDisplay";
 
 const RescheduleModal = ({
@@ -39,7 +44,8 @@ const RescheduleModal = ({
         currentPatientAppId: patientAppId,
       });
       const parsed = normalizeAppointmentSlotsResponse(response?.data ?? response);
-      const open = (parsed.slots || []).filter((slot) => slot.status === "available" && slot.time);
+      const guarded = applyClientPastSlotGuard(parsed.slots || [], appointmentDateValue);
+      const open = guarded.filter((slot) => slot.status === "available" && slot.time);
       setSlots(open);
       setSlotNote(
         open.length
