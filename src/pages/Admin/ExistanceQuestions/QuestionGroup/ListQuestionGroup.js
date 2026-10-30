@@ -8,7 +8,7 @@ import { deleteQuestionGroup } from '../../../../slices/admin/questiongroup/thun
 import Swal from 'sweetalert2';
 import { getAuditUserName } from "../../../../helpers/api_helper";
 import { exportListTableCsv } from '../../../../helpers/listExport';
-import { getQuestionGroupExistance, getQuestionGroups as getQuestionGroupMaster, getQuestionSectionDll } from '../../../../helpers/realbackend_helper';
+import { getQuestionGroupExistance, getQuestionSectionDll } from '../../../../helpers/realbackend_helper';
 import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
 const asList = (raw) => {
@@ -18,13 +18,29 @@ const asList = (raw) => {
   return [];
 };
 
+const toUniqueOptions = (rows, valueKeys, labelKeys) => {
+  const seen = new Set();
+  return rows
+    .map((row) => ({
+      value: valueKeys.map((key) => row[key]).find((value) => value != null),
+      label: labelKeys.map((key) => row[key]).find((value) => value),
+    }))
+    .filter((row) => {
+      if (row.value == null || !row.label) return false;
+      const key = String(row.value);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+};
+
 const ListQuestionGroup = () => {
   const dispatch = useDispatch();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedQuestionGroup, setSelectedQuestionGroup] = useState(null);
   const [selectedExistance, setSelectedExistance] = useState(null);
-  const [questionGroupOptions, setQuestionGroupOptions] = useState([]);
   const [existanceOptions, setExistanceOptions] = useState([]);
   const [allGroups, setAllGroups] = useState([]);
   const [questionGroupLoading, setQuestionGroupLoading] = useState(false);
@@ -58,6 +74,30 @@ const ListQuestionGroup = () => {
     loadGroups();
   }, []);
 
+  // Existance selected → only that section's groups; otherwise all groups.
+  const questionGroupOptions = useMemo(() => {
+    const rows = selectedExistance
+      ? allGroups.filter(
+          (group) =>
+            String(group.questionSectionId ?? group.QuestionSectionId) === String(selectedExistance.value)
+        )
+      : allGroups;
+    return toUniqueOptions(
+      rows,
+      ['questionGroupId', 'QuestionGroupId'],
+      ['questionGroupName', 'QuestionGroupName']
+    );
+  }, [allGroups, selectedExistance]);
+
+  useEffect(() => {
+    if (
+      selectedQuestionGroup &&
+      !questionGroupOptions.some((opt) => String(opt.value) === String(selectedQuestionGroup.value))
+    ) {
+      setSelectedQuestionGroup(null);
+    }
+  }, [questionGroupOptions, selectedQuestionGroup]);
+
   const filteredGroups = useMemo(() => {
     return allGroups.filter((group) => {
       if (selectedQuestionGroup && String(group.questionGroupId ?? group.QuestionGroupId) !== String(selectedQuestionGroup.value)) {
@@ -79,32 +119,17 @@ const ListQuestionGroup = () => {
     let cancelled = false;
     const loadMasters = async () => {
       try {
-        const [groups, sections] = await Promise.all([
-          getQuestionGroupMaster(),
-          getQuestionSectionDll(),
-        ]);
+        const sections = await getQuestionSectionDll();
         if (cancelled) return;
-        setQuestionGroupOptions(
-          asList(groups)
-            .map((row) => ({
-              value: row.questionGroupId ?? row.QuestionGroupId,
-              label: row.questionGroupName ?? row.QuestionGroupName,
-            }))
-            .filter((row) => row.value && row.label)
-            .sort((a, b) => a.label.localeCompare(b.label))
-        );
         setExistanceOptions(
-          asList(sections)
-            .map((row) => ({
-              value: row.questionSectionId ?? row.QuestionSectionId,
-              label: row.questionSectionName ?? row.QuestionSectionName,
-            }))
-            .filter((row) => row.value && row.label)
-            .sort((a, b) => a.label.localeCompare(b.label))
+          toUniqueOptions(
+            asList(sections),
+            ['questionSectionId', 'QuestionSectionId'],
+            ['questionSectionName', 'QuestionSectionName']
+          )
         );
       } catch {
         if (!cancelled) {
-          setQuestionGroupOptions([]);
           setExistanceOptions([]);
         }
       }
@@ -116,6 +141,12 @@ const ListQuestionGroup = () => {
   }, []);
 
   const selectStyles = useMemo(() => getAdminFormSelectStyles(), []);
+
+  const handleExistanceChange = (selected) => {
+    setSelectedExistance(selected);
+    setSelectedQuestionGroup(null);
+    setCurrentPage(1);
+  };
 
   const handleReset = () => {
     setSelectedQuestionGroup(null);
@@ -147,8 +178,6 @@ const ListQuestionGroup = () => {
     });
   };
 
-
-
   const rowStart = (safePage - 1) * pageSize;
 
   document.title = 'List Question Groups';
@@ -163,14 +192,11 @@ const ListQuestionGroup = () => {
                 <CardBody>
                   <Row className="g-3 align-items-end">
                     <Col xxl={4} md={4}>
-                      <Label className="form-label mb-1">Question Group Name</Label>
+                      <Label className="form-label mb-1">Existance</Label>
                       <Select
-                        value={selectedQuestionGroup}
-                        onChange={(selected) => {
-                          setSelectedQuestionGroup(selected);
-                          setCurrentPage(1);
-                        }}
-                        options={questionGroupOptions}
+                        value={selectedExistance}
+                        onChange={handleExistanceChange}
+                        options={existanceOptions}
                         placeholder="Select..."
                         isClearable
                         isSearchable
@@ -181,15 +207,15 @@ const ListQuestionGroup = () => {
                       />
                     </Col>
                     <Col xxl={4} md={4}>
-                      <Label className="form-label mb-1">Existance</Label>
+                      <Label className="form-label mb-1">Question Group Name</Label>
                       <Select
-                        value={selectedExistance}
+                        value={selectedQuestionGroup}
                         onChange={(selected) => {
-                          setSelectedExistance(selected);
+                          setSelectedQuestionGroup(selected);
                           setCurrentPage(1);
                         }}
-                        options={existanceOptions}
-                        placeholder="Select..."
+                        options={questionGroupOptions}
+                        placeholder={selectedExistance ? 'Select for existance...' : 'Select...'}
                         isClearable
                         isSearchable
                         classNamePrefix="admin-form-select"
@@ -247,8 +273,8 @@ const ListQuestionGroup = () => {
                           <th scope="col" className="text-center" style={{ width: '5%' }}>
                             #
                           </th>
-                          <th scope="col">Question Group Name</th>
                           <th scope="col">Existance</th>
+                          <th scope="col">Question Group Name</th>
                           <th scope="col">Description</th>
                           <th scope="col" className="text-center" style={{ width: '12%' }}>
                             Action
@@ -275,8 +301,8 @@ const ListQuestionGroup = () => {
                                 <td className="text-center patient-list-modal__index">
                                   {rowStart + index + 1}
                                 </td>
-                                <td>{group.questionGroupName || '—'}</td>
                                 <td>{group.questionSectionName || '—'}</td>
+                                <td>{group.questionGroupName || '—'}</td>
                                 <td>{group.description || '—'}</td>
                                 <td className="text-center">
                                   <div className="d-inline-flex gap-2">
@@ -328,7 +354,7 @@ const ListQuestionGroup = () => {
                         ? 'Loading...'
                         : `Showing ${questionGroups.length} of ${totalRecords} Results · Page ${safePage} of ${totalPages}`}
                     </div>
-                                        <AdminListPagination
+                    <AdminListPagination
                       currentPage={safePage}
                       totalPages={totalPages}
                       onPage={setCurrentPage}

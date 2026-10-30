@@ -1,7 +1,7 @@
 /**
  * CRA/@svgr rejects SVG namespace attributes (e.g. xmlns:v) used by some CKEditor icons.
- * CRA source-map-loader also tries to load CKEditor "src" files from published source maps,
- * which are not shipped in npm packages and break the compile.
+ * CRA source-map-loader also tries to load package "src" files from published source maps
+ * (CKEditor, lord-icon-element), which are not shipped in npm packages and spam compile warnings.
  */
 module.exports = {
   webpack: {
@@ -53,6 +53,7 @@ module.exports = {
               ...previous,
               /node_modules[\\/]@ckeditor[\\/]/,
               /node_modules[\\/]ckeditor5[\\/]/,
+              /node_modules[\\/]lord-icon-element[\\/]/,
             ];
           }
         });

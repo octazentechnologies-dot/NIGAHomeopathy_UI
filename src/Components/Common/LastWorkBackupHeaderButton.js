@@ -27,6 +27,7 @@ import {
 } from '../../helpers/patientBoardBackupHelper';
 import { getSortedPatientSessions } from '../../helpers/patientBoardSessionHelper';
 import { UserRole } from '../constants/roles';
+import { DOCTOR_DASHBOARD_OPEN_LAST_WORK_BACKUP_EVENT } from '../../helpers/dashboard_helper';
 
 const formatSavedAt = (savedAt) => {
   if (!savedAt) {
@@ -68,10 +69,19 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
     await dispatch(fetchLatestPatientBoardBackupDetail());
   }, [dispatch]);
 
-  const openModal = async () => {
+  const openModal = useCallback(async () => {
     setModalOpen(true);
     await loadBackupDetail();
-  };
+  }, [loadBackupDetail]);
+
+  useEffect(() => {
+    if (userRole !== UserRole.DOCTOR) return undefined;
+    const onOpen = () => {
+      void openModal();
+    };
+    window.addEventListener(DOCTOR_DASHBOARD_OPEN_LAST_WORK_BACKUP_EVENT, onOpen);
+    return () => window.removeEventListener(DOCTOR_DASHBOARD_OPEN_LAST_WORK_BACKUP_EVENT, onOpen);
+  }, [userRole, openModal]);
 
   const closeModal = () => {
     setModalOpen(false);
@@ -157,33 +167,33 @@ const LastWorkBackupHeaderButton = ({ userRole }) => {
     return null;
   }
 
-  if (!normalizedSummary.hasBackup && !summaryLoading) {
-    return null;
-  }
+  const showHeaderButton = normalizedSummary.hasBackup || summaryLoading;
 
   return (
     <>
-      <div className="ms-1 header-item last-work-backup-header">
-        <button
-          type="button"
-          className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle position-relative"
-          title="Last work backup"
-          aria-label="Last work backup"
-          onClick={openModal}
-          disabled={summaryLoading}
-        >
-          <i className="ri-history-line fs-20" />
-          {normalizedSummary.patientCount > 0 ? (
-            <Badge
-              color="info"
-              pill
-              className="position-absolute last-work-backup-header__badge"
-            >
-              {normalizedSummary.patientCount}
-            </Badge>
-          ) : null}
-        </button>
-      </div>
+      {showHeaderButton ? (
+        <div className="ms-1 header-item last-work-backup-header">
+          <button
+            type="button"
+            className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle position-relative"
+            title="Last work backup"
+            aria-label="Last work backup"
+            onClick={openModal}
+            disabled={summaryLoading}
+          >
+            <i className="ri-history-line fs-20" />
+            {normalizedSummary.patientCount > 0 ? (
+              <Badge
+                color="info"
+                pill
+                className="position-absolute last-work-backup-header__badge"
+              >
+                {normalizedSummary.patientCount}
+              </Badge>
+            ) : null}
+          </button>
+        </div>
+      ) : null}
 
       <Modal isOpen={modalOpen} toggle={closeModal} centered size="lg" className="whatsapp-modal last-work-backup-modal">
         <ModalHeader toggle={closeModal}>

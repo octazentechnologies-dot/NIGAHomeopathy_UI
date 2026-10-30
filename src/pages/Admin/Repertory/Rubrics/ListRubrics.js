@@ -414,6 +414,7 @@ const RubricList = () => {
                         <tr>
                           <th scope="col" className="text-center" style={{ width: '5%' }}>#</th>
                           <th scope="col">Sub Section Name</th>
+                          <th scope="col" className="text-center" style={{ width: '12%' }}>Remedy Count</th>
                           <th scope="col" className="text-center" style={{ width: '12%' }}>Details</th>
                           <th scope="col" className="text-center" style={{ width: '12%' }}>Action</th>
                         </tr>
@@ -422,7 +423,7 @@ const RubricList = () => {
                         rubricsLoading ? (
                           <tbody>
                             <tr>
-                              <td colSpan="4" className="text-center">
+                              <td colSpan="5" className="text-center">
                                 <Spinner color="primary" size="sm" />
                               </td>
                             </tr>
@@ -434,6 +435,9 @@ const RubricList = () => {
                                 <tr key={rubric.subSectionId || index}>
                                   <td className="text-center patient-list-modal__index">{rowStart + index + 1}</td>
                                   <td>{rubric.subSectionName || '—'}</td>
+                                  <td className="text-center">
+                                    {`[${rubric.remedyCount ?? rubric.RemedyCount ?? 0}]`}
+                                  </td>
                                   <td className="text-center">
                                     <div className="d-inline-flex gap-2">
                                       <div className="remove">
@@ -461,7 +465,7 @@ const RubricList = () => {
                               ))
                             ) : (
                               <tr>
-                                <td colSpan="4" className="text-center text-muted py-4">
+                                <td colSpan="5" className="text-center text-muted py-4">
                                   {searchQuery ? 'No rubrics match your search' : 'No rubrics found'}
                                 </td>
                               </tr>
@@ -471,7 +475,7 @@ const RubricList = () => {
                       ) : (
                         <tbody>
                           <tr>
-                            <td colSpan="4" className="text-center text-muted py-4">
+                            <td colSpan="5" className="text-center text-muted py-4">
                               Please select a section
                             </td>
                           </tr>

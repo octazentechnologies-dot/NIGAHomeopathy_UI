@@ -296,6 +296,7 @@ export const GET_SECTION_FOR_SUBSECTION = "/mastersAPI/GetSections";
 export const GET_GRADE_DETAILS = "/RubricRemedy/GetGradeDetails/";
 export const GET_AUTHOR_FOR_RUBRIC = "/Author/GetData";
 export const GET_SUB_SECTION = "/mastersAPI/GetSubsectionBySection";
+export const GET_SUB_SECTION_PAGED = "/mastersAPI/GetSubsectionBySectionPaged";
 export const GET_REMEDY_GRADES = "/mastersAPI/GetRemedyGrades";
 export const GET_REMEDIES_BY_GRADE = "/mastersAPI/GetRemedies";
 export const SAVE_UPDATE_RUBRIC_REMEDY = "/RubricRemedy/SaveUpdateRubricRemedy";

@@ -77,6 +77,7 @@ import { pageTitle } from '../../../common/brand';
 import {
   diagnosisSearch,
   getMainParentSubSectionsWithChildCount,
+  getSubSectionById,
   getSubSectionWithChildrenCount,
   searchSubSectionsBySection,
   searchSubSectionsGlobal,
@@ -211,7 +212,7 @@ const mapThermalCircles = (rows = []) => {
   return [{ id: 0, label: 'N/A', color: '#9a5b5d' }, ...mapped];
 };
 
-const ACCORDION_PAGE_SIZE = 10;
+const ACCORDION_PAGE_SIZE = 20;
 const SECTION_PAGE_SIZE = 20;
 
 const getSectionPageItems = (response) => {
@@ -857,8 +858,10 @@ const extractAccordionEntries = (rawSource) => {
 
   const candidateArrays = [
     rawSource?.resultObject,
+    rawSource?.ResultObject,
     rawSource?.data,
     rawSource?.data?.resultObject,
+    rawSource?.data?.ResultObject,
     rawSource?.data?.data,
     rawSource?.rows,
     rawSource?.items,
@@ -953,22 +956,34 @@ const getAccordionEntryGradeId = (entry) => {
   return Number.isFinite(gradeId) ? gradeId : null;
 };
 
-/** UI grade button 1 maps to API gradeId 5; 2/3/4 map to the same gradeId. */
-const mapRepertorizeIntensityToGradeId = (intensityNo) => {
-  if (intensityNo == null) {
+/**
+ * Prefer GradeNo (1–4 intensity). Fallback: legacy GradeId where UI intensity 1
+ * was stored as GradeId 5; otherwise treat GradeId as GradeNo for 2/3/4.
+ */
+const getAccordionEntryGradeNo = (entry) => {
+  const gradeNo = Number(entry?.gradeNo ?? entry?.GradeNo);
+  if (Number.isFinite(gradeNo) && gradeNo > 0) {
+    return gradeNo;
+  }
+  const gradeId = getAccordionEntryGradeId(entry);
+  if (gradeId == null) {
+    return null;
+  }
+  if (gradeId === 5) {
+    return 1;
+  }
+  return gradeId;
+};
+
+const normalizeRepertorizeIntensityNo = (intensityNo) => {
+  if (intensityNo == null || intensityNo === '') {
     return null;
   }
   const intensity = Number(intensityNo);
-  if (!Number.isFinite(intensity)) {
-    return null;
-  }
-  if (intensity === 1) {
-    return 5;
-  }
-  return intensity;
+  return Number.isFinite(intensity) ? intensity : null;
 };
 
-const filterAccordionEntriesByRepertorizePanel = (entries, sectionIds, gradeId) => {
+const filterAccordionEntriesByRepertorizePanel = (entries, sectionIds, gradeNo) => {
   if (!Array.isArray(entries)) {
     return [];
   }
@@ -982,9 +997,9 @@ const filterAccordionEntriesByRepertorizePanel = (entries, sectionIds, gradeId) 
     });
   }
 
-  if (gradeId != null) {
-    const normalizedGradeId = Number(gradeId);
-    filtered = filtered.filter((entry) => getAccordionEntryGradeId(entry) === normalizedGradeId);
+  if (gradeNo != null) {
+    const normalizedGradeNo = Number(gradeNo);
+    filtered = filtered.filter((entry) => getAccordionEntryGradeNo(entry) === normalizedGradeNo);
   }
 
   return filtered;
@@ -1012,11 +1027,11 @@ const getAccordionFilteredEntriesFromState = (state, globalFilters = null) => {
   }
 
   const sectionIds = globalFilters?.sectionIds ?? [];
-  const gradeId = globalFilters?.gradeId ?? null;
-  const useGlobalFilters = sectionIds.length > 0 || gradeId != null;
+  const gradeNo = globalFilters?.gradeNo ?? null;
+  const useGlobalFilters = sectionIds.length > 0 || gradeNo != null;
 
   const bySection = useGlobalFilters
-    ? filterAccordionEntriesByRepertorizePanel(state.entries, sectionIds, gradeId)
+    ? filterAccordionEntriesByRepertorizePanel(state.entries, sectionIds, gradeNo)
     : filterAccordionEntries(state.entries, state.selectedSections);
 
   return filterAccordionEntriesBySearch(bySection, state.searchTerm);
@@ -1024,28 +1039,34 @@ const getAccordionFilteredEntriesFromState = (state, globalFilters = null) => {
 
 const extractAccordionPaginationMeta = (rawSource) => {
   if (!rawSource || typeof rawSource !== "object") {
-    return { totalCount: null, pageNumber: 1, pageSize: ACCORDION_PAGE_SIZE };
+    return { totalCount: null, pageNumber: null, pageSize: ACCORDION_PAGE_SIZE };
   }
 
   const totalCount =
     rawSource.totalCount ??
+    rawSource.TotalCount ??
     rawSource.totalRecords ??
     rawSource.recordCount ??
     rawSource.data?.totalCount ??
+    rawSource.data?.TotalCount ??
     rawSource.resultObject?.totalCount ??
     null;
 
   const pageNumber =
     rawSource.pageNumber ??
+    rawSource.PageNumber ??
     rawSource.currentPage ??
     rawSource.pageNo ??
-    1;
+    null;
 
-  const pageSize = rawSource.pageSize ?? ACCORDION_PAGE_SIZE;
+  const pageSize =
+    rawSource.pageSize ??
+    rawSource.PageSize ??
+    ACCORDION_PAGE_SIZE;
 
   return {
-    totalCount: totalCount != null ? Number(totalCount) : null,
-    pageNumber: Number(pageNumber) || 1,
+    totalCount: totalCount != null && Number.isFinite(Number(totalCount)) ? Number(totalCount) : null,
+    pageNumber: pageNumber != null && Number.isFinite(Number(pageNumber)) ? Number(pageNumber) : null,
     pageSize: Number(pageSize) || ACCORDION_PAGE_SIZE,
   };
 };
@@ -1073,6 +1094,7 @@ const getAccordionSublistView = (state, globalFilters = null) => {
       filteredEntries: [],
       visibleEntries: [],
       totalLoadedCount: 0,
+      totalCount: 0,
       hasMoreEntries: false,
       isAtEnd: false,
     };
@@ -1084,11 +1106,15 @@ const getAccordionSublistView = (state, globalFilters = null) => {
   const hasMoreServer = computeAccordionHasMoreServer(state);
   const hasMoreEntries = hasMoreClient || hasMoreServer;
   const totalLoadedCount = state.entries?.length ?? 0;
+  const totalFromApi = Number(state.totalCount);
+  const totalCount =
+    Number.isFinite(totalFromApi) && totalFromApi >= 0 ? totalFromApi : totalLoadedCount;
 
   return {
     filteredEntries,
     visibleEntries,
     totalLoadedCount,
+    totalCount,
     hasMoreEntries,
     isAtEnd: totalLoadedCount > 0 && !hasMoreEntries,
   };
@@ -1161,7 +1187,13 @@ const buildAccordionStateObject = (rawResponse, previousState = null, options = 
     searchTerm,
   });
 
-  const pageNumber = append ? meta.pageNumber : meta.pageNumber || 1;
+  // API PaginationResult often omits pageNumber; never reset append pages back to 1.
+  const requestedPage = Number(options.requestedPageNumber);
+  const pageNumber = Number.isFinite(requestedPage) && requestedPage > 0
+    ? requestedPage
+    : append
+      ? (previousState?.pageNumber ?? 1) + 1
+      : (meta.pageNumber || 1);
   const pageSize = meta.pageSize || ACCORDION_PAGE_SIZE;
   const previousEntriesLength = append ? (previousState?.entries?.length ?? 0) : 0;
   const gainedCount = append ? entries.length - previousEntriesLength : newEntries.length;
@@ -1171,7 +1203,9 @@ const buildAccordionStateObject = (rawResponse, previousState = null, options = 
   if (totalCount == null && append) {
     totalCount = previousState?.totalCount ?? null;
   }
-  if (totalCount == null && !append) {
+  // Only treat page length as total when the page is short (true end).
+  // A full page must not invent totalCount === pageSize or hasMore dies early.
+  if (totalCount == null && !append && newEntries.length < pageSize) {
     totalCount = entries.length;
   }
 
@@ -1181,8 +1215,9 @@ const buildAccordionStateObject = (rawResponse, previousState = null, options = 
   } else if (gainedCount === 0 || newEntries.length < pageSize) {
     reachedEndOfServer = true;
   }
-  if (totalCount != null && entries.length >= totalCount) {
-    reachedEndOfServer = true;
+  // Known API total wins: never treat as finished while loaded < totalCount.
+  if (Number.isFinite(totalCount) && totalCount >= 0) {
+    reachedEndOfServer = entries.length >= totalCount;
   }
 
   let visibleCount;
@@ -2091,6 +2126,9 @@ const PatientBoard = () => {
   const [selectedSubSection, setSelectedSubSection] = useState(null);
   const [crossRefFlashId, setCrossRefFlashId] = useState(null);
   const crossRefFlashTimeoutRef = useRef(null);
+  /** When true, search effects must not wipe a Reference-Rubric navigation tree. */
+  const referenceNavLockRef = useRef(false);
+  const referenceNavRequestRef = useRef(0);
   const rubricDetailsPrefetchObserverRef = useRef(null);
   const rubricDetailsScrollPrefetchTimerRef = useRef(null);
 
@@ -2884,7 +2922,7 @@ const PatientBoard = () => {
   const repertorizeAccordionGlobalFilters = useMemo(
     () => ({
       sectionIds: selectedRepertorizeSectionIds,
-      gradeId: mapRepertorizeIntensityToGradeId(selectedRepertorizeIntensity),
+      gradeNo: normalizeRepertorizeIntensityNo(selectedRepertorizeIntensity),
     }),
     [selectedRepertorizeSectionIds, selectedRepertorizeIntensity]
   );
@@ -3651,24 +3689,30 @@ const PatientBoard = () => {
   const renderRemedyAccordionSublist = (remedy) => {
     const remedyId = normalizeAccordionRemedyId(remedy.remedyId);
     const accordionState = accordionDataMap.get(remedyId);
-    const selectedSectionSet = accordionState?.selectedSections;
-    const availableSections = accordionState?.availableSections ?? [];
     const {
       filteredEntries,
       visibleEntries,
       totalLoadedCount,
+      totalCount: accordionTotalRubricCount,
       hasMoreEntries,
       isAtEnd,
     } = getAccordionSublistView(accordionState, repertorizeAccordionGlobalFilters);
+    const showKeynoteOrSmallRubricCount =
+      (isKeynoteMethodActive || isSmallRubricsActive) &&
+      (accordionTotalRubricCount > 0 || filteredEntries.length > 0);
     const isLoadingAccordion =
       !accordionState && repertorizarionRemedyForAccordionLoading;
     const hasGlobalSectionGradeFilter =
       repertorizeAccordionGlobalFilters.sectionIds.length > 0 ||
-      repertorizeAccordionGlobalFilters.gradeId != null;
+      repertorizeAccordionGlobalFilters.gradeNo != null;
     const isLoadingMore =
       accordionLoadingMoreRemedyId === remedyId && repertorizarionRemedyForAccordionLoading;
     const isAccordionEmpty =
-      !isLoadingAccordion && accordionState && filteredEntries.length === 0;
+      !isLoadingAccordion &&
+      accordionState &&
+      filteredEntries.length === 0 &&
+      !hasMoreEntries &&
+      !isLoadingMore;
 
     if (isLoadingAccordion) {
       return (
@@ -3693,42 +3737,32 @@ const PatientBoard = () => {
           </div>
         </div>
 
-        {isKeynoteMethodActive && !hasGlobalSectionGradeFilter && availableSections.length > 0 && (
+        {showKeynoteOrSmallRubricCount && (
           <div className="mb-2">
             <div className="d-flex flex-wrap gap-2 align-items-center">
-              {availableSections.map((section) => {
-                const isActive = selectedSectionSet?.has?.(section.value);
-                return (
-                  <span
-                    key={section.value}
-                    className={`badge rounded-pill ${isActive ? "bg-primary" : "bg-light text-dark border"} px-3 py-2`}
-                    style={{ cursor: "pointer", fontSize: "11px" }}
-                    onClick={() => handleToggleAccordionSectionFilter(remedyId, section.value)}
-                  >
-                    {section.label}
-                    <span className="ms-1 text-muted">({section.count})</span>
-                  </span>
-                );
-              })}
-              {selectedSectionSet && selectedSectionSet.size > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-link btn-sm p-0"
-                  onClick={() => handleClearAccordionSectionFilter(remedyId)}
-                >
-                  Clear
-                </button>
-              )}
+              <span
+                className="badge rounded-pill bg-light text-dark border px-3 py-2"
+                style={{ fontSize: "11px" }}
+                title={
+                  hasGlobalSectionGradeFilter
+                    ? "Matching rubrics out of total for selected section/grade"
+                    : "Loaded rubrics out of total for this remedy (Keynote / Small Rubric)"
+                }
+              >
+                {filteredEntries.length} / {accordionTotalRubricCount}{" "}
+                {accordionTotalRubricCount === 1 ? "rubric" : "rubrics"}
+                {hasMoreEntries ? " · loading…" : ""}
+              </span>
             </div>
           </div>
         )}
 
         <InfiniteScrollContainer
           className="custom-scrollbar"
-          style={{ maxHeight: "220px", overflowY: "auto" }}
-          enabled={visibleEntries.length > 0}
+          style={{ maxHeight: "280px", overflowY: "auto" }}
+          enabled={hasMoreEntries || visibleEntries.length > 0}
           hasMore={hasMoreEntries}
-          loading={isLoadingMore}
+          loading={isLoadingMore || isLoadingAccordion}
           itemCount={visibleEntries.length}
           onLoadMore={() => handleAccordionLoadMore(remedyId)}
         >
@@ -3737,13 +3771,15 @@ const PatientBoard = () => {
           ) : (
             <div className="text-center p-2">
               <p className="text-muted small">
-                {isAccordionEmpty
-                  ? accordionState?.searchTerm
-                    ? "No rubrics match your search"
-                    : hasGlobalSectionGradeFilter
-                      ? "No rubrics match selected section/grade"
-                      : "No data available for selected sections"
-                  : "No data available"}
+                {isLoadingMore || hasMoreEntries
+                  ? "Loading rubrics…"
+                  : isAccordionEmpty
+                    ? accordionState?.searchTerm
+                      ? "No rubrics match your search"
+                      : hasGlobalSectionGradeFilter
+                        ? "No rubrics match selected section/grade"
+                        : "No data available for selected sections"
+                    : "No data available"}
               </p>
             </div>
           )}
@@ -3769,8 +3805,11 @@ const PatientBoard = () => {
               )
             ) : (
               <small className="text-muted">
-                End of list ({totalLoadedCount}{" "}
-                {totalLoadedCount === 1 ? "rubric" : "rubrics"})
+                End of list ({totalLoadedCount}
+                {accordionTotalRubricCount > 0 && totalLoadedCount !== accordionTotalRubricCount
+                  ? ` / ${accordionTotalRubricCount}`
+                  : ""}{" "}
+                {accordionTotalRubricCount === 1 ? "rubric" : "rubrics"})
               </small>
             )}
           </div>
@@ -3978,11 +4017,7 @@ const PatientBoard = () => {
         } else {
           next.delete(Number(sectionId));
         }
-        const nextSectionIds = Array.from(next);
-        if (nextSectionIds.length === 0) {
-          setSelectedRepertorizeIntensity(null);
-        }
-        return nextSectionIds;
+        return Array.from(next);
       });
     },
     [isKeynoteMethodActive, isSmallRubricsActive]
@@ -3990,16 +4025,22 @@ const PatientBoard = () => {
 
   const handleRepertorizeSectionIntensityClick = useCallback(
     (intensityNo) => {
+      // Grades are usable whenever section checkboxes are enabled
+      // (Keynote / Small Rubrics) — no section checkbox required.
       if (!isKeynoteMethodActive && !isSmallRubricsActive) {
         return;
       }
-      if (selectedRepertorizeSectionIds.length === 0) {
+
+      const nextIntensity = normalizeRepertorizeIntensityNo(intensityNo);
+      if (nextIntensity == null) {
         return;
       }
 
-      setSelectedRepertorizeIntensity((prev) => (prev === intensityNo ? null : intensityNo));
+      setSelectedRepertorizeIntensity((prev) =>
+        normalizeRepertorizeIntensityNo(prev) === nextIntensity ? null : nextIntensity
+      );
     },
-    [isKeynoteMethodActive, isSmallRubricsActive, selectedRepertorizeSectionIds.length]
+    [isKeynoteMethodActive, isSmallRubricsActive]
   );
 
   // Handle Keynote Method button click
@@ -4045,6 +4086,18 @@ const PatientBoard = () => {
         PageSize: ACCORDION_PAGE_SIZE,
       };
 
+      const sectionIds = (selectedRepertorizeSectionIds || [])
+        .map(Number)
+        .filter((id) => Number.isFinite(id) && id > 0);
+      if (sectionIds.length > 0) {
+        requestData.sectionIds = sectionIds;
+      }
+
+      const gradeNo = normalizeRepertorizeIntensityNo(selectedRepertorizeIntensity);
+      if (gradeNo != null) {
+        requestData.gradeNo = gradeNo;
+      }
+
       const trimmedSearch = (searchTerm || "").trim();
       if (trimmedSearch) {
         requestData.SearchTerm = trimmedSearch;
@@ -4063,7 +4116,13 @@ const PatientBoard = () => {
       }
       dispatch(getRepertorizarionRemedyForAccordion(requestData));
     },
-    [dispatch, isKeynoteMethodActive]
+    [
+      dispatch,
+      isKeynoteMethodActive,
+      isSmallRubricsActive,
+      selectedRepertorizeSectionIds,
+      selectedRepertorizeIntensity,
+    ]
   );
 
   const handleAccordionLoadMore = useCallback(
@@ -4157,28 +4216,43 @@ const PatientBoard = () => {
   );
 
   // ###### Dj UI Code Start - Handle Accordion Item Click ######
-  const handleRemedyAccordionClick = async (remedy, isCommon) => {
+  /** Highlight related rubrics in REPERTORIZATION — remedy name only (not chevron). */
+  const handleRemedyNameSelect = useCallback((remedy) => {
     setSelectedRemedyFromCommonUncommon(remedy);
-    if (!isKeynoteMethodActive && !isSmallRubricsActive) {
-      return;
-    }
+  }, []);
 
-    const remedyId = normalizeAccordionRemedyId(remedy.remedyId);
-    const setExpandedItems = isCommon ? setExpandedCommonItems : setExpandedUncommonItems;
-    const expandedItems = isCommon ? expandedCommonItems : expandedUncommonItems;
-
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(remedyId)) {
-      newExpanded.delete(remedyId);
-    } else {
-      newExpanded.add(remedyId);
-
-      if (!accordionDataMap.has(remedyId)) {
-        fetchAccordionData(remedyId, { pageNumber: 1, append: false, searchTerm: "" });
+  /** Expand/collapse accordion — chevron only; does not change related-rubric highlight. */
+  const handleRemedyAccordionToggle = useCallback(
+    (remedy, isCommon) => {
+      if (!isKeynoteMethodActive && !isSmallRubricsActive) {
+        return;
       }
-    }
-    setExpandedItems(newExpanded);
-  };
+
+      const remedyId = normalizeAccordionRemedyId(remedy.remedyId);
+      const setExpandedItems = isCommon ? setExpandedCommonItems : setExpandedUncommonItems;
+      const expandedItems = isCommon ? expandedCommonItems : expandedUncommonItems;
+
+      const newExpanded = new Set(expandedItems);
+      if (newExpanded.has(remedyId)) {
+        newExpanded.delete(remedyId);
+      } else {
+        newExpanded.add(remedyId);
+
+        if (!accordionDataMap.has(remedyId)) {
+          fetchAccordionData(remedyId, { pageNumber: 1, append: false, searchTerm: "" });
+        }
+      }
+      setExpandedItems(newExpanded);
+    },
+    [
+      accordionDataMap,
+      expandedCommonItems,
+      expandedUncommonItems,
+      fetchAccordionData,
+      isKeynoteMethodActive,
+      isSmallRubricsActive,
+    ]
+  );
   // ###### Dj UI Code End - Handle Accordion Item Click ######
 
   const handleToggleAccordionSectionFilter = useCallback((remedyId, sectionValue) => {
@@ -4257,6 +4331,7 @@ const PatientBoard = () => {
       return;
     }
 
+    const requestedPageNumber = lastAccordionRequestRef.current?.pageNumber;
     setAccordionDataMap((prevMap) => {
       const newMap = new Map(prevMap);
       const previousState = prevMap.get(remedyId);
@@ -4264,6 +4339,7 @@ const PatientBoard = () => {
         remedyId,
         buildAccordionStateObject(repertorizarionRemedyForAccordionList, previousState, {
           append,
+          requestedPageNumber,
         })
       );
       return newMap;
@@ -4272,6 +4348,80 @@ const PatientBoard = () => {
     setLastRequestedRemedyId(null);
     setAccordionLoadingMoreRemedyId(null);
   }, [repertorizarionRemedyForAccordionList, repertorizarionRemedyForAccordionLoading]);
+
+  const fetchAccordionDataRef = useRef(fetchAccordionData);
+  fetchAccordionDataRef.current = fetchAccordionData;
+
+  const accordionServerFilterKey = useMemo(() => {
+    const sectionIds = (selectedRepertorizeSectionIds || [])
+      .map(Number)
+      .filter((id) => Number.isFinite(id) && id > 0)
+      .sort((a, b) => a - b);
+    const gradeNo = normalizeRepertorizeIntensityNo(selectedRepertorizeIntensity);
+    const mode = isKeynoteMethodActive
+      ? "keynote"
+      : isSmallRubricsActive
+        ? "small"
+        : "off";
+    return JSON.stringify({ mode, sectionIds, gradeNo });
+  }, [
+    selectedRepertorizeSectionIds,
+    selectedRepertorizeIntensity,
+    isKeynoteMethodActive,
+    isSmallRubricsActive,
+  ]);
+
+  // SECTION / grade / Keynote↔Small Rubric: reload expanded accordion from page 1
+  // so TotalCount and rows come from the filtered API response.
+  // Redux holds a single accordion response, so only one expanded remedy is
+  // refetched; if several are open, collapse them so the next expand is correct.
+  useEffect(() => {
+    let parsed;
+    try {
+      parsed = JSON.parse(accordionServerFilterKey);
+    } catch (_) {
+      return;
+    }
+    if (!parsed || parsed.mode === "off") {
+      return;
+    }
+
+    const expandedIds = [
+      ...Array.from(expandedCommonItems),
+      ...Array.from(expandedUncommonItems),
+    ];
+    if (expandedIds.length === 0) {
+      return;
+    }
+
+    setAccordionDataMap((prevMap) => {
+      let changed = false;
+      const next = new Map(prevMap);
+      expandedIds.forEach((remedyId) => {
+        if (next.has(remedyId)) {
+          next.delete(remedyId);
+          changed = true;
+        }
+      });
+      return changed ? next : prevMap;
+    });
+
+    accordionInFlightRef.current.clear();
+    accordionLoadFailedRef.current.clear();
+
+    if (expandedIds.length === 1) {
+      fetchAccordionDataRef.current(expandedIds[0], {
+        pageNumber: 1,
+        append: false,
+        searchTerm: "",
+      });
+      return;
+    }
+
+    setExpandedCommonItems(new Set());
+    setExpandedUncommonItems(new Set());
+    // Expand/collapse fetches via handleRemedyAccordionToggle; this effect is filter-only.
+  }, [accordionServerFilterKey]);
 
   // Update question groups map when API response arrives
   useEffect(() => {
@@ -4533,6 +4683,7 @@ const PatientBoard = () => {
   }, []);
 
   const handleRepertoryGlobalSearchChange = (value) => {
+    referenceNavLockRef.current = false;
     if (value.trim().length >= MIN_SUBSECTION_SEARCH_LENGTH) {
       if (subSectionSearch.trim().length > 0 || isSubSectionSearchActive) {
         clearSubSectionLocalSearch();
@@ -4551,6 +4702,7 @@ const PatientBoard = () => {
   };
 
   const handleSubSectionSearchChange = (value) => {
+    referenceNavLockRef.current = false;
     if (value.trim().length >= MIN_SUBSECTION_SEARCH_LENGTH) {
       if (globalSubSectionSearch.trim().length > 0 || isGlobalSubSectionSearchActive) {
         clearGlobalSubSectionSearch();
@@ -4575,8 +4727,12 @@ const PatientBoard = () => {
   };
 
   // Handle section selection
-  const handleSectionSelect = async (section) => {
+  const handleSectionSelect = async (section, options = {}) => {
+    const { preserveReferenceNavLock = false } = options;
     console.log('Section selected:', section);
+    if (!preserveReferenceNavLock) {
+      referenceNavLockRef.current = false;
+    }
     setSelectedSection(section);
     setSubSectionPageNumber(1); // Reset to first page when changing section
     setSubSectionTreeData([]);
@@ -4608,11 +4764,11 @@ const PatientBoard = () => {
     };
 
     // Load subsections for the selected section using new API
+    let nextTreeData = [];
     if (section && section.sectionId) {
       setSubSectionTreeLoading(true);
       try {
         const response = await getMainParentSubSectionsWithChildCount(section.sectionId);
-        let nextTreeData = [];
         if (response && Array.isArray(response)) {
           nextTreeData = response;
         } else if (response?.data && Array.isArray(response.data)) {
@@ -4630,16 +4786,22 @@ const PatientBoard = () => {
         console.error('Error fetching subsections:', error);
         Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to fetch subsections' });
         setSubSectionTreeData([]);
+        nextTreeData = [];
       } finally {
         setSubSectionTreeLoading(false);
       }
     }
+    return nextTreeData;
   };
 
   useEffect(() => {
     const term = globalSubSectionSearch.trim();
     if (term.length < MIN_SUBSECTION_SEARCH_LENGTH) {
       setGlobalSubSectionSearchLoading(false);
+      return undefined;
+    }
+
+    if (referenceNavLockRef.current) {
       return undefined;
     }
 
@@ -4728,9 +4890,13 @@ const PatientBoard = () => {
       setSubSectionSearchResults([]);
       setShowSubSectionSuggestions(false);
 
-      if (!isGlobalSubSectionSearchActive) {
+      if (!isGlobalSubSectionSearchActive && !referenceNavLockRef.current) {
         restoreBaselineSubSectionTree();
       }
+      return undefined;
+    }
+
+    if (referenceNavLockRef.current) {
       return undefined;
     }
 
@@ -10886,6 +11052,7 @@ const PatientBoard = () => {
       font-weight:500 !important;
       line-height:1.25;
       color:#0f172a;
+      cursor:pointer;
     }
     .pb-tab-panel--repertorize .pb-remedy-list-row__alias {
       font-size:9px !important;
@@ -10898,6 +11065,7 @@ const PatientBoard = () => {
     .pb-tab-panel--repertorize .pb-remedy-list-row__chevron {
       font-size:12px;
       color:#0b5cab;
+      cursor:pointer;
     }
     .pb-tab-panel--repertorize .pb-remedy-list-row__meta {
       gap:8px;
@@ -10948,7 +11116,7 @@ const PatientBoard = () => {
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-row--related .pb-repertorization-rubric-label {
       font-weight:700 !important;
-      color:#dc2626 !important;
+      color:#0f172a !important;
     }
     .pb-tab-panel--repertorize .pb-repertorization-rubric-label {
       flex:1 1 0 !important;
@@ -12522,32 +12690,304 @@ const PatientBoard = () => {
     });
   };
 
-  const handleReferenceRubricClick = (entry) => {
-    const refId = Number(entry?.refSubSectionId);
-    if (!Number.isFinite(refId)) return;
-    let ancestorId = null;
-    subSectionChildrenMap.forEach((children, parentId) => {
-      if (Array.isArray(children) && children.some((c) => Number(c?.subSectionId) === refId)) {
-        ancestorId = parentId;
+  /** Walk ParentSubSectionId from target up to root (root → … → target). */
+  const buildSubSectionAncestorChain = useCallback(async (subSectionId) => {
+    const chain = [];
+    let currentId = Number(subSectionId);
+    const visited = new Set();
+
+    while (Number.isFinite(currentId) && currentId > 0 && !visited.has(currentId)) {
+      visited.add(currentId);
+      let detail;
+      try {
+        detail = await getSubSectionById(currentId);
+      } catch (error) {
+        console.error('Failed to load subsection for reference navigation', currentId, error);
+        break;
       }
-    });
-    if (ancestorId != null && !expandedSubSections.has(ancestorId)) {
-      const next = new Set(expandedSubSections);
-      next.add(ancestorId);
-      setExpandedSubSections(next);
+
+      const id = Number(detail?.subSectionId ?? detail?.SubSectionId);
+      if (!Number.isFinite(id) || id <= 0) {
+        break;
+      }
+
+      chain.unshift({
+        subSectionId: id,
+        subSectionName: String(detail?.subSectionName ?? detail?.SubSectionName ?? '').trim(),
+        sectionId: Number(detail?.sectionId ?? detail?.SectionId) || null,
+        sectionName: String(detail?.sectionName ?? detail?.SectionName ?? '').trim(),
+        parentSubSectionId: detail?.parentSubSectionId ?? detail?.ParentSubSectionId ?? null,
+        childCount: 1,
+      });
+
+      const parentId = Number(detail?.parentSubSectionId ?? detail?.ParentSubSectionId);
+      currentId = Number.isFinite(parentId) && parentId > 0 ? parentId : null;
     }
-    handleSubSectionClick({ subSectionId: refId, subSectionName: entry?.refSubSectionName || '' });
+
+    return chain;
+  }, []);
+
+  const scrollSubSectionIntoView = useCallback((subSectionId, attemptsLeft = 8) => {
+    if (typeof document === 'undefined') return;
+    const el = document.querySelector(`[data-subsection-id="${subSectionId}"]`);
+    if (el?.scrollIntoView) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (attemptsLeft <= 0) return;
+    setTimeout(() => scrollSubSectionIntoView(subSectionId, attemptsLeft - 1), 120);
+  }, []);
+
+  const flashAndScrollToSubSection = useCallback((subSectionId) => {
     if (crossRefFlashTimeoutRef.current) {
       clearTimeout(crossRefFlashTimeoutRef.current);
     }
-    setCrossRefFlashId(refId);
+    setCrossRefFlashId(subSectionId);
     crossRefFlashTimeoutRef.current = setTimeout(() => setCrossRefFlashId(null), 2200);
-    setTimeout(() => {
-      const el = typeof document !== 'undefined' && document.querySelector(`[data-subsection-id="${refId}"]`);
-      if (el && el.scrollIntoView) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => scrollSubSectionIntoView(subSectionId), 80);
+  }, [scrollSubSectionIntoView]);
+
+  const fetchSubSectionChildrenForNav = useCallback(async (subSectionId) => {
+    const response = await getSubSectionWithChildrenCount(subSectionId);
+    let children = [];
+    if (Array.isArray(response)) {
+      children = response;
+    } else if (Array.isArray(response?.data)) {
+      children = response.data;
+    } else if (Array.isArray(response?.resultObject)) {
+      children = response.resultObject;
+    } else if (Array.isArray(response?.ResultObject)) {
+      children = response.ResultObject;
+    }
+    return children.filter(
+      (child) => Number(child?.subSectionId ?? child?.SubSectionId) !== Number(subSectionId)
+    );
+  }, []);
+
+  /**
+   * Reference Rubric → same browse parent/child tree as manual expand
+   * (Vertigo → VERTIGO → ACCOMPANIED BY → children), then select details.
+   */
+  const handleReferenceRubricClick = async (entry) => {
+    const refId = Number(entry?.refSubSectionId ?? entry?.RefSubSectionId);
+    if (!Number.isFinite(refId) || refId <= 0) {
+      return;
+    }
+
+    const navRequestId = referenceNavRequestRef.current + 1;
+    referenceNavRequestRef.current = navRequestId;
+    referenceNavLockRef.current = true;
+    subSectionSearchRequestRef.current += 1;
+    globalSubSectionSearchRequestRef.current += 1;
+    setShowSubSectionSuggestions(false);
+    setShowGlobalSubSectionSuggestions(false);
+
+    try {
+      setSubSectionTreeLoading(true);
+
+      let chain = await buildSubSectionAncestorChain(refId);
+      if (navRequestId !== referenceNavRequestRef.current) {
+        return;
       }
-    }, 300);
+
+      const targetFromEntry = {
+        subSectionId: refId,
+        subSectionName: String(entry?.refSubSectionName ?? entry?.RefSubSectionName ?? '').trim(),
+        sectionId: Number(entry?.sectionId ?? entry?.SectionId) || null,
+        sectionName: String(entry?.sectionName ?? entry?.SectionName ?? '').trim(),
+        parentSubSectionId: null,
+        childCount: 0,
+      };
+
+      if (!chain.length) {
+        chain = [targetFromEntry];
+      } else {
+        const leaf = chain[chain.length - 1];
+        if (!leaf.subSectionName && targetFromEntry.subSectionName) {
+          leaf.subSectionName = targetFromEntry.subSectionName;
+        }
+      }
+
+      const target = chain[chain.length - 1];
+      const sectionId =
+        Number(entry?.sectionId ?? entry?.SectionId ?? target.sectionId) || null;
+      const sectionName =
+        String(entry?.sectionName ?? entry?.SectionName ?? target.sectionName ?? '').trim();
+
+      let roots = [];
+      const loadSectionRoots = async (targetSectionId) => {
+        if (!targetSectionId) return [];
+        const response = await getMainParentSubSectionsWithChildCount(targetSectionId);
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        if (Array.isArray(response?.resultObject)) return response.resultObject;
+        return [];
+      };
+
+      if (sectionId && Number(selectedSection?.sectionId) !== sectionId) {
+        const sectionFromList = accumulatedSectionsRef.current.find(
+          (s) => Number(s.sectionId) === sectionId
+        );
+        roots = await handleSectionSelect(
+          sectionFromList || {
+            sectionId,
+            sectionName: sectionName || `Section ${sectionId}`,
+          },
+          { preserveReferenceNavLock: true }
+        );
+        if (navRequestId !== referenceNavRequestRef.current) {
+          return;
+        }
+        referenceNavLockRef.current = true;
+      } else {
+        clearSubSectionLocalSearch();
+        clearGlobalSubSectionSearch();
+        // Always reload clean main parents so a prior search tree cannot distort hierarchy.
+        const effectiveSectionId = sectionId || selectedSection?.sectionId;
+        try {
+          roots = await loadSectionRoots(effectiveSectionId);
+        } catch (loadError) {
+          console.warn('Failed to reload section roots for reference nav', loadError);
+          roots = Array.isArray(subSectionTreeData) ? [...subSectionTreeData] : [];
+        }
+        if (navRequestId !== referenceNavRequestRef.current) {
+          return;
+        }
+      }
+
+      const normalizeNavNode = (node, fallbackChildCount = 0) => ({
+        subSectionId: Number(node?.subSectionId ?? node?.SubSectionId),
+        subSectionName: String(node?.subSectionName ?? node?.SubSectionName ?? '').trim(),
+        childCount: Number(node?.childCount ?? node?.ChildCount ?? fallbackChildCount) || 0,
+      });
+
+      const childrenMap = new Map();
+      const expandedIds = new Set();
+      const nodeById = new Map();
+
+      const upsertNavNode = (node, fallbackChildCount = 0) => {
+        const normalized = normalizeNavNode(node, fallbackChildCount);
+        if (!Number.isFinite(normalized.subSectionId) || normalized.subSectionId <= 0) {
+          return null;
+        }
+        const existing = nodeById.get(normalized.subSectionId);
+        if (existing) {
+          if (!existing.subSectionName && normalized.subSectionName) {
+            existing.subSectionName = normalized.subSectionName;
+          }
+          existing.childCount = Math.max(existing.childCount || 0, normalized.childCount || 0);
+          return existing;
+        }
+        nodeById.set(normalized.subSectionId, normalized);
+        return normalized;
+      };
+
+      chain.forEach((node, index) => {
+        upsertNavNode(node, index < chain.length - 1 ? 1 : 0);
+      });
+
+      // Expand every ancestor + the target (so children like cough/anemia show).
+      for (let index = 0; index < chain.length; index += 1) {
+        const node = upsertNavNode(chain[index], index < chain.length - 1 ? 1 : 0);
+        if (!node) continue;
+
+        expandedIds.add(node.subSectionId);
+
+        let kids = [];
+        try {
+          kids = await fetchSubSectionChildrenForNav(node.subSectionId);
+        } catch (childError) {
+          console.warn('Failed to load children for reference path node', node.subSectionId, childError);
+        }
+        if (navRequestId !== referenceNavRequestRef.current) {
+          return;
+        }
+
+        kids = kids.map((child) => upsertNavNode(child, Number(child?.childCount ?? 0) || 0)).filter(Boolean);
+
+        // Keep next path node present even if API child list is incomplete.
+        if (index < chain.length - 1) {
+          const next = upsertNavNode(chain[index + 1], 1);
+          if (next && !kids.some((child) => child.subSectionId === next.subSectionId)) {
+            kids = [...kids, next];
+          }
+        }
+
+        node.childCount = Math.max(node.childCount || 0, kids.length);
+        childrenMap.set(node.subSectionId, kids);
+      }
+
+      // Keep section roots, but guarantee the path root is present and up to date.
+      const pathRoot = upsertNavNode(chain[0], 1);
+      let nextRoots = (Array.isArray(roots) ? roots : [])
+        .map((root) => upsertNavNode(root, Number(root?.childCount ?? 0) || 0))
+        .filter(Boolean);
+
+      if (pathRoot) {
+        const rootIndex = nextRoots.findIndex((root) => root.subSectionId === pathRoot.subSectionId);
+        if (rootIndex === -1) {
+          nextRoots = [pathRoot, ...nextRoots];
+        } else {
+          nextRoots[rootIndex] = {
+            ...nextRoots[rootIndex],
+            ...pathRoot,
+            childCount: Math.max(nextRoots[rootIndex].childCount || 0, pathRoot.childCount || 0),
+          };
+        }
+      }
+
+      // Focus the path: show path root first among roots (uniform parent/child browse tree).
+      if (pathRoot) {
+        nextRoots = [
+          nextRoots.find((root) => root.subSectionId === pathRoot.subSectionId),
+          ...nextRoots.filter((root) => root.subSectionId !== pathRoot.subSectionId),
+        ].filter(Boolean);
+      }
+
+      setSubSectionTreeData(nextRoots);
+      setSubSectionChildrenMap(childrenMap);
+      setExpandedSubSections(expandedIds);
+      setIsSubSectionSearchActive(false);
+      setSubSectionSearch('');
+      setSubSectionSearchResults([]);
+      setSubSectionSearchTreeResults([]);
+      setSubSectionSearchTreeHasMore(false);
+      setShowSubSectionSuggestions(false);
+      clearGlobalSubSectionSearch();
+
+      baselineSubSectionStateRef.current = {
+        treeData: nextRoots,
+        childrenMap: new Map(childrenMap),
+        expanded: new Set(expandedIds),
+      };
+
+      // Unlock after baseline is the navigated tree so empty-search restore keeps it.
+      referenceNavLockRef.current = false;
+      subSectionSearchRequestRef.current += 1;
+
+      handleSubSectionClick({
+        subSectionId: refId,
+        subSectionName: target.subSectionName || targetFromEntry.subSectionName || '',
+        childCount: nodeById.get(refId)?.childCount ?? 0,
+      });
+      flashAndScrollToSubSection(refId);
+    } catch (error) {
+      console.error('Reference rubric navigation failed', error);
+      referenceNavLockRef.current = false;
+      handleSubSectionClick({
+        subSectionId: refId,
+        subSectionName: entry?.refSubSectionName || entry?.RefSubSectionName || '',
+      });
+      Swal.fire({
+        icon: 'error',
+        title: 'Navigation failed',
+        text: 'Could not open the referenced rubric in SUB SECTION. Rubric details were still loaded.',
+      });
+    } finally {
+      if (navRequestId === referenceNavRequestRef.current) {
+        setSubSectionTreeLoading(false);
+      }
+    }
   };
 
   const selectedRubricSubSectionId = selectedSubSection?.subSectionId ?? selectedSubSection?.SubSectionId;
@@ -14950,13 +15390,45 @@ const PatientBoard = () => {
                               <div key={remedy.remedyId}>
                                 <div
                                   className={`pb-remedy-list-row${isSelected ? ' pb-remedy-list-row--selected' : ''}`}
-                                  onClick={() => handleRemedyAccordionClick(remedy, true)}
                                 >
                                   <div className="pb-remedy-list-row__meta">
                                     {(isKeynoteMethodActive || isSmallRubricsActive) && (
-                                      <i className={`ri-arrow-${isExpanded ? 'down' : 'right'}-s-line pb-remedy-list-row__chevron`}></i>
+                                      <i
+                                        className={`ri-arrow-${isExpanded ? 'down' : 'right'}-s-line pb-remedy-list-row__chevron`}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={isExpanded ? 'Collapse rubrics' : 'Expand rubrics'}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemedyAccordionToggle(remedy, true);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleRemedyAccordionToggle(remedy, true);
+                                          }
+                                        }}
+                                      />
                                     )}
-                                    <span className="pb-remedy-list-row__name text-truncate">{remedyDisplay.name}</span>
+                                    <span
+                                      className="pb-remedy-list-row__name text-truncate"
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemedyNameSelect(remedy);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          handleRemedyNameSelect(remedy);
+                                        }
+                                      }}
+                                    >
+                                      {remedyDisplay.name}
+                                    </span>
                                     {remedyDisplay.aliasBracket ? (
                                       <span
                                         className="pb-remedy-list-row__alias"
@@ -15042,13 +15514,45 @@ const PatientBoard = () => {
                               <div key={remedy.remedyId}>
                                 <div
                                   className={`pb-remedy-list-row${isSelected ? ' pb-remedy-list-row--selected' : ''}`}
-                                  onClick={() => handleRemedyAccordionClick(remedy, false)}
                                 >
                                   <div className="pb-remedy-list-row__meta">
                                     {(isKeynoteMethodActive || isSmallRubricsActive) && (
-                                      <i className={`ri-arrow-${isExpanded ? 'down' : 'right'}-s-line pb-remedy-list-row__chevron`}></i>
+                                      <i
+                                        className={`ri-arrow-${isExpanded ? 'down' : 'right'}-s-line pb-remedy-list-row__chevron`}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={isExpanded ? 'Collapse rubrics' : 'Expand rubrics'}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemedyAccordionToggle(remedy, false);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleRemedyAccordionToggle(remedy, false);
+                                          }
+                                        }}
+                                      />
                                     )}
-                                    <span className="pb-remedy-list-row__name text-truncate">{remedyDisplay.name}</span>
+                                    <span
+                                      className="pb-remedy-list-row__name text-truncate"
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemedyNameSelect(remedy);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          handleRemedyNameSelect(remedy);
+                                        }
+                                      }}
+                                    >
+                                      {remedyDisplay.name}
+                                    </span>
                                     {remedyDisplay.aliasBracket ? (
                                       <span
                                         className="pb-remedy-list-row__alias"
@@ -15318,13 +15822,15 @@ const PatientBoard = () => {
                         <div className="d-flex justify-content-center gap-1 flex-wrap">
                           {intensitiesForPatientList && Array.isArray(intensitiesForPatientList) && intensitiesForPatientList.length > 0 ? (
                             [...intensitiesForPatientList].sort((a, b) => b.intensityNo - a.intensityNo).map((intensity) => {
-                              const isActive = selectedRepertorizeIntensity === intensity.intensityNo;
+                              const isActive =
+                                normalizeRepertorizeIntensityNo(selectedRepertorizeIntensity) ===
+                                normalizeRepertorizeIntensityNo(intensity.intensityNo);
+                              // Same enable rule as SECTION checkboxes: Keynote / Small Rubrics on
                               const canUseGradeFilters =
-                                (isKeynoteMethodActive || isSmallRubricsActive) &&
-                                selectedRepertorizeSectionIds.length > 0;
+                                isKeynoteMethodActive || isSmallRubricsActive;
                               return (
                                 <button
-                                  key={intensity.intensityId}
+                                  key={intensity.intensityId ?? intensity.intensityNo}
                                   type="button"
                                   className={`btn btn-sm pb-repertorize-grade-btn${isActive ? ' is-active' : ''}`}
                                   disabled={!canUseGradeFilters}
@@ -15336,10 +15842,10 @@ const PatientBoard = () => {
                             })
                           ) : (
                             [4, 3, 2, 1].map(num => {
-                              const isActive = selectedRepertorizeIntensity === num;
+                              const isActive =
+                                normalizeRepertorizeIntensityNo(selectedRepertorizeIntensity) === num;
                               const canUseGradeFilters =
-                                (isKeynoteMethodActive || isSmallRubricsActive) &&
-                                selectedRepertorizeSectionIds.length > 0;
+                                isKeynoteMethodActive || isSmallRubricsActive;
                               return (
                                 <button
                                   key={num}

@@ -1,6 +1,12 @@
 import axios from "axios";
 import { api } from "../config";
 import { reportClientIssue } from "./client_error_reporter";
+import {
+  isWebHandoffSession,
+  readWebHandoff,
+  recoverWebHandoffAfter401,
+  webHandoffEndedReason,
+} from "./webHandoffSession";
 
 // Helper function to get current auth user
 const getCurrentAuthUser = () => {
@@ -118,6 +124,22 @@ const createAxiosClient = (baseURL, contentType = "application/json") => {
           req.includes("/account/authenticate") ||
           req.includes("/users/login") ||
           req.includes("/otp/");
+        if (isWebHandoffSession() || webHandoffEndedReason()) {
+          const isHandoffCall = req.includes("/account/webhandoff/");
+          if (!isAuthCall && !isHandoffCall && error.config && !error.config.__handoffRetried && !webHandoffEndedReason()) {
+            const recovered = await recoverWebHandoffAfter401(error.config.headers?.Authorization);
+            if (recovered) {
+              error.config.__handoffRetried = true;
+              const fresh = readWebHandoff();
+              if (fresh?.token) {
+                error.config.headers = error.config.headers || {};
+                error.config.headers.Authorization = "Bearer " + fresh.token;
+              }
+              return client.request(error.config);
+            }
+          }
+          return Promise.reject(message);
+        }
         if (!isAuthCall && sessionStorage.getItem("authUser")) {
           try {
             const parsed = JSON.parse(sessionStorage.getItem("authUser") || "{}");

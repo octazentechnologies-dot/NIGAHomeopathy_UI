@@ -25,7 +25,10 @@ const formatWaitLabel = (waitMinutes) => {
 };
 
 const paymentBadge = (row) => {
-  const meta = paymentStatusMeta(row.paymentStatus || row.PaymentStatus);
+  const meta = paymentStatusMeta(row.paymentStatus || row.PaymentStatus, {
+    payAtClinicAllowed: row.payAtClinicAllowed ?? row.PayAtClinicAllowed,
+    paymentMethod: row.paymentMethod ?? row.PaymentMethod,
+  });
   return { label: meta.label, color: meta.tone };
 };
 

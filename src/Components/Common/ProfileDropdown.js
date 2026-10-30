@@ -17,6 +17,7 @@ import {
     updateAvailabilityMe,
 } from '../../helpers/realbackend_helper';
 import { PROFILE_IDENTITY_CHANGED_EVENT, PROFILE_PHOTO_CHANGED_EVENT } from '../../helpers/profilePhotoEvents';
+import { AVAILABILITY_CHANGED_EVENT } from '../../helpers/availabilityEvents';
 import { setCounts } from '../../slices/doctor/dashboard/reducer';
 
 const readOnlineFlag = (source) => {
@@ -135,6 +136,7 @@ const ProfileDropdown = () => {
 
     const [isProfileDropdown, setIsProfileDropdown] = useState(false);
     const [isOnline, setIsOnline] = useState(false);
+    const [isOnTimeOff, setIsOnTimeOff] = useState(false);
     const [availabilityBusy, setAvailabilityBusy] = useState(false);
     const [directoryVisible, setDirectoryVisible] = useState(false);
     const [directoryCanPublish, setDirectoryCanPublish] = useState(true);
@@ -154,7 +156,10 @@ const ProfileDropdown = () => {
             .then((raw) => {
                 const me = raw?.data ?? raw;
                 if (cancelled || !me) return;
+                const onLeave = Boolean(me.isOnTimeOff ?? me.IsOnTimeOff);
+                setIsOnTimeOff(onLeave);
                 const online = readOnlineFlag(me);
+                // Respect manual Online during clinic leave (tele consultation).
                 if (online !== null) setIsOnline(online);
                 setDoctorId(me.doctorId ?? me.DoctorId ?? null);
             })
@@ -177,12 +182,19 @@ const ProfileDropdown = () => {
                 if (cancelled) return;
                 const data = raw?.data ?? raw?.Data ?? raw;
                 setDirectoryVisible(!!(data?.directoryVisible ?? data?.DirectoryVisible));
-                const can =
-                    data?.canPublish ??
-                    data?.CanPublish ??
-                    String(data?.verificationStatus ?? data?.VerificationStatus ?? '').toLowerCase() ===
-                        'verified';
-                setDirectoryCanPublish(can !== false);
+                if (typeof (data?.isOnTimeOff ?? data?.IsOnTimeOff) === 'boolean') {
+                    setIsOnTimeOff(Boolean(data.isOnTimeOff ?? data.IsOnTimeOff));
+                }
+                const status = String(
+                    data?.verificationStatus ?? data?.VerificationStatus ?? ''
+                ).toLowerCase();
+                const verified =
+                    status === 'verified' ||
+                    status === 'approved' ||
+                    data?.canPublish === true ||
+                    data?.CanPublish === true;
+                // canPublish must mean Verified — never treat clinic leave as "not verified".
+                setDirectoryCanPublish(verified);
             })
             .catch(() => {
                 if (!cancelled) setDirectoryVisible(false);
@@ -203,6 +215,29 @@ const ProfileDropdown = () => {
         window.addEventListener(PROFILE_PHOTO_CHANGED_EVENT, onPhotoChanged);
         return () => window.removeEventListener(PROFILE_PHOTO_CHANGED_EVENT, onPhotoChanged);
     }, []);
+
+    useEffect(() => {
+        if (!isDoctor) return undefined;
+        const onAvailability = (event) => {
+            const detail = event?.detail || {};
+            if (typeof detail.isOnTimeOff === 'boolean') setIsOnTimeOff(detail.isOnTimeOff);
+            if (typeof detail.directoryVisible === 'boolean') setDirectoryVisible(detail.directoryVisible);
+            if (typeof detail.isOnline === 'boolean') {
+                setIsOnline(detail.isOnline);
+                if (dashboardCounts) {
+                    dispatch(
+                        setCounts({
+                            ...dashboardCounts,
+                            isOnline: detail.isOnline,
+                            IsOnline: detail.isOnline,
+                        })
+                    );
+                }
+            }
+        };
+        window.addEventListener(AVAILABILITY_CHANGED_EVENT, onAvailability);
+        return () => window.removeEventListener(AVAILABILITY_CHANGED_EVENT, onAvailability);
+    }, [isDoctor, dashboardCounts, dispatch]);
 
     useEffect(() => {
         if (!doctorId) {
@@ -245,10 +280,25 @@ const ProfileDropdown = () => {
             event.stopPropagation();
             if (availabilityBusy) return;
             const next = !isOnline;
+            // Clinic leave defaults Offline; doctor may still go Online manually for tele.
+            if (next && isOnTimeOff) {
+                const confirm = await Swal.fire({
+                    icon: 'question',
+                    title: 'Clinic leave is active',
+                    text: 'In-clinic appointments stay closed. Turn Online for tele consultation only?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Go Online (tele)',
+                    cancelButtonText: 'Cancel',
+                });
+                if (!confirm.isConfirmed) return;
+            }
             setAvailabilityBusy(true);
             try {
                 const raw = await updateAvailabilityMe({ isOnline: next });
-                const saved = readOnlineFlag(raw?.data ?? raw);
+                const me = raw?.data ?? raw;
+                const onLeave = Boolean(me?.isOnTimeOff ?? me?.IsOnTimeOff);
+                setIsOnTimeOff(onLeave);
+                const saved = readOnlineFlag(me);
                 const value = saved ?? next;
                 setIsOnline(value);
                 if (dashboardCounts) {
@@ -264,7 +314,7 @@ const ProfileDropdown = () => {
                 setAvailabilityBusy(false);
             }
         },
-        [availabilityBusy, isOnline, dashboardCounts, dispatch]
+        [availabilityBusy, isOnline, isOnTimeOff, dashboardCounts, dispatch]
     );
     const handleDirectoryToggle = useCallback(
         async (event) => {
@@ -272,36 +322,63 @@ const ProfileDropdown = () => {
             event.stopPropagation();
             if (directoryBusy) return;
             const next = !directoryVisible;
+
+            // Already hidden + not verified: clarify — this is not a leave error.
             if (next && !directoryCanPublish) {
                 Swal.fire({
                     icon: 'info',
-                    title: 'Not verified yet',
-                    text: 'Complete credential verification before publishing your profile in Find a Doctor.',
+                    title: 'Already hidden',
+                    text: isOnTimeOff
+                        ? 'Your profile is hidden (clinic leave). Complete credential verification before you can turn Public Visibility on for tele consultation.'
+                        : 'Your profile is already hidden from Find a Doctor. Complete credential verification before you can publish.',
                 });
                 return;
             }
+
+            if (next && isOnTimeOff) {
+                const confirm = await Swal.fire({
+                    icon: 'question',
+                    title: 'Clinic leave is active',
+                    text: 'In-clinic stays closed. Show your profile in Find a Doctor for tele consultation?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Show for tele',
+                    cancelButtonText: 'Cancel',
+                });
+                if (!confirm.isConfirmed) return;
+            }
+
             setDirectoryBusy(true);
             try {
                 const raw = await setDirectoryVisibility({ directoryVisible: next });
                 const data = raw?.data ?? raw?.Data ?? raw;
                 setDirectoryVisible(!!(data?.directoryVisible ?? data?.DirectoryVisible ?? next));
-                if (data?.canPublish != null || data?.CanPublish != null) {
-                    setDirectoryCanPublish(!!(data?.canPublish ?? data?.CanPublish));
+                if (typeof (data?.isOnTimeOff ?? data?.IsOnTimeOff) === 'boolean') {
+                    setIsOnTimeOff(Boolean(data.isOnTimeOff ?? data.IsOnTimeOff));
+                }
+                const status = String(
+                    data?.verificationStatus ?? data?.VerificationStatus ?? ''
+                ).toLowerCase();
+                if (status === 'verified' || status === 'approved' || data?.canPublish === true || data?.CanPublish === true) {
+                    setDirectoryCanPublish(true);
+                } else if (data?.canPublish === false || data?.CanPublish === false) {
+                    setDirectoryCanPublish(false);
                 }
             } catch (err) {
+                const code = err?.data?.code || err?.code;
+                const message =
+                    typeof err === 'string'
+                        ? err
+                        : err?.message || err?.data?.message || 'Could not change Find a Doctor visibility';
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Public visibility update failed',
-                    text:
-                        typeof err === 'string'
-                            ? err
-                            : err?.message || 'Could not change Find a Doctor visibility',
+                    icon: code === 'NOT_VERIFIED' ? 'info' : 'error',
+                    title: code === 'NOT_VERIFIED' ? 'Already hidden' : 'Public visibility update failed',
+                    text: message,
                 });
             } finally {
                 setDirectoryBusy(false);
             }
         },
-        [directoryBusy, directoryVisible, directoryCanPublish]
+        [directoryBusy, directoryVisible, directoryCanPublish, isOnTimeOff]
     );
     const handleOpenBilling = (event) => {
         event.preventDefault();
@@ -361,7 +438,13 @@ const ProfileDropdown = () => {
                                         aria-hidden="true"
                                     />
                                     <span className="align-middle text-body">
-                                        {isOnline ? 'Online' : 'Offline'}
+                                        {isOnline
+                                            ? isOnTimeOff
+                                                ? 'Online (tele)'
+                                                : 'Online'
+                                            : isOnTimeOff
+                                              ? 'Offline (clinic leave)'
+                                              : 'Offline'}
                                     </span>
                                 </span>
                                 <div className="form-check form-switch form-switch-success mb-0">
@@ -373,6 +456,11 @@ const ProfileDropdown = () => {
                                         checked={isOnline}
                                         disabled={availabilityBusy}
                                         onChange={handleOnlineToggle}
+                                        title={
+                                            isOnTimeOff
+                                                ? 'Clinic leave active — you can still go Online for tele consultation'
+                                                : undefined
+                                        }
                                         aria-label={isOnline ? 'Set offline' : 'Set online'}
                                     />
                                 </div>
@@ -388,7 +476,13 @@ const ProfileDropdown = () => {
                                         aria-hidden="true"
                                     />
                                     <span className="align-middle text-body">
-                                        {directoryVisible ? 'Public Visibility' : 'Hidden from public'}
+                                        {directoryVisible
+                                            ? isOnTimeOff
+                                                ? 'Public (tele)'
+                                                : 'Public Visibility'
+                                            : isOnTimeOff
+                                              ? 'Hidden (clinic leave)'
+                                              : 'Hidden from public'}
                                     </span>
                                 </span>
                                 <div className="form-check form-switch form-switch-primary mb-0">
@@ -398,8 +492,15 @@ const ProfileDropdown = () => {
                                         role="switch"
                                         id="doctorDirectoryVisibility"
                                         checked={directoryVisible}
-                                        disabled={directoryBusy}
+                                        disabled={directoryBusy || (!directoryCanPublish && !directoryVisible)}
                                         onChange={handleDirectoryToggle}
+                                        title={
+                                            !directoryCanPublish && !directoryVisible
+                                                ? 'Already hidden — verify credentials to publish in Find a Doctor'
+                                                : isOnTimeOff && !directoryVisible
+                                                  ? 'Hidden for clinic leave — turn on for tele if verified'
+                                                  : undefined
+                                        }
                                         aria-label={
                                             directoryVisible
                                                 ? 'Hide from Find a Doctor'

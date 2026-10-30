@@ -156,6 +156,13 @@ export const getAuthorForRubric = data => api.get(url.GET_AUTHOR_FOR_RUBRIC, dat
 
 export const getSubSection = data => api.get(url.GET_SUB_SECTION + "/" + data, null);
 
+export const getSubSectionPaged = ({ sectionId, queryString = '', PageNumber = 1, PageSize = 20 }) =>
+  api.get(url.GET_SUB_SECTION_PAGED + "/" + sectionId, {
+    queryString: queryString || '',
+    PageNumber,
+    PageSize,
+  });
+
 export const searchSubSections = (sectionId, desc) =>
   api.get(url.GET_SUBSECTION_BY_SECTION + "/" + sectionId + "?Desc=" + encodeURIComponent(desc || ""), null);
 
