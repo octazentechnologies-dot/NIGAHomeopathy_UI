@@ -14,6 +14,7 @@ import {
 } from "../../../helpers/s4Week4Api";
 import { downloadDoctorCredentialDocument } from "../../../helpers/realbackend_helper";
 import { listPublicDoctors } from "../../../helpers/publicBookingApi";
+import { pageWindow } from "../../../helpers/pageWindow";
 import { recordMatchesQuery } from "../../../helpers/recordSearch";
 import { listAdminReviews, setAdminReviewStatus } from "../../../helpers/s5Week5Api";
 import "./trustVerification.css";
@@ -43,6 +44,7 @@ const normalizeReview = (row) => ({
 });
 
 const REVIEW_PAGE_SIZE = 4;
+const DOCTOR_PAGE_SIZE = 10;
 
 const asList = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -183,11 +185,39 @@ const DecisionModal = ({ state, onClose, onSubmit, busy }) => {
   );
 };
 
+const pageNumbers = (page, total) => pageWindow(page, total);
+
+const TrustPager = ({ page, pages, onChange }) => (
+  <div className="tv-pager">
+    <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="Previous page">
+      <i className="ri-arrow-left-s-line" aria-hidden="true" />
+    </button>
+    {pageNumbers(page, pages).map((item, index) =>
+      item === "…" ? (
+        <span key={`gap-${index}`} className="tv-pager__gap">…</span>
+      ) : (
+        <button
+          key={item}
+          type="button"
+          className={item === page ? "is-active" : undefined}
+          onClick={() => onChange(item)}
+        >
+          {item}
+        </button>
+      )
+    )}
+    <button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label="Next page">
+      <i className="ri-arrow-right-s-line" aria-hidden="true" />
+    </button>
+  </div>
+);
+
 /** TRU — admin Trust & Verification: doctor credentialing, patient review moderation, review appeals. */
 const TrustQueuePage = () => {
   const [doctors, setDoctors] = useState([]);
   const [doctorTab, setDoctorTab] = useState("all");
   const [doctorSearch, setDoctorSearch] = useState("");
+  const [doctorPage, setDoctorPage] = useState(1);
   const [docsByDoctor, setDocsByDoctor] = useState({});
   /** @type {Record<number, { events: any[], latestNote: string|null, lastResubmittedAt: string|null, latestDecisionStatus: string|null }>} */
   const [trustMetaByDoctor, setTrustMetaByDoctor] = useState({});
@@ -263,6 +293,10 @@ const TrustQueuePage = () => {
     setReviewPage(1);
   }, [reviewTab, reviewDoctor]);
 
+  useEffect(() => {
+    setDoctorPage(1);
+  }, [doctorTab, doctorSearch]);
+
   /* ---------- Doctor credentialing ---------- */
 
   const doctorCounts = useMemo(() => {
@@ -280,6 +314,10 @@ const TrustQueuePage = () => {
       return recordMatchesQuery(row, query);
     });
   }, [doctors, doctorSearch, doctorTab]);
+
+  const doctorPages = Math.max(1, Math.ceil(filteredDoctors.length / DOCTOR_PAGE_SIZE));
+  const doctorStart = (Math.min(doctorPage, doctorPages) - 1) * DOCTOR_PAGE_SIZE;
+  const pageDoctors = filteredDoctors.slice(doctorStart, doctorStart + DOCTOR_PAGE_SIZE);
 
   const applyDoctorDecision = async (doctor, verdict, note = "") => {
     setBusyId(`doc-${doctor.id}`);
@@ -475,12 +513,12 @@ const TrustQueuePage = () => {
         <div className="tv-page">
           <div className="tv-page__head">
             <div>
-              <h2 className="clinic-page-title mb-1">Trust &amp; Verification</h2>
+              <h2 className="clinic-page-title mb-1"><i className="ri-shield-check-line" aria-hidden="true" />Trust &amp; Verification</h2>
               <p className="clinic-page-subtitle mb-0">
                 Verify doctor credentials and moderate patient reviews shown on the website.
               </p>
             </div>
-            <button type="button" className="tv-btn tv-btn--soft" onClick={load} disabled={loading}>
+            <button type="button" className="btn btn-sm btn-soft-secondary" onClick={load} disabled={loading}>
               <i className={loading ? "ri-loader-4-line tv-spin" : "ri-refresh-line"} aria-hidden="true" />
               Refresh
             </button>
@@ -539,10 +577,10 @@ const TrustQueuePage = () => {
                       value={doctorSearch}
                       onChange={(e) => setDoctorSearch(e.target.value)}
                       placeholder="Search doctor, clinic, city, mobile…"
+                      aria-label="Search doctors"
                     />
                   </div>
-                </div>
-                <div className="tv-tabs">
+                  <div className="tv-tabs">
                   {DOCTOR_TABS.map((tab) => (
                     <button
                       key={tab.id}
@@ -554,8 +592,10 @@ const TrustQueuePage = () => {
                       <span>{doctorCounts[tab.id]}</span>
                     </button>
                   ))}
+                  </div>
                 </div>
 
+                <div className="tv-table-wrap">
                 <table className="table tv-table mb-0">
                   <colgroup>
                     <col />
@@ -586,14 +626,14 @@ const TrustQueuePage = () => {
                           <Spinner size="sm" />
                         </td>
                       </tr>
-                    ) : filteredDoctors.length === 0 ? (
+                    ) : pageDoctors.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="tv-empty">
                           No doctors in this filter.
                         </td>
                       </tr>
                     ) : (
-                      filteredDoctors.map((doctor) => {
+                      pageDoctors.map((doctor) => {
                         const status = DOCTOR_STATUS[doctor.status];
                         const docs = docsByDoctor[doctor.id];
                         const busy = busyId === `doc-${doctor.id}`;
@@ -752,6 +792,20 @@ const TrustQueuePage = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
+                {filteredDoctors.length > DOCTOR_PAGE_SIZE ? (
+                  <div className="tv-footer">
+                    <span>
+                      Showing {doctorStart + 1}–{Math.min(doctorStart + DOCTOR_PAGE_SIZE, filteredDoctors.length)} of{" "}
+                      {filteredDoctors.length}
+                    </span>
+                    <TrustPager
+                      page={Math.min(doctorPage, doctorPages)}
+                      pages={doctorPages}
+                      onChange={setDoctorPage}
+                    />
+                  </div>
+                ) : null}
               </div>
             </section>
 
@@ -836,7 +890,7 @@ const TrustQueuePage = () => {
                             {review.status !== REVIEW_STATUS.APPROVED ? (
                               <button
                                 type="button"
-                                className="tv-btn tv-btn--approve"
+                                className="btn btn-sm btn-soft-success"
                                 disabled={busyId === `rev-${review.id}`}
                                 onClick={() => moderateReview(review, REVIEW_STATUS.APPROVED)}
                               >
@@ -852,7 +906,7 @@ const TrustQueuePage = () => {
                             {review.status !== REVIEW_STATUS.REJECTED ? (
                               <button
                                 type="button"
-                                className="tv-btn tv-btn--reject"
+                                className="btn btn-sm btn-soft-danger"
                                 disabled={busyId === `rev-${review.id}`}
                                 onClick={() => openReviewReject(review)}
                               >
@@ -873,27 +927,11 @@ const TrustQueuePage = () => {
                       Showing {reviewStart + 1}–{Math.min(reviewStart + REVIEW_PAGE_SIZE, filteredReviews.length)} of{" "}
                       {filteredReviews.length}
                     </span>
-                    <div className="tv-pager">
-                      <button
-                        type="button"
-                        disabled={reviewPage <= 1}
-                        onClick={() => setReviewPage((p) => p - 1)}
-                        aria-label="Previous page"
-                      >
-                        <i className="ri-arrow-left-s-line" aria-hidden="true" />
-                      </button>
-                      <span>
-                        {reviewPage} / {reviewPages}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={reviewPage >= reviewPages}
-                        onClick={() => setReviewPage((p) => p + 1)}
-                        aria-label="Next page"
-                      >
-                        <i className="ri-arrow-right-s-line" aria-hidden="true" />
-                      </button>
-                    </div>
+                    <TrustPager
+                      page={Math.min(reviewPage, reviewPages)}
+                      pages={reviewPages}
+                      onChange={setReviewPage}
+                    />
                   </div>
                 ) : null}
               </div>
@@ -937,7 +975,7 @@ const TrustQueuePage = () => {
                         <div className="d-flex gap-2">
                           <button
                             type="button"
-                            className="tv-btn tv-btn--soft"
+                            className="btn btn-sm btn-soft-primary"
                             disabled={busy}
                             onClick={() => resolveAppeal(id, "Uphold")}
                           >
@@ -946,7 +984,7 @@ const TrustQueuePage = () => {
                           </button>
                           <button
                             type="button"
-                            className="tv-btn tv-btn--reject"
+                            className="btn btn-sm btn-soft-danger"
                             disabled={busy}
                             onClick={() => resolveAppeal(id, "Remove")}
                           >

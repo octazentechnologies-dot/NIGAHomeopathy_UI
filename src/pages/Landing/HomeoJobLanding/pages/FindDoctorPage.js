@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Col, Container, Row } from "reactstrap";
+import { pageWindow } from "../../../../helpers/pageWindow";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
@@ -123,16 +123,7 @@ const FindDoctorPage = () => {
         setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const pageNumbers = useMemo(() => {
-        if (totalPages <= 7) {
-            return Array.from({ length: totalPages }, (_, i) => i + 1);
-        }
-        const pages = [1, 2, 3, 4, 5];
-        if (currentPage > 5 && currentPage < totalPages - 1) {
-            return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
-        }
-        return [...pages, "...", totalPages];
-    }, [currentPage, totalPages]);
+    const pageNumbers = useMemo(() => pageWindow(currentPage, totalPages, "..."), [currentPage, totalPages]);
 
     return (
         <section className="homeojob-find-doctor">

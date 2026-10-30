@@ -7,6 +7,7 @@ import {
   Spinner,
   UncontrolledDropdown,
 } from "reactstrap";
+import { pageWindow } from "../../../helpers/pageWindow";
 import moment from "moment";
 import Swal from "sweetalert2";
 import {
@@ -53,17 +54,7 @@ const currentUserName = () => {
   }
 };
 
-const pageNumbers = (page, total) => {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages = [1];
-  const start = Math.max(2, page - 1);
-  const end = Math.min(total - 1, page + 1);
-  if (start > 2) pages.push("…");
-  for (let p = start; p <= end; p += 1) pages.push(p);
-  if (end < total - 1) pages.push("…");
-  pages.push(total);
-  return pages;
-};
+const pageNumbers = (page, total) => pageWindow(page, total);
 
 /** Admin → Platform users: list, filter, import/export and manage every login on the platform. */
 const PlatformUsersPage = () => {
@@ -365,20 +356,21 @@ const PlatformUsersPage = () => {
           <div className="pu-page__head">
             <div>
               <h2 className="clinic-page-title mb-1">
+                <i className="ri-team-line" aria-hidden="true" />
                 Platform Users
               </h2>
               <p className="clinic-page-subtitle mb-0">Manage all users, import/export and account activation</p>
             </div>
             <div className="pu-page__actions">
-              <button type="button" className="pu-btn pu-btn--soft" onClick={() => setImportOpen(true)}>
+              <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" onClick={() => setImportOpen(true)}>
                 <i className="ri-upload-2-line" aria-hidden="true" /> Import CSV
               </button>
-              <button type="button" className="pu-btn pu-btn--soft" onClick={handleExport} disabled={!filtered.length}>
+              <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={handleExport} disabled={!filtered.length}>
                 <i className="ri-download-2-line" aria-hidden="true" /> Download
               </button>
               <button
                 type="button"
-                className="pu-btn pu-btn--primary"
+                className="btn btn-sm admin-list-btn admin-list-btn--new"
                 onClick={() => {
                   setFormError("");
                   setFormState({ mode: "add", user: null });
@@ -454,22 +446,17 @@ const PlatformUsersPage = () => {
                 </select>
                 <i className="ri-arrow-down-s-line" aria-hidden="true" />
               </div>
-              <UncontrolledDropdown className="pu-more">
-                <DropdownToggle tag="button" type="button" className="pu-icon-btn" aria-label="More options">
-                  <i className="ri-more-2-fill" aria-hidden="true" />
-                </DropdownToggle>
-                <DropdownMenu end className="pu-action-menu">
-                  <DropdownItem onClick={load}>
-                    <i className="ri-refresh-line" aria-hidden="true" /> Refresh list
-                  </DropdownItem>
-                  <DropdownItem onClick={resetFilters}>
-                    <i className="ri-filter-off-line" aria-hidden="true" /> Reset filters
-                  </DropdownItem>
-                  <DropdownItem onClick={downloadImportTemplate}>
-                    <i className="ri-file-download-line" aria-hidden="true" /> Download import template
-                  </DropdownItem>
-                </DropdownMenu>
-              </UncontrolledDropdown>
+              <div className="pu-filter-actions">
+                <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--import" onClick={load} disabled={loading}>
+                  <i className="ri-refresh-line" aria-hidden="true" /> Refresh
+                </button>
+                <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={resetFilters}>
+                  <i className="ri-filter-off-line" aria-hidden="true" /> Reset
+                </button>
+                <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new" onClick={downloadImportTemplate}>
+                  <i className="ri-file-download-line" aria-hidden="true" /> Download template
+                </button>
+              </div>
             </div>
 
             <div className="pu-table-wrap">

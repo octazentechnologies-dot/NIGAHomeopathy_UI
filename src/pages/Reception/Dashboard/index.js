@@ -145,7 +145,7 @@ const ReceptionDashboard = () => {
       <Container fluid>
         <div className="clinic-page-header d-flex flex-wrap align-items-start justify-content-between gap-2">
           <div>
-            <h2 className="clinic-page-title mb-0">Reception</h2>
+            <h2 className="clinic-page-title mb-0"><i className="ri-customer-service-2-line" aria-hidden="true" />Reception</h2>
             <p className="clinic-page-subtitle mb-0">Check-in, vitals, payment, and today’s visits</p>
           </div>
           <div className="d-flex flex-wrap gap-2">
@@ -162,7 +162,7 @@ const ReceptionDashboard = () => {
               <i className="ri-user-add-line me-1" aria-hidden="true" />
               New patient
             </Button>
-            <Button size="sm" className="reception-primary-btn" onClick={openBookAppointment}>
+            <Button size="sm" className="btn btn-sm btn-soft-primary" onClick={openBookAppointment}>
               <i className="ri-calendar-check-line me-1" aria-hidden="true" />
               Book appointment
             </Button>
@@ -227,7 +227,7 @@ const ReceptionDashboard = () => {
         />
 
         <Modal isOpen={deskPanel === "patient"} toggle={() => setDeskPanel(null)} size="md" centered>
-          <ModalHeader toggle={() => setDeskPanel(null)}>New patient</ModalHeader>
+          <ModalHeader toggle={() => setDeskPanel(null)}><i className="ri-add-circle-line" aria-hidden="true" />New patient</ModalHeader>
           <ModalBody>
             <ReceptionNewPatientForm
               onCreated={(created) => {
@@ -249,7 +249,7 @@ const ReceptionDashboard = () => {
           centered
           scrollable
         >
-          <ModalHeader toggle={() => setDeskPanel(null)}>Book appointment</ModalHeader>
+          <ModalHeader toggle={() => setDeskPanel(null)}><i className="ri-add-circle-line" aria-hidden="true" />Book appointment</ModalHeader>
           <ModalBody>
             <AssistedBookWizard
               doctorId={doctorId}
@@ -376,7 +376,7 @@ const UpdateAppointmentTimeModal = ({ isOpen, toggle, doctorId, patientAppId, ap
 
   return (
     <Modal isOpen={isOpen} toggle={toggle} centered>
-      <ModalHeader toggle={toggle}>Update appointment time</ModalHeader>
+      <ModalHeader toggle={toggle}><i className="ri-edit-line" aria-hidden="true" />Update appointment time</ModalHeader>
       <ModalBody>
         {errorText ? <Alert color="danger">{errorText}</Alert> : null}
         <Label>Date</Label>

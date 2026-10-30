@@ -36,7 +36,7 @@ const AdminOverviewHeader = ({ range, onRangeChange, doctorId, onDoctorChange, d
 
   return (
     <div className="apo-head">
-      <h2 className="apo-head__title">Platform Overview</h2>
+      <h2 className="apo-head__title"><i className="ri-dashboard-2-line" aria-hidden="true" />Platform Overview</h2>
       <div className="apo-head__controls">
         <label className="apo-range" aria-label="Date range">
           <i className="ri-calendar-2-line" aria-hidden="true" />

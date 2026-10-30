@@ -4,13 +4,16 @@
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 0.5rem 0.25rem 0.4rem;
+  box-sizing: border-box;
+  margin-top: 0;
+  margin-bottom: 0.3rem;
+  padding: 0 0.15rem;
 }
 
 .apo-head__title {
   margin: 0;
-  color: #1e293b;
-  font-size: 1.05rem;
+  color: #000;
+  font-size: 0.9rem;
   font-weight: 700;
   line-height: 1.3;
 }

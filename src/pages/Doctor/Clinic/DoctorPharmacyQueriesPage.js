@@ -107,10 +107,10 @@ const DoctorPharmacyQueriesPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Pharmacy queries</h2>
+            <h2 className="clinic-page-title"><i className="ri-question-answer-line" aria-hidden="true" />Pharmacy queries</h2>
             <p className="clinic-page-subtitle mb-0">Questions about a patient prescription for the pharmacy desk.</p>
           </div>
-          <button type="button" className="btn btn-sm clinic-primary-btn" onClick={openCreate}>
+          <button type="button" className="btn btn-sm btn-soft-primary" onClick={openCreate}>
             <i className="ri-add-line" aria-hidden="true" />
             New query
           </button>
@@ -178,7 +178,7 @@ const DoctorPharmacyQueriesPage = () => {
         </Card>
 
         <Modal isOpen={createOpen} toggle={() => setCreateOpen(false)}>
-          <ModalHeader toggle={() => setCreateOpen(false)}>New pharmacy query</ModalHeader>
+          <ModalHeader toggle={() => setCreateOpen(false)}><i className="ri-add-circle-line" aria-hidden="true" />New pharmacy query</ModalHeader>
           <ModalBody>
             <Row className="g-3">
               <Col md={12}>
@@ -197,8 +197,8 @@ const DoctorPharmacyQueriesPage = () => {
             </Row>
           </ModalBody>
           <ModalFooter>
-            <Button color="light" onClick={() => setCreateOpen(false)}>
-              Cancel
+            <Button color="light" className="app-cancel-btn" onClick={() => setCreateOpen(false)}>
+              <i className="ri-close-line" aria-hidden="true" /> Cancel
             </Button>
             <ModalActionButton action="submit" loading={busyId === "create"} onClick={submitCreate}>
               Create
@@ -212,8 +212,8 @@ const DoctorPharmacyQueriesPage = () => {
             <Input type="textarea" rows={4} value={replyText} onChange={(e) => setReplyText(e.target.value)} />
           </ModalBody>
           <ModalFooter>
-            <Button color="light" onClick={() => setReplyId(null)}>
-              Cancel
+            <Button color="light" className="app-cancel-btn" onClick={() => setReplyId(null)}>
+              <i className="ri-close-line" aria-hidden="true" /> Cancel
             </Button>
             <ModalActionButton action="send" loading={busyId === `r-${replyId}`} onClick={submitReply}>
               Send reply

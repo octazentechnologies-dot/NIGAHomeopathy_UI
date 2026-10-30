@@ -36,11 +36,12 @@ export default function ModalActionButton({
   const preset = MODAL_ACTIONS[action] || MODAL_ACTIONS.save;
   const label = children ?? preset.label;
   const icon = iconClassName || preset.icon;
+  const cancelClass = action === 'cancel' ? 'app-cancel-btn' : '';
 
   return (
     <button
       type="button"
-      className={`btn btn-soft-${preset.soft} modal-action-btn ${className}`.trim()}
+      className={`btn btn-sm btn-soft-${preset.soft} modal-action-btn ${cancelClass} ${className}`.trim()}
       disabled={disabled || loading}
       {...props}
     >
@@ -72,5 +73,5 @@ export function modalSoftBtnClass(color = 'primary') {
     light: 'btn-soft-secondary',
     link: 'btn-soft-secondary',
   };
-  return `btn ${map[color] || map.primary} modal-action-btn`;
+  return `btn btn-sm ${map[color] || map.primary} modal-action-btn`;
 }

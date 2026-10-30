@@ -141,7 +141,7 @@ const DoctorConsultFeesPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Consult fees</h2>
+            <h2 className="clinic-page-title"><i className="ri-money-dollar-circle-line" aria-hidden="true" />Consult fees</h2>
             <p className="clinic-page-subtitle mb-0">
               Set in-clinic and tele fees for this doctor. Payment still uses the existing Razorpay keys on the API.
             </p>
@@ -206,7 +206,7 @@ const DoctorConsultFeesPage = () => {
                   </FormGroup>
                   <button
                     type="button"
-                    className="btn clinic-primary-btn"
+                    className="btn btn-sm btn-soft-primary"
                     disabled={saving || !doctorId}
                     onClick={onSave}
                   >

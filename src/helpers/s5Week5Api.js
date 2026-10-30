@@ -19,6 +19,7 @@ export const saveNotificationPreferences = (payload) => nigahomeoAPI.put("/Notif
 export const listSecurityAudit = (params) => nigahomeoAPI.get("/Admin/SecurityAudit", params || {});
 export const verifySecurityAudit = () => nigahomeoAPI.get("/Admin/SecurityAudit/Verify", null);
 export const listConsentAudit = (take = 100) => nigahomeoAPI.get("/Consent/AdminAudit", { take });
+export const verifyConsentAudit = () => nigahomeoAPI.get("/Consent/AdminAudit/Verify", null);
 export const listPackageTopups = (params) => nigahomeoAPI.get("/package/GetPackageTopups", params || {});
 export const savePackageTopup = (payload) => nigahomeoAPI.post("/package/SavePackageTopup", payload);
 export const adminOverview = () => nigahomeoAPI.get("/AdminDashboard/Overview", null);

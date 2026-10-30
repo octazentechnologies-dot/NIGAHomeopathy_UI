@@ -7,6 +7,7 @@ import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "../../../Components/Common/ClassicEditor";
 import Swal from 'sweetalert2';
 import classnames from "classnames";
+import { pageWindow } from '../../../helpers/pageWindow';
 import moment from 'moment';
 import { UserRole, resolveUserRole } from '../../../Components/constants/roles';
 import { useProfile } from '../../../Components/Hooks/UserHooks';
@@ -536,7 +537,7 @@ const AppointmentTimeCell = ({
                                 className="new-appointment-modal__setup-btn"
                                 onClick={() => setScheduleModalOpen(true)}
                             >
-                                Set up slots for this date
+                                <i className="ri-calendar-line" aria-hidden="true" /> Set up slots for this date
                             </Button>
                         </div>
                     ) : (
@@ -2133,7 +2134,9 @@ const BestSellingProducts = () => {
                 <td className="dashboard-patient-col-place text-truncate" title={patient.place}>{patient.place}</td>
                 <td className="dashboard-patient-col-mobile text-nowrap">{patient.mobileNo || '-'}</td>
                 {isTodayTab ? (
-                <td className="dashboard-patient-col-status text-nowrap" style={{ position: 'relative' }}>
+                <>
+                <td className="dashboard-patient-col-status" style={{ position: 'relative' }}>
+                    <div className="dashboard-patient-status-stack">
                     {patient.appStatus ? (
                         <UncontrolledDropdown>
                             <DropdownToggle
@@ -2214,15 +2217,19 @@ const BestSellingProducts = () => {
                     ) : (
                         '-'
                     )}
+                    </div>
+                </td>
+                <td className="dashboard-patient-col-paid">
                     {(() => {
                         const pay = paymentStatusMeta(patient.paymentStatus);
                         return (
-                            <span className={`badge bg-${pay.tone}-subtle text-${pay.tone} ms-1`}>
+                            <span className={`badge dashboard-patient-pay-badge bg-${pay.tone}-subtle text-${pay.tone}`}>
                                 {pay.label}
                             </span>
                         );
                     })()}
                 </td>
+                </>
                 ) : null}
                 {isTodayTab ? (
                     <td className="dashboard-patient-col-apptime appointment-time-column text-nowrap">
@@ -2338,27 +2345,7 @@ const BestSellingProducts = () => {
     };
 
     // Compact list: ← 1 2 … [current] … last → (current always visible)
-    const getVisiblePageItems = (currentPage, totalPages) => {
-        const total = Math.max(0, Number(totalPages) || 0);
-        const current = Math.min(Math.max(1, Number(currentPage) || 1), Math.max(total, 1));
-        if (total <= 0) return [];
-        if (total <= 3) {
-            return Array.from({ length: total }, (_, i) => i + 1);
-        }
-
-        const pages = new Set([1, 2, total, current]);
-        const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
-        const items = [];
-        let prev = 0;
-        sorted.forEach((page) => {
-            if (prev && page - prev > 1) {
-                items.push('ellipsis');
-            }
-            items.push(page);
-            prev = page;
-        });
-        return items;
-    };
+    const getVisiblePageItems = (currentPage, totalPages) => pageWindow(currentPage, totalPages, 'ellipsis');
 
     // Helper function to render pagination
     const renderPagination = (currentPage, totalPages, onPageChange, totalResults) => {
@@ -2511,6 +2498,37 @@ const BestSellingProducts = () => {
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-status {
                     width: 5.75rem;
+                    min-width: 5.75rem;
+                    vertical-align: middle;
+                }
+                .dashboard-patient-table .dashboard-patient-col-paid,
+                .dashboard-patient-table--today .dashboard-patient-col-paid {
+                    width: 5.25rem;
+                    min-width: 5.25rem;
+                    vertical-align: middle;
+                    white-space: nowrap;
+                }
+                .dashboard-patient-status-stack {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 0.2rem;
+                    min-width: 0;
+                }
+                .dashboard-patient-status-stack .dropdown {
+                    display: inline-flex;
+                    max-width: 100%;
+                }
+                .dashboard-patient-pay-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    margin: 0 !important;
+                    padding: 0.08rem 0.35rem !important;
+                    border-radius: 999px !important;
+                    font-size: 0.6rem !important;
+                    font-weight: 700 !important;
+                    line-height: 1.2 !important;
+                    white-space: nowrap;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-apptime {
                     width: 5.5rem;
@@ -2896,7 +2914,7 @@ const BestSellingProducts = () => {
                                     className={classnames({ active: customHoverTab === "1" })}
                                     onClick={() => { customHovertoggle("1"); }}
                                 >
-                                    <span className="doctor-patient-tab-label">Today</span>
+                                    <span className="doctor-patient-tab-label">Today ({todayPatients.length})</span>
                                 </NavLink>
                             </NavItem>
                             {!isReceptionUser ? (
@@ -2906,7 +2924,7 @@ const BestSellingProducts = () => {
                                     className={classnames({ active: customHoverTab === "2" })}
                                     onClick={() => { customHovertoggle("2"); }}
                                 >
-                                    <span className="doctor-patient-tab-label">All</span>
+                                    <span className="doctor-patient-tab-label">All ({showingAllByDate ? allDatePatients.length : allPatients.length})</span>
                                 </NavLink>
                             </NavItem>
                             ) : null}
@@ -2946,7 +2964,7 @@ const BestSellingProducts = () => {
                                 <input
                                     type="text"
                                     className="form-control form-control-sm search"
-                                    placeholder="Name, mobile, email, address"
+                                    placeholder="Enter To Search.."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -2971,6 +2989,7 @@ const BestSellingProducts = () => {
                                                 <th scope="col" className="dashboard-patient-col-place">Place</th>
                                                 <th scope="col" className="dashboard-patient-col-mobile">Mobile</th>
                                                 <th scope="col" className="dashboard-patient-col-status">App.Status</th>
+                                                <th scope="col" className="dashboard-patient-col-paid">Paid?</th>
                                                 <th scope="col" className="dashboard-patient-col-apptime">App.Time</th>
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
                                                     <div className="dashboard-patient-actions-header">
@@ -2985,7 +3004,7 @@ const BestSellingProducts = () => {
                                         <tbody>
                                             {appointmentListLoading ? (
                                                 <tr>
-                                                    <td colSpan={8} className='text-center text-muted'>
+                                                    <td colSpan={9} className='text-center text-muted'>
                                                         <div className="d-flex justify-content-center align-items-center">
                                                             <div className="spinner-border spinner-border-sm me-2" role="status">
                                                                 <span className="visually-hidden">Loading...</span>
@@ -2999,7 +3018,7 @@ const BestSellingProducts = () => {
                                                     {renderTableRows(todayPageData, todayStartIndex, 'today', true)}
                                                     {todayPageData.length === 0 && !appointmentListLoading && (
                                                         <tr>
-                                                            <td colSpan={8} className='text-center text-muted'>
+                                                            <td colSpan={9} className='text-center text-muted'>
                                                                 {searchTerm ? 'No appointments found matching your search' : 'No appointments available'}
                                                             </td>
                                                         </tr>
@@ -3025,6 +3044,7 @@ const BestSellingProducts = () => {
                                                 {showingAllByDate ? (
                                                     <>
                                                         <th scope="col" className="dashboard-patient-col-status">App.Status</th>
+                                                        <th scope="col" className="dashboard-patient-col-paid">Paid?</th>
                                                         <th scope="col" className="dashboard-patient-col-apptime">App.Time</th>
                                                     </>
                                                 ) : (
@@ -3041,7 +3061,7 @@ const BestSellingProducts = () => {
                                         <tbody>
                                             {allTabLoading ? (
                                                 <tr>
-                                                    <td colSpan={showingAllByDate ? 8 : 7} className='text-center text-muted'>
+                                                    <td colSpan={showingAllByDate ? 9 : 7} className='text-center text-muted'>
                                                         <div className="d-flex justify-content-center align-items-center">
                                                             <div className="spinner-border spinner-border-sm me-2" role="status">
                                                                 <span className="visually-hidden">Loading...</span>
@@ -3055,7 +3075,7 @@ const BestSellingProducts = () => {
                                                     {renderTableRows(allPageData, allStartIndex, 'all', showingAllByDate, allListDate || null)}
                                                     {allPageData.length === 0 && !allTabLoading && (
                                                         <tr>
-                                                            <td colSpan={showingAllByDate ? 8 : 7} className='text-center text-muted'>
+                                                            <td colSpan={showingAllByDate ? 9 : 7} className='text-center text-muted'>
                                                                 {searchTerm
                                                                     ? (showingAllByDate ? 'No appointments found matching your search' : 'No patients found matching your search')
                                                                     : showingAllByDate
@@ -3311,7 +3331,7 @@ const BestSellingProducts = () => {
 
             {/* Add Case Notes Modal */}
             <Modal size="lg" isOpen={addCaseModalOpen} toggle={closeAddCaseModal}>
-                <ModalHeader toggle={closeAddCaseModal}>Add Case Notes</ModalHeader>
+                <ModalHeader toggle={closeAddCaseModal}><i className="ri-add-circle-line" aria-hidden="true" />Add Case Notes</ModalHeader>
                 <ModalBody>
                     <div className="row g-3">
                         <div className="col-md-6">

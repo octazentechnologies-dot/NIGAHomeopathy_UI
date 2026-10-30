@@ -257,7 +257,7 @@ const ReceptionHome = () => {
   return (
     <div className="page-content admin-dashboard-page reception-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title reception-page-title">Reception</h2>
+        <h2 className="clinic-page-title reception-page-title"><i className="ri-customer-service-2-line" aria-hidden="true" />Reception</h2>
         <p className="clinic-page-subtitle reception-page-subtitle">Clinical case-taking stays on the doctor. These actions are for this doctor only.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
@@ -284,18 +284,18 @@ const ReceptionHome = () => {
               <p className="text-muted small mb-2">Case paper and Schedule stay in the top menu. Open one desk form at a time.</p>
               <div className="d-flex flex-wrap gap-2" data-testid="reception-quick-actions">
                 <Button
-                  className="btn btn-sm reception-primary-btn"
+                  className="btn btn-sm btn-soft-primary"
                   outline={deskPanel !== "patient"}
                   onClick={() => setDeskPanel((current) => (current === "patient" ? null : "patient"))}
                 >
-                  New patient
+                  <i className="ri-user-add-line" aria-hidden="true" /> New patient
                 </Button>
                 <Button
-                  className="btn btn-sm reception-primary-btn"
+                  className="btn btn-sm btn-soft-primary"
                   outline={deskPanel !== "appointment"}
                   onClick={() => setDeskPanel((current) => (current === "appointment" ? null : "appointment"))}
                 >
-                  New appointment
+                  <i className="ri-calendar-check-line" aria-hidden="true" /> New appointment
                 </Button>
                 <Button
                   color="soft-warning"
@@ -323,7 +323,7 @@ const ReceptionHome = () => {
                     setDeskPanel("collect");
                   }}
                 >
-                  Collect payment
+                  <i className="ri-hand-coin-line" aria-hidden="true" /> Collect payment
                 </Button>
               </div>
             </CardBody></Card>
@@ -335,12 +335,12 @@ const ReceptionHome = () => {
                 <h5 className="mb-0">Queue</h5>
                 <Button
                   size="sm"
-                  className="reception-primary-btn"
+                  className="btn btn-sm btn-soft-primary"
                   onClick={callNext}
                   disabled={!doctorId || waitingCount === 0 || queueLoading}
                   data-testid="reception-call-next"
                 >
-                  Call next
+                  <i className="ri-phone-line" aria-hidden="true" /> Call next
                 </Button>
               </div>
               {queueLoading ? (
@@ -381,7 +381,7 @@ const ReceptionHome = () => {
                               setDeskPanel("collect");
                             }}
                           >
-                            Collect
+                            <i className="ri-hand-coin-line" aria-hidden="true" /> Collect
                           </Button>
                           <span
                             className="d-flex gap-1"
@@ -393,7 +393,7 @@ const ReceptionHome = () => {
                               disabled={isAppointmentCompleted(row.status || row.Status)}
                               onClick={() => setRescheduleRow(row)}
                             >
-                              Reschedule
+                              <i className="ri-calendar-event-line" aria-hidden="true" /> Reschedule
                             </Button>
                             <Button
                               size="sm"
@@ -401,7 +401,7 @@ const ReceptionHome = () => {
                               disabled={isAppointmentCompleted(row.status || row.Status)}
                               onClick={() => setCancelRow(row)}
                             >
-                              Cancel
+                              <i className="ri-close-circle-line" aria-hidden="true" /> Cancel
                             </Button>
                           </span>
                         </div>
@@ -420,7 +420,7 @@ const ReceptionHome = () => {
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <h5 className="mb-0">Collect at reception</h5>
                     <Button size="sm" color="link" className="p-0" type="button" onClick={() => { setDeskPanel(null); setReceipt(null); setIssuedReceipt(null); setCollectError(""); }}>
-                      Close
+                      <i className="ri-close-line" aria-hidden="true" /> Close
                     </Button>
                   </div>
                   <p className="text-muted small">
@@ -480,12 +480,12 @@ const ReceptionHome = () => {
                   />
                   <Button
                     type="button"
-                    className="reception-primary-btn mt-3"
+                    className="btn btn-sm btn-soft-primary mt-3"
                     disabled={collecting || !receipt.appointmentId}
                     onClick={submitCollect}
                     data-testid="reception-receipt-submit"
                   >
-                    {collecting ? "Collecting…" : receipt.method === "PAY_LINK" ? "Reserve pay link" : "Collect & print receipt"}
+                    <i className="ri-printer-line" aria-hidden="true" /> {collecting ? "Collecting…" : receipt.method === "PAY_LINK" ? "Reserve pay link" : "Collect & print receipt"}
                   </Button>
                   {issuedReceipt ? (
                     <div className="mt-3 border rounded p-3 bg-light" data-testid="reception-receipt-print">
@@ -509,10 +509,10 @@ const ReceptionHome = () => {
                       <Button
                         type="button"
                         size="sm"
-                        className="reception-primary-btn mt-2"
+                        className="btn btn-sm btn-soft-primary mt-2"
                         onClick={() => printReceiptWindow(issuedReceipt, receipt.method)}
                       >
-                        Print again
+                        <i className="ri-printer-line" aria-hidden="true" /> Print again
                       </Button>
                     </div>
                   ) : null}
@@ -523,7 +523,7 @@ const ReceptionHome = () => {
           {deskPanel === "patient" ? (
           <Col md={6} id="reception-new-patient">
             <Card className="admin-dash-card"><CardBody>
-              <h5>New patient</h5>
+              <h5 className="admin-form-title mb-2"><i className="ri-add-circle-line" aria-hidden="true" />New patient</h5>
               <p className="text-muted small">Register a walk-in. They appear in search for booking and case paper.</p>
               <ReceptionNewPatientForm
                 onCreated={(created) => {
@@ -537,7 +537,7 @@ const ReceptionHome = () => {
           {deskPanel === "appointment" ? (
           <Col lg={8} id="reception-assisted">
             <Card className="admin-dash-card"><CardBody>
-              <h5>New appointment</h5>
+              <h5 className="admin-form-title mb-2"><i className="ri-add-circle-line" aria-hidden="true" />New appointment</h5>
               <p className="text-muted small">
                 Search the patient by name or mobile, then pick a date and an open slot. Payment stays at the desk.
               </p>
@@ -664,7 +664,7 @@ const UpdateAppointmentTimeModal = ({ isOpen, toggle, doctorId, patientAppId, ap
 
   return (
     <Modal isOpen={isOpen} toggle={toggle} centered>
-      <ModalHeader toggle={toggle}>Update appointment time</ModalHeader>
+      <ModalHeader toggle={toggle}><i className="ri-edit-line" aria-hidden="true" />Update appointment time</ModalHeader>
       <ModalBody>
         <p className="text-muted small">
           This changes the time on the same day only. It does not notify the patient. Reschedule on the queue is the path that notifies them.
@@ -682,7 +682,7 @@ const UpdateAppointmentTimeModal = ({ isOpen, toggle, doctorId, patientAppId, ap
       </ModalBody>
       <ModalFooter>
         <Button color="primary" disabled={busy || !time} onClick={save}>
-          {busy ? "Saving…" : "Update time"}
+          <i className="ri-time-line" aria-hidden="true" /> {busy ? "Saving…" : "Update time"}
         </Button>
       </ModalFooter>
     </Modal>

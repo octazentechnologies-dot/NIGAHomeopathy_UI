@@ -190,22 +190,14 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page support-workspace-page">
       <Container fluid>
-        <div className="support-workspace-page__header mb-3">
-          <div>
-            <h2 className="clinic-page-title mb-1 d-flex align-items-center gap-2">
-              <i className="ri-question-answer-line" style={{ color: "#25a0e2", fontSize: 22 }} aria-hidden="true" />
-              {isAdmin ? "Support tickets" : "My support tickets"}
-            </h2>
-            <p className="clinic-page-subtitle mb-0">
-              {isAdmin
-                ? "Review clinic issues, update status and priority, and reply in the thread."
-                : "Open a ticket and follow the thread with clinic staff."}
-            </p>
-          </div>
+        <div className="support-workspace-page__header">
+          <h2 className="clinic-page-title">
+            <i className="ri-question-answer-line" aria-hidden="true" />
+            {isAdmin ? "Support tickets" : "My support tickets"}
+          </h2>
           <div className="patient-list-modal__search support-workspace-page__search">
             <i className="ri-search-line patient-list-modal__search-icon" aria-hidden="true" />
             <Input
-              size="sm"
               type="text"
               placeholder="Search tickets..."
               value={search}
@@ -218,10 +210,10 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
         {note ? <Alert color="success" className="py-2 small">{note}</Alert> : null}
 
         {!isAdmin ? (
-          <Card className="admin-dash-card mb-3">
+          <Card className="admin-dash-card mb-0 support-workspace-page__create-card">
             <CardBody>
               <Row className="g-2 align-items-end">
-                <Col md={2}>
+                <Col sm={6} lg={2}>
                   <Label className="mb-1">Category</Label>
                   <Input
                     type="select"
@@ -235,7 +227,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                     ))}
                   </Input>
                 </Col>
-                <Col md={3}>
+                <Col sm={6} lg={3}>
                   <Label className="mb-1">Subject</Label>
                   <Input
                     value={form.subject}
@@ -243,7 +235,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                     placeholder="Short subject"
                   />
                 </Col>
-                <Col md={5}>
+                <Col sm={12} lg>
                   <Label className="mb-1">Details</Label>
                   <Input
                     value={form.description}
@@ -251,10 +243,10 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                     placeholder="Describe the issue"
                   />
                 </Col>
-                <Col md={2}>
+                <Col xs="auto" className="support-workspace-page__create">
                   <button
                     type="button"
-                    className="btn clinic-primary-btn w-100"
+                    className="btn btn-sm btn-soft-primary"
                     onClick={createMineTicket}
                     disabled={creating}
                   >
@@ -269,7 +261,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
 
         <Card className="admin-dash-card support-workspace-page__card">
           <CardBody>
-            <div className="support-tickets-modal__toolbar mb-3">
+            <div className="support-tickets-modal__toolbar support-workspace-page__toolbar">
               <div className="support-tickets-modal__tabs" role="tablist">
                 {STATUS_TABS.map((tab) => (
                   <button
@@ -345,14 +337,12 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-hashtag" aria-hidden="true" />
                         Ticket ID
                       </span>
                     </th>
                     {isAdmin ? (
                       <th scope="col">
                         <span className="patient-list-modal__th">
-                          <i className="ri-user-line" aria-hidden="true" />
                           Name
                         </span>
                       </th>
@@ -360,44 +350,37 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                     {isAdmin ? (
                       <th scope="col">
                         <span className="patient-list-modal__th">
-                          <i className="ri-mail-line" aria-hidden="true" />
                           Email
                         </span>
                       </th>
                     ) : null}
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-file-text-line" aria-hidden="true" />
                         Subject
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-folder-line" aria-hidden="true" />
                         Category
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-flag-line" aria-hidden="true" />
                         Priority
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-time-line" aria-hidden="true" />
                         Received
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-timer-line" aria-hidden="true" />
                         SLA
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-checkbox-circle-line" aria-hidden="true" />
                         Status
                       </span>
                     </th>
@@ -481,7 +464,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
               </table>
             </div>
 
-            <div className="d-flex align-items-center justify-content-between patient-list-modal__footer mt-3">
+            <div className="d-flex align-items-center justify-content-between patient-list-modal__footer support-workspace-page__footer">
               <div className="text-muted patient-list-modal__footer-text">
                 {`Showing ${pageItems.length} of ${filtered.length} Tickets ${
                   hasFilters ? `(filtered from ${tickets.length} total)` : `(from ${tickets.length} total)`

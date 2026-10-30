@@ -32,7 +32,7 @@ const HelpAdminPage = () => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Publish help article</h2>
+        <h2 className="clinic-page-title"><i className="ri-article-line" aria-hidden="true" />Publish help article</h2>
         <p className="clinic-page-subtitle">Public help centre reads published articles from /help.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
@@ -52,8 +52,8 @@ const HelpAdminPage = () => {
               />
               Published
             </Label>
-            <Button className="mt-2 clinic-primary-btn" onClick={save}>
-              Save
+            <Button className="btn btn-sm btn-soft-primary mt-2" onClick={save}>
+              <i className="ri-save-line" aria-hidden="true" /> Save
             </Button>
           </CardBody>
         </Card>

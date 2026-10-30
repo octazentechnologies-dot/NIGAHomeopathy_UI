@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useHiddenSearchParams } from "../../../helpers/hiddenRouteParams";
-import { Alert, Card, CardBody, Col, Container, Input, Row, Spinner } from "reactstrap";
+import { Alert, Card, CardBody, Container, Input, Spinner } from "reactstrap";
 import Swal from "sweetalert2";
 import moment from "moment"; 
 
@@ -530,7 +530,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
       <Container fluid>
         <div className="erx-page__header">
           <div>
-            {!embedded ? <h2 className="clinic-page-title mb-1">Digital Prescription</h2> : null}
+            {!embedded ? <h2 className="clinic-page-title mb-1"><i className="ri-file-list-3-line" aria-hidden="true" />Digital Prescription</h2> : null}
             <p className={`clinic-page-subtitle mb-0 ${embedded ? "mt-0" : ""}`}>
               {lockVisit
                 ? "Prescription for this consultation only. Complete fields, then Sign & download PDF."
@@ -546,7 +546,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
               </span>
               <button
                 type="button"
-                className="btn btn-sm erx-btn erx-btn--primary"
+                className="btn btn-sm btn-soft-secondary"
                 disabled={loading || !patientAppId}
                 onClick={() => load(patientAppId)}
               >
@@ -593,7 +593,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                   if (e.key === "Enter") load();
                 }}
               />
-              <button type="button" className="btn btn-sm erx-btn erx-btn--primary" disabled={loading || !patientAppId} onClick={() => load()}>
+              <button type="button" className="btn btn-sm btn-soft-primary" disabled={loading || !patientAppId} onClick={() => load()}>
                 {loading ? <Spinner size="sm" /> : <i className="ri-refresh-line" aria-hidden="true" />}
                 Load
               </button>
@@ -654,8 +654,8 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
           </div>
         ) : null}
 
-        <Row className="g-2">
-          <Col xl={8}>
+        <div className="erx-board">
+          <div className="erx-board__rx">
             <ErxCard
               icon="ri-capsule-line"
               title="Prescription & Dosage"
@@ -727,7 +727,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                               <td className="text-end">
                                 <button
                                   type="button"
-                                  className="btn btn-sm erx-btn erx-btn--soft"
+                                  className="btn btn-sm btn-soft-secondary"
                                   disabled={savingLineId === lineIdOf(row)}
                                   onClick={() => saveLine(row)}
                                 >
@@ -744,9 +744,9 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 </div>
               )}
             </ErxCard>
-          </Col>
+          </div>
 
-          <Col xl={4} md={6}>
+          <div className="erx-board__sign">
             <ErxCard icon="ri-quill-pen-line" title="Sign Prescription">
               <div className="erx-sign">
                 <div className={`erx-sign__pad${isLocked ? " is-signed" : ""}`}>
@@ -791,7 +791,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                     </span>
                     <button
                       type="button"
-                      className="btn erx-btn erx-btn--primary w-100 mt-2"
+                      className="btn btn-sm btn-soft-primary w-100 mt-2"
                       disabled={!erxId || downloading}
                       onClick={onDownload}
                     >
@@ -805,7 +805,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 ) : (
                   <button
                     type="button"
-                    className="btn erx-btn erx-btn--primary w-100"
+                    className="btn btn-sm btn-soft-primary w-100"
                     disabled={!visitLoaded || !canSign}
                     onClick={onSign}
                   >
@@ -820,9 +820,9 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 </p>
               </div>
             </ErxCard>
-          </Col>
+          </div>
 
-          <Col xl={4} md={6}>
+          <div className="erx-board__third">
             <ErxCard icon="ri-sticky-note-line" title="Clinical Notes">
               <div className="erx-empty erx-empty--sm">
                 <i className="ri-lock-line" aria-hidden="true" />
@@ -833,9 +833,9 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 Patient / pharmacy prescription shows remedies and dosage only.
               </p>
             </ErxCard>
-          </Col>
+          </div>
 
-          <Col xl={4} md={6}>
+          <div className="erx-board__third">
             <ErxCard icon="ri-file-shield-2-line" title="Prescription Record">
               {isLocked ? (
                 <div className="erx-record">
@@ -865,9 +865,9 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 </div>
               )}
             </ErxCard>
-          </Col>
+          </div>
 
-          <Col xl={4} md={6}>
+          <div className="erx-board__third">
             <ErxCard icon="ri-printer-line" title="Print / Download Prescription">
               <div className="erx-actions">
                 <button
@@ -895,10 +895,10 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 Print and Download use the same signed <FormatBadge /> · Available after Sign · No clinical notes on the sheet.
               </p>
             </ErxCard>
-          </Col>
+          </div>
 
           {!lockVisit ? (
-          <Col xl={6}>
+          <div className="erx-board__half">
             <ErxCard
               icon="ri-history-line"
               title="Prescription History"
@@ -938,7 +938,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                         {signed ? (
                           <button
                             type="button"
-                            className="btn btn-sm erx-btn erx-btn--soft"
+                            className="btn btn-sm btn-soft-secondary"
                             disabled={downloadingHistoryId === pick(row, "erxSnapshotId", "ErxSnapshotId")}
                             title={`Download ${ERX_DOWNLOAD_FORMAT}`}
                             onClick={() => onDownloadHistory(row)}
@@ -953,7 +953,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                         ) : (
                           <button
                             type="button"
-                            className="btn btn-sm erx-btn erx-btn--primary"
+                            className="btn btn-sm btn-soft-primary"
                             onClick={() => openFromHistory(row)}
                             title="Open visit to Sign"
                           >
@@ -961,7 +961,7 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                             Sign
                           </button>
                         )}
-                        <button type="button" className="btn btn-sm erx-btn erx-btn--soft" onClick={() => openFromHistory(row)}>
+                        <button type="button" className="btn btn-sm btn-soft-secondary" onClick={() => openFromHistory(row)}>
                           View
                         </button>
                       </li>
@@ -970,11 +970,11 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 </ul>
               )}
             </ErxCard>
-          </Col>
+          </div>
           ) : null}
 
           {!lockVisit ? (
-          <Col xl={6}>
+          <div className="erx-board__half">
             <ErxCard
               icon="ri-inbox-line"
               title="eRx Inbox"
@@ -1049,9 +1049,9 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 </ul>
               )}
             </ErxCard>
-          </Col>
+          </div>
           ) : null}
-        </Row>
+        </div>
       </Container>
     </div>
   );

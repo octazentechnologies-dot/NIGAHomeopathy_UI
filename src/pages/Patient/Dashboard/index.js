@@ -122,14 +122,14 @@ const PatientDashboard = () => {
             <Col>
               <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div>
-                  <h2 className="patient-page-title mb-0">Patient dashboard</h2>
+                  <h2 className="patient-page-title mb-0"><i className="ri-dashboard-2-line" aria-hidden="true" />Patient dashboard</h2>
                   <p className="patient-page-subtitle mb-0">
                     Your visits, payments, prescriptions and medicine orders at a glance.
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-sm patient-refresh-btn"
+                  className="btn btn-sm btn-soft-secondary"
                   onClick={load}
                   disabled={loading}
                   title="Refresh"

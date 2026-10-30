@@ -63,7 +63,7 @@ const AddDiagnosisSystem = () => {
                 >
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">New Diagnosis System</h5>
+                      <h5 className="admin-form-title"><i className="ri-add-circle-line" aria-hidden="true" />New Diagnosis System</h5>
                     </div>
                   </CardHeader>
 

@@ -194,7 +194,7 @@ const NotificationsPage = () => {
         <div className="ntf-page">
           <div className="ntf-page__head">
             <div>
-              <h2 className="clinic-page-title mb-1">Notifications</h2>
+              <h2 className="clinic-page-title"><i className="ri-notification-3-line" aria-hidden="true" />Notifications</h2>
               <p className="clinic-page-subtitle mb-0">Alerts and updates sent to your account.</p>
             </div>
           </div>
@@ -203,7 +203,7 @@ const NotificationsPage = () => {
             <div className="alert alert-danger d-flex align-items-center justify-content-between py-2">
               <span>{error}</span>
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={load}>
-                Retry
+                <i className="ri-refresh-line" aria-hidden="true" /> Retry
               </button>
             </div>
           ) : null}
@@ -225,20 +225,21 @@ const NotificationsPage = () => {
             </div>
             <button
               type="button"
-              className="ntf-mark-all"
+              className="btn btn-sm btn-soft-primary"
               onClick={markAll}
               disabled={!unreadCount || busy}
             >
+              <i className="ri-check-double-line" aria-hidden="true" />
               Mark all as read
             </button>
           </div>
 
           {prefs ? (
-            <div className="admin-dash-card p-3 mb-3">
-              <h5 className="mb-2">Notification preferences</h5>
+            <div className="admin-dash-card ntf-prefs">
+              <h5 className="ntf-prefs__title">Notification preferences</h5>
               {prefsNote ? <div className="text-success small mb-2">{prefsNote}</div> : null}
               {prefsError ? <div className="text-danger small mb-2">{prefsError}</div> : null}
-              <Row className="g-2">
+              <Row className="g-2 ntf-prefs__grid">
                 {[
                   ["pushEnabled", "Push"],
                   ["smsEnabled", "SMS"],
@@ -291,7 +292,8 @@ const NotificationsPage = () => {
                   />
                 </Col>
                 <Col md={2} sm={12} className="d-flex align-items-end">
-                  <Button color="primary" className="w-100" disabled={busy} onClick={savePrefs}>
+                  <Button color="primary" className="btn btn-sm btn-soft-primary ntf-prefs__save" disabled={busy} onClick={savePrefs}>
+                    <i className="ri-save-line" aria-hidden="true" />
                     {busy ? "Saving…" : "Save"}
                   </Button>
                 </Col>

@@ -539,9 +539,9 @@
             }
 
             .page-item.active .page-link {
-                background-color: #25a0e2 !important;
-                border-color: #25a0e2 !important;
-                color: #ffffff !important;
+                background-color: #e8f5ff !important;
+                border-color: #cfe9ff !important;
+                color: #25a0e2 !important;
             }
 
             .page-item:not(.active):not(.disabled) .page-link:hover {
@@ -564,14 +564,31 @@
     }
 
     &.subscription-plan-modal {
+        .modal-body {
+            padding-top: 0.3rem !important;
+        }
+
         .subscription-plan-modal__content-wrap {
-            padding: 0.75rem;
+            padding: 0 0.35rem 0.15rem;
             overflow: visible;
+            border: none !important;
+            border-radius: 0;
+            background: transparent;
         }
 
         .subscription-plan-row {
             padding: 0;
         }
+    }
+}
+
+body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
+    .modal-header {
+        padding-bottom: 0.4rem !important;
+    }
+
+    .modal-body {
+        padding-top: 0.25rem !important;
     }
 }
 
@@ -598,15 +615,22 @@
         opacity: 0.55;
     }
 
+    .modal-content {
+        height: auto;
+    }
+
     .modal-footer {
-        border-top: 1px solid #e9ecef;
-        padding: 0.5rem;
-        gap: 0.5rem;
+        flex: 0 0 auto;
+        margin-top: 0 !important;
+        border-top: 1px solid #eef2f6;
+        padding: 0.4rem 0.65rem !important;
+        gap: 0.4rem;
         background: #fff;
     }
 
     .modal-body {
-        padding: 0.65rem 0.85rem 0.75rem;
+        flex: 0 0 auto !important;
+        padding: 0.45rem 0.65rem 0.3rem !important;
     }
 
     &__title {
@@ -667,10 +691,10 @@
     }
 
     &__fields {
-        --bs-gutter-x: 0.5rem;
-        --bs-gutter-y: 0.45rem;
+        --bs-gutter-x: 0.45rem;
+        --bs-gutter-y: 0.35rem;
 
-        .form-control {
+        .form-control:not(textarea) {
             border-radius: 8px;
             border-color: #e2ebf3;
             min-height: var(--app-form-field-height, 1.75rem);
@@ -688,6 +712,30 @@
             &.is-invalid {
                 border-color: #dc3545 !important;
                 padding-right: calc(1.5em + 0.55rem);
+
+                &:focus {
+                    border-color: #dc3545 !important;
+                    box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.15);
+                }
+            }
+        }
+
+        textarea.form-control {
+            border-radius: 8px;
+            border-color: #e2ebf3;
+            height: auto;
+            min-height: 2.6rem;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.32rem !important;
+            line-height: 1.35 !important;
+
+            &:focus {
+                border-color: #93c5fd;
+                box-shadow: none;
+            }
+
+            &.is-invalid {
+                border-color: #dc3545 !important;
 
                 &:focus {
                     border-color: #dc3545 !important;
@@ -834,7 +882,7 @@
         background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
         border-color: #e2ebf3 !important;
         border-radius: 10px !important;
-        margin-top: 0.5rem !important;
+        margin-top: 0.15rem !important;
         margin-bottom: 0 !important;
         padding: 0.45rem 0.65rem !important;
     }
@@ -852,6 +900,10 @@
             line-height: 1;
         }
     }
+}
+
+.doctor-new-patient-modal .modal-dialog {
+    max-width: 760px;
 }
 
 .new-appointment-modal {
@@ -875,6 +927,22 @@
         padding: 0.12rem !important;
         background-size: 0.7rem !important;
         opacity: 0.55;
+    }
+
+    .modal-body {
+        padding: 0.5rem 0.7rem 0.4rem !important;
+    }
+
+    .modal-footer {
+        margin: 0.35rem -0.7rem -0.4rem !important;
+        padding: 0.4rem 0.7rem !important;
+        gap: 0.4rem;
+        border-top: 1px solid #eef2f6;
+        background: #fff;
+    }
+
+    &__alerts {
+        margin-bottom: 0.45rem;
     }
 
     &__title {
@@ -925,7 +993,7 @@
         font-size: 0.6875rem;
         font-weight: 600;
         color: #334155;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.22rem;
 
         > i {
             font-size: 0.8125rem;
@@ -969,14 +1037,14 @@
 
     &__slots {
         border: 1px solid #e2ebf3;
-        border-radius: 12px;
-        padding: 14px 16px;
+        border-radius: 10px;
+        padding: 0.45rem 0.6rem 0.4rem;
         background: linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        box-shadow: none;
     }
 
     &__slots-header {
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.3rem;
     }
 
     &__empty {
@@ -1045,8 +1113,8 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        margin-top: 0.75rem;
-        font-size: 0.8125rem;
+        margin-top: 0.35rem;
+        font-size: 0.6875rem;
         color: #64748b;
         font-weight: 500;
 
@@ -1416,7 +1484,7 @@
     &__avatars {
         display: flex;
         align-items: center;
-        padding-left: 4px;
+        gap: 0.35rem;
     }
 
     &__avatar {
@@ -1425,7 +1493,7 @@
         justify-content: center;
         width: 32px;
         height: 32px;
-        margin-left: -8px;
+        margin-left: 0;
         border-radius: 50%;
         border: 2px solid var(--vz-header-bg, #fff);
         color: #fff;
@@ -1433,11 +1501,8 @@
         font-weight: 700;
         line-height: 1;
         text-decoration: none;
+        flex-shrink: 0;
         transition: transform 0.15s ease, box-shadow 0.15s ease;
-
-        &:first-child {
-            margin-left: 0;
-        }
 
         &:hover,
         &:focus {
@@ -2348,6 +2413,169 @@ body.admin-mobile-topbar {
       background: #94a3b8;
       border-color: #64748b;
     }
+  }
+}
+
+.doctor-schedule-calendar--compact {
+  gap: 0.45rem;
+
+  .doctor-schedule-calendar__nav-btn,
+  .doctor-schedule-calendar__nav-btn--sm {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 6px;
+
+    i {
+      font-size: 1rem;
+    }
+  }
+
+  .doctor-schedule-calendar__range {
+    font-size: 0.8rem;
+    letter-spacing: -0.01em;
+  }
+
+  .doctor-schedule-calendar__days {
+    gap: 0.15rem;
+  }
+
+  .doctor-schedule-calendar__day-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    min-height: 2.35rem;
+    padding: 0.2rem 0.1rem;
+    border-radius: 8px;
+    line-height: 1.1;
+  }
+
+  .doctor-schedule-calendar__day-name {
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  .doctor-schedule-calendar__day-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: inherit;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
+  .doctor-schedule-calendar__day-btn.is-selected {
+    background: #eaf5fd;
+    color: #0b5cab;
+    box-shadow: inset 0 0 0 1px #cfe3f7;
+
+    .doctor-schedule-calendar__day-name,
+    .doctor-schedule-calendar__day-num {
+      color: #0b5cab;
+      border: 0;
+    }
+  }
+
+  .doctor-schedule-calendar__meta {
+    font-size: 0.68rem;
+    padding-top: 0.05rem;
+  }
+
+  .doctor-schedule-calendar__summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.3rem;
+  }
+
+  .doctor-schedule-calendar__summary span {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+    min-width: 0;
+    padding: 0.28rem 0.4rem;
+    border-radius: 6px;
+    border: 1px solid #e8eef4;
+    background: #f8fafc;
+    font-size: 0.58rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: #64748b;
+    text-transform: capitalize;
+  }
+
+  .doctor-schedule-calendar__summary strong {
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #0f172a;
+  }
+
+  .doctor-schedule-calendar__summary .is-available {
+    background: #f3fbf6;
+    border-color: #d7f0e1;
+  }
+
+  .doctor-schedule-calendar__summary .is-booked {
+    background: #fff6f3;
+    border-color: #fde0d6;
+  }
+
+  .doctor-schedule-calendar__summary .is-break {
+    background: #f4f8ff;
+    border-color: #dbe7fb;
+  }
+
+  .doctor-schedule-calendar__grid-wrap {
+    border-radius: 8px;
+    max-height: min(46vh, 360px);
+  }
+
+  .doctor-schedule-calendar__day-list {
+    gap: 0.28rem;
+    padding: 0.4rem;
+  }
+
+  .doctor-schedule-calendar__day-row {
+    grid-template-columns: 4.35rem minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+
+  .doctor-schedule-calendar__hour {
+    justify-content: flex-start;
+    font-size: 0.65rem;
+    color: #475569;
+  }
+
+  .doctor-schedule-calendar__cell,
+  .doctor-schedule-calendar__slot,
+  .doctor-schedule-calendar__slot--empty {
+    min-height: 1.7rem;
+  }
+
+  .doctor-schedule-calendar__slot {
+    border-radius: 6px;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+
+  .doctor-schedule-calendar__slot--past {
+    background: #f8fafc;
+    color: #94a3b8;
+    border-color: #eef2f6;
+    font-weight: 500;
+  }
+
+  .doctor-schedule-calendar__legend {
+    gap: 0.55rem 0.75rem;
+  }
+
+  .doctor-schedule-calendar__legend-item {
+    font-size: 0.65rem;
   }
 }
 

@@ -941,43 +941,42 @@
 .reception-page-title {
   margin: 0;
   color: #000 !important;
-  font-size: 1.35rem;
+  font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 .reception-page-subtitle {
-  margin: 0;
-  color: var(--reception-muted);
-  font-size: 0.95rem;
-  font-weight: 500;
+  display: none;
 }
 
 .reception-primary-btn {
-  --bs-btn-color: #fff !important;
-  --bs-btn-bg: var(--reception-blue) !important;
-  --bs-btn-border-color: var(--reception-blue) !important;
-  --bs-btn-hover-color: #fff !important;
-  --bs-btn-hover-bg: var(--reception-blue-hover) !important;
-  --bs-btn-hover-border-color: var(--reception-blue-hover) !important;
-  --bs-btn-active-color: #fff !important;
-  --bs-btn-active-bg: var(--reception-blue-hover) !important;
-  --bs-btn-active-border-color: var(--reception-blue-hover) !important;
-  background-color: var(--reception-blue) !important;
-  border-color: var(--reception-blue) !important;
-  color: #fff !important;
+  --bs-btn-color: #25a0e2 !important;
+  --bs-btn-bg: #e8f5ff !important;
+  --bs-btn-border-color: #cfe9ff !important;
+  --bs-btn-hover-color: #1a8bc9 !important;
+  --bs-btn-hover-bg: #d6eeff !important;
+  --bs-btn-hover-border-color: #b3dbff !important;
+  --bs-btn-active-color: #1a8bc9 !important;
+  --bs-btn-active-bg: #d6eeff !important;
+  --bs-btn-active-border-color: #b3dbff !important;
+  background-color: #e8f5ff !important;
+  border-color: #cfe9ff !important;
+  color: #25a0e2 !important;
   font-weight: 600;
-  border-radius: 0.25rem;
-  padding: 0.45rem 1rem;
+  border-radius: 4px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
   box-shadow: none !important;
 }
 
 .reception-primary-btn:hover,
 .reception-primary-btn:focus,
 .reception-primary-btn:active {
-  background-color: var(--reception-blue-hover) !important;
-  border-color: var(--reception-blue-hover) !important;
-  color: #fff !important;
+  background-color: #d6eeff !important;
+  border-color: #b3dbff !important;
+  color: #1a8bc9 !important;
 }
 
 .assisted-date-picker {

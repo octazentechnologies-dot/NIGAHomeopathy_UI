@@ -11,43 +11,61 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem 1rem;
-    margin-bottom: 0.85rem;
+    margin-top: 0;
+    margin-bottom: 0.3rem;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+    box-sizing: border-box;
+  }
+
+  /* Same heading height with or without buttons beside the title */
+  .clinic-page-header,
+  .erx-page__header,
+  .drp-page__head,
+  .support-workspace-page__header,
+  > .container-fluid > .clinic-page-title {
+    min-height: 2rem;
+    box-sizing: border-box;
+  }
+
+  > .container-fluid > .clinic-page-title {
+    display: flex;
+    align-items: center;
   }
 
   .clinic-page-title {
     margin: 0;
     color: #000 !important;
-    font-size: 1.35rem;
+    font-size: 0.9rem;
     font-weight: 700;
     letter-spacing: 0.01em;
   }
 
   .clinic-page-subtitle {
-    margin: 0.15rem 0 0;
-    color: var(--clinic-muted);
-    font-size: 0.95rem;
-    font-weight: 500;
+    display: none;
   }
 
   .clinic-primary-btn {
-    --bs-btn-color: #fff !important;
-    --bs-btn-bg: var(--clinic-blue) !important;
-    --bs-btn-border-color: var(--clinic-blue) !important;
-    --bs-btn-hover-color: #fff !important;
-    --bs-btn-hover-bg: var(--clinic-blue-hover) !important;
-    --bs-btn-hover-border-color: var(--clinic-blue-hover) !important;
-    --bs-btn-active-color: #fff !important;
-    --bs-btn-active-bg: var(--clinic-blue-hover) !important;
-    --bs-btn-active-border-color: var(--clinic-blue-hover) !important;
+    --bs-btn-color: #25a0e2 !important;
+    --bs-btn-bg: #e8f5ff !important;
+    --bs-btn-border-color: #cfe9ff !important;
+    --bs-btn-hover-color: #1a8bc9 !important;
+    --bs-btn-hover-bg: #d6eeff !important;
+    --bs-btn-hover-border-color: #b3dbff !important;
+    --bs-btn-active-color: #1a8bc9 !important;
+    --bs-btn-active-bg: #d6eeff !important;
+    --bs-btn-active-border-color: #b3dbff !important;
     display: inline-flex !important;
     align-items: center;
     gap: 0.25rem;
-    background-color: var(--clinic-blue) !important;
-    border-color: var(--clinic-blue) !important;
-    color: #fff !important;
+    background-color: #e8f5ff !important;
+    border-color: #cfe9ff !important;
+    color: #25a0e2 !important;
     font-weight: 600;
-    border-radius: 0.35rem;
-    padding: 0.4rem 0.9rem;
+    border-radius: 4px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.6875rem;
+    line-height: 1.2;
     box-shadow: none !important;
     white-space: nowrap;
   }
@@ -55,9 +73,9 @@
   .clinic-primary-btn:hover,
   .clinic-primary-btn:focus,
   .clinic-primary-btn:active {
-    background-color: var(--clinic-blue-hover) !important;
-    border-color: var(--clinic-blue-hover) !important;
-    color: #fff !important;
+    background-color: #d6eeff !important;
+    border-color: #b3dbff !important;
+    color: #1a8bc9 !important;
   }
 
   .clinic-table-actions {
@@ -242,6 +260,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem 1rem;
-    margin-bottom: 0.85rem;
+    margin-top: 0;
+    margin-bottom: 0.3rem;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+    box-sizing: border-box;
   }
 }

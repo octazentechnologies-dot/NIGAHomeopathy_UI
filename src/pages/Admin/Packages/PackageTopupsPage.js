@@ -69,7 +69,7 @@ const PackageTopupsPage = () => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Package top-ups</h2>
+        <h2 className="clinic-page-title"><i className="ri-stack-line" aria-hidden="true" />Package top-ups</h2>
         <p className="clinic-page-subtitle">Extra case packs sold on top of a package.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
@@ -78,7 +78,7 @@ const PackageTopupsPage = () => {
             <Col md={4}><Label>Name</Label><Input value={form.packageTopupName} onChange={(e) => setForm({ ...form, packageTopupName: e.target.value })} /></Col>
             <Col md={3}><Label>Case count</Label><Input type="number" min="1" value={form.caseCount} onChange={(e) => setForm({ ...form, caseCount: e.target.value })} /></Col>
             <Col md={3}><Label>Amount</Label><Input type="number" min="0" step="0.01" value={form.topupAmount} onChange={(e) => setForm({ ...form, topupAmount: e.target.value })} /></Col>
-            <Col md={2}><Button color="primary" disabled={busy || !form.packageTopupName.trim()} onClick={save}>Save</Button></Col>
+            <Col md={2}><Button color="primary" disabled={busy || !form.packageTopupName.trim()} onClick={save}><i className="ri-save-line" aria-hidden="true" /> Save</Button></Col>
           </Row>
         </CardBody></Card>
         {loading ? <Spinner size="sm" /> : null}

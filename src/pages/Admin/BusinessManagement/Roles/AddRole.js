@@ -87,7 +87,7 @@ const AddRole = () => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">New Role</h5>
+                      <h5 className="admin-form-title"><i className="ri-add-circle-line" aria-hidden="true" />New Role</h5>
                     </div>
                   </CardHeader>
 

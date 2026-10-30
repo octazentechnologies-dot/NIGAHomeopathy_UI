@@ -18,6 +18,7 @@ import {
 } from '../../helpers/realbackend_helper';
 import { PROFILE_PHOTO_CHANGED_EVENT } from '../../helpers/profilePhotoEvents';
 import { setCounts } from '../../slices/doctor/dashboard/reducer';
+import './profileMenu.css';
 
 const readOnlineFlag = (source) => {
     const value = source?.isOnline ?? source?.IsOnline;
@@ -59,6 +60,13 @@ const formatNameToInitials = (fullName) => {
     return `${lastInitial} ${givenNames}`;
 };
 
+const toTitleCase = (value) =>
+    String(value || '')
+        .toLowerCase()
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const prettyRole = (value) => String(value || '').replace(/([a-z])([A-Z])/g, '$1 $2');
+
 const ProfileDropdown = () => {
     const dispatch = useDispatch();
     const dashboardCounts = useSelector((state) => state?.DoctorDashboard?.counts);
@@ -79,7 +87,7 @@ const ProfileDropdown = () => {
         const fullName = buildFullName(source);
         const loginName = pickNamePart(source?.userName, source?.UserName, loginFallback);
         setUserName(loginName);
-        setWelcomeName((fullName || loginName || 'USER').toUpperCase());
+        setWelcomeName(toTitleCase(fullName || loginName || 'User'));
         setDisplayName(
             pickNamePart(source?.displayName, source?.DisplayName) ||
                 formatNameToInitials(fullName || loginName) ||
@@ -227,7 +235,7 @@ const ProfileDropdown = () => {
         ? 'Receptionist'
         : actingForName
           ? `Caregiver · ${actingForName}`
-          : userRole;
+          : prettyRole(userRole);
     const toggleProfileDropdown = () => {
         setIsProfileDropdown(!isProfileDropdown);
     };
@@ -334,11 +342,11 @@ const ProfileDropdown = () => {
                         </span>
                     </span>
                 </DropdownToggle>
-                <DropdownMenu className="dropdown-menu-end">
-                    <h6 className="dropdown-header mb-0">Welcome {welcomeName || 'USER'}!</h6>
-                    <div className="dropdown-header pt-0 pb-2">
-                        <div className="fw-medium text-body">{displayName || 'User'}</div>
-                        {roleLabel ? <div className="fs-12 text-muted">{roleLabel}</div> : null}
+                <DropdownMenu className="dropdown-menu-end profile-menu">
+                    <div className="profile-menu__intro">
+                        <p className="profile-menu__welcome">Welcome {welcomeName || 'User'}!</p>
+                        <p className="profile-menu__name">{displayName || 'User'}</p>
+                        {roleLabel ? <span className="profile-menu__role">{roleLabel}</span> : null}
                     </div>
                     {isDoctor ? (
                         <>
@@ -403,26 +411,24 @@ const ProfileDropdown = () => {
                         </>
                     ) : null}
                     <DropdownItem className="p-0">
-                        <Link to="/profile" className="dropdown-item">
-                            <i className="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
-                            <span className="align-middle">Profile</span>
+                        <Link to="/profile" className="dropdown-item profile-menu__link">
+                            <i className="mdi mdi-account-circle" aria-hidden="true"></i>
+                            <span>Profile</span>
                         </Link>
                     </DropdownItem>
                     <div className="dropdown-divider"></div>
                     {isDoctor ? (
                         <DropdownItem className="p-0">
-                            <button type="button" className="dropdown-item" onClick={handleOpenBilling}>
-                                <i className="mdi mdi-receipt-text-outline text-muted fs-16 align-middle me-1"></i>
-                                <span className="align-middle">Billing</span>
+                            <button type="button" className="dropdown-item profile-menu__link" onClick={handleOpenBilling}>
+                                <i className="mdi mdi-receipt-text-outline" aria-hidden="true"></i>
+                                <span>Billing</span>
                             </button>
                         </DropdownItem>
                     ) : null}
                     <DropdownItem className="p-0">
-                        <Link to="/logout" className="dropdown-item">
-                            <i className="mdi mdi-logout text-muted fs-16 align-middle me-1"></i>{' '}
-                            <span className="align-middle" data-key="t-logout">
-                                Logout
-                            </span>
+                        <Link to="/logout" className="dropdown-item profile-menu__link profile-menu__link--logout">
+                            <i className="mdi mdi-logout" aria-hidden="true"></i>
+                            <span data-key="t-logout">Logout</span>
                         </Link>
                     </DropdownItem>
                 </DropdownMenu>

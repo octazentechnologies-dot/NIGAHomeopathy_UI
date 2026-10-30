@@ -402,7 +402,7 @@ const TopSellers = () => {
                             className="doctor-dashboard-create-new-btn text-truncate mb-0 flex-shrink-0"
                             onClick={openModal}
                         >
-                            <i className="mdi mdi-bell-plus me-1 align-middle" />
+                            <i className="ri-notification-3-line" aria-hidden="true" />
                             Create New
                         </Button>
                     </CardHeader>

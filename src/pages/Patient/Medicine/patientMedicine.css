@@ -114,9 +114,10 @@
 
 .med-refill-banner__btn {
   flex-shrink: 0;
-  height: 32px !important;
-  padding: 0 0.85rem !important;
-  font-size: 0.75rem !important;
+  height: auto !important;
+  padding: 0.3rem 0.65rem !important;
+  font-size: 0.6875rem !important;
+  line-height: 1.2 !important;
 }
 
 @media (max-width: 575.98px) {
@@ -599,8 +600,10 @@
 /* Buttons */
 .med-block-btn {
   width: 100%;
-  height: 32px !important;
-  font-size: 0.78rem !important;
+  height: auto !important;
+  padding: 0.3rem 0.65rem !important;
+  font-size: 0.6875rem !important;
+  line-height: 1.2 !important;
 }
 
 .med-modal .prx-btn--primary,
@@ -655,7 +658,10 @@
 }
 
 .med-header-btn {
-  height: 32px !important;
+  height: auto !important;
+  padding: 0.3rem 0.65rem !important;
+  font-size: 0.6875rem !important;
+  line-height: 1.2 !important;
 }
 
 /* Tracking stepper */
@@ -900,10 +906,27 @@ textarea.form-control.med-review-input {
   white-space: nowrap;
 }
 
+.page-content.prx-page > .container-fluid > .prx-stats,
+.page-content.prx-page > .container-fluid > .prx-card,
+.page-content.prx-page > .container-fluid > .med-refill-banner {
+  margin-bottom: 0.3rem;
+}
+
+.page-content.prx-page > .container-fluid > .med-bottom-grid {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .med-bottom-grid {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: 0.5rem;
+  gap: 0.3rem;
+  align-items: stretch;
+}
+
+.med-bottom-grid > .prx-card {
+  margin: 0;
+  height: 100%;
 }
 
 @media (max-width: 991.98px) {

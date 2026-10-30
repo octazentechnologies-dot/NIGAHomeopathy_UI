@@ -1396,7 +1396,7 @@ const Starter = () => {
               <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <CardHeader className="border-0">
                   <div className="admin-form-toolbar">
-                    <h5 className="admin-form-title">New Diagnosis & Conditions</h5>
+                    <h5 className="admin-form-title"><i className="ri-add-circle-line" aria-hidden="true" />New Diagnosis & Conditions</h5>
                   </div>
                 </CardHeader>
 

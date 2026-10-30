@@ -158,7 +158,7 @@ const DoctorAppointmentRequestsPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Appointment requests</h2>
+            <h2 className="clinic-page-title"><i className="ri-mail-check-line" aria-hidden="true" />Appointment requests</h2>
             <p className="clinic-page-subtitle mb-0">Accept, decline, or propose another slot for patient booking requests.</p>
           </div>
         </div>
@@ -255,8 +255,8 @@ const DoctorAppointmentRequestsPage = () => {
             <Input value={proposeTime} onChange={(e) => setProposeTime(e.target.value)} placeholder="10:30" />
           </ModalBody>
           <ModalFooter>
-            <Button color="light" onClick={() => setProposeId(null)}>
-              Cancel
+            <Button color="light" className="app-cancel-btn" onClick={() => setProposeId(null)}>
+              <i className="ri-close-line" aria-hidden="true" /> Cancel
             </Button>
             <ModalActionButton action="submit" loading={busyId === `p-${proposeId}`} onClick={onPropose}>
               Propose
@@ -271,8 +271,8 @@ const DoctorAppointmentRequestsPage = () => {
             <Input type="textarea" rows={3} value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} />
           </ModalBody>
           <ModalFooter>
-            <Button color="light" onClick={() => setDeclineId(null)}>
-              Cancel
+            <Button color="light" className="app-cancel-btn" onClick={() => setDeclineId(null)}>
+              <i className="ri-close-line" aria-hidden="true" /> Cancel
             </Button>
             <ModalActionButton action="confirm" loading={busyId === `d-${declineId}`} onClick={onDecline}>
               Decline

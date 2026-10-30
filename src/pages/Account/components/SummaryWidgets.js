@@ -8,42 +8,36 @@ const WIDGETS = [
     label: "Collected (30 days)",
     icon: "ri-book-2-line",
     linkPath: "/account/ledger",
-    cta: "View All",
   },
   {
     id: "earnings",
     label: "Doctor Earnings",
     icon: "ri-user-smile-line",
     linkPath: "/account/doctor-earnings",
-    cta: "View All",
   },
   {
     id: "payouts",
     label: "Pending Payouts",
     icon: "ri-exchange-dollar-line",
     linkPath: "/account/payouts",
-    cta: "View All",
   },
   {
     id: "refunds",
     label: "Refunds",
     icon: "ri-file-list-3-line",
     linkPath: "/account/refunds",
-    cta: "View All",
   },
   {
     id: "tax",
     label: "GST (30 days)",
     icon: "ri-percent-line",
     linkPath: "/account/tax",
-    cta: "View All",
   },
   {
     id: "exceptions",
     label: "Open Exceptions",
     icon: "ri-error-warning-line",
     linkPath: "/account/exceptions",
-    cta: "View All",
   },
 ];
 
@@ -73,15 +67,16 @@ const SummaryWidgets = ({ values = {}, loading = false }) => (
                   ) : (
                     <p className="mb-2 text-muted small">&nbsp;</p>
                   )}
-                  <Link to={item.linkPath} className="account-kpi-link doctor-dashboard-action-link">
-                    {item.cta}
+                  <Link
+                    to={item.linkPath}
+                    className="account-kpi-view"
+                    title="View all"
+                    aria-label={`View all ${item.label}`}
+                  >
+                    <i className="ri-eye-line" aria-hidden="true" />
                   </Link>
                 </div>
-                <div className="avatar-sm flex-shrink-0">
-                  <span className="avatar-title rounded fs-3 doctor-action-icon">
-                    <i className={item.icon} aria-hidden="true" />
-                  </span>
-                </div>
+                <i className={`${item.icon} kpi-tile-icon`} aria-hidden="true" />
               </div>
             </CardBody>
           </Card>

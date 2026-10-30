@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Alert, Card, CardBody, Container, Input, Label, Spinner, Table } from "reactstrap";
 import { getAppointmentSlots, getDailySchedule } from "../../helpers/realbackend_helper";
 import { apiMessage, readReceptionDoctorId, unwrap } from "./receptionSession";
+import "./ReceptionNew/components/receptionDashboard.css";
 
 /** API expects yyyy-MM-dd. Browser may show dd-mm-yyyy; value must stay ISO. */
 const toApiDate = (value) => {
@@ -130,7 +131,7 @@ const ReceptionSchedule = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Doctor schedule</h2>
+            <h2 className="clinic-page-title"><i className="ri-calendar-2-line" aria-hidden="true" />Doctor schedule</h2>
             <p className="clinic-page-subtitle mb-0">
               Read-only view of the doctor&apos;s working day. Edit is only on the doctor schedule screen.
             </p>
@@ -150,7 +151,7 @@ const ReceptionSchedule = () => {
               </div>
               <button
                 type="button"
-                className="btn btn-sm clinic-primary-btn"
+                className="btn btn-sm btn-soft-primary"
                 onClick={load}
                 disabled={!doctorId || !date || loading}
               >

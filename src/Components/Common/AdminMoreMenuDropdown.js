@@ -128,10 +128,6 @@ const AdminMoreMenuDropdown = ({ showLabel = false }) => {
         )}
       </DropdownToggle>
       <DropdownMenu end container="body" strategy="fixed" className="dropdown-menu-lg dropdown-menu-end admin-more-menu-panel">
-        <div className="dropdown-header d-flex align-items-center gap-2">
-          <i className="ri-briefcase-2-line" />
-          <span>More</span>
-        </div>
         <div className="admin-more-menu-body">
           {renderMenuItems(moreMenuItems)}
         </div>
