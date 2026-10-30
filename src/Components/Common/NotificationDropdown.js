@@ -385,6 +385,34 @@ const NotificationDropdown = () => {
         };
     }, [loadData]);
 
+    // Keep hub alive while header is mounted so bell refreshes without waiting for poll.
+    useEffect(() => {
+        const { role } = resolveSessionRole();
+        let unsub = () => {};
+        let timer = null;
+        const softReload = () => {
+            if (timer) window.clearTimeout(timer);
+            timer = window.setTimeout(() => loadData(), 350);
+        };
+        (async () => {
+            try {
+                if (role === UserRole.PATIENT) {
+                    const { subscribePatientInboxChanged } = await import('../../helpers/patientRealtime');
+                    unsub = subscribePatientInboxChanged(softReload);
+                } else if (role === UserRole.DOCTOR || role === UserRole.RECEPTION) {
+                    const { ensureClinicRealtime } = await import('../../helpers/clinicRealtime');
+                    await ensureClinicRealtime();
+                }
+            } catch {
+                /* SignalR optional */
+            }
+        })();
+        return () => {
+            if (timer) window.clearTimeout(timer);
+            unsub();
+        };
+    }, [loadData, resolveSessionRole]);
+
     const toggleNotificationDropdown = () => {
         if (!isNotificationDropdown) loadData();
         setIsNotificationDropdown(!isNotificationDropdown);

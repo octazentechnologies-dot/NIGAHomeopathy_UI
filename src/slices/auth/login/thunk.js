@@ -114,6 +114,18 @@ export const logoutUser = () => async (dispatch) => {
       /* push optional */
     }
     try {
+      const { stopClinicRealtime } = await import("../../../helpers/clinicRealtime");
+      await stopClinicRealtime();
+    } catch {
+      /* SignalR optional */
+    }
+    try {
+      const { stopPatientRealtime } = await import("../../../helpers/patientRealtime");
+      await stopPatientRealtime();
+    } catch {
+      /* SignalR optional */
+    }
+    try {
       const { logoutApi } = await import("../../../helpers/realbackend_helper");
       await logoutApi();
     } catch {

@@ -23,7 +23,7 @@ import {
   unwrapClinic,
 } from "../../../helpers/doctorClinicApi";
 import ModalActionButton from "../../../Components/Common/ModalActionButton";
-import { subscribeAppointmentRequests } from "../../../helpers/clinicRealtime";
+import { subscribeAppointmentChanged, subscribeAppointmentRequests } from "../../../helpers/clinicRealtime";
 
 const asRows = (payload) => {
   const data = unwrapClinic(payload);
@@ -104,6 +104,19 @@ const DoctorAppointmentRequestsPage = () => {
       load();
     });
     return unsub;
+  }, [load]);
+
+  // Booked/cancelled appointments (not just requests) — soft refetch, debounced.
+  useEffect(() => {
+    let timer = null;
+    const unsub = subscribeAppointmentChanged(() => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => load(), 400);
+    });
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      unsub();
+    };
   }, [load]);
 
   const onAccept = async (id) => {

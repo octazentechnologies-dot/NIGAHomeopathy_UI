@@ -67,6 +67,7 @@ import {
     getDailySchedule,
     updateAvailabilityMe,
 } from '../../../helpers/realbackend_helper';
+import { subscribeAppointmentChanged } from '../../../helpers/clinicRealtime';
 import { } from "../../../slices/doctor/dashboard/reducer";
 import {
     setAppointmentLoading, setAppointmentError, setAppointmentSuccess,
@@ -2325,6 +2326,21 @@ const Widgets = () => {
         window.addEventListener(DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT, onOpenNewAppointment);
         return () => {
             window.removeEventListener(DOCTOR_DASHBOARD_OPEN_NEW_APPOINTMENT_EVENT, onOpenNewAppointment);
+        };
+    }, []);
+
+    // Patient/app booking → SignalR appointmentChanged → refresh KPIs without manual reload.
+    useEffect(() => {
+        let timer = null;
+        const unsub = subscribeAppointmentChanged(() => {
+            if (timer) window.clearTimeout(timer);
+            timer = window.setTimeout(() => {
+                refreshDashboardCounts();
+            }, 400);
+        });
+        return () => {
+            if (timer) window.clearTimeout(timer);
+            unsub();
         };
     }, []);
 

@@ -27,12 +27,23 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const data = event.notification?.data || {};
+  const raw = String(data.deepLink || data.deeplink || data.link || "").trim();
+  // Same-origin relative paths only — never open absolute http(s) from push data.
+  const path =
+    raw.startsWith("/") && !raw.startsWith("//") && !/^https?:/i.test(raw)
+      ? raw
+      : "/";
+
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
+        if ("navigate" in client) {
+          return client.navigate(path).then((c) => (c && "focus" in c ? c.focus() : client.focus()));
+        }
         if ("focus" in client) return client.focus();
       }
-      if (self.clients.openWindow) return self.clients.openWindow("/");
+      if (self.clients.openWindow) return self.clients.openWindow(path);
       return undefined;
     })
   );
