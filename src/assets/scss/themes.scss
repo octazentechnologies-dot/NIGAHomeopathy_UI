@@ -3762,9 +3762,9 @@ body.doctor-layout {
 
       .navbar-header {
         display: grid !important;
-        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        grid-template-columns: auto auto minmax(0, 1fr) auto auto;
         align-items: center;
-        column-gap: 0.45rem;
+        column-gap: 0.35rem;
         width: 100%;
         padding-left: 0 !important;
         padding-right: 0 !important;
@@ -3788,6 +3788,8 @@ body.doctor-layout {
 
       .header-brand-block {
         grid-column: 2;
+        justify-self: start;
+        text-align: left;
         min-width: 0;
         padding: 0 !important;
         margin: 0 !important;
@@ -3815,15 +3817,15 @@ body.doctor-layout {
       }
 
       .header-home-dashboard-item {
-        grid-column: 3;
-      }
-
-      .header-notification-item {
         grid-column: 4;
       }
 
-      .header-profile-separator-group {
+      .header-notification-item {
         grid-column: 5;
+      }
+
+      .header-profile-separator-group {
+        grid-column: 6;
       }
 
       .header-home-dashboard-item,
@@ -3867,6 +3869,141 @@ body.doctor-layout {
       .page-content:has(.patient-board-page) {
         margin-top: $app-topbar-height !important;
         padding-top: 0.45rem !important;
+      }
+    }
+  }
+}
+
+/* Portal phone topbar (admin, account, pharmacy, patient, reception): menu, logo, home, bell, profile. */
+body.admin-layout {
+  .header-portal-mobile-nav {
+    display: none !important;
+  }
+
+  @media (max-width: 499.98px) {
+    #page-topbar {
+      .layout-width {
+        max-width: 100% !important;
+        padding-left: 0.65rem !important;
+        padding-right: 0.65rem !important;
+      }
+
+      .navbar-header {
+        display: grid !important;
+        grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        column-gap: 0.35rem;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+
+      .header-portal-mobile-nav {
+        display: flex !important;
+        grid-column: 1;
+        align-items: center;
+        justify-content: center;
+        margin: 0 !important;
+      }
+
+      .header-portal-mobile-nav .btn-topbar {
+        width: 36px;
+        height: 36px;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .header-brand-block {
+        grid-column: 2;
+        justify-self: start;
+        text-align: left;
+        min-width: 0;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .horizontal-logo {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+
+      .header-brand-divider,
+      .header-topbar-actions-extra,
+      .header-whatsapp-item,
+      .header-doctor-session-tools,
+      .header-profile-separator-group > .header-topbar-divider {
+        display: none !important;
+      }
+
+      .horizontal-logo .logo-sm {
+        display: none !important;
+      }
+
+      .horizontal-logo .logo-lg {
+        display: inline-block !important;
+        max-width: 100%;
+
+        img {
+          height: 24px !important;
+          width: auto;
+          max-width: min(132px, 100%);
+          object-fit: contain;
+        }
+      }
+
+      .header-icon-rail {
+        display: contents !important;
+      }
+
+      .header-home-dashboard-item {
+        grid-column: 4;
+        margin-top: 0 !important;
+        margin-left: 0 !important;
+      }
+
+      .header-notification-item {
+        grid-column: 5;
+      }
+
+      .header-profile-separator-group {
+        grid-column: 6;
+      }
+
+      .header-home-dashboard-item,
+      .header-notification-item,
+      .header-profile-separator-group {
+        flex: 0 0 auto;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        margin: 0 !important;
+      }
+
+      .header-home-dashboard-item .btn-topbar,
+      .header-notification-item .btn-topbar {
+        width: 36px;
+        height: 36px;
+      }
+
+      .header-notification-item .topbar-head-dropdown {
+        margin-left: 0 !important;
+      }
+
+      .topbar-user .btn {
+        padding: 0.1rem !important;
+      }
+
+      .header-profile-user {
+        height: 32px;
+        width: 32px;
+      }
+
+      .user-name-text,
+      .user-name-sub-text,
+      .text-start.ms-xl-2 {
+        display: none !important;
       }
     }
   }
@@ -3931,111 +4068,10 @@ body.admin-layout {
     }
   }
 
-  // Compact mobile topbar (<500px): dashboard + all admin menus
+  // Phone content sits under the compact topbar (header layout is shared above).
   &.admin-mobile-topbar,
   &.admin-dashboard-route {
     @media (max-width: 499.98px) {
-      #page-topbar {
-        .layout-width {
-          padding-left: 0.85rem !important;
-          padding-right: 0.55rem !important;
-        }
-
-        .navbar-header {
-          display: flex !important;
-          align-items: center;
-          width: 100%;
-          gap: 0.55rem;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
-        }
-
-        .header-brand-block {
-          flex: 0 0 auto;
-        }
-
-        .header-brand-divider,
-        .header-topbar-actions-extra,
-        .header-whatsapp-item,
-        .header-doctor-session-tools,
-        .header-profile-separator-group > .header-topbar-divider {
-          display: none !important;
-        }
-
-        .horizontal-logo .logo-sm {
-          display: none !important;
-        }
-
-        .horizontal-logo .logo-lg {
-          display: inline-block !important;
-
-          img {
-            height: 26px !important;
-            width: auto;
-            max-width: 140px;
-            object-fit: contain;
-          }
-        }
-
-        // Remaining width: home / menu / notification / profile — equal gaps
-        .header-icon-rail {
-          flex: 1 1 auto;
-          display: flex !important;
-          align-items: center;
-          justify-content: space-evenly;
-          min-width: 0;
-          margin-left: 0 !important;
-        }
-
-        .header-home-dashboard-item,
-        .vertical-menu-btn.topnav-hamburger,
-        .header-notification-item,
-        .header-profile-separator-group {
-          flex: 0 0 auto;
-          display: flex !important;
-          align-items: center;
-          justify-content: center;
-          margin: 0 !important;
-        }
-
-        .header-home-dashboard-item {
-          margin-top: 0 !important;
-          margin-left: 0 !important;
-        }
-
-        .header-home-dashboard-item .btn-topbar,
-        .header-notification-item .btn-topbar {
-          width: 36px;
-          height: 36px;
-        }
-
-        .header-notification-item .topbar-head-dropdown {
-          margin-left: 0 !important;
-        }
-
-        .vertical-menu-btn.topnav-hamburger {
-          visibility: visible !important;
-          padding-left: 0.2rem !important;
-          padding-right: 0.2rem !important;
-        }
-
-        .topbar-user .btn {
-          padding: 0.1rem !important;
-        }
-
-        .header-profile-user {
-          height: 32px;
-          width: 32px;
-        }
-
-        .user-name-text,
-        .user-name-sub-text,
-        .text-start.ms-xl-2 {
-          display: none !important;
-        }
-      }
-
-      // Tighten topbar → first card/content gap on mobile
       .page-content.admin-dashboard-page,
       .page-content {
         margin-top: $app-topbar-height !important;
@@ -7084,7 +7120,7 @@ html:not([data-bs-theme="dark"]) {
 // Table and chart cards stay white.
 html:not([data-bs-theme="dark"]) {
   @mixin stat-wash($soft, $mid, $border) {
-    background: linear-gradient(135deg, $soft 0%, $mid 52%, #ffffff 100%) !important;
+    background: linear-gradient(180deg, $soft 0%, $mid 52%, #ffffff 100%) !important;
     border-color: $border !important;
 
     > .card-body,
@@ -7093,13 +7129,16 @@ html:not([data-bs-theme="dark"]) {
     }
   }
 
+  // Waiting-card light blue, used on every dashboard gradient tile.
+  $waiting-wash: (#e4efff, #f4f9ff, #d4e4fb);
+
   $stat-washes: (
-    1: (#e4efff, #f4f9ff, #d4e4fb),
-    2: (#dcf5e4, #f4fbf6, #ccebd6),
-    3: (#d5f3ef, #f3fbfa, #c8ebe6),
-    4: (#fde2e2, #fff6f6, #f8d4d4),
-    5: (#fdefd3, #fffaf0, #f8e4bd),
-    6: (#ede7fe, #f7f5ff, #ddd6fe),
+    1: $waiting-wash,
+    2: $waiting-wash,
+    3: $waiting-wash,
+    4: $waiting-wash,
+    5: $waiting-wash,
+    6: $waiting-wash,
   );
 
   @each $n, $colors in $stat-washes {
@@ -7119,38 +7158,15 @@ html:not([data-bs-theme="dark"]) {
     }
   }
 
-  // Doctor dashboard: each tile gets its own light wash. The 6-color cycle above
-  // repeats on the second row; these later rules replace that for this page only.
-  $doctor-tile-washes: (
-    (#e4efff, #f4f9ff, #d4e4fb),
-    (#dcf5e4, #f4fbf6, #ccebd6),
-    (#d5f3ef, #f3fbfa, #c8ebe6),
-    (#fde2e2, #fff6f6, #f8d4d4),
-    (#fdefd3, #fffaf0, #f8e4bd),
-    (#ede7fe, #f7f5ff, #ddd6fe),
-    (#ffe8dc, #fff8f4, #f8d4c4),
-    (#f3e8ff, #fbf7ff, #e4d4f8),
-    (#fff4d4, #fffdf6, #f6e4b0),
-    (#dff6ff, #f5fcff, #c5e7f8),
-    (#e5f8ea, #f7fdf8, #c8ecd2),
-    (#e3f7f2, #f6fcfa, #c6eee4),
-    (#e8f1ff, #f7faff, #d0def5),
-    (#e7f6ee, #f6fdf9, #c9e6d6),
-    (#ffe6ee, #fff7f9, #f6d0dc),
-    (#fff0e4, #fffaf5, #f6dcc4),
-  );
-
   @for $i from 1 through 12 {
-    $wash: nth($doctor-tile-washes, $i);
     .doctor-dashboard-page .doctor-dashboard-kpi-row > [class*="col"]:nth-child(#{$i}) > .doctor-kpi-card {
-      @include stat-wash(nth($wash, 1), nth($wash, 2), nth($wash, 3));
+      @include stat-wash(nth($waiting-wash, 1), nth($waiting-wash, 2), nth($waiting-wash, 3));
     }
   }
 
   @for $i from 1 through 4 {
-    $wash: nth($doctor-tile-washes, $i + 12);
     .doctor-dashboard-page .doctor-dashboard-action-row > [class*="col"]:nth-child(#{$i}) > .doctor-action-card {
-      @include stat-wash(nth($wash, 1), nth($wash, 2), nth($wash, 3));
+      @include stat-wash(nth($waiting-wash, 1), nth($waiting-wash, 2), nth($waiting-wash, 3));
     }
   }
 

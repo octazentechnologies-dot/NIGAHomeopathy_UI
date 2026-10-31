@@ -15,6 +15,7 @@ import NewsDetailPage from "./pages/NewsDetailPage";
 import ContactPage from "../Minimaltheme/pages/ContactPage";
 import PrivacyPage from "../Minimaltheme/pages/PrivacyPage";
 import TermsPage from "../Minimaltheme/pages/TermsPage";
+import DisclaimerPage from "../Minimaltheme/pages/DisclaimerPage";
 import AccountPage from "../Minimaltheme/pages/AccountPage";
 import FindDoctorPage from "./pages/FindDoctorPage";
 import DoctorDetailPage from "./pages/DoctorDetailPage";
@@ -69,6 +70,7 @@ const HomeoJobLanding = () => {
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="privacy" element={<PrivacyPage />} />
                     <Route path="terms" element={<TermsPage />} />
+                    <Route path="disclaimer" element={<DisclaimerPage />} />
                     <Route path="help" element={<HelpCentrePage />} />
                     <Route path="help/:slug" element={<HelpArticlePage />} />
                     <Route path="account" element={<AccountPage />} />

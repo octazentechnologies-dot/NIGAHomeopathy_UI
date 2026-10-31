@@ -110,22 +110,15 @@
   padding: 0.45rem 0.6rem;
   border: 1px solid #d4e4fb;
   border-radius: 5px;
-  background: linear-gradient(135deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
+  background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
 }
 
-.prx-stat--success {
-  background: linear-gradient(135deg, #dcf5e4 0%, #f4fbf6 52%, #ffffff 100%);
-  border-color: #ccebd6;
-}
-
-.prx-stat--warning {
-  background: linear-gradient(135deg, #fdefd3 0%, #fffaf0 52%, #ffffff 100%);
-  border-color: #f8e4bd;
-}
-
+.prx-stat,
+.prx-stat--success,
+.prx-stat--warning,
 .prx-stat--info {
-  background: linear-gradient(135deg, #ede7fe 0%, #f7f5ff 52%, #ffffff 100%);
-  border-color: #ddd6fe;
+  background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
+  border-color: #d4e4fb;
 }
 
 .prx-stat__icon {

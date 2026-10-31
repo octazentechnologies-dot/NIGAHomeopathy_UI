@@ -51,6 +51,7 @@ const Layout = (props) => {
     useEffect(() => {
         const sessionUser = JSON.parse(sessionStorage.getItem('authUser') || 'null');
         const role = sessionUser?.role || sessionUser?.data?.role;
+        document.body.classList.toggle('account-layout', role === UserRole.ACCOUNT);
         if (usesDoctorDashboardLayout(role)) {
             document.body.classList.add('doctor-layout');
             document.body.classList.remove('admin-layout');
@@ -194,6 +195,7 @@ const Layout = (props) => {
 
         document.body.classList.toggle('patient-layout', usesPatientDashboardLayout(role));
         document.body.classList.toggle('reception-layout', role === UserRole.RECEPTION);
+        document.body.classList.toggle('account-layout', role === UserRole.ACCOUNT);
 
         if (hideSidebarLayout) {
             document.body.classList.remove('admin-layout');
@@ -260,6 +262,7 @@ const Layout = (props) => {
             document.body.classList.remove('admin-layout');
             document.body.classList.remove('patient-layout');
             document.body.classList.remove('reception-layout');
+            document.body.classList.remove('account-layout');
         };
     }, [userProfile?.role, dispatch]);
 

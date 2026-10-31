@@ -163,11 +163,6 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
         strategy="fixed"
         className="dropdown-menu-lg doctor-mobile-nav-panel"
       >
-        <div className="dropdown-header d-flex align-items-center gap-2">
-          <i className="ri-menu-line" />
-          <span>Menu</span>
-        </div>
-
         <div className="doctor-mobile-nav-body">
           {showReturn ? (
             <>

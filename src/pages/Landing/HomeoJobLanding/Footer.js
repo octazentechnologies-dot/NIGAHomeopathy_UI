@@ -265,7 +265,7 @@ const Footer = () => {
                         <span>|</span>
                         <Link to={landingPath("terms")}>Terms &amp; Conditions</Link>
                         <span>|</span>
-                        <Link to={landingPath("contact")}>Contact Us</Link>
+                        <Link to={landingPath("disclaimer")}>Disclaimer</Link>
                     </div>
                 </div>
             </Container>

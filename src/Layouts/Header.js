@@ -27,6 +27,7 @@ import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeade
 import DoctorScheduleCalendarHeaderButton from '../Components/Common/DoctorScheduleCalendarHeaderButton';
 import DoctorMobileHeaderButtons from '../Components/Common/DoctorMobileHeaderButtons';
 import DoctorMobileNavMenu from '../Components/Common/DoctorMobileNavMenu';
+import PortalMobileNavMenu from '../Components/Common/PortalMobileNavMenu';
 import WebHandoffReturnButton from '../Components/Common/WebHandoffReturnButton';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
@@ -87,6 +88,13 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 userRole={userRole}
                                 onOpenHelp={() => setSupportTicketsModalOpen(true)}
                                 onOpenWhatsApp={() => setWhatsAppModalOpen(true)}
+                            />
+                        ) : null}
+
+                        {adminChromeLayout ? (
+                            <PortalMobileNavMenu
+                                userRole={userRole}
+                                onOpenHelp={() => setSupportTicketsModalOpen(true)}
                             />
                         ) : null}
 

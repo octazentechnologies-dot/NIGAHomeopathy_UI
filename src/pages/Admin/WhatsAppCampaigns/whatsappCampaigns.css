@@ -155,14 +155,20 @@
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--wac-tone-border);
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--wac-tone-soft) 0%, var(--wac-tone-bg) 52%, #ffffff 100%);
+  background: linear-gradient(180deg, var(--wac-tone-soft) 0%, var(--wac-tone-bg) 52%, #ffffff 100%);
 }
 
-.wac-stat--blue { --wac-tone: #3b82f6; --wac-tone-soft: #e0edff; --wac-tone-bg: #f5f9ff; --wac-tone-border: #d4e4fb; }
-.wac-stat--green { --wac-tone: #16a34a; --wac-tone-soft: #dcf5e4; --wac-tone-bg: #f4fbf6; --wac-tone-border: #ccebd6; }
-.wac-stat--teal { --wac-tone: #0d9488; --wac-tone-soft: #d5f3ef; --wac-tone-bg: #f3fbfa; --wac-tone-border: #c8ebe6; }
-.wac-stat--red { --wac-tone: #ef4444; --wac-tone-soft: #fde2e2; --wac-tone-bg: #fff6f6; --wac-tone-border: #f8d4d4; }
-.wac-stat--amber { --wac-tone: #f59e0b; --wac-tone-soft: #fdefd3; --wac-tone-bg: #fffaf0; --wac-tone-border: #f8e4bd; }
+.wac-stat,
+.wac-stat--blue,
+.wac-stat--green,
+.wac-stat--teal,
+.wac-stat--red,
+.wac-stat--amber {
+  --wac-tone: #25a0e2;
+  --wac-tone-soft: #e4efff;
+  --wac-tone-bg: #f4f9ff;
+  --wac-tone-border: #d4e4fb;
+}
 
 .wac-stat__icon {
   display: inline-flex;

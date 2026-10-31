@@ -1674,12 +1674,15 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
     background: transparent !important;
     color: #0f172a;
   }
-  .subscription-plan-card--1 { background: linear-gradient(135deg, #d7ecfc 0%, #eef6ff 48%, #f9fcff 100%) !important; border-color: #d4e7f8; }
-  .subscription-plan-card--2 { background: linear-gradient(135deg, #d4f3e0 0%, #eefaf3 48%, #f8fdf9 100%) !important; border-color: #d3eedd; }
-  .subscription-plan-card--3 { background: linear-gradient(135deg, #d2f3ef 0%, #eefaf8 48%, #f7fdfc 100%) !important; border-color: #d2eeea; }
-  .subscription-plan-card--4 { background: linear-gradient(135deg, #ffe8c2 0%, #fff6e8 48%, #fffdf8 100%) !important; border-color: #f6e6c4; }
-  .subscription-plan-card--5 { background: linear-gradient(135deg, #fde0e8 0%, #fff1f4 48%, #fffafb 100%) !important; border-color: #f6dce4; }
-  .subscription-plan-card--6 { background: linear-gradient(135deg, #eadcff 0%, #f6f0ff 48%, #fcfaff 100%) !important; border-color: #e6d8f8; }
+  .subscription-plan-card--1,
+  .subscription-plan-card--2,
+  .subscription-plan-card--3,
+  .subscription-plan-card--4,
+  .subscription-plan-card--5,
+  .subscription-plan-card--6 {
+    background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%) !important;
+    border-color: #d4e4fb;
+  }
   .subscription-plan-card__copy { min-width: 0; }
   .subscription-plan-card__name {
     margin: 0;
