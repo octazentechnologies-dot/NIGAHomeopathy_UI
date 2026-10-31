@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Button, Input, InputGroup, InputGroupText } from "reactstrap";
 import Swal from "sweetalert2";
+import { pageWindow } from "../../helpers/pageWindow";
 
 /** Same page bar as /admin/listsubsection, including Go to page. */
 const AdminListPagination = ({ currentPage, totalPages, onPage }) => {
@@ -48,30 +49,19 @@ const AdminListPagination = ({ currentPage, totalPages, onPage }) => {
             Previous
           </button>
         </li>
-        {[...Array(pages)].map((_, index) => {
-          const pageNumber = index + 1;
-          if (
-            pageNumber === 1 ||
-            pageNumber === pages ||
-            (pageNumber >= page - 1 && pageNumber <= page + 1)
-          ) {
-            return (
-              <li key={pageNumber} className={`page-item ${page === pageNumber ? "active" : ""}`}>
-                <button type="button" className="page-link" onClick={() => goTo(pageNumber)}>
-                  {pageNumber}
-                </button>
-              </li>
-            );
-          }
-          if (pageNumber === 2 || pageNumber === pages - 1) {
-            return (
-              <li key={pageNumber} className="page-item disabled">
-                <span className="page-link">...</span>
-              </li>
-            );
-          }
-          return null;
-        })}
+        {pageWindow(page, pages).map((item, index) => (
+          item === "…" ? (
+            <li key={`gap-${index}`} className="page-item disabled">
+              <span className="page-link">…</span>
+            </li>
+          ) : (
+            <li key={item} className={`page-item ${page === item ? "active" : ""}`}>
+              <button type="button" className="page-link" onClick={() => goTo(item)}>
+                {item}
+              </button>
+            </li>
+          )
+        ))}
         <li className={`page-item ${page === pages ? "disabled" : ""}`}>
           <button type="button" className="page-link page-link--nav" onClick={() => page < pages && goTo(page + 1)}>
             Next

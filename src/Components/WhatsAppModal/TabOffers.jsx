@@ -11,7 +11,7 @@ export default function TabOffers({
   isMarathi = false,
 }) {
   return (
-    <Row className="g-3">
+    <Row className="g-2">
         {/* Template Name — disabled for now
         <Col md={6}>
           <Label className="form-label">Template Name</Label>

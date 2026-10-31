@@ -435,7 +435,7 @@ const AssistedBookWizard = ({
               onClick={() => loadDoctors(doctorSearch)}
               disabled={doctorsLoading}
             >
-              Refresh
+              <i className="ri-refresh-line" aria-hidden="true" /> Refresh
             </Button>
           </div>
           {doctorsError ? <p className="text-warning small mb-1">{doctorsError}</p> : null}
@@ -494,7 +494,7 @@ const AssistedBookWizard = ({
             : `${patients.length} patients. Search, then pick one.`}
         </small>
         <Button color="link" size="sm" className="p-0" type="button" onClick={loadPatients} disabled={patientsLoading}>
-          Refresh
+          <i className="ri-refresh-line" aria-hidden="true" /> Refresh
         </Button>
       </div>
       {patientsError ? <p className="text-warning small mb-1">{patientsError}</p> : null}
@@ -612,12 +612,12 @@ const AssistedBookWizard = ({
       {slotsNote ? <p className="text-muted small mb-0 mt-1">{slotsNote}</p> : null}
 
       <Button
-        className="mt-3 clinic-primary-btn"
+        className="btn btn-sm btn-soft-primary mt-3"
         onClick={saveAssisted}
         disabled={saving || !doctorId || !book.patientId || !book.appointmentDate || !book.appointmentTime}
         data-testid="assisted-book-submit"
       >
-        {saving ? "Booking…" : "Book appointment"}
+        <i className="ri-calendar-check-line" aria-hidden="true" /> {saving ? "Booking…" : "Book appointment"}
       </Button>
 
       {showRequestQueue ? (
@@ -625,7 +625,7 @@ const AssistedBookWizard = ({
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h6 className="mb-0">People who asked for a booking</h6>
             <Button size="sm" color="light" type="button" onClick={loadRequests}>
-              Refresh
+              <i className="ri-refresh-line" aria-hidden="true" /> Refresh
             </Button>
           </div>
           {requests.length === 0 ? (

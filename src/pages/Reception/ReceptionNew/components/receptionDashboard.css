@@ -44,7 +44,6 @@
 
 .reception-quick-action-card.is-completed {
   border-color: #86efac !important;
-  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 55%) !important;
   box-shadow: 0 1px 3px rgba(22, 163, 74, 0.12) !important;
 }
 
@@ -608,33 +607,94 @@
   pointer-events: none;
 }
 
-.reception-patient-details-modal .doctor-patient-nav-tabs {
+.reception-patient-details-modal .doctor-patient-nav-tabs,
+.reception-appointment-view-modal .doctor-patient-nav-tabs {
   width: 100%;
   display: block;
+  background: transparent !important;
+  overflow: visible !important;
 }
 
-.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav {
+.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav,
+.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav {
+  display: flex !important;
+  align-items: center;
   width: 100%;
-  display: flex;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
+  gap: 0.15rem;
+  float: none;
+  height: auto;
+  padding: 0.12rem !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  border-radius: 5px;
+  background: #f1f5f9 !important;
   box-sizing: border-box;
 }
 
-.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item {
+.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item,
+.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item {
   flex: 1 1 0;
   min-width: 0;
+  margin: 0 !important;
+  display: flex;
+  float: none;
 }
 
-.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item .nav-link {
-  width: 100%;
-  min-width: 0;
-  margin-right: 1.75rem;
+.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link,
+.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link {
+  position: relative;
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 1.75rem;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 0.55rem !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
-.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item:last-child .nav-link {
-  margin-right: 0;
+.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::before,
+.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::after,
+.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::before,
+.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::after {
+  display: none !important;
+  content: none !important;
+  transform: none !important;
+}
+
+.reception-patient-details-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link.active,
+.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link.active {
+  background: #fff !important;
+  color: #0b5cab !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7 !important;
+}
+
+.reception-patient-details-modal .reception-patient-details-tabs .doctor-patient-tab-label,
+.reception-appointment-view-modal .reception-patient-details-tabs .doctor-patient-tab-label {
+  display: block;
+  max-width: 100%;
+  color: inherit !important;
+  background: transparent !important;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reception-patient-details-modal .reception-patient-details-tabs .nav-link.active .doctor-patient-tab-label,
+.reception-appointment-view-modal .reception-patient-details-tabs .nav-link.active .doctor-patient-tab-label {
+  color: #0b5cab !important;
 }
 
 .reception-patient-details-list {
@@ -789,109 +849,9 @@
   word-break: break-word;
 }
 
-.reception-appointment-view-modal .doctor-patient-nav-tabs {
-  width: 100%;
-  overflow: hidden !important;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav {
-  width: 100%;
-  max-width: 100%;
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: stretch;
-  padding-left: 1rem !important;
-  padding-right: 1rem !important;
-  margin: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: none;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item .nav-link {
-  float: none !important;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-width: 0;
-  margin-right: 0.85rem !important;
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
-  box-sizing: border-box;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-item:last-child .nav-link {
-  margin-right: 0 !important;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs .doctor-patient-tab-label {
-  display: block;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.78rem;
-  line-height: 1.2;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::before,
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::after {
-  width: 22px;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::before {
-  right: -14px;
-}
-
-.reception-appointment-view-modal .reception-patient-details-tabs.doctor-patient-custom-nav.nav-customs.nav .nav-link::after {
-  left: -14px;
-}
-
-/* Force doctor-blue tabs inside reception patient modal (not theme maroon primary) */
-.reception-patient-details-modal {
-  .doctor-patient-nav-tabs {
-    background: transparent !important;
-    overflow: visible !important;
-  }
-
-  .doctor-patient-custom-nav.nav-customs.nav .nav-item .nav-link.active {
-    color: #fff !important;
-    background-color: #25a0e2 !important;
-
-    &::before,
-    &::after {
-      background-color: #25a0e2 !important;
-    }
-
-    .doctor-patient-tab-label {
-      color: #fff !important;
-    }
-  }
-
-  .doctor-patient-custom-nav.nav-customs.nav .nav-item .nav-link:not(.active) {
-    color: #495057 !important;
-    background-color: #f3f6f9 !important;
-
-    &::before,
-    &::after {
-      background-color: #f3f6f9 !important;
-    }
-
-    .doctor-patient-tab-label {
-      color: inherit !important;
-    }
-  }
-
-  .modal-header .btn-close,
-  .patient-list-modal__header .btn-close {
-    box-shadow: none;
-  }
+.reception-patient-details-modal .modal-header .btn-close,
+.reception-patient-details-modal .patient-list-modal__header .btn-close {
+  box-shadow: none;
 }
 
 .reception-dashboard-page {
@@ -958,43 +918,42 @@
 .reception-page-title {
   margin: 0;
   color: #000 !important;
-  font-size: 1.35rem;
+  font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 .reception-page-subtitle {
-  margin: 0;
-  color: var(--reception-muted);
-  font-size: 0.95rem;
-  font-weight: 500;
+  display: none;
 }
 
 .reception-primary-btn {
-  --bs-btn-color: #fff !important;
-  --bs-btn-bg: var(--reception-blue) !important;
-  --bs-btn-border-color: var(--reception-blue) !important;
-  --bs-btn-hover-color: #fff !important;
-  --bs-btn-hover-bg: var(--reception-blue-hover) !important;
-  --bs-btn-hover-border-color: var(--reception-blue-hover) !important;
-  --bs-btn-active-color: #fff !important;
-  --bs-btn-active-bg: var(--reception-blue-hover) !important;
-  --bs-btn-active-border-color: var(--reception-blue-hover) !important;
-  background-color: var(--reception-blue) !important;
-  border-color: var(--reception-blue) !important;
-  color: #fff !important;
+  --bs-btn-color: #25a0e2 !important;
+  --bs-btn-bg: #e8f5ff !important;
+  --bs-btn-border-color: #cfe9ff !important;
+  --bs-btn-hover-color: #1a8bc9 !important;
+  --bs-btn-hover-bg: #d6eeff !important;
+  --bs-btn-hover-border-color: #b3dbff !important;
+  --bs-btn-active-color: #1a8bc9 !important;
+  --bs-btn-active-bg: #d6eeff !important;
+  --bs-btn-active-border-color: #b3dbff !important;
+  background-color: #e8f5ff !important;
+  border-color: #cfe9ff !important;
+  color: #25a0e2 !important;
   font-weight: 600;
-  border-radius: 0.25rem;
-  padding: 0.45rem 1rem;
+  border-radius: 4px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
   box-shadow: none !important;
 }
 
 .reception-primary-btn:hover,
 .reception-primary-btn:focus,
 .reception-primary-btn:active {
-  background-color: var(--reception-blue-hover) !important;
-  border-color: var(--reception-blue-hover) !important;
-  color: #fff !important;
+  background-color: #d6eeff !important;
+  border-color: #b3dbff !important;
+  color: #1a8bc9 !important;
 }
 
 .reception-notice-card {
@@ -1004,9 +963,252 @@
   background: #fff !important;
 }
 
+.reception-dashboard-page .reception-dashboard-widgets.row {
+  --bs-gutter-x: 0.3rem !important;
+  --bs-gutter-y: 0.3rem !important;
+  width: auto !important;
+  margin: 0 -0.15rem 0.3rem !important;
+}
+
+.reception-dashboard-page .reception-dashboard-widgets > .reception-kpi-col {
+  padding-left: 0.15rem !important;
+  padding-right: 0.15rem !important;
+}
+
+.reception-dashboard-page .reception-kpi-card .card-body {
+  padding: 0.85rem 0.9rem !important;
+}
+
+.reception-dashboard-page .reception-kpi-count {
+  color: #000;
+  margin-bottom: 0.35rem !important;
+}
+
+.reception-dashboard-page .reception-kpi-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #cfe6f8;
+  border-radius: 5px;
+  background: #eaf5fd;
+  color: #25a0e2;
+  cursor: pointer;
+}
+
+.reception-dashboard-page .reception-kpi-view i {
+  font-size: 0.85rem !important;
+  line-height: 1 !important;
+}
+
+.reception-dashboard-page .reception-kpi-view:hover {
+  border-color: #25a0e2;
+  color: #0b5cab;
+}
+
+.reception-dashboard-page .reception-quick-actions-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0 0 0.3rem !important;
+  padding: 0;
+  /* Match one chip row so the cards stay put when no patient data is shown. */
+  min-height: 2rem;
+}
+
+.reception-dashboard-page .reception-quick-actions {
+  --bs-gutter-x: 0.3rem !important;
+  --bs-gutter-y: 0 !important;
+  width: auto !important;
+  margin: 0 -0.15rem 0 !important;
+}
+
+.reception-dashboard-page .reception-quick-actions > .reception-action-col {
+  padding-left: 0.15rem !important;
+  padding-right: 0.15rem !important;
+}
+
+.reception-dashboard-page .reception-section-title {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  margin: 0 !important;
+  font-size: 0.9rem !important;
+  line-height: 1.2;
+}
+
+.reception-dashboard-page .reception-quick-action-card .card-body {
+  padding: 0.7rem 0.45rem !important;
+}
+
+.reception-dashboard-page .reception-quick-action-btn .kpi-tile-icon {
+  display: block;
+  margin: 0 auto 0.35rem;
+  font-size: 1.35rem !important;
+}
+
+.reception-dashboard-page .reception-action-label {
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+}
+
+.reception-quick-action-card {
+  position: relative;
+}
+
+.reception-step-done {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.32rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: #059669;
+  line-height: 1;
+  pointer-events: none;
+  background: #fff;
+  border-radius: 999px;
+}
+
+.reception-step-done i {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.reception-quick-action-card.is-completed .kpi-tile-icon {
+  color: #25a0e2 !important;
+  background: transparent !important;
+}
+
+.reception-dashboard-page .reception-appointments-row {
+  --bs-gutter-x: 0 !important;
+  margin: 0.3rem 0 0 !important;
+}
+
+.reception-dashboard-page .reception-appointments-card > .card-header {
+  --reception-appt-h: 1.75rem;
+  min-height: 0 !important;
+  height: auto !important;
+  align-items: center !important;
+  padding: 0.4rem 0.65rem !important;
+  overflow: visible;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-patient-custom-nav.nav-customs.nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  float: none;
+  height: var(--reception-appt-h);
+  padding: 0.12rem;
+  margin: 0;
+  overflow: visible;
+  border-radius: 5px;
+  background: #f1f5f9;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-item {
+  display: flex;
+  margin: 0;
+  float: none;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link {
+  position: relative;
+  float: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--reception-appt-h) - 0.24rem);
+  margin: 0 !important;
+  padding: 0 0.65rem !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link::before,
+.reception-dashboard-page .reception-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link::after {
+  display: none !important;
+  content: none !important;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link.active {
+  background: #fff !important;
+  color: #0b5cab !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7 !important;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link.active .doctor-patient-tab-label {
+  color: #0b5cab !important;
+  background: transparent !important;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-dashboard-appointment-date {
+  width: 9.25rem;
+  margin-left: 0.15rem;
+}
+
+.reception-dashboard-page .reception-appointments-card .doctor-dashboard-appointment-date .dob-picker,
+.reception-dashboard-page .reception-appointments-card .doctor-dashboard-appointment-date .dob-picker__input-group,
+.reception-dashboard-page .reception-appointments-card .doctor-appointments-toolbar__search .form-control {
+  height: 1.75rem !important;
+  min-height: 0 !important;
+}
+
+.reception-dashboard-page.clinic-workspace-page .clinic-page-header,
+.reception-dashboard-page.clinic-workspace-page > .container-fluid > .clinic-page-title {
+  margin-top: 0 !important;
+  margin-bottom: 0.3rem !important;
+}
+
+.reception-dashboard-page.clinic-workspace-page .clinic-page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  font-size: 0.9rem;
+}
+
+.reception-dashboard-page.clinic-workspace-page .clinic-page-title i {
+  color: #25a0e2;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.reception-dashboard-page.clinic-workspace-page .admin-dash-card {
+  margin-bottom: 0.3rem !important;
+}
+
+.reception-dashboard-page.clinic-workspace-page .form-label,
+.reception-dashboard-page.clinic-workspace-page label {
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #334155;
+}
+
 @media (min-width: 992px) {
   .reception-quick-actions > .reception-action-col {
     flex: 1 1 0;
     max-width: 100%;
   }
+}
+
+html[data-layout="horizontal"] body.admin-layout .page-content.reception-dashboard-page,
+body.admin-layout.reception-layout .page-content.reception-dashboard-page {
+  margin-top: var(--app-topbar-height, 60px) !important;
+  padding-top: 0.15rem !important;
 }

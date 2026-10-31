@@ -235,7 +235,7 @@ const EditRemedy = () => {
                 <Form onSubmit={formik.handleSubmit}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Remedy</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Remedy</h5>
                     </div>
                   </CardHeader>
                   <CardBody>

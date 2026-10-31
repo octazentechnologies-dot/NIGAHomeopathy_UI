@@ -8,7 +8,7 @@ const AssistedBookingPage = () => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Assisted booking</h2>
+        <h2 className="clinic-page-title"><i className="ri-calendar-check-line" aria-hidden="true" />Assisted booking</h2>
         <p className="clinic-page-subtitle">
           Complete a booking on behalf of a patient who asked for help. Payment stays with Homeocentrum.
         </p>

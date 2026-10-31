@@ -108,7 +108,7 @@ const ListRubricBenchmarkDashboard = () => {
                     {loading ? <Spinner size="sm" color="primary" /> : null}
                     <button
                       type="button"
-                      className="btn btn-sm admin-list-btn admin-list-btn--reset"
+                      className="btn btn-sm btn-soft-secondary"
                       onClick={load}
                       disabled={loading}
                     >

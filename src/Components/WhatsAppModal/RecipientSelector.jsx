@@ -112,7 +112,7 @@ export default function RecipientSelector({
           />
         </div>
       ) : hideBulkModeDropdown ? null : (
-        <Row className="g-3">
+        <Row className="g-2">
           <Col md={12}>
             <WhatsAppFormLabel icon="ri-stack-line">Bulk Mode</WhatsAppFormLabel>
               <Select

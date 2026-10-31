@@ -60,7 +60,7 @@ const ListBlog = () => {
         icon: 'success',
         title: 'Success',
         text: blogDetailsSuccess,
-        confirmButtonColor: '#800020',
+        confirmButtonColor: '#25a0e2',
         timer: 2000,
         showConfirmButton: false,
       });
@@ -76,7 +76,7 @@ const ListBlog = () => {
         icon: 'error',
         title: 'Error',
         text: blogDetailsError,
-        confirmButtonColor: '#800020',
+        confirmButtonColor: '#25a0e2',
       });
       setTimeout(() => {
         dispatch(setBlogDetailsError(null));

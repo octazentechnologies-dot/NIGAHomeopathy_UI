@@ -48,7 +48,7 @@ const SummaryWidgets = ({ values = {} }) => (
       const live = value != null && item.linkLabel;
       return (
         <Col xs={12} sm={6} lg className="pharmacy-kpi-col" key={item.id}>
-          <Card className="card-animate admin-dash-card">
+          <Card className="card-animate admin-dash-card admin-kpi-card pharmacy-kpi-card mb-0 h-100">
             <CardBody>
               <div className="d-flex align-items-center">
                 <div className="flex-grow-1 overflow-hidden">
@@ -56,24 +56,22 @@ const SummaryWidgets = ({ values = {} }) => (
                     {item.label}
                   </p>
                 </div>
-                <div className="flex-shrink-0">
-                  <h5 className="fs-14 mb-0 text-muted">—</h5>
-                </div>
               </div>
-              <div className="d-flex align-items-end justify-content-between mt-4">
-                <div>
-                  <h4 className="fs-20 fw-semibold ff-secondary mb-4">
+              <div className="d-flex align-items-end justify-content-between mt-3">
+                <div className="overflow-hidden pe-2">
+                  <h4 className="fs-20 fw-semibold ff-secondary mb-2 pharmacy-kpi-count">
                     <span className="counter-value">{live ? value : "-"}</span>
                   </h4>
-                  <Link to={item.linkPath} className="pharmacy-kpi-link">
-                    {live ? item.linkLabel : "Coming Soon"}
+                  <Link
+                    to={item.linkPath}
+                    className="pharmacy-kpi-view"
+                    title="View"
+                    aria-label={`View ${item.label}`}
+                  >
+                    <i className="ri-eye-line" aria-hidden="true" />
                   </Link>
                 </div>
-                <div className="avatar-sm flex-shrink-0">
-                  <span className="avatar-title rounded fs-3 bg-info-subtle border border-info border-opacity-25">
-                    <i className={`text-info ${item.icon}`} />
-                  </span>
-                </div>
+                <i className={`${item.icon} kpi-tile-icon`} aria-hidden="true" />
               </div>
             </CardBody>
           </Card>

@@ -480,7 +480,7 @@ const PatientContinuityPage = () => {
       <Container fluid>
         <div className="prx-page__header">
           <div>
-            <h2 className="clinic-page-title">Care continuity</h2>
+            <h2 className="clinic-page-title"><i className="ri-heart-pulse-line" aria-hidden="true" />Care continuity</h2>
             <p className="clinic-page-subtitle">Your health timeline, consents, profile, follow-ups and progress in one place.</p>
           </div>
         </div>
@@ -635,7 +635,7 @@ const PatientContinuityPage = () => {
                             {consent.withdrawnAt ? <small>Withdrawn {formatDate(consent.withdrawnAt)}</small> : null}
                             <button
                               type="button"
-                              className="prx-btn prx-btn--primary"
+                              className="btn btn-sm btn-soft-primary"
                               disabled={busyConsentId === consent.id || consent.guardianRequired}
                               onClick={() => onGiveConsent(consent)}
                             >
@@ -721,7 +721,7 @@ const PatientContinuityPage = () => {
                         {task.due ? <span>Due {formatDate(task.due)}</span> : null}
                       </div>
                       {!task.done ? (
-                        <button type="button" className="prx-btn pcon-soft-btn" onClick={() => onCompleteTask(task)}>
+                        <button type="button" className="btn btn-sm btn-soft-primary" onClick={() => onCompleteTask(task)}>
                           Done
                         </button>
                       ) : null}
@@ -736,7 +736,7 @@ const PatientContinuityPage = () => {
                 extra={<span className="pcon-count">{documents.length} file{documents.length === 1 ? "" : "s"}</span>}
               >
                 <p className="pcon-hint">Upload a report or photo for your treating doctor. PDF, JPG, or PNG up to 10 MB.</p>
-                <label className="prx-btn prx-btn--primary">
+                <label className="btn btn-sm btn-soft-primary">
                   {uploading ? <Spinner size="sm" /> : <i className="ri-upload-2-line" aria-hidden="true" />}
                   {uploading ? " Uploading…" : " Upload document"}
                   <input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={onUpload} disabled={uploading} />
@@ -802,7 +802,7 @@ const PatientContinuityPage = () => {
                   />
                   <button
                     type="button"
-                    className="prx-btn prx-btn--primary"
+                    className="btn btn-sm btn-soft-primary"
                     disabled={!diaryText.trim() || savingDiary}
                     onClick={onSaveDiary}
                   >

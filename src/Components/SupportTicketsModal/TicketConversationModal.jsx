@@ -180,17 +180,21 @@ export default function TicketConversationModal({
       <ModalBody>
         <div className="support-conv">
           <aside className="support-conv__panel support-conv__details">
-            <p className="support-conv__subject">{ticket.subject}</p>
+            <p className="support-conv__subject" title={ticket.subject}>{ticket.subject}</p>
 
             <h6 className="support-conv__section-title">{idLabel} Details</h6>
             <dl className="support-conv__meta">
               <dt>Created by</dt>
-              <dd className="d-flex align-items-center gap-2">
+              <dd className="support-conv__who">
                 <Avatar from="requester" requesterRole={requesterRole} />
-                <span className="min-w-0">
-                  <span className="fw-semibold">{requesterName}</span>{" "}
-                  {requesterRole ? <span className="text-muted">({requesterRole})</span> : null}
-                  {ticket.email ? <span className="d-block text-muted text-truncate">{ticket.email}</span> : null}
+                <span className="support-conv__who-text">
+                  <span className="support-conv__who-line" title={requesterName}>
+                    <span className="fw-semibold">{requesterName}</span>
+                    {requesterRole ? <span className="text-muted"> ({requesterRole})</span> : null}
+                  </span>
+                  {ticket.email ? (
+                    <span className="support-conv__who-email" title={ticket.email}>{ticket.email}</span>
+                  ) : null}
                 </span>
               </dd>
               <dt>Category</dt>

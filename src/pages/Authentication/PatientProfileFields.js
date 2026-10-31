@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import { Alert, Button, Col, FormFeedback, Input, Label, Row, Spinner } from "reactstrap";
+import { Alert, Col, FormFeedback, Input, Label, Nav, NavItem, NavLink, Row, Spinner } from "reactstrap";
+import ModalActionButton from "../../Components/Common/ModalActionButton";
 import {
   getConsentNotice,
   getPatientProfileMe,
@@ -28,6 +29,46 @@ const emptyHealth = {
 };
 const BLOOD_GROUPS = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-", "Unknown"];
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const genderText = (value) => {
+  const text = String(value);
+  if (text === "0") return "Male";
+  if (text === "1") return "Female";
+  return "—";
+};
+
+const formatDob = (value) => {
+  if (!value) return "—";
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const lookupName = (rows, id) => {
+  if (id == null || id === "") return "—";
+  return rows.find((row) => String(row.id) === String(id))?.name || "—";
+};
+
+const InfoField = ({ label, children }) => (
+  <Col lg={4} md={6} xs={12}>
+    <div className="user-profile-page__field">
+      <Label className="form-label user-profile-page__label">{label}</Label>
+      <div className="user-profile-page__value">{children || "—"}</div>
+    </div>
+  </Col>
+);
+
+const SectionHead = ({ title, editing, onEdit }) => (
+  <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <h5 className="user-profile-page__section-title mb-0">{title}</h5>
+    {!editing ? (
+      <button type="button" className="btn btn-sm btn-soft-primary" onClick={onEdit}>
+        <i className="ri-pencil-line me-1" aria-hidden="true" />
+        Edit
+      </button>
+    ) : null}
+  </div>
+);
 
 const unwrap = (response) => {
   const body = response?.data ?? response;
@@ -119,6 +160,10 @@ const PatientProfileFields = () => {
   const [districts, setDistricts] = useState([]);
   const [cities, setCities] = useState([]);
   const [pins, setPins] = useState([]);
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [personalSnapshot, setPersonalSnapshot] = useState(null);
+  const [editingHealth, setEditingHealth] = useState(false);
+  const [healthSnapshot, setHealthSnapshot] = useState(null);
 
   const loadPrivacy = async () => {
     const [privacyRes, noticeRes] = await Promise.all([
@@ -220,6 +265,8 @@ const PatientProfileFields = () => {
       setForm(nextForm);
       syncSessionUser(nextForm);
       setSaveNote("Profile saved.");
+      setEditingPersonal(false);
+      setPersonalSnapshot(null);
       Swal.fire({ title: "Profile saved", icon: "success", timer: 1400, showConfirmButton: false });
     } catch (err) {
       setSaveError(errorText(err, "Could not save the profile."));
@@ -250,6 +297,8 @@ const PatientProfileFields = () => {
       const saved = unwrap(response);
       if (saved && typeof saved === "object") setHealth(healthFromProfile(saved));
       setHealthNote("Medical details saved.");
+      setEditingHealth(false);
+      setHealthSnapshot(null);
       Swal.fire({ title: "Medical details saved", icon: "success", timer: 1400, showConfirmButton: false });
     } catch (err) {
       setHealthError(errorText(err, "Could not save medical details."));
@@ -286,16 +335,59 @@ const PatientProfileFields = () => {
     );
   }
 
+  const fullName = `${form.firstName} ${form.lastName}`.trim() || "Patient";
+
   return (
     <>
       {loadError ? <Alert color="danger">{loadError}</Alert> : null}
-      <h5 className="user-profile-page__section-title mb-3">
-        <i className="ri-user-heart-line" aria-hidden="true" />
-        Personal details
-      </h5>
+      <div className="user-profile-page__summary">
+        <span className="user-profile-page__avatar" aria-hidden="true">
+          <i className="ri-user-heart-line" />
+        </span>
+        <div className="user-profile-page__summary-main min-w-0">
+          <div className="user-profile-page__summary-heading">
+            <h5 className="user-profile-page__summary-name text-truncate">{fullName}</h5>
+            <span className="user-profile-page__badge user-profile-page__badge--info">Patient</span>
+          </div>
+          <div className="user-profile-page__summary-contacts">
+            <span>
+              <i className="ri-mail-line" aria-hidden="true" />
+              {form.email || "Not set"}
+            </span>
+            {form.mobileNo ? (
+              <span>
+                <i className="ri-phone-line" aria-hidden="true" />
+                {form.mobileNo}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <Nav tabs className="nav-tabs-custom rounded border-bottom-0 user-profile-page__tabs" role="tablist">
+        <NavItem>
+          <NavLink className="active" href="#" onClick={(event) => event.preventDefault()}>
+            Profile
+          </NavLink>
+        </NavItem>
+      </Nav>
+
+      <div className="user-profile-page__tab-content">
+      <SectionHead
+        title="Personal details"
+        editing={editingPersonal}
+        onEdit={() => {
+          setPersonalSnapshot(form);
+          setSaveError("");
+          setSaveNote("");
+          setEditingPersonal(true);
+        }}
+      />
       {saveError ? <Alert color="danger">{saveError}</Alert> : null}
       {saveNote ? <Alert color="success">{saveNote}</Alert> : null}
-      <Row className="g-3">
+      {editingPersonal ? (
+      <>
+      <Row className="g-3 user-profile-page__edit-form">
         <Col md={6}>
           <Label>First name</Label>
           <Input invalid={!!errors.firstName} value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} />
@@ -407,18 +499,58 @@ const PatientProfileFields = () => {
           </Input>
         </Col>
       </Row>
-      <Button className="mt-3" color="primary" disabled={saving} onClick={save}>
-        {saving ? "Saving…" : "Save profile"}
-      </Button>
+      <div className="user-profile-page__form-footer">
+        <ModalActionButton
+          action="cancel"
+          type="button"
+          disabled={saving}
+          onClick={() => {
+            if (personalSnapshot) setForm(personalSnapshot);
+            setErrors({});
+            setSaveError("");
+            setEditingPersonal(false);
+          }}
+        >
+          Cancel
+        </ModalActionButton>
+        <ModalActionButton action="save" type="button" disabled={saving} loading={saving} loadingLabel="Saving…" onClick={save}>
+          Save
+        </ModalActionButton>
+      </div>
+      </>
+      ) : (
+        <Row className="g-2 user-profile-page__info-grid">
+          <InfoField label="Full name">{fullName === "Patient" && !form.firstName ? "" : fullName}</InfoField>
+          <InfoField label="First name">{form.firstName}</InfoField>
+          <InfoField label="Last name">{form.lastName}</InfoField>
+          <InfoField label="Email">{form.email}</InfoField>
+          <InfoField label="Mobile">{form.mobileNo}</InfoField>
+          <InfoField label="Date of birth">{form.dateOfBirth ? formatDob(form.dateOfBirth) : ""}</InfoField>
+          <InfoField label="Gender">{genderText(form.gender) === "—" ? "" : genderText(form.gender)}</InfoField>
+          <InfoField label="Country">{lookupName(countries, form.countryId) === "—" ? "" : lookupName(countries, form.countryId)}</InfoField>
+          <InfoField label="State">{lookupName(states, form.stateId) === "—" ? "" : lookupName(states, form.stateId)}</InfoField>
+          <InfoField label="District">{lookupName(districts, form.districtId) === "—" ? "" : lookupName(districts, form.districtId)}</InfoField>
+          <InfoField label="City">{lookupName(cities, form.cityId) === "—" ? "" : lookupName(cities, form.cityId)}</InfoField>
+          <InfoField label="Pincode">{lookupName(pins, form.pinCodeId) === "—" ? "" : lookupName(pins, form.pinCodeId)}</InfoField>
+        </Row>
+      )}
 
-      <div className="user-profile-page__divider my-4" />
-      <h5 className="user-profile-page__section-title mb-3">
-        <i className="ri-health-book-line" aria-hidden="true" />
-        Medical details
-      </h5>
+      <div className="user-profile-page__divider" />
+      <SectionHead
+        title="Medical details"
+        editing={editingHealth}
+        onEdit={() => {
+          setHealthSnapshot(health);
+          setHealthError("");
+          setHealthNote("");
+          setEditingHealth(true);
+        }}
+      />
       {healthError ? <Alert color="danger">{healthError}</Alert> : null}
       {healthNote ? <Alert color="success">{healthNote}</Alert> : null}
-      <Row className="g-3">
+      {editingHealth ? (
+      <>
+      <Row className="g-3 user-profile-page__edit-form">
         <Col md={4}>
           <Label>Blood group</Label>
           <Input type="select" value={health.bloodGroup} onChange={(e) => setHealthField("bloodGroup", e.target.value)}>
@@ -467,44 +599,77 @@ const PatientProfileFields = () => {
           {errors.emergencyContactMobile ? <FormFeedback>{errors.emergencyContactMobile}</FormFeedback> : null}
         </Col>
       </Row>
-      <Button className="mt-3" color="primary" outline disabled={savingHealth} onClick={saveHealth}>
-        {savingHealth ? "Saving…" : "Save medical details"}
-      </Button>
+      <div className="user-profile-page__form-footer">
+        <ModalActionButton
+          action="cancel"
+          type="button"
+          disabled={savingHealth}
+          onClick={() => {
+            if (healthSnapshot) setHealth(healthSnapshot);
+            setErrors((prev) => ({ ...prev, emergencyContactMobile: "" }));
+            setHealthError("");
+            setEditingHealth(false);
+          }}
+        >
+          Cancel
+        </ModalActionButton>
+        <ModalActionButton action="save" type="button" disabled={savingHealth} loading={savingHealth} loadingLabel="Saving…" onClick={saveHealth}>
+          Save
+        </ModalActionButton>
+      </div>
+      </>
+      ) : (
+        <Row className="g-2 user-profile-page__info-grid">
+          <InfoField label="Blood group">{health.bloodGroup}</InfoField>
+          <InfoField label="Allergies">{health.allergies}</InfoField>
+          <InfoField label="Chronic conditions">{health.chronicConditions}</InfoField>
+          <InfoField label="Emergency contact">{health.emergencyContactName}</InfoField>
+          <InfoField label="Emergency mobile">{health.emergencyContactMobile}</InfoField>
+        </Row>
+      )}
 
-      <div className="user-profile-page__divider my-4" />
-      <h5 className="user-profile-page__section-title mb-2">
-        <i className="ri-shield-check-line" aria-hidden="true" />
-        Privacy consent
-      </h5>
-      <p className="text-muted">
+      <div className="user-profile-page__divider" />
+      <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <h5 className="user-profile-page__section-title mb-0">Privacy consent</h5>
+        <span className={`user-profile-page__badge user-profile-page__badge--${privacyGranted ? "success" : "warning"}`}>
+          {privacyGranted ? "Granted" : "Pending"}
+        </span>
+      </div>
+      <p className="user-profile-page__privacy-copy">
         {privacyGranted
           ? `Privacy consent is granted (notice version ${privacyStatus?.grantedNoticeVersion || "on file"}${
               privacyStatus?.grantedForMinor && privacyStatus?.guardianName ? `, given by guardian ${privacyStatus.guardianName}` : ""
             }).`
           : privacyStatus?.isMinor
-            ? "This profile belongs to someone under 18. A parent or legal guardian must give privacy consent from their family account (Family page) or at the clinic."
+            ? "This profile belongs to someone under 18. A parent or legal guardian must give privacy consent from their family account or at the clinic."
             : privacyStatus?.reconsentRequired
               ? "The privacy notice has changed since you last consented. Please read the current version and consent again."
-              : "Read the privacy notice below and grant consent so the clinic can keep your case records."}
+              : "Read the privacy notice and grant consent so the clinic can keep your case records."}
       </p>
       {privacyNotice ? (
-        <details className="mb-3">
+        <details className="user-profile-page__privacy-notice">
           <summary>
             {privacyNotice.title || "Privacy notice"} (version {privacyNotice.version})
           </summary>
-          <div className="border rounded p-2 mt-2 small" style={{ whiteSpace: "pre-wrap", maxHeight: 260, overflowY: "auto" }}>
-            {privacyNotice.body}
-          </div>
+          <div>{privacyNotice.body}</div>
         </details>
       ) : null}
       {privacyNote ? <Alert color={privacyGranted ? "success" : "danger"}>{privacyNote}</Alert> : null}
-      <Button
-        color="success"
-        disabled={privacyBusy || privacyGranted || Boolean(privacyStatus?.isMinor) || !privacyNotice}
-        onClick={grantPrivacy}
-      >
-        {privacyBusy ? "Saving…" : privacyGranted ? "Granted" : "I have read the notice and consent"}
-      </Button>
+      {!privacyGranted && !privacyStatus?.isMinor ? (
+        <div className="user-profile-page__form-footer">
+          <ModalActionButton
+            action="confirm"
+            type="button"
+            disabled={privacyBusy || !privacyNotice}
+            loading={privacyBusy}
+            loadingLabel="Saving…"
+            onClick={grantPrivacy}
+          >
+            I have read the notice and consent
+          </ModalActionButton>
+        </div>
+      ) : null}
+      </div>
     </>
   );
 };

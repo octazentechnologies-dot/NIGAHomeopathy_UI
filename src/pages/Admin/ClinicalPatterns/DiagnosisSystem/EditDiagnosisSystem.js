@@ -64,7 +64,7 @@ const EditDiagnosisSystem = () => {
                 >
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Diagnosis System</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Diagnosis System</h5>
                     </div>
                   </CardHeader>
 

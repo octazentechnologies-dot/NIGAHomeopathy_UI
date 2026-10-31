@@ -464,7 +464,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
   };
 
   return (
-    <Row className="mt-3">
+    <Row className="reception-appointments-row">
       <Col xs={12}>
         <Card className="doctor-appointments-card reception-appointments-card mb-0">
           <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header doctor-patient-nav-tabs doctor-appointments-toolbar">
@@ -476,7 +476,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
                     className={classnames({ active: activeTab === "1" })}
                     onClick={() => setActiveTab("1")}
                   >
-                    <span className="doctor-patient-tab-label">Today</span>
+                    <span className="doctor-patient-tab-label">Today ({todaySource.length})</span>
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -485,7 +485,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
                     className={classnames({ active: activeTab === "2" })}
                     onClick={() => setActiveTab("2")}
                   >
-                    <span className="doctor-patient-tab-label">All</span>
+                    <span className="doctor-patient-tab-label">All ({allSource.length})</span>
                   </NavLink>
                 </NavItem>
               </Nav>

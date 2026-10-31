@@ -607,13 +607,10 @@ const ProfileBadge = ({ tone = "neutral", children }) => (
   </span>
 );
 
-const ProfileInfoField = ({ icon, label, children }) => (
+const ProfileInfoField = ({ label, children }) => (
   <Col lg={4} md={6} xs={12}>
     <div className="user-profile-page__field">
-      <Label className="form-label new-patient-modal__label">
-        <i className={icon} aria-hidden="true" />
-        {label}
-      </Label>
+      <Label className="form-label user-profile-page__label">{label}</Label>
       <div className="user-profile-page__value">{children}</div>
     </div>
   </Col>
@@ -2041,13 +2038,9 @@ const UserProfile = () => {
       <div className="page-content user-profile-page doctor-dashboard-page">
         <Container fluid>
           <Row>
-            <Col lg={8}>
+            <Col xs={12}>
               <Card className="user-profile-card doctor-stats-card">
-                <CardBody>
-                  <h5 className="mb-1">Patient profile</h5>
-                  <p className="text-muted">
-                    Update your personal and medical details, and manage privacy consent.
-                  </p>
+                <CardBody className="user-profile-card__body">
                   <PatientProfileFields />
                 </CardBody>
               </Card>
@@ -2095,30 +2088,33 @@ const UserProfile = () => {
                       <i className="ri-user-heart-line" />
                     )}
                   </span>
-                  <div className="min-w-0">
-                    <h5 className="user-profile-page__summary-name text-truncate">
-                      {displayName}
-                    </h5>
-                    <p className="user-profile-page__summary-meta">
-                      <i className="ri-shield-user-line" aria-hidden="true" />
-                      <span>{roleLabel}</span>
-                    </p>
-                    <p className="user-profile-page__summary-meta">
-                      <i className="ri-mail-line" aria-hidden="true" />
-                      <span>Email: {email || "Not set"}</span>
-                    </p>
-                    {doctorMobile ? (
-                      <p className="user-profile-page__summary-meta mb-0">
-                        <i className="ri-phone-line" aria-hidden="true" />
-                        <span>Mobile: {doctorMobile}</span>
-                      </p>
-                    ) : null}
-                    {userData?.role !== UserRole.DOCTOR ? (
-                      <p className="user-profile-page__summary-meta mb-0">
-                        <i className="ri-user-settings-line" aria-hidden="true" />
-                        <span>Login: {userData?.loginId || userData?.userName || "—"}</span>
-                      </p>
-                    ) : null}
+                  <div className="user-profile-page__summary-main min-w-0">
+                    <div className="user-profile-page__summary-heading">
+                      <h5 className="user-profile-page__summary-name text-truncate">
+                        {displayName}
+                      </h5>
+                      {roleLabel ? (
+                        <ProfileBadge tone="info">{roleLabel}</ProfileBadge>
+                      ) : null}
+                    </div>
+                    <div className="user-profile-page__summary-contacts">
+                      <span>
+                        <i className="ri-mail-line" aria-hidden="true" />
+                        {email || "Not set"}
+                      </span>
+                      {doctorMobile ? (
+                        <span>
+                          <i className="ri-phone-line" aria-hidden="true" />
+                          {doctorMobile}
+                        </span>
+                      ) : null}
+                      {userData?.role !== UserRole.DOCTOR ? (
+                        <span>
+                          <i className="ri-user-settings-line" aria-hidden="true" />
+                          {userData?.loginId || userData?.userName || "—"}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 
@@ -2143,67 +2139,33 @@ const UserProfile = () => {
                   ))}
                 </Nav>
 
-                <TabContent activeTab={activeTab} className="user-profile-page__tab-content pt-3">
+                <TabContent activeTab={activeTab} className="user-profile-page__tab-content">
                   <TabPane tabId="profile">
                     {isReceptionProfile ? <ReceptionProfileFields /> : userData ? (
                       <>
                         <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                           <h5 className="user-profile-page__section-title mb-0">
-                            <i className="ri-information-line" aria-hidden="true" />
                             User Information
                           </h5>
-                          {userData.role !== UserRole.DOCTOR ? (
-                            <div className="d-flex gap-2">
-                              {editingStaffProfile ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-soft-secondary"
-                                    disabled={personalSaving}
-                                    onClick={() => {
-                                      setPersonalForm((prev) => ({
-                                        ...prev,
-                                        firstName: userData.firstName || "",
-                                        middleName: userData.middleName || "",
-                                        lastName: userData.lastName || "",
-                                        email: email || userData.email || userData.emailId || "",
-                                        mobileNo: doctorMobile || userData.mobileNo || "",
-                                      }));
-                                      setEditingStaffProfile(false);
-                                    }}
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm clinic-primary-btn"
-                                    disabled={personalSaving}
-                                    onClick={handleSaveStaffProfile}
-                                  >
-                                    {personalSaving ? "Saving…" : "Save"}
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-soft-primary"
-                                  onClick={() => {
-                                    setPersonalForm((prev) => ({
-                                      ...prev,
-                                      firstName: userData.firstName || "",
-                                      middleName: userData.middleName || "",
-                                      lastName: userData.lastName || "",
-                                      email: email || userData.email || userData.emailId || "",
-                                      mobileNo: doctorMobile || userData.mobileNo || "",
-                                    }));
-                                    setEditingStaffProfile(true);
-                                  }}
-                                >
-                                  <i className="ri-pencil-line me-1" aria-hidden="true" />
-                                  Edit
-                                </button>
-                              )}
-                            </div>
+                          {userData.role !== UserRole.DOCTOR && !editingStaffProfile ? (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-soft-primary"
+                              onClick={() => {
+                                setPersonalForm((prev) => ({
+                                  ...prev,
+                                  firstName: userData.firstName || "",
+                                  middleName: userData.middleName || "",
+                                  lastName: userData.lastName || "",
+                                  email: email || userData.email || userData.emailId || "",
+                                  mobileNo: doctorMobile || userData.mobileNo || "",
+                                }));
+                                setEditingStaffProfile(true);
+                              }}
+                            >
+                              <i className="ri-pencil-line me-1" aria-hidden="true" />
+                              Edit
+                            </button>
                           ) : null}
                         </div>
                         {editingStaffProfile && userData.role !== UserRole.DOCTOR ? (
@@ -2269,50 +2231,78 @@ const UserProfile = () => {
                                 <Input value={roleLabel} disabled />
                               </Col>
                             </Row>
+                            <div className="user-profile-page__form-footer">
+                              <ModalActionButton
+                                action="cancel"
+                                type="button"
+                                disabled={personalSaving}
+                                onClick={() => {
+                                  setPersonalForm((prev) => ({
+                                    ...prev,
+                                    firstName: userData.firstName || "",
+                                    middleName: userData.middleName || "",
+                                    lastName: userData.lastName || "",
+                                    email: email || userData.email || userData.emailId || "",
+                                    mobileNo: doctorMobile || userData.mobileNo || "",
+                                  }));
+                                  setEditingStaffProfile(false);
+                                }}
+                              >
+                                Cancel
+                              </ModalActionButton>
+                              <ModalActionButton
+                                action="save"
+                                type="submit"
+                                disabled={personalSaving}
+                                loading={personalSaving}
+                                loadingLabel="Saving…"
+                              >
+                                Save
+                              </ModalActionButton>
+                            </div>
                           </Form>
                         ) : (
-                        <Row className="g-3 new-patient-modal__fields user-profile-page__info-grid">
-                          <ProfileInfoField icon="ri-user-line" label="Full Name">
+                        <Row className="g-2 new-patient-modal__fields user-profile-page__info-grid">
+                          <ProfileInfoField label="Full Name">
                             {[userData.firstName, userData.middleName, userData.lastName].filter(Boolean).join(" ") || userData.displayName || userData.userName || "—"}
                           </ProfileInfoField>
-                          <ProfileInfoField icon="ri-user-3-line" label="First Name">
+                          <ProfileInfoField label="First Name">
                             {userData.firstName || "—"}
                           </ProfileInfoField>
                           {userData.middleName ? (
-                            <ProfileInfoField icon="ri-user-smile-line" label="Middle Name">
+                            <ProfileInfoField label="Middle Name">
                               {userData.middleName}
                             </ProfileInfoField>
                           ) : null}
-                          <ProfileInfoField icon="ri-user-4-line" label="Last Name">
+                          <ProfileInfoField label="Last Name">
                             {userData.lastName || "—"}
                           </ProfileInfoField>
-                          <ProfileInfoField icon="ri-mail-line" label="Email">
+                          <ProfileInfoField label="Email">
                             {email || "Not set"}
                           </ProfileInfoField>
-                          <ProfileInfoField icon="ri-phone-line" label="Mobile">
+                          <ProfileInfoField label="Mobile">
                             {doctorMobile || userData.mobileNo || userData.mobile || "—"}
                           </ProfileInfoField>
-                          <ProfileInfoField icon="ri-user-settings-line" label="Login ID">
+                          <ProfileInfoField label="Login ID">
                             {userData.loginId || userData.userName || "—"}
                           </ProfileInfoField>
-                          <ProfileInfoField icon="ri-shield-user-line" label="Role">
+                          <ProfileInfoField label="Role">
                             <ProfileBadge tone="info">
                               {roleLabel}
-                              {userData.roleId != null && userData.roleId !== "" ? ` · #${userData.roleId}` : ""}
                             </ProfileBadge>
                           </ProfileInfoField>
                           {userData.role !== UserRole.DOCTOR ? (
-                            <ProfileInfoField icon="ri-account-circle-line" label="User name">
+                            <ProfileInfoField label="User name">
                               {userData.userName || userData.loginId || userData.displayName || "—"}
                             </ProfileInfoField>
                           ) : null}
                           {(userData.userId || userData.UserId) ? (
-                            <ProfileInfoField icon="ri-hashtag" label="User ID">
+                            <ProfileInfoField label="User ID">
                               {userData.userId || userData.UserId}
                             </ProfileInfoField>
                           ) : null}
                           {userData.userStatus !== undefined && userData.userStatus !== null ? (
-                            <ProfileInfoField icon="ri-user-follow-line" label="Account status">
+                            <ProfileInfoField label="Account status">
                               <ProfileBadge tone={userData.userStatus === true || userData.userStatus === 1 || /^active$/i.test(String(userData.userStatus)) ? "success" : "danger"}>
                                 {userData.userStatus === true || userData.userStatus === 1 || /^active$/i.test(String(userData.userStatus))
                                   ? "Active"
@@ -2321,38 +2311,38 @@ const UserProfile = () => {
                             </ProfileInfoField>
                           ) : null}
                           {userData.isUserActivated !== undefined && userData.isUserActivated !== null ? (
-                            <ProfileInfoField icon="ri-mail-check-line" label="Email activated">
+                            <ProfileInfoField label="Email activated">
                               <ProfileBadge tone={userData.isUserActivated ? "success" : "warning"}>
                                 {userData.isUserActivated ? "Yes" : "Pending"}
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
                           {userData.verificationStatus ? (
-                            <ProfileInfoField icon="ri-shield-check-line" label="Verification">
+                            <ProfileInfoField label="Verification">
                               <ProfileBadge tone={/approved/i.test(userData.verificationStatus) ? "success" : "warning"}>
                                 {userData.verificationStatus}
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
                           {userData.isSuperUser !== undefined && userData.isSuperUser !== null ? (
-                            <ProfileInfoField icon="ri-vip-crown-line" label="Super User">
+                            <ProfileInfoField label="Super User">
                               <ProfileBadge tone={userData.isSuperUser ? "success" : "neutral"}>
                                 {userData.isSuperUser ? "Yes" : "No"}
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
                           {userData.companyName ? (
-                            <ProfileInfoField icon="ri-building-2-line" label="Company">
+                            <ProfileInfoField label="Company">
                               {userData.companyName}
                             </ProfileInfoField>
                           ) : null}
                           {(userData.firmNames || userData.firmName || userData.firmIds) ? (
-                            <ProfileInfoField icon="ri-building-line" label="Firms">
+                            <ProfileInfoField label="Firms">
                               {userData.firmNames || userData.firmName || userData.firmIds}
                             </ProfileInfoField>
                           ) : null}
                           {formatProfileDate(userData.enteredDate) ? (
-                            <ProfileInfoField icon="ri-calendar-check-line" label="Member since">
+                            <ProfileInfoField label="Member since">
                               {formatProfileDate(userData.enteredDate)}
                               {userData.enteredBy ? (
                                 <span className="text-muted small d-block">by {userData.enteredBy}</span>
@@ -2360,7 +2350,7 @@ const UserProfile = () => {
                             </ProfileInfoField>
                           ) : null}
                           {formatProfileDate(userData.changedDate) ? (
-                            <ProfileInfoField icon="ri-history-line" label="Last updated">
+                            <ProfileInfoField label="Last updated">
                               {formatProfileDate(userData.changedDate)}
                               {userData.changedBy ? (
                                 <span className="text-muted small d-block">by {userData.changedBy}</span>
@@ -2368,33 +2358,33 @@ const UserProfile = () => {
                             </ProfileInfoField>
                           ) : null}
                           {showsDoctorPlanFields(userData.role) ? (
-                            <ProfileInfoField icon="ri-checkbox-circle-line" label="Plan Status">
+                            <ProfileInfoField label="Plan Status">
                               <ProfileBadge tone={userData.isPlanActive ? "success" : "danger"}>
                                 {userData.isPlanActive ? "Active" : "Inactive"}
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
                           {showsDoctorPlanFields(userData.role) && userData.daysRemaining !== undefined ? (
-                            <ProfileInfoField icon="ri-timer-line" label="Days Remaining">
+                            <ProfileInfoField label="Days Remaining">
                               <ProfileBadge tone={getDaysRemainingTone(userData.daysRemaining)}>
                                 {userData.daysRemaining} days
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
                           {showsDoctorPlanFields(userData.role) && userData.packageName ? (
-                            <ProfileInfoField icon="ri-vip-diamond-line" label="Package">
+                            <ProfileInfoField label="Package">
                               {userData.packageName}
                             </ProfileInfoField>
                           ) : null}
                           {userData.role === UserRole.DOCTOR ? (
-                            <ProfileInfoField icon="ri-hospital-line" label="Practice activated">
+                            <ProfileInfoField label="Practice activated">
                               <ProfileBadge tone={userData.practiceActivated ? "success" : "neutral"}>
                                 {userData.practiceActivated ? "Yes" : "No"}
                               </ProfileBadge>
                             </ProfileInfoField>
                           ) : null}
                           {userData.role === UserRole.DOCTOR && ranking?.score != null ? (
-                            <ProfileInfoField icon="ri-bar-chart-line" label="Find a Doctor score">
+                            <ProfileInfoField label="Find a Doctor score">
                               {ranking.score}
                               {ranking.parts ? ` · verified ${ranking.parts.verified ?? "—"}, rating ${ranking.parts.averageRating ?? "—"}, fee factor ${ranking.parts.feeFactor ?? "—"}` : ""}
                             </ProfileInfoField>

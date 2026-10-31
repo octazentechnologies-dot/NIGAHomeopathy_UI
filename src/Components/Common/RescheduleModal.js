@@ -164,7 +164,7 @@ const RescheduleModal = ({
         />
       </ModalBody>
       <ModalFooter>
-        <Button color="light" type="button" onClick={toggle} disabled={busy}>Close</Button>
+        <Button color="light" type="button" onClick={toggle} disabled={busy}><i className="ri-close-line" aria-hidden="true" /> Close</Button>
         <Button id={`reschedule-save-${patientAppId || "none"}`} color="primary" type="button" disabled={busy || !time} onClick={save}>
           {busy ? "Saving…" : "Save"}
         </Button>

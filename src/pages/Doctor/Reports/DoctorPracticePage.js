@@ -6,7 +6,7 @@ const numberText = (value) => (value == null || value === "" ? "—" : String(va
 
 const Stat = ({ label, value }) => (
   <Col md={4} sm={6}>
-    <Card className="admin-dash-card h-100">
+    <Card className="admin-dash-card admin-kpi-card h-100">
       <CardBody>
         <div className="text-muted small">{label}</div>
         <div className="fs-5 fw-semibold">{numberText(value)}</div>
@@ -55,7 +55,7 @@ const DoctorPracticePage = () => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Practice</h2>
+        <h2 className="clinic-page-title"><i className="ri-pulse-line" aria-hidden="true" />Practice</h2>
         <p className="clinic-page-subtitle">Stored visit counts, the insights summary, and the last 30 appointments.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {loading ? <Spinner size="sm" /> : null}

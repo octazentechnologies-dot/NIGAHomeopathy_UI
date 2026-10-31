@@ -17,6 +17,7 @@ import {
   Spinner,
   UncontrolledTooltip,
 } from "reactstrap";
+import { pageWindow } from "../../../helpers/pageWindow";
 import moment from "moment";
 import Swal from "sweetalert2";
 import ModalActionButton from "../../../Components/Common/ModalActionButton";
@@ -127,27 +128,7 @@ const getSessionLabel = (start) => {
   return "Evening";
 };
 
-const getModalVisiblePageItems = (currentPage, totalPages) => {
-  const total = Math.max(0, Number(totalPages) || 0);
-  const current = Math.min(Math.max(1, Number(currentPage) || 1), Math.max(total, 1));
-  if (total <= 0) return [];
-  if (total <= 3) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const pages = new Set([1, 2, total, current]);
-  const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
-  const items = [];
-  let prev = 0;
-  sorted.forEach((page) => {
-    if (prev && page - prev > 1) {
-      items.push("ellipsis");
-    }
-    items.push(page);
-    prev = page;
-  });
-  return items;
-};
+const getModalVisiblePageItems = (currentPage, totalPages) => pageWindow(currentPage, totalPages, "ellipsis");
 
 const CompactModalPaginationPages = ({ currentPage, totalPages, onPageChange }) => {
   const items = getModalVisiblePageItems(currentPage, totalPages);
@@ -1026,12 +1007,18 @@ const TeleConsultationDashboard = () => {
                               ←
                             </button>
                           </li>
-                          {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                            <li key={page} className={`page-item ${page === safePage ? "active" : ""}`}>
-                              <button className="page-link" type="button" onClick={() => setCurrentPage(page)}>
-                                {page}
-                              </button>
-                            </li>
+                          {pageWindow(safePage, totalPages).map((page, index) => (
+                            page === "…" ? (
+                              <li key={`gap-${index}`} className="page-item disabled">
+                                <span className="page-link">…</span>
+                              </li>
+                            ) : (
+                              <li key={page} className={`page-item ${page === safePage ? "active" : ""}`}>
+                                <button className="page-link" type="button" onClick={() => setCurrentPage(page)}>
+                                  {page}
+                                </button>
+                              </li>
+                            )
                           ))}
                           <li className={`page-item ${safePage === totalPages ? "disabled" : ""}`}>
                             <button

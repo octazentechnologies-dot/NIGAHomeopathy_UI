@@ -7,83 +7,161 @@
 
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 0.5rem 0.75rem 1rem;
+  gap: 0.3rem;
+  padding: 0 0 1rem;
+}
+
+body.admin-layout .page-content .ntf-page .ntf-page__head,
+body.admin-layout .page-content .ntf-page .ntf-toolbar {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body.patient-layout .page-content.clinic-workspace-page > .container-fluid:has(> .ntf-page),
+html[data-layout="horizontal"] body.admin-layout .page-content.clinic-workspace-page > .container-fluid:has(> .ntf-page) {
+  padding-left: 0.15rem !important;
+  padding-right: 0.15rem !important;
+}
+
+body.admin-layout .page-content .ntf-page .ntf-page__head,
+body.admin-layout .page-content .ntf-page .ntf-toolbar,
+body.patient-layout .page-content .ntf-page .ntf-page__head,
+body.patient-layout .page-content .ntf-page .ntf-toolbar {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .ntf-page .clinic-page-title {
-  font-size: 1.15rem;
-  line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  margin: 0 !important;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ntf-page .clinic-page-title i {
+  color: #25a0e2;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .ntf-page .clinic-page-subtitle {
-  font-size: 0.78rem;
+  margin: 0.15rem 0 0 !important;
+  font-size: 0.72rem;
 }
 
 .ntf-page__head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+  min-height: 1.75rem;
+  margin: 0;
 }
 
 .ntf-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  margin: 0;
+}
+
+.ntf-prefs {
+  margin: 0 !important;
+  padding: 0.65rem 0.7rem 0.7rem 0.55rem;
+  border: 1px solid var(--ntf-border);
+  border-radius: 5px;
+  background: #fff;
+}
+
+.ntf-prefs__title {
+  margin: 0 0 0.55rem;
+  color: #1e293b;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ntf-prefs__grid {
+  --bs-gutter-x: 0.5rem !important;
+  --bs-gutter-y: 0.5rem !important;
+  width: auto !important;
+  margin-left: 0 !important;
+  margin-right: -0.25rem !important;
+}
+
+.ntf-prefs__grid > [class*="col"] {
+  padding-left: 0 !important;
+  padding-right: 0.5rem !important;
+}
+
+.ntf-prefs .form-check-input {
+  margin-left: 0 !important;
+}
+
+.ntf-prefs label,
+.ntf-prefs .form-label {
+  margin-bottom: 0.2rem;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.ntf-pref-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  margin: 0;
+}
+
+.page-content .ntf-page .ntf-prefs .ntf-prefs__save.btn:not(.btn-icon) {
+  height: 1.75rem !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .ntf-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.12rem;
+  border-radius: 5px;
+  background: #f1f5f9;
 }
 
 .ntf-tab {
-  height: 26px;
-  padding: 0 0.8rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #f1f5f9;
-  color: #475569;
+  height: 24px;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
   font-size: 0.72rem;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .ntf-tab:hover {
-  border-color: #cfe6f8;
-  color: var(--ntf-blue-dark);
+  color: #0b5cab;
 }
 
 .ntf-tab.is-active {
-  border-color: #bfe0f7;
-  background: #eaf5fd;
-  color: var(--ntf-blue-dark);
+  background: #fff;
+  color: #0b5cab;
   font-weight: 600;
-}
-
-.ntf-mark-all {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ntf-blue);
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.ntf-mark-all:hover:not(:disabled) {
-  color: var(--ntf-blue-dark);
-  text-decoration: underline;
-}
-
-.ntf-mark-all:disabled {
-  color: #94a3b8;
-  cursor: default;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7;
 }
 
 .ntf-list {

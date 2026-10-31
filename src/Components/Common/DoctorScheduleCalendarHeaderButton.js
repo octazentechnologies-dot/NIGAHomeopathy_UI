@@ -342,9 +342,10 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
                     onClick={() => selectDay(day)}
                     title={hasHours ? 'Hours set in profile / daily schedule' : 'No hours saved for this day'}
                   >
-                    <span>
-                      {WEEKDAY_LABELS[day.isoWeekday() - 1]} {day.format('D')}
+                    <span className="doctor-schedule-calendar__day-name">
+                      {WEEKDAY_LABELS[day.isoWeekday() - 1]}
                     </span>
+                    <span className="doctor-schedule-calendar__day-num">{day.format('D')}</span>
                   </button>
                 );
               })}
@@ -370,10 +371,10 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
             {daySchedule?.hasSchedule ? (
               <div className="doctor-schedule-calendar__summary">
-                <span>{slotSummary.total} slots</span>
-                <span>{slotSummary.available} available</span>
-                <span>{slotSummary.booked + slotSummary.current} booked</span>
-                <span>{slotSummary.break} break</span>
+                <span className="is-total"><strong>{slotSummary.total}</strong> slots</span>
+                <span className="is-available"><strong>{slotSummary.available}</strong> available</span>
+                <span className="is-booked"><strong>{slotSummary.booked + slotSummary.current}</strong> booked</span>
+                <span className="is-break"><strong>{slotSummary.break}</strong> break</span>
               </div>
             ) : null}
 

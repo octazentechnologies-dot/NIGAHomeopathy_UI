@@ -102,7 +102,7 @@ const EditRole = () => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Role</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Role</h5>
                     </div>
                   </CardHeader>
 

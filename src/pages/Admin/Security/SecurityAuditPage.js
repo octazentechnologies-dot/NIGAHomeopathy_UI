@@ -45,10 +45,10 @@ const SecurityAuditPage = () => {
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-2">
           <div>
-            <h2 className="clinic-page-title mb-1">Security audit</h2>
+            <h2 className="clinic-page-title mb-1"><i className="ri-shield-keyhole-line" aria-hidden="true" />Security audit</h2>
             <p className="clinic-page-subtitle mb-0">Recent security events and a hash check of the log.</p>
           </div>
-          <Button color="primary" onClick={onVerify}>Verify log</Button>
+          <Button color="primary" onClick={onVerify}><i className="ri-shield-check-line" aria-hidden="true" /> Verify log</Button>
         </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {verify ? (

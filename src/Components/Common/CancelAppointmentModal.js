@@ -70,7 +70,7 @@ const CancelAppointmentModal = ({ isOpen, toggle, patientAppId, onSaved }) => {
         <p className="text-muted small mt-2">Payment is not refunded from this screen.</p>
       </ModalBody>
       <ModalFooter>
-        <Button color="danger" disabled={busy || !patientAppId} onClick={saveCancel}>Cancel visit</Button>
+        <Button color="danger" disabled={busy || !patientAppId} onClick={saveCancel}><i className="ri-close-circle-line" aria-hidden="true" /> Cancel visit</Button>
       </ModalFooter>
     </Modal>
   );

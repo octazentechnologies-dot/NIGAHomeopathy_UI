@@ -73,7 +73,7 @@ const AddAuthor = (props) => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">New Author</h5>
+                      <h5 className="admin-form-title"><i className="ri-add-circle-line" aria-hidden="true" />New Author</h5>
                     </div>
                   </CardHeader>
 

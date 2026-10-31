@@ -27,7 +27,7 @@ const AppointmentChangeActions = ({ patientAppId, doctorId, appointmentDate, app
         disabled={locked}
         onClick={() => setOpen("reschedule")}
       >
-        Reschedule
+        <i className="ri-calendar-event-line" aria-hidden="true" /> Reschedule
       </Button>
       <Button
         size="sm"
@@ -36,7 +36,7 @@ const AppointmentChangeActions = ({ patientAppId, doctorId, appointmentDate, app
         disabled={locked}
         onClick={() => setOpen("cancel")}
       >
-        Cancel
+        <i className="ri-close-circle-line" aria-hidden="true" /> Cancel
       </Button>
       {!locked ? (
         <>

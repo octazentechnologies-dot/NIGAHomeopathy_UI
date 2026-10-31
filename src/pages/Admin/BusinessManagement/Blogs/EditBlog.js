@@ -197,7 +197,7 @@ const EditBlog = () => {
                 <Form onSubmit={formik.handleSubmit}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Blog</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Blog</h5>
                     </div>
                   </CardHeader>
 

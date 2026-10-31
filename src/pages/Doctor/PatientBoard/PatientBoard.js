@@ -16961,10 +16961,10 @@ const PatientBoard = () => {
                   <thead>
                     <tr>
                       <th style={{ width: '50px', textAlign: 'center' }}>No.</th>
-                      <th><i className="ri-medicine-bottle-line" aria-hidden="true" />Remedy Name</th>
+                      <th>Remedy Name</th>
                       <th style={{ width: '90px' }}>Potency</th>
-                      <th><i className="ri-time-line" aria-hidden="true" />Dosage</th>
-                      <th><i className="ri-file-text-line" aria-hidden="true" />Remedy Description</th>
+                      <th>Dosage</th>
+                      <th>Remedy Description</th>
                       <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>

@@ -121,18 +121,18 @@ const VisitStatusChart = ({ visits = [], loading }) => {
 
   return (
     <Col xl={4} className="d-flex">
-      <Card className="card-height-100 flex-grow-1 w-100 patient-stats-card">
+      <Card className="h-100 flex-grow-1 w-100 patient-stats-card mb-0">
         <CardHeader className="align-items-center d-flex doctor-dashboard-card-header">
           <h4 className="card-title mb-0 flex-grow-1">Visit status</h4>
         </CardHeader>
         <CardBody className="patient-stats-card-body">
           {loading ? (
-            <div className="text-center text-muted py-5">
+            <div className="text-center text-muted py-3">
               <Spinner size="sm" className="me-2" />
               Loading…
             </div>
           ) : total === 0 ? (
-            <div className="text-center text-muted py-5">
+            <div className="text-center text-muted py-3">
               <i className="ri-pie-chart-2-line fs-2 d-block mb-2" />
               No visits in this range yet.
             </div>
@@ -210,18 +210,18 @@ const VisitsTrendChart = ({ visits = [], loading }) => {
 
   return (
     <Col xl={8} className="d-flex">
-      <Card className="card-height-100 flex-grow-1 w-100 patient-stats-card">
+      <Card className="h-100 flex-grow-1 w-100 patient-stats-card mb-0">
         <CardHeader className="align-items-center d-flex doctor-dashboard-card-header">
           <h4 className="card-title mb-0 flex-grow-1">Visits — last 6 months</h4>
         </CardHeader>
-        <CardBody>
+        <CardBody className="patient-stats-card-body">
           {loading ? (
-            <div className="text-center text-muted py-5">
+            <div className="text-center text-muted py-3">
               <Spinner size="sm" className="me-2" />
               Loading…
             </div>
           ) : !hasData ? (
-            <div className="text-center text-muted py-5">
+            <div className="text-center text-muted py-3">
               <i className="ri-bar-chart-grouped-line fs-2 d-block mb-2" />
               No visit history to chart yet.
             </div>
@@ -292,19 +292,19 @@ const PaymentsSparkChart = ({ payments = [], loading }) => {
   };
 
   return (
-    <Col xs={12} className="d-flex">
-      <Card className="card-height-100 flex-grow-1 w-100 patient-stats-card">
+    <Col xs={12} className="d-flex patient-payments-chart">
+      <Card className="h-100 flex-grow-1 w-100 patient-stats-card mb-0">
         <CardHeader className="align-items-center d-flex doctor-dashboard-card-header">
           <h4 className="card-title mb-0 flex-grow-1">Payments trend</h4>
         </CardHeader>
-        <CardBody>
+        <CardBody className="patient-stats-card-body">
           {loading ? (
-            <div className="text-center text-muted py-5">
+            <div className="text-center text-muted py-3">
               <Spinner size="sm" className="me-2" />
               Loading…
             </div>
           ) : !hasData ? (
-            <div className="text-center text-muted py-4">
+            <div className="text-center text-muted py-3">
               <i className="ri-line-chart-line fs-2 d-block mb-2" />
               No payment activity in the last 6 months.
             </div>
@@ -327,7 +327,7 @@ const PaymentsSparkChart = ({ payments = [], loading }) => {
 };
 
 const PatientCharts = ({ visits, payments, loading }) => (
-  <Row className="g-3 mt-1 patient-dashboard-charts align-items-stretch">
+  <Row className="patient-dashboard-charts align-items-stretch">
     <VisitStatusChart visits={visits} loading={loading} />
     <VisitsTrendChart visits={visits} loading={loading} />
     <PaymentsSparkChart payments={payments} loading={loading} />

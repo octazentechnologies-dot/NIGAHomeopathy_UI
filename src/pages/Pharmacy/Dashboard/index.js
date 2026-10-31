@@ -228,8 +228,9 @@ const PharmacyDashboard = () => {
                   <i className="ri-dashboard-3-line" aria-hidden="true" />
                   Pharmacy Console
                 </span>
-                <button type="button" className="pcs-icon-btn" title="Refresh" onClick={load} disabled={loading}>
+                <button type="button" className="btn btn-sm btn-soft-secondary" onClick={load} disabled={loading}>
                   <i className={loading ? "ri-loader-4-line pcs-spin" : "ri-refresh-line"} aria-hidden="true" />
+                  Refresh
                 </button>
               </header>
               <div className="pcs-card__body">
@@ -269,9 +270,9 @@ const PharmacyDashboard = () => {
                 <div className="pcs-recent">
                   <div className="pcs-recent__head">
                     <span>Recent orders</span>
-                    <Link to="/pharmacy/orders">
-                      View all
-                      <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                    <Link to="/pharmacy/orders" className="btn btn-sm btn-soft-primary">
+                      <i className="ri-eye-line" aria-hidden="true" />
+                      View All
                     </Link>
                   </div>
                   {loading ? (

@@ -560,10 +560,9 @@ export default function WhatsAppModal({ isOpen, toggle }) {
       toggle={toggle}
       centered
       size="lg"
-      className="whatsapp-modal"
+      className="whatsapp-modal whatsapp-compose-modal"
       backdrop
       fade
-      style={{ maxWidth: 780 }}
     >
       <ModalHeader toggle={toggle}>
         <div className="whatsapp-modal__header">
@@ -609,7 +608,7 @@ export default function WhatsAppModal({ isOpen, toggle }) {
         </Nav>
       </div>
 
-      <ModalBody className="whatsapp-modal__body" style={{ minHeight: 380 }}>
+      <ModalBody className="whatsapp-modal__body">
         {campaignRows.length > 0 ? (
           <div className="mb-3 small">
             <div className="fw-semibold mb-1">Recent bulk sends</div>
@@ -626,7 +625,7 @@ export default function WhatsAppModal({ isOpen, toggle }) {
           </div>
         ) : null}
         <div className="whatsapp-modal__form-stack">
-        <Row className="g-3">
+        <Row className="g-2">
           <Col md={6}>
             <WhatsAppFormLabel icon="ri-translate-2">Language</WhatsAppFormLabel>
             <Select
@@ -695,13 +694,15 @@ export default function WhatsAppModal({ isOpen, toggle }) {
           ) : null}
         </Row>
 
-        <div className="d-flex align-items-center justify-content-end whatsapp-modal__char-count">
-          <div className="whatsapp-modal__subtle">
-            <span className={characterCount > maxChars ? "text-danger fw-semibold" : ""}>
-              {characterCount} / {maxChars}
-            </span>
+        {compose.templateID ? (
+          <div className="d-flex align-items-center justify-content-end whatsapp-modal__char-count">
+            <div className="whatsapp-modal__subtle">
+              <span className={characterCount > maxChars ? "text-danger fw-semibold" : ""}>
+                {characterCount} / {maxChars}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <WhatsAppCommonFields
           compose={compose}

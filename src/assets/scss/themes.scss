@@ -74,6 +74,7 @@ body {
     > .nav-item > .nav-link,
     > li > .nav-link {
       font-size: 0.6875rem !important;
+      font-weight: 600 !important;
       line-height: 1.25 !important;
       align-items: center !important;
 
@@ -105,6 +106,18 @@ body {
   font-size: 0.6875rem !important;
 }
 
+table thead th i[class^="ri-"],
+table thead th i[class*=" ri-"],
+table thead th i[class^="mdi"],
+table thead th i[class*=" mdi"],
+table thead th i[class^="bx"],
+table thead th i[class*=" bx"],
+table thead th i.las,
+table thead th i.lab,
+table thead th i.lar {
+  display: none !important;
+}
+
 // Doctor popup modals: match admin list table density (padding + type)
 .modal.patient-list-modal,
 .modal-dialog.patient-list-modal,
@@ -130,9 +143,9 @@ body {
       --#{$prefix}pagination-color: #495057;
       --#{$prefix}pagination-hover-color: #25a0e2;
       --#{$prefix}pagination-focus-color: #25a0e2;
-      --#{$prefix}pagination-active-color: #ffffff;
-      --#{$prefix}pagination-active-bg: #25a0e2;
-      --#{$prefix}pagination-active-border-color: #25a0e2;
+      --#{$prefix}pagination-active-color: #25a0e2;
+      --#{$prefix}pagination-active-bg: #e8f5ff;
+      --#{$prefix}pagination-active-border-color: #cfe9ff;
 
       .page-item .page-link {
         width: 1.5rem;
@@ -153,9 +166,9 @@ body {
       }
 
       .page-item.active .page-link {
-        background-color: #25a0e2 !important;
-        border-color: #25a0e2 !important;
-        color: #ffffff !important;
+        background-color: #e8f5ff !important;
+        border-color: #cfe9ff !important;
+        color: #25a0e2 !important;
         box-shadow: none !important;
       }
 
@@ -273,6 +286,28 @@ table.table tbody td,
 .form-label,
 .col-form-label {
   font-size: 0.6875rem !important;
+}
+
+// Title case on every field label (Service area → Service Area).
+.form-label,
+.col-form-label,
+.form-check-label,
+.page-content label,
+.modal label,
+.offcanvas label,
+fieldset legend {
+  text-transform: capitalize !important;
+}
+
+.form-label [class^="ri-"],
+.form-label [class*=" ri-"],
+.page-content label [class^="ri-"],
+.page-content label [class*=" ri-"],
+.modal label [class^="ri-"],
+.modal label [class*=" ri-"],
+.offcanvas label [class^="ri-"],
+.offcanvas label [class*=" ri-"] {
+  text-transform: none !important;
 }
 
 .form-control,
@@ -972,12 +1007,12 @@ textarea {
   box-sizing: border-box !important;
   padding-left: $app-form-field-padding-x !important;
   padding-right: $app-form-field-padding-x !important;
-  // Optical vertical align with input/select text (textarea sits slightly high by default)
-  padding-top: calc((#{$app-form-field-height} - #{$app-form-field-font-size} * 1.25 - 2px) / 2 + 0.1rem) !important;
-  padding-bottom: calc((#{$app-form-field-height} - #{$app-form-field-font-size} * 1.25 - 2px) / 2 - 0.06rem) !important;
+  // First line sits lower than a single-line input; 0.22rem padding leaves textarea text too high
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.32rem !important;
+  line-height: 1.35 !important;
   min-height: $app-form-field-height !important;
-  // height without !important so browser resize (inline style) can override it
-  height: $app-form-field-height;
+  height: auto;
   max-height: none !important;
   resize: vertical !important;
   overflow-y: auto !important;
@@ -1106,17 +1141,17 @@ html:not([data-bs-theme="dark"]) {
 
   .btn-soft-primary {
     color: #25a0e2 !important;
-    background-color: transparent !important;
-    border-color: transparent !important;
+    background-color: #e8f5ff !important;
+    border-color: #cfe9ff !important;
   }
 
   .btn-soft-primary:hover,
   .btn-soft-primary:focus,
   .btn-soft-primary:active,
   .btn-soft-primary.active {
-    color: #25a0e2 !important;
-    background-color: rgba(37, 160, 226, 0.12) !important;
-    border-color: transparent !important;
+    color: #1a8bc9 !important;
+    background-color: #d6eeff !important;
+    border-color: #b3dbff !important;
   }
 
   // Modal footers: soft button sizing
@@ -1164,9 +1199,9 @@ html:not([data-bs-theme="dark"]) {
     --#{$prefix}pagination-color: #000000;
     --#{$prefix}pagination-hover-color: #000000;
     --#{$prefix}pagination-focus-color: #000000;
-    --#{$prefix}pagination-active-color: #ffffff;
-    --#{$prefix}pagination-active-bg: #000000;
-    --#{$prefix}pagination-active-border-color: #000000;
+    --#{$prefix}pagination-active-color: #25a0e2;
+    --#{$prefix}pagination-active-bg: #e8f5ff;
+    --#{$prefix}pagination-active-border-color: #cfe9ff;
   }
 
   .navbar-menu .navbar-nav .nav-link:hover .icon-dual,
@@ -1896,16 +1931,24 @@ html:not([data-bs-theme="dark"]) {
       }
 
       .nav-link {
+        position: relative;
         color: #6c757d !important;
+        border-bottom: 1px solid transparent !important;
+        margin-bottom: -1px;
 
         &::after {
-          background: #25a0e2 !important;
-          height: 2px !important;
+          content: none !important;
+          display: none !important;
         }
 
-        &.active {
+        &.active,
+        &.active:hover,
+        &.active:focus,
+        &.active:focus-visible {
           color: #25a0e2 !important;
           background-color: #ffffff !important;
+          border-bottom-color: #25a0e2 !important;
+          border-bottom-width: 1px !important;
         }
 
         &:hover {
@@ -2760,22 +2803,15 @@ body.doctor-layout {
         color: #25a0e2 !important;
       }
 
+      h5.doctor-action-metric-pill,
+      .doctor-dashboard-card-metric.doctor-action-metric-pill,
+      .doctor-action-metric-pill {
+        color: #047857 !important;
+      }
+
       .dashboard-today-count-label {
         font-weight: 600;
       }
-    }
-  }
-
-  /* KPI / action rows: soft hover fill that respects rounded corners */
-  .page-content .row.mb-2:has(> [class*="col-lg-2"] > .card-animate) .card-animate:hover,
-  .page-content .row.mb-2.doctor-dashboard-action-row .card-animate:hover,
-  .page-content .row.mb-2:has(> [class*="col-xl-3"] > .card-animate) .card-animate:hover,
-  .page-content .row.mb-2:has(> [class*="col-xl-4"] > .card-animate) .card-animate:hover {
-    background-color: $doctor-hover-bg !important;
-
-    /* Keep fill on the card shell — not square card-body — so corners stay round */
-    .card-body {
-      background-color: transparent !important;
     }
   }
 
@@ -2819,6 +2855,60 @@ body.doctor-layout {
       > .row > [class*="col"] {
         min-width: 0;
       }
+    }
+  }
+
+  // Inner pages: small gap under the top bar, same as Clinic Collections under its menu.
+  // The dashboard keeps its own top offset.
+  .page-content.clinic-workspace-page {
+    padding-top: calc(#{$app-topbar-height} + 0.15rem) !important;
+
+    .clinic-page-header,
+    .erx-page__header,
+    .support-workspace-page__header {
+      align-items: center !important;
+      margin-top: 0 !important;
+      margin-bottom: 0.3rem !important;
+    }
+
+    /* Report pages already space children with a 0.3rem flex gap */
+    .drp-page__head {
+      align-items: center !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    > .container-fluid > .clinic-page-title {
+      margin-top: 0 !important;
+      margin-bottom: 0.3rem !important;
+    }
+
+    > .container-fluid > h5 {
+      margin-top: 0.3rem !important;
+      margin-bottom: 0.3rem !important;
+    }
+
+    > .container-fluid > .row.g-2,
+    > .container-fluid > .row.g-3,
+    > .container-fluid > .row.g-4,
+    > .container-fluid > .row:has(> [class*="col"] > .card) {
+      --bs-gutter-x: #{$doctor-card-gap} !important;
+      --bs-gutter-y: 0 !important;
+      margin-top: 0 !important;
+    }
+
+    // Bootstrap's negative row margin was pulling these cards up over the heading.
+    > .container-fluid > .row:has(> [class*="col"] > .card) > [class*="col"] {
+      padding-top: 0 !important;
+      padding-bottom: #{$doctor-card-gap} !important;
+      margin-top: 0 !important;
+    }
+
+    > .container-fluid > .clinic-page-header + .card,
+    > .container-fluid > .alert + .card,
+    > .container-fluid > .clinic-page-header + .alert + .card,
+    > .container-fluid > .clinic-page-header + .alert + .alert + .card {
+      margin-top: 0 !important;
     }
   }
 
@@ -2998,9 +3088,9 @@ body.doctor-layout {
       }
 
       .page-item.active .page-link {
-        background-color: #25a0e2 !important;
-        border-color: #25a0e2 !important;
-        color: #ffffff !important;
+        background-color: #e8f5ff !important;
+        border-color: #cfe9ff !important;
+        color: #25a0e2 !important;
         box-shadow: none !important;
       }
 
@@ -3026,6 +3116,8 @@ body.doctor-layout {
     }
 
     .doctor-dashboard-kpi-row.row {
+      --bs-gutter-x: #{$doctor-card-gap};
+      --bs-gutter-y: #{$doctor-card-gap};
       margin-bottom: 0 !important;
       margin-top: $doctor-card-gap !important;
     }
@@ -3059,53 +3151,65 @@ body.doctor-layout {
       overflow: hidden;
 
       .card-body {
-        padding: 0.85rem 0.9rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.35rem;
+        padding: 0.55rem 0.6rem !important;
+      }
+
+      .doctor-kpi-card__foot {
+        margin-top: 0.28rem;
       }
 
       .doctor-kpi-count {
-        font-size: 1.35rem !important;
+        font-size: 1.05rem !important;
         font-weight: 700 !important;
         letter-spacing: -0.02em;
-        margin-bottom: 0.1rem !important;
+        margin-bottom: 0 !important;
         color: #111827 !important;
-        line-height: 1.15;
+        line-height: 1 !important;
       }
 
       .doctor-kpi-label {
-        font-size: 0.68rem !important;
+        font-size: 0.62rem !important;
         font-weight: 700 !important;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: #6b7280 !important;
+        color: #000 !important;
         margin-bottom: 0 !important;
+        line-height: 1.15 !important;
       }
 
-      .doctor-kpi-icon {
-        width: 2.5rem !important;
-        height: 2.5rem !important;
-        border-radius: 10px !important;
-        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        border: 1px solid #7dd3fc !important;
-        color: #0369a1 !important;
-        box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
+      .doctor-kpi-view {
+        width: 22px;
+        height: 22px;
+      }
+
+      .kpi-tile-icon {
+        flex-shrink: 0;
+        font-size: 1.2rem !important;
+        line-height: 1 !important;
+        color: #25a0e2 !important;
+        background: transparent !important;
+      }
+
+      .doctor-kpi-icon,
+      &:hover .doctor-kpi-icon {
+        width: auto !important;
+        height: auto !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        color: #25a0e2 !important;
       }
 
       &:hover {
-        border-color: #b3dbff !important;
-        box-shadow: 0 8px 20px rgba(37, 160, 226, 0.1) !important;
         transform: none !important;
-        background-color: #f7fbff !important;
-
-        .card-body {
-          background-color: transparent !important;
-        }
-
-        .doctor-kpi-icon {
-          background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-          background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-          border-color: #38bdf8 !important;
-        }
       }
 
       &:active {
@@ -3133,53 +3237,91 @@ body.doctor-layout {
       transform: none !important;
 
       .doctor-action-card__body {
+        position: relative;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 0.55rem;
         height: 100%;
-        padding: 1rem 1.05rem 0.95rem !important;
+        padding: 0.72rem 0.65rem !important;
         background: transparent !important;
         border-radius: inherit;
       }
 
       .doctor-action-card__top {
-        min-height: 2rem;
-        gap: 0.5rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        min-height: 0;
+        gap: 0.4rem;
         margin-bottom: 0;
+        width: 100%;
       }
 
-      .doctor-action-card__top-start,
-      .doctor-action-card__top-end {
+      .doctor-action-card__top-start {
         display: flex;
         align-items: center;
-        min-height: 2rem;
+        min-height: 0;
+        min-width: 0;
+      }
+
+      .doctor-action-card__top-end {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        margin-left: auto;
+        min-height: 0;
+        flex-shrink: 0;
       }
 
       .doctor-action-card__bottom {
-        margin-top: auto;
-        padding-top: 1.15rem;
-        gap: 0.75rem;
+        margin-top: 0;
+        padding-top: 0;
+        gap: 0.45rem;
+        align-items: center;
       }
 
       .doctor-action-card__copy {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.4rem;
         min-width: 0;
       }
 
       .doctor-dashboard-create-new-btn {
-        height: 2rem;
-        padding-top: 0;
-        padding-bottom: 0;
-        display: inline-flex;
+        display: inline-flex !important;
         align-items: center;
+        justify-content: center;
+        height: auto;
+        min-height: 1.65rem;
+        padding: 0.28rem 0.65rem !important;
+        border-radius: 6px !important;
+        border: 1px solid #7dd3fc !important;
+        color: #0369a1 !important;
+        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
+        font-size: 0.6875rem !important;
+        font-weight: 600 !important;
+        line-height: 1.15 !important;
+      }
+
+      .doctor-dashboard-create-new-btn:hover,
+      .doctor-dashboard-create-new-btn:focus-visible {
+        color: #0c4a6e !important;
+        border-color: #38bdf8 !important;
+        background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+        background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
       }
 
       .doctor-action-title {
-        font-size: 1.05rem !important;
+        font-size: 0.9rem !important;
         font-weight: 700 !important;
         letter-spacing: -0.01em;
-        margin-bottom: 0.65rem !important;
-        color: #111827 !important;
-        line-height: 1.25;
+        margin-bottom: 0 !important;
+        color: #000 !important;
+        line-height: 1.2;
 
         .counter-value,
         .counter-value span {
@@ -3192,13 +3334,13 @@ body.doctor-layout {
       .doctor-action-eyebrow {
         display: inline-flex !important;
         align-items: center;
-        min-height: 2rem;
+        min-height: 0;
         margin: 0 !important;
-        font-size: 0.7rem !important;
+        font-size: 0.65rem !important;
         font-weight: 700 !important;
-        letter-spacing: 0.06em;
-        color: #6b7280 !important;
-        line-height: 1;
+        letter-spacing: 0.05em;
+        color: #000 !important;
+        line-height: 1.15;
       }
 
       .doctor-action-metric-pill,
@@ -3206,21 +3348,25 @@ body.doctor-layout {
         display: inline-flex !important;
         align-items: center;
         justify-content: center;
-        min-height: 1.55rem;
-        padding: 0.2rem 0.55rem !important;
-        border-radius: 999px !important;
-        font-size: 0.72rem !important;
-        font-weight: 700 !important;
-        line-height: 1.2;
         white-space: nowrap;
       }
 
+      .doctor-action-metric-pill,
+      .doctor-action-status-pill {
+        min-height: 1.35rem;
+        padding: 0.12rem 0.5rem !important;
+        border-radius: 999px !important;
+        font-size: 0.65rem !important;
+        font-weight: 700 !important;
+        line-height: 1.2;
+      }
+
       .doctor-action-metric-pill {
-        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        border: 1px solid #7dd3fc;
-        color: #0369a1 !important;
-        box-shadow: 0 1px 2px rgba(14, 165, 233, 0.1);
+        background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+        background-image: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+        border: 1px solid #a7f3d0 !important;
+        color: #047857 !important;
+        box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
       }
 
       .doctor-action-status-pill.text-success,
@@ -3276,7 +3422,7 @@ body.doctor-layout {
       }
 
       .doctor-dashboard-action-link {
-        font-size: 0.78rem;
+        font-size: 0.7rem;
         font-weight: 600;
         color: #374151 !important;
         position: relative;
@@ -3306,15 +3452,7 @@ body.doctor-layout {
       }
 
       &:hover {
-        border-color: #b3dbff !important;
-        box-shadow: 0 10px 24px rgba(16, 24, 40, 0.08) !important;
         transform: none !important;
-        background-color: #f7fbff !important;
-
-        .doctor-action-card__body,
-        .card-body {
-          background-color: transparent !important;
-        }
 
         .doctor-action-icon {
           background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
@@ -3340,7 +3478,7 @@ body.doctor-layout {
         .card-title {
           font-weight: 700;
           letter-spacing: -0.01em;
-          color: #111827;
+          color: #000;
         }
       }
     }
@@ -3399,26 +3537,28 @@ body.doctor-layout {
 
     @media (max-width: 991.98px) {
       .doctor-kpi-card .card-body {
-        padding: 0.7rem 0.75rem !important;
-        gap: 0.65rem !important;
+        padding: 0.48rem 0.55rem !important;
       }
 
       .doctor-kpi-card .doctor-kpi-count {
-        font-size: 1.15rem !important;
+        font-size: 1.05rem !important;
       }
 
-      .doctor-kpi-card .doctor-kpi-icon {
-        width: 2.15rem !important;
-        height: 2.15rem !important;
-        border-radius: 8px !important;
+      .doctor-kpi-card .doctor-kpi-icon,
+      .doctor-kpi-card:hover .doctor-kpi-icon {
+        width: auto !important;
+        height: auto !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
       }
 
-      .doctor-kpi-card .doctor-kpi-icon i {
-        font-size: 1.1rem !important;
+      .doctor-kpi-card .kpi-tile-icon {
+        font-size: 1.2rem !important;
       }
 
       .doctor-action-card .card-body {
-        padding: 0.75rem !important;
+        padding: 0.65rem 0.55rem !important;
       }
 
       .doctor-action-card .doctor-dashboard-create-new-btn,
@@ -3555,8 +3695,7 @@ body.doctor-layout {
 
     @media (max-width: 575.98px) {
       .doctor-kpi-card .card-body {
-        padding: 0.6rem 0.55rem !important;
-        gap: 0.45rem !important;
+        padding: 0.42rem 0.5rem !important;
       }
 
       .doctor-kpi-card .doctor-kpi-count {
@@ -3568,9 +3707,12 @@ body.doctor-layout {
         letter-spacing: 0.04em;
       }
 
-      .doctor-kpi-card .doctor-kpi-icon {
-        width: 1.9rem !important;
-        height: 1.9rem !important;
+      .doctor-kpi-card .doctor-kpi-icon,
+      .doctor-kpi-card:hover .doctor-kpi-icon {
+        width: auto !important;
+        height: auto !important;
+        border: 0 !important;
+        background: transparent !important;
       }
 
       .doctor-action-card .doctor-action-metric-pill,
@@ -4039,6 +4181,7 @@ body.admin-layout {
             text-align: center;
             overflow: visible;
             line-height: 1.25 !important;
+            font-weight: 600 !important;
 
             > i {
               flex: 0 0 auto !important;
@@ -4203,7 +4346,49 @@ body.admin-layout {
       }
     }
 
-    // Only rows that directly hold cards get the equal gutters
+    .clinic-page-header,
+  .apo-head,
+  .support-workspace-page__header,
+  .ntf-page__head,
+  .ntf-toolbar,
+  .pharmacy-page-header,
+  .reception-page-header,
+  .account-page-header,
+  .patient-page-header {
+    box-sizing: border-box !important;
+    padding-left: calc(#{$admin-card-gap} * 0.5) !important;
+    padding-right: calc(#{$admin-card-gap} * 0.5) !important;
+    align-items: center !important;
+    margin-top: calc(#{$admin-card-gap} * 0.5) !important;
+    margin-bottom: $admin-card-gap !important;
+
+    .clinic-page-title,
+    .account-page-title,
+    .pharmacy-page-title,
+    .reception-page-title,
+    .patient-page-title,
+    .apo-head__title {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  // Title / filter rows that use Bootstrap mb-* still keep the card gap
+  > .container-fluid > .mb-2,
+  > .container-fluid > .mb-3,
+  > .container-fluid > .mb-4,
+  > .container-fluid > [class*="header"].mb-2,
+  > .container-fluid > [class*="header"].mb-3,
+  > .container-fluid > [class*="header"].mb-4,
+  > .container-fluid > [class*="toolbar"].mb-2,
+  > .container-fluid > [class*="toolbar"].mb-3,
+  > .container-fluid > [class*="toolbar"].mb-4,
+  .support-tickets-modal__toolbar,
+  .pc-request-toolbar {
+    margin-bottom: $admin-card-gap !important;
+  }
+
+  // Only rows that directly hold cards get the equal gutters
     .row:has(> [class*="col"] > .card),
     .row:has(> [class*="col"] > .card-animate),
     .row:has(> [class^="col"] > .card),
@@ -4504,11 +4689,21 @@ body.admin-layout {
       }
 
       .admin-form-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
         margin: 0;
         font-size: 0.9375rem !important;
         font-weight: 600 !important;
         color: #000 !important;
         line-height: 1.3;
+
+        > i {
+          color: #25a0e2 !important;
+          font-size: 1.05rem !important;
+          font-weight: 400 !important;
+          line-height: 1 !important;
+        }
       }
 
       .admin-form-toolbar {
@@ -4707,11 +4902,11 @@ body.admin-layout {
       textarea {
         box-sizing: border-box !important;
         min-height: var(--app-form-field-height) !important;
-        // no height:!important — lets mouse resize set inline height
-        height: var(--app-form-field-height);
+        height: auto;
         max-height: none !important;
-        padding-top: calc((var(--app-form-field-height) - var(--app-form-field-font-size) * 1.25 - 2px) / 2 + 0.1rem) !important;
-        padding-bottom: calc((var(--app-form-field-height) - var(--app-form-field-font-size) * 1.25 - 2px) / 2 - 0.06rem) !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.32rem !important;
+        line-height: 1.35 !important;
         resize: vertical !important;
         overflow-y: auto !important;
       }
@@ -5138,9 +5333,9 @@ body.admin-layout {
       > .admin-dash-card-header {
         display: flex !important;
         align-items: center !important;
-        gap: 0.75rem !important;
-        min-height: 2.75rem !important;
-        padding: 0.75rem 1rem !important;
+        gap: 0.5rem !important;
+        min-height: 0 !important;
+        padding: 0.4rem !important;
         background: #fff;
         border-bottom: 1px solid #eff3f7 !important;
         position: relative;
@@ -5149,7 +5344,7 @@ body.admin-layout {
 
         .card-title {
           font-weight: 600;
-          color: #212529;
+          color: #000 !important;
           margin-bottom: 0 !important;
           line-height: 1.25 !important;
         }
@@ -5163,7 +5358,7 @@ body.admin-layout {
       }
 
       > .card-body {
-        padding: 0.85rem 1rem 1rem !important;
+        padding: 0.7rem !important;
         position: relative;
         z-index: 1;
       }
@@ -5186,40 +5381,14 @@ body.admin-layout {
         }
       }
 
-      // Same light-blue hover as doctor dashboard cards
       &:hover {
-        background-color: #f7fbff !important;
-        border-color: #b3dbff !important;
-        box-shadow: 0 8px 20px rgba(37, 160, 226, 0.1) !important;
         transform: none !important;
-
-        .admin-dash-card-header,
-        .card-header,
-        .card-body {
-          background-color: transparent !important;
-        }
-
-        .avatar-title.bg-info-subtle {
-          background-color: #dff0fa !important;
-        }
       }
     }
 
     .card.card-animate:not(.admin-dash-card):hover,
     .card-animate:not(.admin-dash-card):hover {
-      background-color: #f7fbff !important;
-      border-color: #b3dbff !important;
-      box-shadow: 0 8px 20px rgba(37, 160, 226, 0.1) !important;
       transform: none !important;
-
-      .card-body,
-      .card-header {
-        background-color: transparent !important;
-      }
-
-      .avatar-title.bg-info-subtle {
-        background-color: #dff0fa !important;
-      }
     }
 
     .doctor-dashboard-toolbar-btn {
@@ -5554,7 +5723,7 @@ $app-card-radius: 5px;
 }
 
 .subscription-plan-card__footer {
-  border-radius: 0 0 $app-card-radius $app-card-radius !important;
+  border-radius: 4px !important;
 }
 
 // App-wide: keep card box-shadow unchanged on hover (no shadow lift)
@@ -5563,9 +5732,12 @@ $app-card-radius: 5px;
 .card-animate:hover,
 .explore-box.card:hover,
 .explore-box.card-animate:hover,
-.plan-box:hover,
-.subscription-plan-card:hover {
+.plan-box:hover {
   box-shadow: $card-box-shadow !important;
+}
+
+.subscription-plan-card:hover {
+  box-shadow: none !important;
 }
 
 html[data-theme="minimal"] .card:hover,
@@ -5584,7 +5756,7 @@ body.doctor-layout .doctor-dashboard-page {
   }
 
   .subscription-plan-card:hover {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14) !important;
+    box-shadow: none !important;
   }
 }
 
@@ -5856,8 +6028,8 @@ body.doctor-layout {
     .doctor-action-title,
     .doctor-action-title .counter-value,
     .doctor-action-title .counter-value span {
-      font-size: 1.05rem !important;
-      line-height: 1.25 !important;
+      font-size: 0.9rem !important;
+      line-height: 1.2 !important;
       font-weight: 700 !important;
     }
   }
@@ -6380,4 +6552,934 @@ body.modal-open {
 [class*="__multi-value"],
 .admin-form-select__multi-value {
   max-width: 100%;
+}
+
+// Title case on page titles, card headings, and navigation menus.
+// Capitalizes the first letter of each word and leaves SMS, WhatsApp, and 3D unchanged.
+.navbar-menu .navbar-nav .nav-link,
+.menu-title,
+.admin-more-menu-link,
+.admin-more-menu-parent,
+.clinic-page-title,
+.account-page-title,
+.pharmacy-page-title,
+.reception-page-title,
+.patient-page-title,
+.apo-head__title,
+.admin-form-title,
+.modal-title,
+.patient-list-modal__title,
+.patient-list-modal__title-text,
+.user-profile-page__section-title,
+.whatsapp-modal__title,
+.page-content .card-title,
+.page-content .card-header h3,
+.page-content .card-header h4,
+.page-content .card-header h5,
+.page-content .card-header h6,
+.page-content .card h3,
+.page-content .card h4,
+.page-content .card h5,
+.page-content .card h6,
+.phc-card__title,
+.pcs-card__title,
+.tv-card__title,
+.drp-card__title,
+.erx-card__title,
+.prx-card__title,
+.prx-section__title,
+.apl-card__title,
+.pc-card__title,
+.med-section__title,
+.account-reports-section {
+  text-transform: capitalize;
+}
+
+// Page headings (Platform Overview, Reports, and the same block on every login)
+html:not([data-bs-theme="dark"]) {
+  .clinic-page-title,
+  .account-page-title,
+  .pharmacy-page-title,
+  .reception-page-title,
+  .patient-page-title,
+  .apo-head__title {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    font-size: 0.9rem !important;
+    color: #000 !important;
+    line-height: 1.3 !important;
+
+    > i {
+      color: #25a0e2 !important;
+      font-size: 1.05rem !important;
+      font-weight: 400 !important;
+      line-height: 1 !important;
+    }
+  }
+
+  .clinic-page-subtitle,
+  .account-page-subtitle,
+  .pharmacy-page-subtitle,
+  .reception-page-subtitle,
+  .patient-page-subtitle {
+    display: none !important;
+  }
+
+  .admin-form-title,
+  .modal-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    > i {
+      color: #25a0e2 !important;
+      font-size: 1.05rem !important;
+      font-weight: 400 !important;
+      line-height: 1 !important;
+    }
+  }
+}
+
+// Card titles and KPI headers stay black on every login (not muted grey)
+html:not([data-bs-theme="dark"]) {
+  .page-content .card-header .card-title,
+  .page-content .card-header h4,
+  .page-content .card-header h5,
+  .page-content .card .text-uppercase.text-muted,
+  .doctor-kpi-label,
+  .doctor-action-title,
+  .doctor-action-eyebrow,
+  .account-kpi-label,
+  .pharmacy-kpi-label,
+  .patient-kpi-label,
+  .reception-kpi-label,
+  .account-section-title,
+  .patient-section-title,
+  .reception-section-title {
+    color: #000 !important;
+  }
+}
+
+// Title case on every button label, including text links used as actions.
+.page-content .btn:not(.btn-close),
+.modal .btn:not(.btn-close),
+.offcanvas .btn:not(.btn-close) {
+  text-transform: capitalize;
+}
+
+// Alert dismiss (X): sit in the vertical middle of the message on every screen.
+.alert.alert-dismissible {
+  padding-right: 2rem !important;
+
+  > .btn-close {
+    position: absolute !important;
+    top: 50% !important;
+    right: 0.65rem !important;
+    transform: translateY(-50%) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    opacity: 0.75 !important;
+    box-shadow: none !important;
+    z-index: 2;
+
+    &::after {
+      content: "\eb99" !important;
+      font-family: "remixicon" !important;
+      font-size: 1rem !important;
+      font-weight: 400 !important;
+      line-height: 1 !important;
+      color: inherit !important;
+      display: block !important;
+      background: transparent !important;
+    }
+
+    &:hover,
+    &:focus {
+      opacity: 1 !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+// Match Import / Export / New (btn btn-sm, padding 0.3rem 0.65rem) on every action button
+.page-content .btn:not(.btn-icon):not(.btn-close):not(.btn-link):not(.rounded-circle),
+.modal .btn:not(.btn-icon):not(.btn-close):not(.btn-link):not(.rounded-circle),
+.offcanvas .btn:not(.btn-icon):not(.btn-close):not(.btn-link):not(.rounded-circle),
+.clinic-primary-btn,
+.account-primary-btn,
+.pharmacy-primary-btn,
+.reception-primary-btn,
+.clinic-action-btn,
+.pu-btn,
+.wac-btn,
+.tv-btn,
+.erx-btn,
+.phc-btn,
+.prx-btn,
+.med-block-btn,
+.med-header-btn,
+.med-soft-btn,
+.pc-action-btn,
+.pcon-soft-btn,
+.med-refill-banner__btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.3rem !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0.3rem 0.65rem !important;
+  font-size: 0.6875rem !important;
+  line-height: 1.2 !important;
+  font-weight: 600;
+  text-transform: capitalize;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+
+  > i,
+  > [class^="ri-"],
+  > [class*=" ri-"],
+  i {
+    font-size: 0.85rem !important;
+    line-height: 1 !important;
+  }
+}
+
+// SMS template dialogs: tighter field rows and the same compact close control as other modals
+.sms-template-modal {
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 0.55rem 0.75rem !important;
+  }
+
+  .modal-header {
+    align-items: center;
+  }
+
+  .row {
+    --bs-gutter-y: 0.45rem;
+    --bs-gutter-x: 0.65rem;
+  }
+
+  .form-group,
+  .mb-3 {
+    margin-bottom: 0 !important;
+  }
+
+  .form-label,
+  label {
+    margin-bottom: 0.2rem !important;
+  }
+
+  textarea.form-control {
+    min-height: 0 !important;
+  }
+
+  .btn-close {
+    width: 0.7rem !important;
+    height: 0.7rem !important;
+    padding: 0.12rem !important;
+    margin: 0 !important;
+    background-size: 0.7rem !important;
+    opacity: 0.55 !important;
+    box-shadow: none !important;
+
+    &:hover,
+    &:focus {
+      opacity: 0.85 !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+// SMS template row actions: icon-only squares, smaller than text buttons
+.page-content table .sms-action-btn.btn {
+  width: 1.35rem !important;
+  height: 1.35rem !important;
+  min-width: 1.35rem !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+
+  i[class^="ri-"],
+  i[class*=" ri-"] {
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+  }
+}
+
+// Action buttons that still use brand maroon (#800020 / .btn-primary) → light blue, same family as Import
+html:not([data-bs-theme="dark"]) {
+  .btn-primary:not(.btn-link):not(.btn-outline-primary):not([class*="btn-ghost-"]),
+  .clinic-primary-btn,
+  .account-primary-btn,
+  .pharmacy-primary-btn,
+  .reception-primary-btn {
+    --#{$prefix}btn-color: #25a0e2;
+    --#{$prefix}btn-bg: #e8f5ff;
+    --#{$prefix}btn-border-color: #cfe9ff;
+    --#{$prefix}btn-hover-color: #1a8bc9;
+    --#{$prefix}btn-hover-bg: #d6eeff;
+    --#{$prefix}btn-hover-border-color: #b3dbff;
+    --#{$prefix}btn-active-color: #1a8bc9;
+    --#{$prefix}btn-active-bg: #d6eeff;
+    --#{$prefix}btn-active-border-color: #b3dbff;
+    --#{$prefix}btn-disabled-color: #25a0e2;
+    --#{$prefix}btn-disabled-bg: #e8f5ff;
+    --#{$prefix}btn-disabled-border-color: #cfe9ff;
+    background-color: #e8f5ff !important;
+    border-color: #cfe9ff !important;
+    color: #25a0e2 !important;
+    box-shadow: none !important;
+  }
+
+  .btn-primary:not(.btn-link):not(.btn-outline-primary):not([class*="btn-ghost-"]):hover,
+  .btn-primary:not(.btn-link):not(.btn-outline-primary):not([class*="btn-ghost-"]):focus,
+  .btn-primary:not(.btn-link):not(.btn-outline-primary):not([class*="btn-ghost-"]):active,
+  .btn-primary:not(.btn-link):not(.btn-outline-primary):not([class*="btn-ghost-"]).active,
+  .show > .btn-primary.dropdown-toggle,
+  .clinic-primary-btn:hover,
+  .clinic-primary-btn:focus,
+  .clinic-primary-btn:active,
+  .account-primary-btn:hover,
+  .account-primary-btn:focus,
+  .account-primary-btn:active,
+  .pharmacy-primary-btn:hover,
+  .pharmacy-primary-btn:focus,
+  .pharmacy-primary-btn:active,
+  .reception-primary-btn:hover,
+  .reception-primary-btn:focus,
+  .reception-primary-btn:active {
+    background-color: #d6eeff !important;
+    border-color: #b3dbff !important;
+    color: #1a8bc9 !important;
+  }
+
+  .btn-primary:disabled,
+  .btn-primary.disabled,
+  .clinic-primary-btn:disabled,
+  .account-primary-btn:disabled,
+  .pharmacy-primary-btn:disabled,
+  .reception-primary-btn:disabled {
+    background-color: #e8f5ff !important;
+    border-color: #cfe9ff !important;
+    color: #25a0e2 !important;
+    opacity: 0.55;
+  }
+
+  .swal2-styled.swal2-confirm {
+    background: #e8f5ff !important;
+    border: 1px solid #cfe9ff !important;
+    color: #25a0e2 !important;
+    box-shadow: none !important;
+  }
+
+  .swal2-styled.swal2-confirm:hover,
+  .swal2-styled.swal2-confirm:focus {
+    background: #d6eeff !important;
+    border-color: #b3dbff !important;
+    color: #1a8bc9 !important;
+  }
+}
+
+// Login screens: btn btn-sm btn-soft-* stay the light action style (same size as Import)
+.page-content,
+.modal,
+.offcanvas {
+  .btn-soft-primary {
+    color: #25a0e2 !important;
+    background-color: #e8f5ff !important;
+    border-color: #cfe9ff !important;
+
+    &:hover,
+    &:focus,
+    &:active {
+      color: #1a8bc9 !important;
+      background-color: #d6eeff !important;
+      border-color: #b3dbff !important;
+    }
+  }
+
+  .btn-soft-info {
+    color: #0369a1 !important;
+    background-color: #e0f2fe !important;
+    border-color: #bae6fd !important;
+  }
+
+  .btn-soft-success {
+    color: #15803d !important;
+    background-color: #dcfce7 !important;
+    border-color: #bbf7d0 !important;
+  }
+
+  .btn-soft-danger {
+    color: #b91c1c !important;
+    background-color: #fef2f2 !important;
+    border-color: #fecaca !important;
+  }
+
+  .btn-soft-warning {
+    color: #b45309 !important;
+    background-color: #fff7e0 !important;
+    border-color: #fde68a !important;
+  }
+
+  .btn-soft-secondary {
+    color: #475569 !important;
+    background-color: #eef2f7 !important;
+    background-image: none !important;
+    border-color: #d8dee8 !important;
+
+    &:hover,
+    &:focus,
+    &:active {
+      color: #334155 !important;
+      background-color: #e2e8f0 !important;
+      background-image: none !important;
+      border-color: #cbd5e1 !important;
+    }
+  }
+
+  .clinic-action-btn.btn-soft-secondary {
+    color: #475569 !important;
+    background-color: #eef2f7 !important;
+    background-image: none !important;
+    border-color: #d8dee8 !important;
+  }
+
+  // Toolbar buttons that were plain white get a soft fill, one color per button.
+  // Padding and margin stay as they are.
+  .clinic-table-actions,
+  .phc-page__actions,
+  .wac-page__actions,
+  .pu-page__actions,
+  .drp-page__controls,
+  .tv-page__head {
+    > .btn.btn-soft-secondary:nth-child(4n + 1),
+    > .dropdown:nth-child(4n + 1) > .btn,
+    > .btn.btn-light:nth-child(4n + 1),
+    > .btn.btn-secondary:nth-child(4n + 1) {
+      color: #25a0e2 !important;
+      background-color: #e8f5ff !important;
+      background-image: none !important;
+      border-color: #cfe9ff !important;
+
+      &:hover,
+      &:focus,
+      &:active {
+        color: #1a8bc9 !important;
+        background-color: #d6eeff !important;
+        border-color: #b3dbff !important;
+      }
+    }
+
+    > .btn.btn-soft-secondary:nth-child(4n + 2),
+    > .dropdown:nth-child(4n + 2) > .btn,
+    > .btn.btn-light:nth-child(4n + 2),
+    > .btn.btn-secondary:nth-child(4n + 2) {
+      color: #475569 !important;
+      background-color: #eef2f7 !important;
+      background-image: none !important;
+      border-color: #d8dee8 !important;
+
+      &:hover,
+      &:focus,
+      &:active {
+        color: #334155 !important;
+        background-color: #e2e8f0 !important;
+        border-color: #cbd5e1 !important;
+      }
+    }
+
+    > .btn.btn-soft-secondary:nth-child(4n + 3),
+    > .dropdown:nth-child(4n + 3) > .btn,
+    > .btn.btn-light:nth-child(4n + 3),
+    > .btn.btn-secondary:nth-child(4n + 3) {
+      color: #198754 !important;
+      background-color: #e8f8ef !important;
+      background-image: none !important;
+      border-color: #c6ebd5 !important;
+
+      &:hover,
+      &:focus,
+      &:active {
+        color: #146c43 !important;
+        background-color: #d7f2e3 !important;
+        border-color: #a9dfc0 !important;
+      }
+    }
+
+    > .btn.btn-soft-secondary:nth-child(4n + 4),
+    > .dropdown:nth-child(4n + 4) > .btn,
+    > .btn.btn-light:nth-child(4n + 4),
+    > .btn.btn-secondary:nth-child(4n + 4) {
+      color: #d97706 !important;
+      background-color: #fff4e6 !important;
+      background-image: none !important;
+      border-color: #ffd8a8 !important;
+
+      &:hover,
+      &:focus,
+      &:active {
+        color: #b45309 !important;
+        background-color: #ffe8cc !important;
+        border-color: #ffc078 !important;
+      }
+    }
+  }
+
+  // Dismiss Cancel matches admin form Cancel (admin-list-btn--reset)
+  .modal-action-btn.btn.app-cancel-btn,
+  .btn.app-cancel-btn {
+    color: #d97706 !important;
+    background-color: #fff4e6 !important;
+    border-color: #ffd8a8 !important;
+
+    &:hover:not(:disabled):not(.disabled),
+    &:focus:not(:disabled):not(.disabled),
+    &:active:not(:disabled):not(.disabled) {
+      color: #b45309 !important;
+      background-color: #ffe8cc !important;
+      border-color: #ffc078 !important;
+    }
+  }
+}
+
+// Big data cards on every login screen use 0.4rem body padding.
+// Gradient metric tiles (KPI / stat washes) keep their own padding.
+.page-content :not(.pharmacy-kpi-col):not(.reception-kpi-col):not(.patient-kpi-col):not(.account-kpi-col)
+  > .card:not(.admin-kpi-card):not(.doctor-kpi-card):not(.account-kpi-card):not(.doctor-action-card)
+  > .card-body,
+.page-content .tv-card__body,
+.page-content .drp-card__body,
+.page-content .pcs-card__body,
+.page-content .prx-card__body,
+.page-content .phc-card__body,
+.page-content .erx-card__body,
+.page-content .med-panel__body,
+.page-content .wac-card,
+.page-content .apl-card__body {
+  padding: 0.4rem !important;
+}
+
+.page-content :not(.pharmacy-kpi-col):not(.reception-kpi-col):not(.patient-kpi-col):not(.account-kpi-col)
+  > .patient-stats-card.card:not(.admin-kpi-card):not(.doctor-kpi-card):not(.account-kpi-card):not(.doctor-action-card)
+  > .card-body {
+  padding: 1rem 1.15rem !important;
+  min-height: 8.5rem;
+}
+
+// Small metric tiles use the WhatsApp campaign washes.
+// Table and chart cards stay white.
+html:not([data-bs-theme="dark"]) {
+  @mixin stat-wash($soft, $mid, $border) {
+    background: linear-gradient(135deg, $soft 0%, $mid 52%, #ffffff 100%) !important;
+    border-color: $border !important;
+
+    > .card-body,
+    .card-body {
+      background: transparent !important;
+    }
+  }
+
+  $stat-washes: (
+    1: (#e4efff, #f4f9ff, #d4e4fb),
+    2: (#dcf5e4, #f4fbf6, #ccebd6),
+    3: (#d5f3ef, #f3fbfa, #c8ebe6),
+    4: (#fde2e2, #fff6f6, #f8d4d4),
+    5: (#fdefd3, #fffaf0, #f8e4bd),
+    6: (#ede7fe, #f7f5ff, #ddd6fe),
+  );
+
+  @each $n, $colors in $stat-washes {
+    .doctor-dashboard-kpi-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-kpi-card,
+    .doctor-dashboard-chrome-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-kpi-card,
+    .doctor-dashboard-action-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-action-card,
+    .tele-consultation-kpi-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-kpi-card,
+    .account-kpi-col:nth-child(6n + #{$n}) > .account-kpi-card,
+    .account-action-col:nth-child(6n + #{$n}) > .account-quick-action-card,
+    .patient-action-col:nth-child(6n + #{$n}) > a > .patient-quick-action-card,
+    .reception-kpi-col:nth-child(6n + #{$n}) > .card,
+    .reception-action-col:nth-child(6n + #{$n}) > .card,
+    .patient-kpi-col:nth-child(6n + #{$n}) > .card,
+    .pharmacy-kpi-col:nth-child(6n + #{$n}) > .card,
+    .row > [class*="col"]:nth-child(6n + #{$n}) > .admin-kpi-card {
+      @include stat-wash(nth($colors, 1), nth($colors, 2), nth($colors, 3));
+    }
+  }
+
+  // Doctor dashboard: each tile gets its own light wash. The 6-color cycle above
+  // repeats on the second row; these later rules replace that for this page only.
+  $doctor-tile-washes: (
+    (#e4efff, #f4f9ff, #d4e4fb),
+    (#dcf5e4, #f4fbf6, #ccebd6),
+    (#d5f3ef, #f3fbfa, #c8ebe6),
+    (#fde2e2, #fff6f6, #f8d4d4),
+    (#fdefd3, #fffaf0, #f8e4bd),
+    (#ede7fe, #f7f5ff, #ddd6fe),
+    (#ffe8dc, #fff8f4, #f8d4c4),
+    (#f3e8ff, #fbf7ff, #e4d4f8),
+    (#fff4d4, #fffdf6, #f6e4b0),
+    (#dff6ff, #f5fcff, #c5e7f8),
+    (#e5f8ea, #f7fdf8, #c8ecd2),
+    (#e3f7f2, #f6fcfa, #c6eee4),
+    (#e8f1ff, #f7faff, #d0def5),
+    (#e7f6ee, #f6fdf9, #c9e6d6),
+    (#ffe6ee, #fff7f9, #f6d0dc),
+    (#fff0e4, #fffaf5, #f6dcc4),
+  );
+
+  @for $i from 1 through 12 {
+    $wash: nth($doctor-tile-washes, $i);
+    .doctor-dashboard-page .doctor-dashboard-kpi-row > [class*="col"]:nth-child(#{$i}) > .doctor-kpi-card {
+      @include stat-wash(nth($wash, 1), nth($wash, 2), nth($wash, 3));
+    }
+  }
+
+  @for $i from 1 through 4 {
+    $wash: nth($doctor-tile-washes, $i + 12);
+    .doctor-dashboard-page .doctor-dashboard-action-row > [class*="col"]:nth-child(#{$i}) > .doctor-action-card {
+      @include stat-wash(nth($wash, 1), nth($wash, 2), nth($wash, 3));
+    }
+  }
+
+  // Small-card headings: black capitals, same as dashboard KPI tiles.
+  // Nested titles count too. Report-card hints stay title case.
+  .admin-kpi-card:not(.account-report-card) .text-muted.small,
+  .tv-stat > div > span,
+  .wac-stat__label,
+  .drp-kpi__label,
+  .prx-stat > div > span,
+  .pcs-tile__label {
+    color: #000 !important;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase !important;
+  }
+
+  .doctor-kpi-label,
+  .account-kpi-label,
+  .pharmacy-kpi-label,
+  .patient-kpi-label,
+  .reception-kpi-label,
+  .account-report-card h6 {
+    text-transform: uppercase !important;
+  }
+
+  .admin-kpi-card i.kpi-tile-icon[class^="ri-"] {
+    flex-shrink: 0;
+    font-size: 1.35rem !important;
+    line-height: 1;
+    color: #25a0e2;
+    background: transparent;
+  }
+}
+
+// Custom page shells: same 0.3rem edge and card gap as the dashboard.
+// page-content already adds 0.15rem; these shells add the other 0.15rem.
+body.admin-layout .page-content.prx-page > .container-fluid,
+body.admin-layout .page-content.erx-page:not(.erx-page--embedded) > .container-fluid,
+body.doctor-layout .page-content.erx-page:not(.erx-page--embedded) > .container-fluid {
+  padding-left: 0.15rem !important;
+  padding-right: 0.15rem !important;
+}
+
+// Compact pager: smaller type, boxes, and arrows on every list.
+html:not([data-bs-theme="dark"]) {
+  .pagination,
+  [class*="-pager"] {
+    gap: 0.2rem !important;
+  }
+
+  .pagination .page-item .page-link,
+  [class*="-pager"] button,
+  .gridjs-pagination .gridjs-pages button,
+  .listjs-pagination .page {
+    min-width: 1.25rem !important;
+    width: auto !important;
+    height: 1.25rem !important;
+    padding: 0 0.28rem !important;
+    font-size: 0.625rem !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    border-radius: 4px !important;
+  }
+
+  .pagination .page-item .page-link i[class^="ri-"],
+  .pagination .page-item .page-link i[class*=" ri-"],
+  [class*="-pager"] button i[class^="ri-"],
+  [class*="-pager"] button i[class*=" ri-"] {
+    font-size: 0.7rem !important;
+    line-height: 1 !important;
+  }
+
+  .pu-footer,
+  .wac-footer,
+  .tv-footer,
+  .apl-footer,
+  .patient-list-modal__footer-text {
+    font-size: 0.6875rem !important;
+  }
+
+  .pagination .page-item.active .page-link,
+  .pagination .page-item.active .page-link:hover,
+  .pagination .page-item.active .page-link:focus,
+  [class*="-pager"] button.is-active,
+  .gridjs-pagination .gridjs-pages button.gridjs-currentPage,
+  .listjs-pagination li.active .page {
+    background: #e8f5ff !important;
+    background-color: #e8f5ff !important;
+    border-color: #cfe9ff !important;
+    color: #25a0e2 !important;
+  }
+}
+
+.doctor-dashboard-page .doctor-kpi-card .doctor-kpi-icon,
+.doctor-dashboard-page .doctor-kpi-card:hover .doctor-kpi-icon {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: #25a0e2 !important;
+}
+
+.doctor-dashboard-page .doctor-kpi-card .doctor-kpi-icon i {
+  color: #25a0e2 !important;
+  font-size: 1.35rem !important;
+  background: transparent !important;
+}
+
+.doctor-dashboard-page .doctor-kpi-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #cfe6f8;
+  border-radius: 5px;
+  background: #eaf5fd;
+  color: #25a0e2;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.doctor-dashboard-page .doctor-kpi-card .doctor-kpi-view {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+body.doctor-layout .page-content.doctor-dashboard-page .row.doctor-dashboard-kpi-row:has(> [class*="col"] > .doctor-kpi-card) > [class*="col"],
+body.doctor-layout .page-content.doctor-dashboard-page .row.doctor-dashboard-action-row:has(> [class*="col"] > .doctor-action-card) > [class*="col"] {
+  padding: 0.15rem !important;
+}
+
+body.doctor-layout .page-content.doctor-dashboard-page .row.mb-2.doctor-dashboard-action-row:not(.doctor-dashboard-kpi-row):has(> [class*="col"] > .card) {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.doctor-dashboard-page .doctor-kpi-view i {
+  font-size: 0.85rem !important;
+  line-height: 1 !important;
+}
+
+.doctor-dashboard-page .doctor-action-icon-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+  color: #25a0e2;
+  cursor: pointer;
+}
+
+.doctor-dashboard-page .doctor-action-card .kpi-tile-icon {
+  font-size: 1.35rem !important;
+  color: #25a0e2 !important;
+  background: transparent !important;
+  line-height: 1;
+}
+
+.doctor-dashboard-page .doctor-appointments-card > .card-header.doctor-appointments-toolbar {
+  --doctor-appt-h: 1.75rem;
+  height: auto !important;
+  min-height: 0 !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 0.4rem !important;
+  padding: 0.35rem 0.65rem !important;
+  overflow: visible !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__primary,
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__actions {
+  display: flex !important;
+  align-items: center !important;
+  min-height: var(--doctor-appt-h);
+  margin: 0 !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__actions {
+  margin-left: auto !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__search {
+  display: flex;
+  align-items: center;
+  height: var(--doctor-appt-h);
+  margin: 0;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__search .form-control {
+  height: var(--doctor-appt-h) !important;
+  min-height: 0 !important;
+  max-height: var(--doctor-appt-h) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  font-size: 0.6875rem !important;
+  line-height: 1.25 !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__search .form-control::placeholder {
+  font-size: 0.6875rem !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__search .search-icon {
+  top: 0;
+  height: var(--doctor-appt-h);
+  line-height: var(--doctor-appt-h) !important;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-appointments-toolbar__btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-patient-custom-nav.nav-customs.nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  float: none;
+  height: var(--doctor-appt-h);
+  padding: 0.12rem !important;
+  margin: 0;
+  overflow: visible;
+  border-radius: 5px;
+  background: #f1f5f9 !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-item {
+  display: flex;
+  margin: 0 !important;
+  float: none;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link {
+  position: relative;
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--doctor-appt-h) - 0.24rem);
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 0.65rem !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: #64748b !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link::before,
+.doctor-dashboard-page .doctor-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link::after {
+  display: none !important;
+  content: none !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link.active {
+  background: #fff !important;
+  color: #0b5cab !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7 !important;
+}
+
+.doctor-dashboard-page .doctor-appointments-card .doctor-patient-custom-nav.nav-customs.nav .nav-link.active .doctor-patient-tab-label {
+  color: #0b5cab !important;
+  background: transparent !important;
+}
+
+// Textareas: keep the first line below the top edge. Single-line .form-control
+// padding (0.22rem) was winning and pinning placeholder text to the top.
+textarea.form-control.form-control,
+.modal textarea.form-control,
+.page-content textarea.form-control,
+.offcanvas textarea.form-control {
+  box-sizing: border-box !important;
+  height: auto;
+  min-height: var(--app-form-field-height, 1.75rem) !important;
+  max-height: none !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.32rem !important;
+  line-height: 1.35 !important;
+}
+
+body.doctor-layout .doctor-dashboard-page .doctor-reminders-card > .card-header.doctor-dashboard-card-header {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  height: auto !important;
+  min-height: 2.35rem !important;
+  gap: 0.45rem !important;
+  padding: 0.4rem 0.65rem !important;
+  overflow: visible !important;
+}
+
+body.doctor-layout .doctor-dashboard-page .doctor-reminders-card .card-title {
+  display: flex;
+  align-items: center;
+  min-height: 1.75rem;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+body.doctor-layout .doctor-dashboard-page .doctor-reminders-card .doctor-dashboard-create-new-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.28rem;
+  flex-shrink: 0;
+  height: auto !important;
+  margin: 0 !important;
+  line-height: 1.15 !important;
+}
+
+body.doctor-layout .doctor-dashboard-page .doctor-reminders-card .doctor-dashboard-create-new-btn i {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 !important;
+  font-size: 0.85rem !important;
+  line-height: 1 !important;
 }

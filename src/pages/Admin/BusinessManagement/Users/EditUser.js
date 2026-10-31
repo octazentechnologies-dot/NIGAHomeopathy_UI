@@ -151,7 +151,10 @@ const Starter = () => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">{isEditing ? "Edit User" : "View User"}</h5>
+                      <h5 className="admin-form-title">
+                        <i className={isEditing ? "ri-edit-line" : "ri-eye-line"} aria-hidden="true" />
+                        {isEditing ? "Edit User" : "View User"}
+                      </h5>
                     </div>
                   </CardHeader>
 
