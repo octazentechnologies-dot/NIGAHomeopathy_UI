@@ -1,14 +1,27 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "../Navbar";
 import Footer from "../Footer";
 
-const HomeoJobLayout = () => {
+const PageStage = () => {
     const location = useLocation();
 
-    useEffect(() => {
+    return (
+        <div key={location.pathname} className="homeojob-page-stage">
+            <ScrollOnMount />
+            <Outlet />
+        </div>
+    );
+};
+
+const ScrollOnMount = () => {
+    useLayoutEffect(() => {
         window.scrollTo(0, 0);
-    }, [location.pathname]);
+    }, []);
+    return null;
+};
+
+const HomeoJobLayout = () => {
 
     useEffect(() => {
         const btn = document.getElementById("back-to-top");
@@ -32,7 +45,7 @@ const HomeoJobLayout = () => {
     return (
         <>
             <Navbar />
-            <Outlet />
+            <PageStage />
             <Footer />
             <button
                 onClick={toTop}

@@ -5,14 +5,14 @@ import "../../../assets/scss/pages/homeojob-landing.scss";
 
 import HomeoJobLayout from "./components/HomeoJobLayout";
 import HomeLandingPage from "./HomeLandingPage";
-import AboutPage from "../Minimaltheme/pages/AboutPage";
-import FeaturesPage from "../Minimaltheme/pages/FeaturesPage";
-import PricingPage from "../Minimaltheme/pages/PricingPage";
+import AboutPage from "./pages/AboutPage";
+import FeaturesPage from "./pages/FeaturesPage";
+import PricingPage from "./pages/PricingPage";
 import BlogPage from "./pages/BlogPage";
 import BlogDetailPage from "./pages/BlogDetailPage";
 import NewsPage from "./pages/NewsPage";
 import NewsDetailPage from "./pages/NewsDetailPage";
-import ContactPage from "../Minimaltheme/pages/ContactPage";
+import ContactPage from "./pages/ContactPage";
 import PrivacyPage from "../Minimaltheme/pages/PrivacyPage";
 import TermsPage from "../Minimaltheme/pages/TermsPage";
 import DisclaimerPage from "../Minimaltheme/pages/DisclaimerPage";

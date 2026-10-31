@@ -153,15 +153,6 @@ const BookSlotsPage = () => {
     return (
         <section className="homeojob-doctor-detail">
             <Container className="py-4">
-                <nav className="homeojob-doctor-detail__breadcrumb" aria-label="Breadcrumb">
-                    <Link to={landingPath()}>Home</Link>
-                    <span aria-hidden="true">&gt;</span>
-                    <Link to={landingPath("book")}>Book</Link>
-                    <span aria-hidden="true">&gt;</span>
-                    <Link to={landingPath(`book/${doctor.id}`)}>{doctor.name}</Link>
-                    <span aria-hidden="true">&gt;</span>
-                    <span>Slots</span>
-                </nav>
                 <Row className="justify-content-center">
                     <Col lg={6}>
                         <div className="homeojob-doctor-detail__card homeojob-doctor-detail__booking">

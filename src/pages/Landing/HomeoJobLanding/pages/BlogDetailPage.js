@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Col, Container, Row, Spinner } from "reactstrap";
 
-import PageBanner from "../../Minimaltheme/components/PageBanner";
 import { SITE } from "../../Minimaltheme/constants/siteContent";
+import LandingPageHero from "../components/LandingPageHero";
 import { getBlogById } from "../../Minimaltheme/helpers/marketingApi";
 import { landingPath } from "../../../../constants/landingRoutes";
 
@@ -29,10 +29,15 @@ const BlogDetailPage = () => {
     }, [blogId]);
 
     return (
-        <>
-            <PageBanner title={blog?.blogHead || "Blog Detail"} breadcrumb="Blog Detail" />
-            <section className="section">
-                <Container>
+        <section className="homeojob-page">
+            <Container>
+                <LandingPageHero
+                    align="start"
+                    breadcrumb="Blog"
+                    eyebrow="Blog"
+                    title={blog?.blogHead || "Blog"}
+                    subtitle={blog?.blogSubHead || blog?.blogDate || "Practice notes from Homeocentrum."}
+                />
                     {loading ? (
                         <div className="text-center py-5">
                             <Spinner color="primary" />
@@ -47,11 +52,8 @@ const BlogDetailPage = () => {
                     ) : (
                         <Row className="justify-content-center">
                             <Col lg={10}>
-                                <small className="text-muted">{blog.blogDate}</small>
-                                <h2 className="mt-2 mb-4">{blog.blogHead}</h2>
-                                {blog.blogSubHead && (
-                                    <p className="lead text-muted ff-secondary">{blog.blogSubHead}</p>
-                                )}
+                                <article className="homeojob-page__article">
+                                {blog.blogDate ? <p className="homeojob-page__article-date">{blog.blogDate}</p> : null}
                                 <Row className="g-3 mb-4">
                                     {blog.blogImage1 && (
                                         <Col md={blog.blogImage2 ? 6 : 12}>
@@ -71,16 +73,16 @@ const BlogDetailPage = () => {
                                     />
                                 )}
                                 <div className="mt-4">
-                                    <Link to={landingPath("blog")} className="btn btn-soft-primary">
-                                        <i className="ri-arrow-left-line me-1"></i> Back to Blogs
+                                    <Link to={landingPath("blog")} className="homeojob-page__cta homeojob-page__cta--ghost">
+                                        <i className="ri-arrow-left-line" aria-hidden="true" /> Back to blogs
                                     </Link>
                                 </div>
+                                </article>
                             </Col>
                         </Row>
                     )}
-                </Container>
-            </section>
-        </>
+            </Container>
+        </section>
     );
 };
 

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Container } from "reactstrap";
+import { Col, Container, Row } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
+import LandingPageHero from "../components/LandingPageHero";
 import {
     getPublicTeleAvailability,
     listPublicDoctors,
@@ -152,147 +153,219 @@ const InstantConsultPage = () => {
         }
     };
 
+    const steps = [
+        { icon: "ri-chat-heart-line", tone: "blue", title: "Share how to reach you", text: "Name and mobile are enough. Your profile already comes from sign-in." },
+        { icon: "ri-user-search-line", tone: "green", title: "We match an online doctor", text: "The request joins the queue and is offered to a doctor who is available now." },
+        { icon: "ri-vidicon-line", tone: "purple", title: "Join the video visit", text: "When a doctor accepts, you see the offer and can enter the waiting room." },
+    ];
+
     return (
-        <section className="homeojob-doctor-detail" data-testid="instant-consult">
-            <Container className="py-5" style={{ maxWidth: 640 }}>
-                <h1 className="h3 mb-2">Instant consult</h1>
-                <p className="text-muted mb-4">
-                    Request an on-demand tele consult. After submit you see queue position and doctor
-                    offer from the API — nothing is marked paid or matched on this device.
-                </p>
+        <section className="homeojob-page" data-testid="instant-consult">
+            <Container>
+                <LandingPageHero
+                    breadcrumb="Instant consultation"
+                    eyebrow="On-demand tele consult"
+                    title="Instant"
+                    highlight="consultation"
+                    subtitle="Request a homeopathic doctor who is online now. After you submit, this page shows your queue position and the doctor offer."
+                />
 
-                {!accessToken ? (
-                    <p className="text-muted" data-testid="instant-consult-empty">
-                        <Link to="/login">Sign in</Link> as a patient to submit a request.
-                    </p>
-                ) : null}
+                <Row className="g-4 align-items-start">
+                    <Col lg={7}>
+                        {!accessToken ? (
+                            <div className="homeojob-page__notice" data-testid="instant-consult-empty">
+                                <span className="homeojob-page__feature-icon homeojob-page__feature-icon--blue">
+                                    <i className="ri-user-line" aria-hidden="true" />
+                                </span>
+                                <div>
+                                    <strong>Sign in to request a consult</strong>
+                                    <p>A patient account is required before the request can be sent.</p>
+                                    <Link to="/login" className="homeojob-page__cta">
+                                        Sign in
+                                        <i className="ri-arrow-right-line" aria-hidden="true" />
+                                    </Link>
+                                </div>
+                            </div>
+                        ) : null}
 
-                <div className="homeojob-doctor-detail__card p-4 mb-3">
-                    <label className="form-label small mb-1" htmlFor="instant-doctor-search">
-                        Check a doctor online (optional)
-                    </label>
-                    <input
-                        id="instant-doctor-search"
-                        className="form-control mb-2"
-                        value={doctorSearch}
-                        onChange={(e) => setDoctorSearch(e.target.value)}
-                        placeholder="Search by doctor name or clinic"
-                        autoComplete="off"
-                        aria-label="Search doctor for availability"
-                        data-testid="instant-doctor-search"
-                    />
-                    {doctorsLoading ? (
-                        <p className="text-muted small mb-2">Loading doctors…</p>
-                    ) : null}
-                    {doctorMatches.length > 0 ? (
-                        <ul className="list-unstyled mb-2" data-testid="instant-doctor-matches">
-                            {doctorMatches.map((row) => {
-                                const id = row.id ?? row.doctorId;
-                                return (
-                                    <li key={id} className="mb-1">
-                                        <button
-                                            type="button"
-                                            className="btn btn-link btn-sm p-0"
-                                            onClick={() => selectDoctorHint(row)}
-                                            data-testid={`instant-doctor-${id}`}
-                                        >
-                                            {row.name}
-                                            {row.clinicName ? ` · ${row.clinicName}` : ""}
-                                        </button>
+                        <form
+                            className="homeojob-page__panel homeojob-page__request"
+                            onSubmit={handleSubmit}
+                            data-testid="instant-consult-form"
+                        >
+                            <div className="homeojob-page__request-head">
+                                <span className="homeojob-page__feature-icon homeojob-page__feature-icon--blue">
+                                    <i className="ri-flashlight-fill" aria-hidden="true" />
+                                </span>
+                                <div>
+                                    <h2>Request a consult</h2>
+                                    <p>Your profile comes from sign-in. Only name and mobile are needed here.</p>
+                                </div>
+                            </div>
+
+                            <div className="homeojob-page__field">
+                                <label htmlFor="instant-name">Contact name</label>
+                                <input
+                                    id="instant-name"
+                                    className="form-control"
+                                    value={contactName}
+                                    onChange={(e) => setContactName(e.target.value)}
+                                    required
+                                    aria-label="Contact name"
+                                />
+                            </div>
+                            <div className="homeojob-page__field">
+                                <label htmlFor="instant-mobile">Contact mobile</label>
+                                <input
+                                    id="instant-mobile"
+                                    className="form-control"
+                                    value={contactMobile}
+                                    onChange={(e) => setContactMobile(e.target.value)}
+                                    required
+                                    inputMode="tel"
+                                    aria-label="Contact mobile"
+                                />
+                            </div>
+
+                            {loading ? (
+                                <p className="homeojob-page__hint" data-testid="instant-consult-loading">
+                                    Submitting request…
+                                </p>
+                            ) : null}
+                            {offline ? (
+                                <p className="homeojob-page__alert homeojob-page__alert--warn" data-testid="instant-consult-offline">
+                                    {error || "You appear to be offline."}
+                                </p>
+                            ) : null}
+                            {error && !offline ? (
+                                <p className="homeojob-page__alert" data-testid="instant-consult-error" role="alert">
+                                    {error}
+                                </p>
+                            ) : null}
+
+                            <button
+                                type="submit"
+                                className="homeojob-page__cta"
+                                disabled={loading || !accessToken}
+                                aria-label="Request instant consult"
+                            >
+                                <i className="ri-vidicon-line" aria-hidden="true" />
+                                {loading ? "Requesting…" : "Request instant consult"}
+                            </button>
+                        </form>
+
+                        <div className="homeojob-page__panel homeojob-page__request">
+                            <div className="homeojob-page__request-head">
+                                <span className="homeojob-page__feature-icon homeojob-page__feature-icon--green">
+                                    <i className="ri-stethoscope-line" aria-hidden="true" />
+                                </span>
+                                <div>
+                                    <h2>Check a doctor online</h2>
+                                    <p>Optional. Instant match still finds any online doctor when you submit.</p>
+                                </div>
+                            </div>
+
+                            <div className="homeojob-page__field">
+                                <label htmlFor="instant-doctor-search">Search by doctor name or clinic</label>
+                                <input
+                                    id="instant-doctor-search"
+                                    className="form-control"
+                                    value={doctorSearch}
+                                    onChange={(e) => setDoctorSearch(e.target.value)}
+                                    placeholder="Search by doctor name or clinic"
+                                    autoComplete="off"
+                                    aria-label="Search doctor for availability"
+                                    data-testid="instant-doctor-search"
+                                />
+                            </div>
+
+                            {doctorsLoading ? <p className="homeojob-page__hint">Loading doctors…</p> : null}
+
+                            {doctorMatches.length > 0 ? (
+                                <ul className="homeojob-page__doctor-list" data-testid="instant-doctor-matches">
+                                    {doctorMatches.map((row) => {
+                                        const id = row.id ?? row.doctorId;
+                                        const selected = String(id) === String(doctorHintId);
+                                        return (
+                                            <li key={id}>
+                                                <button
+                                                    type="button"
+                                                    className={`homeojob-page__doctor-pick${selected ? " is-selected" : ""}`}
+                                                    onClick={() => selectDoctorHint(row)}
+                                                    data-testid={`instant-doctor-${id}`}
+                                                >
+                                                    <span>
+                                                        <strong>{row.name}</strong>
+                                                        {row.clinicName ? <em>{row.clinicName}</em> : null}
+                                                    </span>
+                                                    <i className={selected ? "ri-checkbox-circle-fill" : "ri-arrow-right-s-line"} aria-hidden="true" />
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            ) : null}
+
+                            {selectedDoctorLabel ? (
+                                <p className="homeojob-page__hint" data-testid="instant-doctor-selected">
+                                    Checking: <strong>{selectedDoctorLabel}</strong>
+                                </p>
+                            ) : null}
+                            {availLoading ? (
+                                <p className="homeojob-page__hint" data-testid="instant-consult-avail-loading">
+                                    Checking availability…
+                                </p>
+                            ) : availability ? (
+                                <p
+                                    className={`homeojob-page__status${availability.isOnline ? " is-online" : ""}`}
+                                    data-testid="instant-consult-availability"
+                                >
+                                    <i className={availability.isOnline ? "ri-wifi-line" : "ri-wifi-off-line"} aria-hidden="true" />
+                                    {selectedDoctorLabel || `Doctor ${availability.doctorId}`} is{" "}
+                                    {availability.isOnline ? "online" : "offline"}
+                                </p>
+                            ) : null}
+                        </div>
+                    </Col>
+
+                    <Col lg={5}>
+                        <aside className="homeojob-page__aside homeojob-page__aside--start">
+                            <span className="homeojob-page__aside-icon">
+                                <i className="ri-heart-pulse-line" aria-hidden="true" />
+                            </span>
+                            <p className="homeojob-page__aside-note">Care in three simple steps</p>
+                            <ol className="homeojob-page__step-list">
+                                {steps.map((step, index) => (
+                                    <li key={step.title}>
+                                        <span className={`homeojob-page__feature-icon homeojob-page__feature-icon--${step.tone}`}>
+                                            <i className={step.icon} aria-hidden="true" />
+                                        </span>
+                                        <span>
+                                            <strong>{index + 1}. {step.title}</strong>
+                                            <em>{step.text}</em>
+                                        </span>
                                     </li>
-                                );
-                            })}
-                        </ul>
-                    ) : null}
-                    {selectedDoctorLabel ? (
-                        <p className="small mb-1" data-testid="instant-doctor-selected">
-                            Checking: <strong>{selectedDoctorLabel}</strong>
-                        </p>
-                    ) : null}
-                    {availLoading ? (
-                        <p className="text-muted small mb-0" data-testid="instant-consult-avail-loading">
-                            Checking availability…
-                        </p>
-                    ) : availability ? (
-                        <p className="small mb-0" data-testid="instant-consult-availability">
-                            {selectedDoctorLabel || `Doctor ${availability.doctorId}`}:{" "}
-                            {availability.isOnline ? "online" : "offline"}
-                        </p>
-                    ) : (
-                        <p className="text-muted small mb-0">
-                            Optional — instant match still finds any online doctor when you submit.
-                        </p>
-                    )}
-                </div>
+                                ))}
+                            </ol>
+                        </aside>
 
-                <form
-                    className="homeojob-doctor-detail__card p-4 mb-3"
-                    onSubmit={handleSubmit}
-                    data-testid="instant-consult-form"
-                >
-                    <div className="mb-3">
-                        <label className="form-label" htmlFor="instant-name">
-                            Contact name
-                        </label>
-                        <input
-                            id="instant-name"
-                            className="form-control"
-                            value={contactName}
-                            onChange={(e) => setContactName(e.target.value)}
-                            required
-                            aria-label="Contact name"
-                        />
-                    </div>
-                    <div className="mb-3">
-                        <label className="form-label" htmlFor="instant-mobile">
-                            Contact mobile
-                        </label>
-                        <input
-                            id="instant-mobile"
-                            className="form-control"
-                            value={contactMobile}
-                            onChange={(e) => setContactMobile(e.target.value)}
-                            required
-                            inputMode="tel"
-                            aria-label="Contact mobile"
-                        />
-                    </div>
-                    <p className="text-muted small mb-3">
-                        Your profile comes from sign-in — only name and mobile are needed here.
-                    </p>
-                    <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={loading || !accessToken}
-                        aria-label="Request instant consult"
-                    >
-                        {loading ? "Requesting…" : "Request instant consult"}
-                    </button>
-                </form>
-
-                {loading ? (
-                    <p className="text-muted" data-testid="instant-consult-loading">
-                        Submitting request…
-                    </p>
-                ) : null}
-
-                {offline ? (
-                    <p className="text-warning" data-testid="instant-consult-offline">
-                        {error || "You appear to be offline."}
-                    </p>
-                ) : null}
-
-                {error && !offline ? (
-                    <p className="text-danger" data-testid="instant-consult-error" role="alert">
-                        {error}
-                    </p>
-                ) : null}
-
-                <p className="mt-4 mb-0">
-                    <Link to={landingPath("find-doctor")}>Find a doctor</Link>
-                    {" · "}
-                    <Link to={landingPath("")}>Home</Link>
-                </p>
+                        <div className="homeojob-page__band">
+                            <div>
+                                <h2>Prefer a scheduled visit?</h2>
+                                <p>Browse verified doctors and book an in-clinic or tele slot.</p>
+                            </div>
+                            <div className="homeojob-page__actions">
+                                <Link to={landingPath("find-doctor")} className="homeojob-page__cta">
+                                    Find a doctor
+                                    <i className="ri-arrow-right-line" aria-hidden="true" />
+                                </Link>
+                                <Link to={landingPath("")} className="homeojob-page__cta homeojob-page__cta--ghost">
+                                    Home
+                                </Link>
+                            </div>
+                        </div>
+                    </Col>
+                </Row>
             </Container>
         </section>
     );

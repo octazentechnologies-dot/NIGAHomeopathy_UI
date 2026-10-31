@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Col, Container, Row, Spinner } from "reactstrap";
 
-import PageBanner from "../../Minimaltheme/components/PageBanner";
 import { SITE } from "../../Minimaltheme/constants/siteContent";
+import LandingPageHero from "../components/LandingPageHero";
 import { getNewsById } from "../../Minimaltheme/helpers/marketingApi";
 import { landingPath } from "../../../../constants/landingRoutes";
 
@@ -33,10 +33,15 @@ const NewsDetailPage = () => {
         : [];
 
     return (
-        <>
-            <PageBanner title={news?.newsHeading || "News Detail"} breadcrumb="News Detail" />
-            <section className="section">
-                <Container>
+        <section className="homeojob-page">
+            <Container>
+                <LandingPageHero
+                    align="start"
+                    breadcrumb="News"
+                    eyebrow="News"
+                    title={news?.newsHeading || "News"}
+                    subtitle={news?.newsSubHeading || news?.newsDate || "Updates from Homeocentrum."}
+                />
                     {loading ? (
                         <div className="text-center py-5">
                             <Spinner color="primary" />
@@ -51,11 +56,8 @@ const NewsDetailPage = () => {
                     ) : (
                         <Row className="justify-content-center">
                             <Col lg={10}>
-                                <small className="text-muted">{news.newsDate}</small>
-                                <h2 className="mt-2 mb-4">{news.newsHeading}</h2>
-                                {news.newsSubHeading && (
-                                    <p className="lead text-muted ff-secondary">{news.newsSubHeading}</p>
-                                )}
+                                <article className="homeojob-page__article">
+                                {news.newsDate ? <p className="homeojob-page__article-date">{news.newsDate}</p> : null}
                                 {images.length > 0 && (
                                     <Row className="g-3 mb-4">
                                         {images.map((img, i) => (
@@ -72,16 +74,16 @@ const NewsDetailPage = () => {
                                     />
                                 )}
                                 <div className="mt-4">
-                                    <Link to={landingPath("news")} className="btn btn-soft-primary">
-                                        <i className="ri-arrow-left-line me-1"></i> Back to News
+                                    <Link to={landingPath("news")} className="homeojob-page__cta homeojob-page__cta--ghost">
+                                        <i className="ri-arrow-left-line" aria-hidden="true" /> Back to news
                                     </Link>
                                 </div>
+                                </article>
                             </Col>
                         </Row>
                     )}
-                </Container>
-            </section>
-        </>
+            </Container>
+        </section>
     );
 };
 

@@ -6,7 +6,6 @@ import LogoLight from "../../../assets/images/logo-light.png";
 import {
     SITE,
     FOOTER_SERVICES,
-    ABOUT_CONTENT,
     SOCIAL_LINKS,
 } from "../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../constants/landingRoutes";
@@ -161,13 +160,24 @@ const Footer = () => {
                                 <span>Naturally</span>
                             </h3>
 
-                            <p className="homeojob-footer__about">{ABOUT_CONTENT.aboutHome.text}</p>
-
-                            <p className="homeojob-footer__about mb-2">
-                                <a href={`tel:${String(support.phone || "").replace(/\s/g, "")}`}>{support.phone}</a>
-                                {" · "}
-                                <a href={`mailto:${support.email}`}>{support.email}</a>
+                            <p className="homeojob-footer__about">
+                                Classical homeopathy, digital case taking, and telemedicine in one practice.
                             </p>
+
+                            <ul className="homeojob-footer__contacts">
+                                <li>
+                                    <a href={`tel:${String(support.phone || "").replace(/\s/g, "")}`}>
+                                        <i className="ri-phone-fill" aria-hidden="true" />
+                                        <span>{support.phone}</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href={`mailto:${support.email}`}>
+                                        <i className="ri-mail-fill" aria-hidden="true" />
+                                        <span>{support.email}</span>
+                                    </a>
+                                </li>
+                            </ul>
 
                             <div className="homeojob-footer__trust">
                                 {TRUST_ITEMS.map((item) => (
@@ -261,11 +271,20 @@ const Footer = () => {
                     </p>
 
                     <div className="homeojob-footer__legal">
-                        <Link to={landingPath("privacy")}>Privacy Policy</Link>
+                        <Link to={landingPath("privacy")}>
+                            <i className="ri-shield-keyhole-line" aria-hidden="true" />
+                            Privacy Policy
+                        </Link>
                         <span>|</span>
-                        <Link to={landingPath("terms")}>Terms &amp; Conditions</Link>
+                        <Link to={landingPath("terms")}>
+                            <i className="ri-file-text-line" aria-hidden="true" />
+                            Terms &amp; Conditions
+                        </Link>
                         <span>|</span>
-                        <Link to={landingPath("disclaimer")}>Disclaimer</Link>
+                        <Link to={landingPath("disclaimer")}>
+                            <i className="ri-information-line" aria-hidden="true" />
+                            Disclaimer
+                        </Link>
                     </div>
                 </div>
             </Container>

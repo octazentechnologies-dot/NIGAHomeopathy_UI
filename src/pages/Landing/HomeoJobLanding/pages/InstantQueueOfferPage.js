@@ -4,6 +4,7 @@ import { Container } from "reactstrap";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../../constants/landingRoutes";
+import LandingPageHero from "../components/LandingPageHero";
 import {
     acceptInstantDoctorOffer,
     buildInstantQueueOfferView,
@@ -179,183 +180,196 @@ const InstantQueueOfferPage = () => {
         ? `${landingPath("instant-consult")}?accessToken=${encodeURIComponent(searchParams.get("accessToken"))}`
         : landingPath("instant-consult");
 
+    const waitingRoomPath = view.teleSessionId
+        ? `${landingPath("tele/waiting", view.teleSessionId)}${
+              searchParams.get("accessToken")
+                  ? `?accessToken=${encodeURIComponent(searchParams.get("accessToken"))}`
+                  : ""
+          }`
+        : "";
+
     return (
-        <section className="homeojob-doctor-detail" data-testid="instant-queue-offer">
-            <Container className="py-5" style={{ maxWidth: 720 }}>
-                <h1 className="h3 mb-2">Queue &amp; doctor offer</h1>
-                <p className="text-muted mb-4">
-                    {isDoctorView
-                        ? "Open instant requests offered to you."
-                        : "This page checks your request every few seconds until a doctor accepts."}
-                </p>
+        <section className="homeojob-page" data-testid="instant-queue-offer">
+            <Container>
+                <LandingPageHero
+                    breadcrumb="Instant consultation"
+                    eyebrow="Queue and offer"
+                    title="Your"
+                    highlight="consult"
+                    align="start"
+                    subtitle={
+                        isDoctorView
+                            ? "Open instant requests offered to you."
+                            : "This page checks your request every few seconds until a doctor accepts."
+                    }
+                />
 
-                {loading ? (
-                    <p className="text-muted" data-testid="instant-queue-loading">
-                        Loading…
-                    </p>
-                ) : null}
+                <div className="homeojob-page__panel homeojob-page__request homeojob-page__queue">
+                    {loading ? (
+                        <p className="homeojob-page__hint" data-testid="instant-queue-loading">
+                            Loading…
+                        </p>
+                    ) : null}
 
-                {offline ? (
-                    <p className="text-warning" data-testid="instant-queue-offline">
-                        {error}
-                    </p>
-                ) : null}
+                    {offline ? (
+                        <p className="homeojob-page__alert homeojob-page__alert--warn" data-testid="instant-queue-offline">
+                            {error}
+                        </p>
+                    ) : null}
 
-                {!loading && error && !offline ? (
-                    <p className="text-danger" data-testid="instant-queue-error" role="alert">
-                        {error}
-                    </p>
-                ) : null}
+                    {!loading && error && !offline ? (
+                        <p className="homeojob-page__alert" data-testid="instant-queue-error" role="alert">
+                            {error}
+                        </p>
+                    ) : null}
 
-                {!isDoctorView ? (
-                    <>
-                        {!accessToken ? (
-                            <p className="text-muted" data-testid="instant-queue-auth">
-                                <Link to="/login">Sign in</Link> as the patient to follow this request.
-                            </p>
-                        ) : null}
-
-                        {view.empty && !loading && !requestId ? (
-                            <p className="text-muted" data-testid="instant-queue-empty">
-                                No queue yet. Request an instant consult first.
-                            </p>
-                        ) : null}
-
-                        {!view.empty ? (
-                            <div
-                                className="homeojob-doctor-detail__card p-4 mb-3"
-                                data-testid="instant-queue-body"
-                            >
-                                <p className="mb-2 small text-muted">
-                                    Request #{view.instantConsultRequestId}
-                                </p>
-                                {waiting ? (
-                                    <p className="mb-2">
-                                        <strong>Queue position:</strong>{" "}
-                                        {view.queuePosition != null ? view.queuePosition : "—"}
-                                    </p>
-                                ) : null}
-                                <p className="mb-2">
-                                    <strong>Status:</strong> {view.statusLabel}
-                                </p>
-                                {view.hasOffer && view.doctorId != null ? (
-                                    <p className="mb-0" data-testid="instant-doctor-offer">
-                                        <strong>Doctor:</strong>{" "}
-                                        {view.doctorName || `Doctor #${view.doctorId}`}
-                                        {accepted
-                                            ? " accepted your request."
-                                            : " has been offered your request."}
-                                    </p>
-                                ) : view.statusKind === "no_doctor" ? (
-                                    <p className="mb-0 text-muted">
-                                        No doctor is online right now. We keep checking and offer your
-                                        request as soon as one comes online.
-                                    </p>
-                                ) : null}
-                                {view.teleSessionId ? (
-                                    <p className="mb-0 mt-3">
-                                        <Link
-                                            className="btn btn-primary btn-sm"
-                                            to={`${landingPath("tele/waiting", view.teleSessionId)}${
-                                                searchParams.get("accessToken")
-                                                    ? `?accessToken=${encodeURIComponent(searchParams.get("accessToken"))}`
-                                                    : ""
-                                            }`}
-                                            data-testid="instant-join-waiting"
-                                        >
-                                            Join waiting room
+                    {!isDoctorView ? (
+                        <>
+                            {!accessToken ? (
+                                <div className="homeojob-page__notice" data-testid="instant-queue-auth">
+                                    <span className="homeojob-page__feature-icon homeojob-page__feature-icon--blue">
+                                        <i className="ri-user-line" aria-hidden="true" />
+                                    </span>
+                                    <div>
+                                        <strong>Sign in to follow this request</strong>
+                                        <p>Use the same patient account that submitted the consult.</p>
+                                        <Link to="/login" className="homeojob-page__cta">
+                                            Sign in
                                         </Link>
-                                    </p>
-                                ) : null}
-                                {waiting && lastChecked ? (
-                                    <p className="mb-0 mt-2 small text-muted" data-testid="instant-last-checked">
-                                        Last checked {lastChecked.toLocaleTimeString()}
-                                    </p>
-                                ) : null}
-                            </div>
-                        ) : null}
+                                    </div>
+                                </div>
+                            ) : null}
 
-                        <div className="mb-3 d-flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={() => refreshPatientQueue()}
-                                disabled={loading || !accessToken || !requestId}
-                                aria-label="Check status now"
-                            >
-                                Check now
-                            </button>
-                            {view.canCancel && waiting ? (
+                            {view.empty && !loading && !requestId ? (
+                                <p className="homeojob-page__empty" data-testid="instant-queue-empty">
+                                    No queue yet. Request an instant consult first.
+                                </p>
+                            ) : null}
+
+                            {!view.empty ? (
+                                <div data-testid="instant-queue-body">
+                                    <p className="homeojob-page__hint">Request #{view.instantConsultRequestId}</p>
+                                    <div className="homeojob-page__queue-stats">
+                                        {waiting ? (
+                                            <article>
+                                                <span>Queue position</span>
+                                                <strong>{view.queuePosition != null ? view.queuePosition : "—"}</strong>
+                                            </article>
+                                        ) : null}
+                                        <article>
+                                            <span>Status</span>
+                                            <strong>{view.statusLabel}</strong>
+                                        </article>
+                                    </div>
+                                    {view.hasOffer && view.doctorId != null ? (
+                                        <p className="homeojob-page__status is-online" data-testid="instant-doctor-offer">
+                                            <i className="ri-stethoscope-line" aria-hidden="true" />
+                                            {view.doctorName || `Doctor #${view.doctorId}`}
+                                            {accepted ? " accepted your request." : " has been offered your request."}
+                                        </p>
+                                    ) : view.statusKind === "no_doctor" ? (
+                                        <p className="homeojob-page__hint">
+                                            No doctor is online right now. We keep checking and offer your request as soon as one comes online.
+                                        </p>
+                                    ) : null}
+                                    {waitingRoomPath ? (
+                                        <p className="homeojob-page__actions">
+                                            <Link className="homeojob-page__cta" to={waitingRoomPath} data-testid="instant-join-waiting">
+                                                Join waiting room
+                                                <i className="ri-arrow-right-line" aria-hidden="true" />
+                                            </Link>
+                                        </p>
+                                    ) : null}
+                                    {waiting && lastChecked ? (
+                                        <p className="homeojob-page__hint" data-testid="instant-last-checked">
+                                            Last checked {lastChecked.toLocaleTimeString()}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : null}
+
+                            <div className="homeojob-page__actions">
                                 <button
                                     type="button"
-                                    className="btn btn-outline-danger"
-                                    onClick={handleCancel}
-                                    disabled={cancelling || !accessToken}
-                                    data-testid="instant-cancel"
+                                    className="homeojob-page__cta"
+                                    onClick={() => refreshPatientQueue()}
+                                    disabled={loading || !accessToken || !requestId}
+                                    aria-label="Check status now"
                                 >
-                                    {cancelling ? "Cancelling…" : "Cancel request"}
+                                    Check now
                                 </button>
-                            ) : null}
-                            {!waiting ? (
-                                <Link className="btn btn-outline-secondary" to={newRequestPath}>
-                                    New request
-                                </Link>
-                            ) : null}
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        {!accessToken ? (
-                            <p className="text-muted" data-testid="instant-offers-empty-auth">
-                                <Link to="/login">Sign in</Link> as a doctor to list offers.
-                            </p>
-                        ) : null}
-
-                        {!loading && accessToken && offers.length === 0 ? (
-                            <p className="text-muted" data-testid="instant-offers-empty">
-                                No open doctor offers.
-                            </p>
-                        ) : null}
-
-                        {offers.length > 0 ? (
-                            <ul className="list-unstyled" data-testid="instant-offers-list">
-                                {offers.map((o) => (
-                                    <li
-                                        key={o.doctorOfferId || o.instantConsultRequestId}
-                                        className="homeojob-doctor-detail__card p-3 mb-2 d-flex justify-content-between align-items-center gap-2"
+                                {view.canCancel && waiting ? (
+                                    <button
+                                        type="button"
+                                        className="homeojob-page__cta homeojob-page__cta--danger"
+                                        onClick={handleCancel}
+                                        disabled={cancelling || !accessToken}
+                                        data-testid="instant-cancel"
                                     >
-                                        <div>
-                                            <strong>{o.instantConsultRequestId}</strong>{" "}
-                                            {o.contactName}
-                                            <div className="small text-muted">
-                                                Queue {o.queuePosition} · {o.status}
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-primary"
-                                            disabled={acceptingId === o.instantConsultRequestId}
-                                            onClick={() => handleAccept(o.instantConsultRequestId)}
-                                            aria-label={`Accept offer ${o.instantConsultRequestId}`}
-                                        >
-                                            {acceptingId === o.instantConsultRequestId
-                                                ? "Accepting…"
-                                                : "Accept"}
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : null}
-                    </>
-                )}
+                                        {cancelling ? "Cancelling…" : "Cancel request"}
+                                    </button>
+                                ) : null}
+                                {!waiting ? (
+                                    <Link className="homeojob-page__cta homeojob-page__cta--ghost" to={newRequestPath}>
+                                        New request
+                                    </Link>
+                                ) : null}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {!accessToken ? (
+                                <div className="homeojob-page__notice" data-testid="instant-offers-empty-auth">
+                                    <span className="homeojob-page__feature-icon homeojob-page__feature-icon--blue">
+                                        <i className="ri-user-line" aria-hidden="true" />
+                                    </span>
+                                    <div>
+                                        <strong>Sign in as a doctor</strong>
+                                        <p>Doctor sign-in is required to list open offers.</p>
+                                        <Link to="/login" className="homeojob-page__cta">
+                                            Sign in
+                                        </Link>
+                                    </div>
+                                </div>
+                            ) : null}
 
-                <button
-                    type="button"
-                    className="btn btn-link px-0"
-                    onClick={() => navigate(landingPath("book"))}
-                >
-                    Back to find doctor
-                </button>
+                            {!loading && accessToken && offers.length === 0 ? (
+                                <p className="homeojob-page__empty" data-testid="instant-offers-empty">
+                                    No open doctor offers.
+                                </p>
+                            ) : null}
+
+                            {offers.length > 0 ? (
+                                <ul className="homeojob-page__offer-list" data-testid="instant-offers-list">
+                                    {offers.map((o) => (
+                                        <li key={o.doctorOfferId || o.instantConsultRequestId}>
+                                            <div>
+                                                <strong>#{o.instantConsultRequestId}</strong>
+                                                <em>{o.contactName}</em>
+                                                <span>
+                                                    Queue {o.queuePosition} · {o.status}
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="homeojob-page__cta"
+                                                disabled={acceptingId === o.instantConsultRequestId}
+                                                onClick={() => handleAccept(o.instantConsultRequestId)}
+                                                aria-label={`Accept offer ${o.instantConsultRequestId}`}
+                                            >
+                                                {acceptingId === o.instantConsultRequestId ? "Accepting…" : "Accept"}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : null}
+                        </>
+                    )}
+
+                    <button type="button" className="homeojob-page__text-link" onClick={() => navigate(landingPath("book"))}>
+                        Back to find a doctor
+                    </button>
+                </div>
             </Container>
         </section>
     );

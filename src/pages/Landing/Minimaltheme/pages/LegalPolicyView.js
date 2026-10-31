@@ -5,6 +5,18 @@ import { Col, Container, Row } from "reactstrap";
 import { landingPath } from "../../../../constants/landingRoutes";
 import { SITE } from "../constants/siteContent";
 
+const AUDIENCE_ICONS = {
+    doctor: "ri-stethoscope-line",
+    patient: "ri-user-heart-line",
+    pharmacy: "ri-capsule-line",
+};
+
+const LEGAL_DOCS = [
+    { id: "privacy", label: "Privacy Policy", icon: "ri-shield-keyhole-line", path: "privacy" },
+    { id: "terms", label: "Terms & Conditions", icon: "ri-file-text-line", path: "terms" },
+    { id: "disclaimer", label: "Disclaimer", icon: "ri-information-line", path: "disclaimer" },
+];
+
 const LegalPolicyView = ({ audiences, sectionPrefix, shieldIcon, navLabel, className = "" }) => {
     const [params, setParams] = useSearchParams();
     const requested = params.get("audience");
@@ -58,6 +70,28 @@ const LegalPolicyView = ({ audiences, sectionPrefix, shieldIcon, navLabel, class
                             <p className="homeojob-privacy__eyebrow">{audience.hero.eyebrow}</p>
                             <h1 className="homeojob-privacy__title">{audience.hero.title}</h1>
                             <p className="homeojob-privacy__subtitle">{audience.hero.subtitle}</p>
+                            <nav className="homeojob-privacy__docs" aria-label="Legal documents">
+                                {LEGAL_DOCS.map((doc) => {
+                                    const href = requested
+                                        ? `${landingPath(doc.path)}?audience=${encodeURIComponent(requested)}`
+                                        : landingPath(doc.path);
+                                    return (
+                                        <Link
+                                            key={doc.id}
+                                            to={href}
+                                            className={
+                                                sectionPrefix === doc.id
+                                                    ? "homeojob-privacy__doc is-active"
+                                                    : "homeojob-privacy__doc"
+                                            }
+                                            aria-current={sectionPrefix === doc.id ? "page" : undefined}
+                                        >
+                                            <i className={doc.icon} aria-hidden="true" />
+                                            <span>{doc.label}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </nav>
                             <div className="homeojob-privacy__audiences" role="tablist" aria-label="Choose a policy">
                                 {audiences.map((item) => (
                                     <button
@@ -72,18 +106,11 @@ const LegalPolicyView = ({ audiences, sectionPrefix, shieldIcon, navLabel, class
                                         }
                                         onClick={() => selectAudience(item.id)}
                                     >
+                                        <i className={AUDIENCE_ICONS[item.id] || "ri-user-line"} aria-hidden="true" />
                                         {item.label}
                                     </button>
                                 ))}
                             </div>
-                            <nav className="homeojob-privacy__breadcrumb" aria-label="Breadcrumb">
-                                <Link to={landingPath()}>
-                                    <i className="ri-home-5-line" aria-hidden="true" />
-                                    Home
-                                </Link>
-                                <span aria-hidden="true">&gt;</span>
-                                <span>{audience.hero.title}</span>
-                            </nav>
                         </Col>
                         <Col lg={5}>
                             <div className="homeojob-privacy__visual" aria-hidden="true">
