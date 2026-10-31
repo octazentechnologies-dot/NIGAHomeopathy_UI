@@ -11,6 +11,7 @@ import {
   s4Message,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
+import { subscribePatientAppointmentChanged } from "../../../helpers/patientRealtime";
 import MyAppointments from "./MyAppointments";
 import PatientCharts from "./PatientCharts";
 import QuickActions from "./QuickActions";
@@ -85,6 +86,21 @@ const PatientDashboard = () => {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  // Other tabs/sessions: SignalR appointmentChanged → refetch visits (server is source of truth).
+  useEffect(() => {
+    let timer = null;
+    const unsub = subscribePatientAppointmentChanged(() => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        load();
+      }, 400);
+    });
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      unsub();
+    };
   }, [load]);
 
   const todayIso = moment().format("YYYY-MM-DD");

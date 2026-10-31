@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import moment from 'moment';
 import Swal from 'sweetalert2';
+import { useLocation } from 'react-router-dom';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import DateOfBirthPicker, { DATE_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import { Card, CardBody, CardHeader, Col, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Label, Spinner } from 'reactstrap';
@@ -10,6 +11,15 @@ import {
     listDoctorReminders,
     updateDoctorReminder,
 } from '../../../helpers/s5Week5Api';
+import {
+    REMINDER_DASHBOARD_REFRESH_EVENT,
+    REMINDER_OPEN_EVENT,
+    formatReminderTimeDisplay,
+    isReminderDueNow,
+    mapDoctorReminder,
+    parseReminderDeepLink,
+} from '../../../helpers/doctorReminderFire';
+import '../../../Components/Common/doctorReminderFire.css';
 
 const API_DATE = 'YYYY-MM-DD';
 
@@ -21,21 +31,8 @@ const emptyReminder = (date) => ({
     contact: '',
 });
 
-const formatTimeToDisplay = (time) => {
-    if (!time) return '';
-    const m = moment(String(time), ['HH:mm:ss', 'HH:mm'], true);
-    return m.isValid() ? m.format('hh.mm A') : '';
-};
-
-const mapReminder = (row) => ({
-    id: row.doctorReminderId ?? row.DoctorReminderId,
-    date: moment(row.reminderDate ?? row.ReminderDate).format(API_DATE),
-    time: row.reminderTime ?? row.ReminderTime ?? null,
-    title: row.title ?? row.Title ?? '',
-    description: row.description ?? row.Description ?? '',
-    contact: row.contactNumber ?? row.ContactNumber ?? '',
-    isDone: Boolean(row.isDone ?? row.IsDone),
-});
+const formatTimeToDisplay = formatReminderTimeDisplay;
+const mapReminder = mapDoctorReminder;
 
 const toWrite = (item) => ({
     reminderDate: item.date,
@@ -47,15 +44,22 @@ const toWrite = (item) => ({
 });
 
 const TopSellers = () => {
+    const location = useLocation();
     const today = moment().startOf('day');
     const [selectedDate, setSelectedDate] = useState(today.format(API_DATE));
     const [monthReminders, setMonthReminders] = useState([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [focusReminderId, setFocusReminderId] = useState(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [newReminder, setNewReminder] = useState(emptyReminder(today));
+    const [viewReminder, setViewReminder] = useState(null);
+    const monthRemindersRef = useRef([]);
+    const focusClearTimerRef = useRef(null);
+    const lastFocusKeyRef = useRef('');
+    const lastFocusAtRef = useRef(0);
 
     const monthStart = today.clone().startOf('month');
     const monthEnd = today.clone().endOf('month');
@@ -77,25 +81,28 @@ const TopSellers = () => {
     }, [monthStart.format(API_DATE)]);
 
     useEffect(() => {
+        monthRemindersRef.current = monthReminders;
+    }, [monthReminders]);
+
+    useEffect(() => {
         loadReminders();
     }, [loadReminders]);
 
-    const reminders = useMemo(
-        () => monthReminders.filter((r) => r.date === selectedDate),
-        [monthReminders, selectedDate]
-    );
-    const datesWithReminders = useMemo(
-        () => new Set(monthReminders.filter((r) => !r.isDone).map((r) => r.date)),
-        [monthReminders]
-    );
+    useEffect(() => {
+        const onRefresh = () => loadReminders();
+        window.addEventListener(REMINDER_DASHBOARD_REFRESH_EVENT, onRefresh);
+        return () => window.removeEventListener(REMINDER_DASHBOARD_REFRESH_EVENT, onRefresh);
+    }, [loadReminders]);
 
-    const openModal = () => {
+    const openModal = useCallback(() => {
         setEditingId(null);
         setNewReminder(emptyReminder(selectedDate));
         setIsModalOpen(true);
-    };
+    }, [selectedDate]);
 
-    const openEditModal = (item) => {
+    const openEditModal = useCallback((item) => {
+        if (!item) return;
+        setViewReminder(null);
         const timeRaw = item.time ? String(item.time).slice(0, 5) : '';
         setEditingId(item.id);
         setNewReminder({
@@ -106,7 +113,83 @@ const TopSellers = () => {
             contact: item.contact || '',
         });
         setIsModalOpen(true);
-    };
+    }, []);
+
+    const openViewModal = useCallback((item) => {
+        if (!item) return;
+        setIsModalOpen(false);
+        setEditingId(null);
+        setViewReminder(item);
+    }, []);
+
+    const closeViewModal = useCallback(() => {
+        setViewReminder(null);
+    }, []);
+
+    const focusReminder = useCallback((reminderDate, reminderId, openView = true) => {
+        if (reminderDate && moment(reminderDate, API_DATE, true).isValid()) {
+            setSelectedDate(reminderDate);
+        }
+        const id = reminderId != null && reminderId !== '' ? String(reminderId) : null;
+        if (!id) return;
+
+        const focusKey = `${reminderDate || ''}|${id}|${openView ? 'view' : 'focus'}`;
+        const now = Date.now();
+        if (lastFocusKeyRef.current === focusKey && now - lastFocusAtRef.current < 900) {
+            return;
+        }
+        lastFocusKeyRef.current = focusKey;
+        lastFocusAtRef.current = now;
+
+        setFocusReminderId(id);
+        if (focusClearTimerRef.current) window.clearTimeout(focusClearTimerRef.current);
+        focusClearTimerRef.current = window.setTimeout(() => setFocusReminderId(null), 4000);
+
+        const tryFocus = (attempt = 0) => {
+            const item = monthRemindersRef.current.find((r) => String(r.id) === id);
+            const el = document.getElementById(`doctor-reminder-row-${id}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            if (openView && item) {
+                openViewModal(item);
+                return;
+            }
+            if (el && !openView) return;
+            if (attempt < 12) {
+                window.setTimeout(() => tryFocus(attempt + 1), 150);
+            }
+        };
+        window.setTimeout(() => tryFocus(0), 80);
+    }, [openViewModal]);
+
+    useEffect(() => {
+        const { reminderDate, reminderId } = parseReminderDeepLink(location.search || '');
+        if (reminderDate || reminderId) {
+            focusReminder(reminderDate, reminderId, Boolean(reminderId));
+        }
+    }, [location.search, focusReminder]);
+
+    useEffect(() => {
+        const onOpen = (event) => {
+            const detail = event?.detail || {};
+            focusReminder(detail.reminderDate, detail.reminderId, detail.openView !== false);
+        };
+        window.addEventListener(REMINDER_OPEN_EVENT, onOpen);
+        return () => {
+            window.removeEventListener(REMINDER_OPEN_EVENT, onOpen);
+            if (focusClearTimerRef.current) window.clearTimeout(focusClearTimerRef.current);
+        };
+    }, [focusReminder]);
+
+    const reminders = useMemo(
+        () => monthReminders.filter((r) => r.date === selectedDate),
+        [monthReminders, selectedDate]
+    );
+    const datesWithReminders = useMemo(
+        () => new Set(monthReminders.filter((r) => !r.isDone).map((r) => r.date)),
+        [monthReminders]
+    );
 
     const closeModal = () => {
         setIsModalOpen(false);
@@ -442,8 +525,15 @@ const TopSellers = () => {
                             <div className="reminders-empty">No reminders for this day</div>
                         ) : (
                             <ol className="mb-0 reminders-list flex-grow-1">
-                                {reminders.map((item) => (
-                                    <li key={item.id} className={item.isDone ? 'is-done' : ''}>
+                                {reminders.map((item) => {
+                                    const dueNow = isReminderDueNow(item);
+                                    const isFocused = String(focusReminderId) === String(item.id);
+                                    return (
+                                    <li
+                                        key={item.id}
+                                        id={`doctor-reminder-row-${item.id}`}
+                                        className={`${item.isDone ? 'is-done' : ''}${dueNow ? ' is-due-now' : ''}${isFocused ? ' is-focused' : ''}`}
+                                    >
                                         <div className="d-flex align-items-center gap-1">
                                             <div
                                                 className="flex-grow-1 overflow-hidden"
@@ -451,7 +541,10 @@ const TopSellers = () => {
                                                 title={item.description || (item.isDone ? 'Mark as pending' : 'Mark as done')}
                                                 onClick={() => toggleDone(item)}
                                             >
-                                                <p className="fw-medium text-truncate mb-0">{item.title}</p>
+                                                <p className="fw-medium text-truncate mb-0">
+                                                    {dueNow ? <span className="reminder-due-badge">Due now</span> : null}
+                                                    {item.title}
+                                                </p>
                                             </div>
                                             <div className="flex-shrink-0 d-flex align-items-center gap-1 reminder-actions">
                                                 {item.time ? <span className="reminder-time">{formatTimeToDisplay(item.time)}</span> : null}
@@ -474,9 +567,76 @@ const TopSellers = () => {
                                             </div>
                                         </div>
                                     </li>
-                                ))}
+                                    );
+                                })}
                             </ol>
                         )}
+
+                        <Modal
+                            isOpen={Boolean(viewReminder)}
+                            toggle={closeViewModal}
+                            centered
+                            className="patient-list-modal new-patient-modal new-reminder-modal doctor-reminder-view-modal"
+                        >
+                            <ModalHeader className="patient-list-modal__header" toggle={closeViewModal}>
+                                <span className="patient-list-modal__title patient-list-modal__title--simple">
+                                    <i className="ri-notification-3-line" style={{ color: '#25a0e2', fontSize: 15 }} aria-hidden="true" />
+                                    <span className="patient-list-modal__title-text">Reminder</span>
+                                </span>
+                            </ModalHeader>
+                            <ModalBody>
+                                {viewReminder ? (
+                                    <div className="row g-3 new-patient-modal__fields doctor-reminder-view-fields">
+                                        <div className="col-md-6">
+                                            <Label className="form-label new-patient-modal__label">
+                                                <i className="ri-calendar-line" aria-hidden="true" />
+                                                Date
+                                            </Label>
+                                            <p className="doctor-reminder-view-value mb-0">
+                                                {moment(viewReminder.date, API_DATE).format(DATE_DISPLAY_FORMAT)}
+                                            </p>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <Label className="form-label new-patient-modal__label">
+                                                <i className="ri-time-line" aria-hidden="true" />
+                                                Time
+                                            </Label>
+                                            <p className="doctor-reminder-view-value mb-0">
+                                                {formatTimeToDisplay(viewReminder.time) || '—'}
+                                            </p>
+                                        </div>
+                                        <div className="col-12">
+                                            <Label className="form-label new-patient-modal__label">
+                                                <i className="ri-bookmark-line" aria-hidden="true" />
+                                                Title
+                                            </Label>
+                                            <p className="doctor-reminder-view-value mb-0">{viewReminder.title || '—'}</p>
+                                        </div>
+                                        <div className="col-12">
+                                            <Label className="form-label new-patient-modal__label">
+                                                <i className="ri-file-text-line" aria-hidden="true" />
+                                                Description
+                                            </Label>
+                                            <p className="doctor-reminder-view-value doctor-reminder-view-value--multiline mb-0">
+                                                {viewReminder.description || '—'}
+                                            </p>
+                                        </div>
+                                        <div className="col-12">
+                                            <Label className="form-label new-patient-modal__label">
+                                                <i className="ri-phone-line" aria-hidden="true" />
+                                                Contact Number
+                                            </Label>
+                                            <p className="doctor-reminder-view-value mb-0">{viewReminder.contact || '—'}</p>
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </ModalBody>
+                            <ModalFooter className="justify-content-end">
+                                <Button type="button" color="primary" outline onClick={closeViewModal}>
+                                    Close
+                                </Button>
+                            </ModalFooter>
+                        </Modal>
 
                         <Modal
                             isOpen={isModalOpen}

@@ -1514,6 +1514,9 @@ const BestSellingProducts = () => {
                 place: appointment.address || '-',
                 appStatus: appointment.status || '-',
                 paymentStatus: appointment.paymentStatus ?? appointment.PaymentStatus ?? null,
+                paymentMethod: appointment.paymentMethod ?? appointment.PaymentMethod ?? null,
+                payAtClinicAllowed:
+                    appointment.payAtClinicAllowed ?? appointment.PayAtClinicAllowed ?? false,
                 visitType,
                 consultMode,
                 isTele,
@@ -2221,7 +2224,10 @@ const BestSellingProducts = () => {
                 </td>
                 <td className="dashboard-patient-col-paid">
                     {(() => {
-                        const pay = paymentStatusMeta(patient.paymentStatus);
+                        const pay = paymentStatusMeta(patient.paymentStatus, {
+                            payAtClinicAllowed: patient.payAtClinicAllowed,
+                            paymentMethod: patient.paymentMethod,
+                        });
                         return (
                             <span className={`badge dashboard-patient-pay-badge bg-${pay.tone}-subtle text-${pay.tone}`}>
                                 {pay.label}

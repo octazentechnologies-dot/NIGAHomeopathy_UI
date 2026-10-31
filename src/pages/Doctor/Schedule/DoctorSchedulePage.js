@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardBody, Col, Container, Row } from "reactstrap";
 import DailyScheduleSetupModal from "../../../Components/Common/DailyScheduleSetupModal";
 import { formatApiDate, getAuthDoctorId } from "../../../helpers/appointmentSlotHelper";
+import { subscribeAppointmentChanged } from "../../../helpers/clinicRealtime";
 
 /**
  * APT-07.01 — full-page week schedule. Reuses Get/SaveDailySchedule via DailyScheduleSetupModal.
@@ -21,15 +22,31 @@ const DoctorSchedulePage = () => {
 
   document.title = "Schedule | Niga Homeocentrum";
 
+  // Appointment book/cancel elsewhere → nudge week remount of day cards (hours modal stays authoritative on open).
+  const [realtimeTick, setRealtimeTick] = useState(0);
+  useEffect(() => {
+    let timer = null;
+    const unsub = subscribeAppointmentChanged(() => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => setRealtimeTick((n) => n + 1), 400);
+    });
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      unsub();
+    };
+  }, []);
+
   const days = useMemo(
     () =>
       Array.from({ length: 7 }, (_, i) => {
         const d = new Date(weekStart);
         d.setDate(weekStart.getDate() + i);
         d.setHours(0, 0, 0, 0);
+        // realtimeTick forces Date identity refresh when appointments change elsewhere
+        void realtimeTick;
         return d;
       }),
-    [weekStart]
+    [weekStart, realtimeTick]
   );
 
   const shiftWeek = (delta) => {

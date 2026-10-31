@@ -7,6 +7,8 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import RightSidebar from '../Components/Common/RightSidebar';
+import DoctorReminderFireWatcher from '../Components/Common/DoctorReminderFireWatcher';
+import WebHandoffSessionHost from '../Components/Common/WebHandoffSessionHost';
 import { ThemeCustomizerProvider } from '../Components/Common/ThemeCustomizerContext';
 import { LayoutMenuProvider } from './LayoutMenuContext';
 
@@ -351,6 +353,8 @@ const Layout = (props) => {
                 </div>
             </div>
             <RightSidebar />
+            <DoctorReminderFireWatcher />
+            <WebHandoffSessionHost />
             </LayoutMenuProvider>
             </ThemeCustomizerProvider>
         </React.Fragment>

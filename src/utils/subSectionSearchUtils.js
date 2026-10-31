@@ -1,8 +1,10 @@
 export const MIN_SUBSECTION_SEARCH_LENGTH = 2;
-export const SUBSECTION_SEARCH_DEBOUNCE_MS = 300;
-export const SUBSECTION_SEARCH_TOP = 20;
-export const SUBSECTION_SUGGESTION_DISPLAY = 20;
-export const SUBSECTION_TREE_PAGE_SIZE = 40;
+/** Shorter debounce = snappier typeahead (Google-style). */
+export const SUBSECTION_SEARCH_DEBOUNCE_MS = 180;
+/** Suggestion request size — smaller TOP keeps SQL + payload fast. */
+export const SUBSECTION_SEARCH_TOP = 12;
+export const SUBSECTION_SUGGESTION_DISPLAY = 12;
+export const SUBSECTION_TREE_PAGE_SIZE = 30;
 export const CLINICAL_PATTERN_RUBRIC_PAGE_SIZE = 10;
 export const MAX_SUBSECTION_TREE_DEPTH = 50;
 
@@ -187,22 +189,171 @@ export function buildSubSectionSearchTree(searchResults) {
   return { treeData, childrenMap, expandedIds };
 }
 
-export function getSubSectionSearchSuggestions(searchResults, minCount = SUBSECTION_SUGGESTION_DISPLAY) {
+/**
+ * Rank suggestions locally so the shortest full path match stays on top
+ * (e.g. PAIN › urination › after › agg. before deep "Neck of bladder … pressing pain").
+ */
+export function scoreSubSectionSearchResult(item, query) {
+  if (item == null) return 0;
+
+  const rawQuery = normalizeSubSectionSearchText(query);
+  const tokens = getSubSectionSearchTokens(query);
+  if (!tokens.length) {
+    const apiScore = Number(item.score ?? item.Score);
+    return Number.isFinite(apiScore) ? apiScore : 0;
+  }
+
+  const hay = normalizeSubSectionSearchText(
+    item.displayPath || item.DisplayPath || item.subSectionName || item.SubSectionName || ''
+  );
+  if (!hay) return 0;
+
+  const hayTokens = hay.split(' ').filter(Boolean);
+  let matched = 0;
+  let firstIndex = -1;
+  let lastIndex = -1;
+  let orderBonus = 0;
+
+  tokens.forEach((token) => {
+    let foundAt = -1;
+    for (let i = 0; i < hayTokens.length; i += 1) {
+      if (hayTokens[i].startsWith(token) || hayTokens[i] === token) {
+        foundAt = i;
+        break;
+      }
+    }
+    if (foundAt < 0) {
+      const idx = hay.indexOf(token);
+      if (idx < 0) return;
+      foundAt = hay.slice(0, idx).split(' ').length - 1;
+    }
+    matched += 1;
+    if (firstIndex < 0) firstIndex = foundAt;
+    if (foundAt >= lastIndex) {
+      orderBonus += 120;
+      lastIndex = foundAt;
+    } else {
+      orderBonus += 20;
+    }
+  });
+
+  const allMatchedBonus = matched === tokens.length ? 1200 : 0;
+  const phraseBonus =
+    matched >= 3 && matched === tokens.length && orderBonus >= 120 * matched ? 500 : 0;
+  let genericPenalty = 0;
+  if (hay.includes('complaints of') && matched < tokens.length && matched <= 2) {
+    genericPenalty = 400;
+  }
+
+  let pathShape = 0;
+  if (matched === tokens.length && lastIndex >= 0) {
+    const trailingExtra = Math.max(0, hayTokens.length - 1 - lastIndex);
+    pathShape -= trailingExtra * 220;
+    const matchSpan = Math.max(0, lastIndex - Math.max(0, firstIndex) + 1);
+    const extraMiddle = Math.max(0, matchSpan - tokens.length);
+    pathShape -= extraMiddle * 90;
+    pathShape += Math.max(0, 14 - hayTokens.length) * 35;
+    if (trailingExtra === 0) pathShape += 900;
+  } else {
+    pathShape += Math.min(hayTokens.length, 12) * 8;
+  }
+
+  // "after a" → boost agg. (trailing stop-word / short prefix)
+  const rawParts = rawQuery.split(' ').filter(Boolean);
+  const lastRaw = rawParts[rawParts.length - 1] || '';
+  const trailingPrefix =
+    lastRaw &&
+    lastRaw.length <= 6 &&
+    !tokens.includes(lastRaw)
+      ? lastRaw
+      : '';
+  if (trailingPrefix && lastIndex >= 0) {
+    for (let i = lastIndex; i < hayTokens.length && i <= lastIndex + 2; i += 1) {
+      if (hayTokens[i].startsWith(trailingPrefix)) {
+        pathShape += i <= lastIndex + 1 ? 850 : 250;
+        break;
+      }
+    }
+  }
+
+  // Prefer compact paths when scores tie — ignore stale API deep-leaf scores for ordering.
+  return (
+    matched * 1000 +
+    orderBonus +
+    pathShape +
+    allMatchedBonus +
+    phraseBonus -
+    genericPenalty -
+    hayTokens.length
+  );
+}
+
+export function formatSubSectionDisplayPath(fullName) {
+  const name = String(fullName || '').trim();
+  if (!name) return '';
+  return name.replace(/\s*-\s*/g, ' › ');
+}
+
+export function getSubSectionSuggestionLabel(item) {
+  if (!item) return '';
+  const display =
+    item.displayPath ||
+    item.DisplayPath ||
+    formatSubSectionDisplayPath(item.subSectionName || item.SubSectionName);
+  return display || String(item.subSectionName || item.SubSectionName || '');
+}
+
+export function getSubSectionSearchSuggestions(
+  searchResults,
+  minCount = SUBSECTION_SUGGESTION_DISPLAY,
+  query = ''
+) {
   if (!Array.isArray(searchResults) || searchResults.length === 0) {
     return [];
   }
   const unique = [];
   const seen = new Set();
   searchResults.forEach((item) => {
-    const id = item?.subSectionId;
+    const id = item?.subSectionId ?? item?.SubSectionId;
     if (id == null || seen.has(id)) return;
     seen.add(id);
     unique.push(item);
   });
+
+  unique.sort((a, b) => {
+    const scoreDiff = scoreSubSectionSearchResult(b, query) - scoreSubSectionSearchResult(a, query);
+    if (scoreDiff !== 0) return scoreDiff;
+    const matchDiff =
+      Number(b.matchedTokenCount ?? b.MatchedTokenCount ?? 0) -
+      Number(a.matchedTokenCount ?? a.MatchedTokenCount ?? 0);
+    if (matchDiff !== 0) return matchDiff;
+    const nameA = String(a.subSectionName || a.SubSectionName || '');
+    const nameB = String(b.subSectionName || b.SubSectionName || '');
+    // Shorter path first when otherwise equal.
+    if (nameA.length !== nameB.length) return nameA.length - nameB.length;
+    return nameA.localeCompare(nameB);
+  });
+
   return unique.slice(0, Math.max(minCount, SUBSECTION_SUGGESTION_DISPLAY));
 }
 
-export function normalizeSubSectionSearchPagedResponse(response) {
+/**
+ * Infinite-scroll guard: only continue when this page was full and (optionally) new rows were added.
+ * Prevents continuous bottom spinner when totalCount >> actual ranked rows returned.
+ */
+export function resolveSubSectionPagedHasMore({
+  items,
+  pageSize = SUBSECTION_TREE_PAGE_SIZE,
+  apiHasMore = false,
+  addedCount = null,
+} = {}) {
+  const count = Array.isArray(items) ? items.length : 0;
+  if (count < pageSize) return false;
+  if (typeof addedCount === 'number' && addedCount <= 0) return false;
+  return Boolean(apiHasMore);
+}
+
+export function normalizeSubSectionSearchPagedResponse(response, query = '') {
   const payload = response?.data ?? response?.resultObject ?? response ?? {};
   const items = Array.isArray(payload)
     ? payload
@@ -210,16 +361,44 @@ export function normalizeSubSectionSearchPagedResponse(response) {
   const totalCount = payload.totalCount ?? payload.TotalCount ?? items.length;
   const pageNumber = payload.pageNumber ?? payload.PageNumber ?? 1;
   const pageSize = payload.pageSize ?? payload.PageSize ?? SUBSECTION_TREE_PAGE_SIZE;
-  const hasMore = payload.hasMore ?? payload.HasMore ?? (pageNumber * pageSize < totalCount);
-  return { items, totalCount, pageNumber, pageSize, hasMore };
+  const apiHasMore = payload.hasMore ?? payload.HasMore
+    ?? (pageNumber * pageSize < totalCount);
+  const rankedItems = [...(items || [])].sort((a, b) => {
+    const scoreDiff = scoreSubSectionSearchResult(b, query) - scoreSubSectionSearchResult(a, query);
+    if (scoreDiff !== 0) return scoreDiff;
+    return Number(b.matchedTokenCount ?? b.MatchedTokenCount ?? 0)
+      - Number(a.matchedTokenCount ?? a.MatchedTokenCount ?? 0);
+  });
+  const hasMore = resolveSubSectionPagedHasMore({
+    items: rankedItems,
+    pageSize,
+    apiHasMore,
+  });
+  return { items: rankedItems, totalCount, pageNumber, pageSize, hasMore };
+}
+
+/**
+ * Prefer suggestion-ranked hits first, then fill with tree page rows (no duplicates).
+ * Keeps the best match at the top of the expanded tree seed.
+ */
+export function mergeSuggestionAndTreeSearchResults(suggestionItems, treeItems, query = '') {
+  const merged = mergeSubSectionSearchResultPages(suggestionItems || [], treeItems || []);
+  return [...merged].sort((a, b) => {
+    const scoreDiff = scoreSubSectionSearchResult(b, query) - scoreSubSectionSearchResult(a, query);
+    if (scoreDiff !== 0) return scoreDiff;
+    return Number(b.matchedTokenCount ?? b.MatchedTokenCount ?? 0)
+      - Number(a.matchedTokenCount ?? a.MatchedTokenCount ?? 0);
+  });
 }
 
 export function mergeSubSectionSearchResultPages(existingItems, newItems) {
-  const seen = new Set((existingItems || []).map((item) => item.subSectionId));
+  const idOf = (item) => item?.subSectionId ?? item?.SubSectionId;
+  const seen = new Set((existingItems || []).map(idOf).filter((id) => id != null));
   const merged = [...(existingItems || [])];
   (newItems || []).forEach((item) => {
-    if (item?.subSectionId != null && !seen.has(item.subSectionId)) {
-      seen.add(item.subSectionId);
+    const id = idOf(item);
+    if (id != null && !seen.has(id)) {
+      seen.add(id);
       merged.push(item);
     }
   });

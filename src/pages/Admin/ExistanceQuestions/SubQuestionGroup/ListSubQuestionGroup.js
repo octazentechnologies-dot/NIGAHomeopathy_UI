@@ -9,10 +9,8 @@ import Swal from 'sweetalert2';
 import { exportListTableCsv } from '../../../../helpers/listExport';
 import {
   getQuestionGroupExistance,
-  getQuestionGroups as getQuestionGroupMaster,
   getQuestionSectionDll,
   getQuestionSubGroupList as getQuestionSubGroupListApi,
-  getQuestionsSubGroups,
 } from '../../../../helpers/realbackend_helper';
 import { adminFormSelectPortalProps, getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
 
@@ -23,6 +21,23 @@ const asList = (raw) => {
   return [];
 };
 
+const toUniqueOptions = (rows, valueKeys, labelKeys) => {
+  const seen = new Set();
+  return rows
+    .map((row) => ({
+      value: valueKeys.map((key) => row[key]).find((value) => value != null),
+      label: labelKeys.map((key) => row[key]).find((value) => value),
+    }))
+    .filter((row) => {
+      if (row.value == null || !row.label) return false;
+      const key = String(row.value);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+};
+
 const ListSubQuestionGroup = () => {
   const dispatch = useDispatch();
 
@@ -30,8 +45,6 @@ const ListSubQuestionGroup = () => {
   const [selectedSubQuestionGroup, setSelectedSubQuestionGroup] = useState(null);
   const [selectedQuestionGroup, setSelectedQuestionGroup] = useState(null);
   const [selectedExistance, setSelectedExistance] = useState(null);
-  const [subQuestionGroupOptions, setSubQuestionGroupOptions] = useState([]);
-  const [questionGroupOptions, setQuestionGroupOptions] = useState([]);
   const [existanceOptions, setExistanceOptions] = useState([]);
   const [allSubGroups, setAllSubGroups] = useState([]);
   const [subQuestionGroupLoading, setSubQuestionGroupLoading] = useState(false);
@@ -90,6 +103,62 @@ const ListSubQuestionGroup = () => {
     loadSubGroups();
   }, []);
 
+  // Existance → Question Group options (all groups when Existance is empty).
+  const questionGroupOptions = useMemo(() => {
+    const rows = selectedExistance
+      ? allSubGroups.filter(
+          (group) =>
+            String(group.questionSectionId ?? group.QuestionSectionId) === String(selectedExistance.value)
+        )
+      : allSubGroups;
+    return toUniqueOptions(
+      rows,
+      ['questionGroupId', 'QuestionGroupId'],
+      ['questionGroupName', 'QuestionGroupName']
+    );
+  }, [allSubGroups, selectedExistance]);
+
+  // Existance + Question Group → Sub Question Group options (all when parents empty).
+  const subQuestionGroupOptions = useMemo(() => {
+    let rows = allSubGroups;
+    if (selectedExistance) {
+      rows = rows.filter(
+        (group) =>
+          String(group.questionSectionId ?? group.QuestionSectionId) === String(selectedExistance.value)
+      );
+    }
+    if (selectedQuestionGroup) {
+      rows = rows.filter(
+        (group) =>
+          String(group.questionGroupId ?? group.QuestionGroupId) === String(selectedQuestionGroup.value)
+      );
+    }
+    return toUniqueOptions(
+      rows,
+      ['questionSubgroupId', 'QuestionSubgroupId'],
+      ['questionSubGroupName', 'QuestionSubGroupName', 'questionSubgroup1', 'QuestionSubgroup1']
+    );
+  }, [allSubGroups, selectedExistance, selectedQuestionGroup]);
+
+  useEffect(() => {
+    if (
+      selectedQuestionGroup &&
+      !questionGroupOptions.some((opt) => String(opt.value) === String(selectedQuestionGroup.value))
+    ) {
+      setSelectedQuestionGroup(null);
+      setSelectedSubQuestionGroup(null);
+    }
+  }, [questionGroupOptions, selectedQuestionGroup]);
+
+  useEffect(() => {
+    if (
+      selectedSubQuestionGroup &&
+      !subQuestionGroupOptions.some((opt) => String(opt.value) === String(selectedSubQuestionGroup.value))
+    ) {
+      setSelectedSubQuestionGroup(null);
+    }
+  }, [subQuestionGroupOptions, selectedSubQuestionGroup]);
+
   const filteredSubGroups = useMemo(() => {
     return allSubGroups.filter((group) => {
       if (selectedSubQuestionGroup && String(group.questionSubgroupId ?? group.QuestionSubgroupId) !== String(selectedSubQuestionGroup.value)) {
@@ -114,27 +183,17 @@ const ListSubQuestionGroup = () => {
     let cancelled = false;
     const loadMasters = async () => {
       try {
-        const [subGroups, groups, sections] = await Promise.all([
-          getQuestionsSubGroups(),
-          getQuestionGroupMaster(),
-          getQuestionSectionDll(),
-        ]);
+        const sections = await getQuestionSectionDll();
         if (cancelled) return;
-        const toOptions = (rows, valueKeys, labelKeys) =>
-          asList(rows)
-            .map((row) => ({
-              value: valueKeys.map((key) => row[key]).find((value) => value != null),
-              label: labelKeys.map((key) => row[key]).find((value) => value),
-            }))
-            .filter((row) => row.value && row.label)
-            .sort((a, b) => String(a.label).localeCompare(String(b.label)));
-        setSubQuestionGroupOptions(toOptions(subGroups, ['questionSubgroupId', 'QuestionSubgroupId'], ['questionSubgroup1', 'QuestionSubgroup1', 'questionSubGroupName', 'QuestionSubGroupName']));
-        setQuestionGroupOptions(toOptions(groups, ['questionGroupId', 'QuestionGroupId'], ['questionGroupName', 'QuestionGroupName']));
-        setExistanceOptions(toOptions(sections, ['questionSectionId', 'QuestionSectionId'], ['questionSectionName', 'QuestionSectionName']));
+        setExistanceOptions(
+          toUniqueOptions(
+            asList(sections),
+            ['questionSectionId', 'QuestionSectionId'],
+            ['questionSectionName', 'QuestionSectionName']
+          )
+        );
       } catch {
         if (!cancelled) {
-          setSubQuestionGroupOptions([]);
-          setQuestionGroupOptions([]);
           setExistanceOptions([]);
         }
       }
@@ -146,6 +205,19 @@ const ListSubQuestionGroup = () => {
   }, []);
 
   const selectStyles = useMemo(() => getAdminFormSelectStyles(), []);
+
+  const handleExistanceChange = (selected) => {
+    setSelectedExistance(selected);
+    setSelectedQuestionGroup(null);
+    setSelectedSubQuestionGroup(null);
+    setCurrentPage(1);
+  };
+
+  const handleQuestionGroupChange = (selected) => {
+    setSelectedQuestionGroup(selected);
+    setSelectedSubQuestionGroup(null);
+    setCurrentPage(1);
+  };
 
   const handleReset = () => {
     setSelectedSubQuestionGroup(null);
@@ -177,8 +249,6 @@ const ListSubQuestionGroup = () => {
     });
   };
 
-
-
   const rowStart = (safePage - 1) * pageSize;
 
   document.title = 'List Sub Question Group';
@@ -193,14 +263,11 @@ const ListSubQuestionGroup = () => {
                 <CardBody>
                   <Row className="g-3 align-items-end">
                     <Col xl={3} md={6}>
-                      <Label className="form-label mb-1">Sub Question Group Name</Label>
+                      <Label className="form-label mb-1">Existance</Label>
                       <Select
-                        value={selectedSubQuestionGroup}
-                        onChange={(selected) => {
-                          setSelectedSubQuestionGroup(selected);
-                          setCurrentPage(1);
-                        }}
-                        options={subQuestionGroupOptions}
+                        value={selectedExistance}
+                        onChange={handleExistanceChange}
+                        options={existanceOptions}
                         placeholder="Select..."
                         isClearable
                         isSearchable
@@ -214,12 +281,9 @@ const ListSubQuestionGroup = () => {
                       <Label className="form-label mb-1">Question Group Name</Label>
                       <Select
                         value={selectedQuestionGroup}
-                        onChange={(selected) => {
-                          setSelectedQuestionGroup(selected);
-                          setCurrentPage(1);
-                        }}
+                        onChange={handleQuestionGroupChange}
                         options={questionGroupOptions}
-                        placeholder="Select..."
+                        placeholder={selectedExistance ? 'Select for existance...' : 'Select...'}
                         isClearable
                         isSearchable
                         classNamePrefix="admin-form-select"
@@ -229,15 +293,21 @@ const ListSubQuestionGroup = () => {
                       />
                     </Col>
                     <Col xl={3} md={6}>
-                      <Label className="form-label mb-1">Existance</Label>
+                      <Label className="form-label mb-1">Sub Question Group Name</Label>
                       <Select
-                        value={selectedExistance}
+                        value={selectedSubQuestionGroup}
                         onChange={(selected) => {
-                          setSelectedExistance(selected);
+                          setSelectedSubQuestionGroup(selected);
                           setCurrentPage(1);
                         }}
-                        options={existanceOptions}
-                        placeholder="Select..."
+                        options={subQuestionGroupOptions}
+                        placeholder={
+                          selectedQuestionGroup
+                            ? 'Select for question group...'
+                            : selectedExistance
+                              ? 'Select for existance...'
+                              : 'Select...'
+                        }
                         isClearable
                         isSearchable
                         classNamePrefix="admin-form-select"
@@ -295,9 +365,9 @@ const ListSubQuestionGroup = () => {
                           <th scope="col" className="text-center" style={{ width: '5%' }}>
                             #
                           </th>
-                          <th scope="col">Sub Question Group Name</th>
-                          <th scope="col">Question Group Name</th>
                           <th scope="col">Existance</th>
+                          <th scope="col">Question Group Name</th>
+                          <th scope="col">Sub Question Group Name</th>
                           <th scope="col">Description</th>
                           <th scope="col" className="text-center" style={{ width: '12%' }}>
                             Action
@@ -324,9 +394,9 @@ const ListSubQuestionGroup = () => {
                                 <td className="text-center patient-list-modal__index">
                                   {rowStart + index + 1}
                                 </td>
-                                <td>{group.questionSubGroupName || '—'}</td>
-                                <td>{group.questionGroupName || '—'}</td>
                                 <td>{group.questionSectionName || '—'}</td>
+                                <td>{group.questionGroupName || '—'}</td>
+                                <td>{group.questionSubGroupName || '—'}</td>
                                 <td>{group.description || '—'}</td>
                                 <td className="text-center">
                                   <div className="d-inline-flex gap-2">
@@ -378,7 +448,7 @@ const ListSubQuestionGroup = () => {
                         ? 'Loading...'
                         : `Showing ${subQuestionGroups.length} of ${totalRecords} Results · Page ${safePage} of ${totalPages}`}
                     </div>
-                                        <AdminListPagination
+                    <AdminListPagination
                       currentPage={safePage}
                       totalPages={totalPages}
                       onPage={setCurrentPage}

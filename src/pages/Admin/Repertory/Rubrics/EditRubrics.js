@@ -5,13 +5,15 @@ import { Link, useLocation } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Select from "react-select";
-import AsyncSelect from "react-select/async";
+import { AsyncPaginate } from "react-select-async-paginate";
 import makeAnimated from "react-select/animated";
 import { useDispatch, useSelector } from 'react-redux';
-import { searchSubSections } from '../../../../helpers/realbackend_helper';
+import { getSubSectionPaged } from '../../../../helpers/realbackend_helper';
 import { getAuthorForRubric, getRemedyGrades, getRemediesByGrade, updateRubric, getSectionForSubSection, getRubricRemedyBySectionIdGreadId } from '../../../../slices/admin/repertory/rubric/thunk';
 import { setRubricError, setRubricSuccess } from '../../../../slices/admin/repertory/rubric/reducer';
 import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
+
+const SUBSECTION_PAGE_SIZE = 20;
 
 const EditRubrics = () => {
   const dispatch = useDispatch();
@@ -57,6 +59,7 @@ const EditRubrics = () => {
       const rubricData = {
         SectionId: values.section?.value,
         SubSectionId: values.subSection?.value,
+        SubSectionName: values.subSection?.label || '',
         GradeId: values.grade?.value,
         rubricRemedyAuthorList: authorRemedyList.map(item => ({
           // If id is a number, it's from DB (existing), otherwise it's new (starts with 'new_')
@@ -97,16 +100,34 @@ const EditRubrics = () => {
     value: remedy.remedyId,
   })) || [];
 
-  const loadSubSectionOptions = (inputValue) => {
+  const loadSubSectionOptions = async (search, _loadedOptions, { page }) => {
     const sectionId = formik.values.section?.value;
-    const term = (inputValue || '').trim();
-    if (!sectionId || term.length < 2) return Promise.resolve([]);
-    return searchSubSections(sectionId, term)
-      .then((rows) => (Array.isArray(rows) ? rows : []).map((row) => ({
+    if (!sectionId) {
+      return { options: [], hasMore: false, additional: { page: 1 } };
+    }
+    try {
+      const response = await getSubSectionPaged({
+        sectionId,
+        queryString: (search || '').trim(),
+        PageNumber: page,
+        PageSize: SUBSECTION_PAGE_SIZE,
+      });
+      const rows = response?.resultObject || response?.ResultObject || [];
+      const totalCount = response?.totalCount ?? response?.TotalCount ?? 0;
+      const options = (Array.isArray(rows) ? rows : []).map((row) => ({
         value: row.subSectionId ?? row.SubSectionId,
         label: row.subSectionName ?? row.SubSectionName,
-      })))
-      .catch(() => []);
+      }));
+      const loadedSoFar = (page - 1) * SUBSECTION_PAGE_SIZE + options.length;
+      return {
+        options,
+        hasMore: loadedSoFar < totalCount,
+        additional: { page: page + 1 },
+      };
+    } catch (error) {
+      console.error('Failed to load subsections', error);
+      return { options: [], hasMore: false, additional: { page: 1 } };
+    }
   };
 
   // Fetch initial data. The subsection is not the whole section list: MIND alone is large enough to time out.
@@ -309,22 +330,27 @@ const EditRubrics = () => {
                       <Col xxl={4} md={4}>
                         <div>
                           <Label htmlFor="subSection" className="form-label">Sub Section Name</Label>
-                          <AsyncSelect
+                          <AsyncPaginate
                             id="subSection"
                             name="subSection"
+                            key={formik.values.section?.value || 'no-section'}
                             value={formik.values.subSection}
                             onChange={(selected) => formik.setFieldValue('subSection', selected)}
                             loadOptions={loadSubSectionOptions}
-                            defaultOptions={false}
-                            cacheOptions={false}
+                            additional={{ page: 1 }}
+                            debounceTimeout={300}
                             isClearable
-                            placeholder={formik.values.section ? "Type to search sub section" : "Select Sub Section"}
+                            placeholder={formik.values.section ? 'Select or type to search' : 'Select Sub Section'}
                             isDisabled={!formik.values.section}
                             className={formik.touched.subSection && formik.errors.subSection ? 'is-invalid' : ''}
                             classNamePrefix="admin-form-select"
                             theme={neutralSelectTheme}
                             styles={getAdminFormSelectStyles({ invalid: Boolean(formik.touched.subSection && formik.errors.subSection) })}
-                            noOptionsMessage={({ inputValue }) => (inputValue || '').trim().length < 2 ? "Type at least 2 letters" : "No sub sections"}
+                            noOptionsMessage={({ inputValue }) =>
+                              formik.values.section
+                                ? (inputValue ? 'No sub sections match' : 'No sub sections')
+                                : 'Select a section first'
+                            }
                           />
                           {formik.touched.subSection && formik.errors.subSection && (
                             <FormFeedback type="invalid">{formik.errors.subSection}</FormFeedback>

@@ -49,7 +49,10 @@ export const mapQueueKpiRow = (row) => {
   const parsedTime = time ? moment(time, ["HH:mm:ss", "HH:mm", moment.ISO_8601]) : null;
   const mode = String(row.consultMode || row.ConsultMode || "").toUpperCase();
   const tele = row.isTele ?? row.IsTele;
-  const pay = paymentStatusMeta(row.paymentStatus ?? row.PaymentStatus);
+  const pay = paymentStatusMeta(row.paymentStatus ?? row.PaymentStatus, {
+    payAtClinicAllowed: row.payAtClinicAllowed ?? row.PayAtClinicAllowed,
+    paymentMethod: row.paymentMethod ?? row.PaymentMethod,
+  });
   return {
     id: row.patientAppId ?? row.PatientAppId,
     patientId: row.patientId ?? row.PatientId,

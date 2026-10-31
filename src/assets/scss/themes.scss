@@ -2500,6 +2500,11 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
     gap: 0;
   }
 
+  /* Phone overflow Menu — hidden on desktop; shown in compact doctor topbar */
+  .header-doctor-mobile-nav {
+    display: none !important;
+  }
+
   /* Topbar icons: black outline; hover light blue (KPI style) */
   .btn-topbar,
   .btn-topbar.btn-ghost-secondary {
@@ -3746,90 +3751,118 @@ body.doctor-layout {
     }
   }
 
-  /* Compact doctor dashboard topbar (<500px) — mirrors admin-mobile-topbar */
-  &.doctor-dashboard-route,
-  &.doctor-patient-board-route {
-    @media (max-width: 499.98px) {
-      #page-topbar {
-        .layout-width {
-          padding-left: 0.85rem !important;
-          padding-right: 0.55rem !important;
-        }
+  /* Compact doctor topbar (<500px): Menu · Logo · Home · Bell · Profile.
+     Even spacing across the bar; desktop keeps the full icon rail. */
+  @media (max-width: 499.98px) {
+    #page-topbar {
+      .layout-width {
+        padding-left: 0.65rem !important;
+        padding-right: 0.65rem !important;
+      }
 
-        .navbar-header {
-          display: flex !important;
-          align-items: center;
-          width: 100%;
-          gap: 0.55rem;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
-        }
+      .navbar-header {
+        display: grid !important;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        align-items: center;
+        column-gap: 0.45rem;
+        width: 100%;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
 
-        .header-brand-divider,
-        .header-topbar-actions-extra,
-        .header-whatsapp-item,
-        .header-doctor-session-tools,
-        .header-profile-separator-group > .header-topbar-divider {
-          display: none !important;
-        }
+      .header-brand-divider,
+      .header-topbar-actions-extra,
+      .header-whatsapp-item,
+      .header-doctor-session-tools,
+      .header-profile-separator-group > .header-topbar-divider {
+        display: none !important;
+      }
 
-        .horizontal-logo .logo-sm {
-          display: none !important;
-        }
+      .header-doctor-mobile-nav {
+        display: flex !important;
+        grid-column: 1;
+        align-items: center;
+        justify-content: center;
+        margin: 0 !important;
+      }
 
-        .horizontal-logo .logo-lg {
-          display: inline-block !important;
+      .header-brand-block {
+        grid-column: 2;
+        min-width: 0;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
 
-          img {
-            height: 26px !important;
-            width: auto;
-            max-width: 140px;
-            object-fit: contain;
-          }
-        }
+      .horizontal-logo .logo-sm {
+        display: none !important;
+      }
 
-        .header-icon-rail {
-          flex: 1 1 auto;
-          display: flex !important;
-          align-items: center;
-          justify-content: space-evenly;
-          min-width: 0;
-          margin-left: 0 !important;
-        }
+      .horizontal-logo .logo-lg {
+        display: inline-block !important;
+        max-width: 100%;
 
-        .header-home-dashboard-item,
-        .vertical-menu-btn.topnav-hamburger,
-        .header-notification-item,
-        .header-profile-separator-group {
-          flex: 0 0 auto;
-          display: flex !important;
-          align-items: center;
-          justify-content: center;
-          margin: 0 !important;
-        }
-
-        .header-home-dashboard-item .btn-topbar,
-        .header-notification-item .btn-topbar {
-          width: 36px;
-          height: 36px;
-        }
-
-        .topbar-user .btn {
-          padding: 0.1rem !important;
-        }
-
-        .header-profile-user {
-          height: 32px;
-          width: 32px;
-        }
-
-        .user-name-text,
-        .user-name-sub-text,
-        .text-start.ms-xl-2 {
-          display: none !important;
+        img {
+          height: 24px !important;
+          width: auto;
+          max-width: min(132px, 100%);
+          object-fit: contain;
         }
       }
 
+      /* Children join the header grid so Home / Bell / Profile space evenly */
+      .header-icon-rail {
+        display: contents !important;
+      }
+
+      .header-home-dashboard-item {
+        grid-column: 3;
+      }
+
+      .header-notification-item {
+        grid-column: 4;
+      }
+
+      .header-profile-separator-group {
+        grid-column: 5;
+      }
+
+      .header-home-dashboard-item,
+      .header-doctor-mobile-nav,
+      .vertical-menu-btn.topnav-hamburger,
+      .header-notification-item,
+      .header-profile-separator-group {
+        flex: 0 0 auto;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        margin: 0 !important;
+      }
+
+      .header-home-dashboard-item .btn-topbar,
+      .header-doctor-mobile-nav .btn-topbar,
+      .header-notification-item .btn-topbar {
+        width: 36px;
+        height: 36px;
+      }
+
+      .topbar-user .btn {
+        padding: 0.1rem !important;
+      }
+
+      .header-profile-user {
+        height: 32px;
+        width: 32px;
+      }
+
+      .user-name-text,
+      .user-name-sub-text,
+      .text-start.ms-xl-2 {
+        display: none !important;
+      }
+    }
+
+    &.doctor-dashboard-route,
+    &.doctor-patient-board-route {
       .page-content.doctor-dashboard-page,
       .page-content:has(.patient-board-page) {
         margin-top: $app-topbar-height !important;
@@ -5420,6 +5453,43 @@ body.admin-layout {
 }
 
 // Topbar "More" dropdown (admin + doctor dashboards)
+.doctor-mobile-nav-panel {
+  max-width: min(100vw - 1rem, 22rem);
+  max-height: min(75vh, 32rem);
+  overflow: hidden;
+  padding: 0;
+  z-index: 1100 !important;
+
+  .doctor-mobile-nav-body {
+    max-height: min(68vh, 28rem);
+    overflow-y: auto;
+    padding-bottom: 0.35rem;
+  }
+
+  .doctor-mobile-nav__subgroup {
+    padding-left: 0.35rem;
+    border-left: 2px solid var(--#{$prefix}border-color);
+    margin: 0 0.75rem 0.35rem;
+  }
+
+  .doctor-mobile-nav__sublink {
+    font-size: 0.9rem;
+  }
+
+  .doctor-mobile-nav__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 600;
+    flex: 0 0 auto;
+  }
+}
+
 .admin-more-menu-dropdown {
   position: relative;
   z-index: 1200;

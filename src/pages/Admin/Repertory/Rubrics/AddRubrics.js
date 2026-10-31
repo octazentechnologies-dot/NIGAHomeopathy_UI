@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import BreadCrumb from '../../../../Components/Common/BreadCrumb';
 import { Card, CardHeader, CardBody, CardFooter, Col, Container, Form, FormFeedback, Label, Row, UncontrolledAlert, Spinner } from 'reactstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Select from "react-select";
+import { AsyncPaginate } from "react-select-async-paginate";
 import makeAnimated from "react-select/animated";
 import { useDispatch, useSelector } from 'react-redux';
-import { getAuthorForRubric, getSubSection, getRemedyGrades, getRemediesByGrade, createRubric, getSectionForSubSection } from '../../../../slices/admin/repertory/rubric/thunk';
+import { getSubSectionPaged } from '../../../../helpers/realbackend_helper';
+import { getAuthorForRubric, getRemedyGrades, getRemediesByGrade, createRubric, getSectionForSubSection } from '../../../../slices/admin/repertory/rubric/thunk';
 import { setRubricError, setRubricSuccess } from '../../../../slices/admin/repertory/rubric/reducer';
 import { getAdminFormSelectStyles, neutralSelectTheme } from '../../../../helpers/neutralSelectStyles';
+
+const SUBSECTION_PAGE_SIZE = 20;
 
 const AddRubrics = () => {
   const dispatch = useDispatch();
@@ -19,7 +23,6 @@ const AddRubrics = () => {
   // Redux State
   const sectionForSubSection = useSelector((state) => state.Rubric.sectionForSubSection);
   const authorForRubric = useSelector((state) => state.Rubric.authorForRubric);
-  const subSection = useSelector((state) => state.Rubric.subSection);
   const remedyGrades = useSelector((state) => state.Rubric.remedyGrades);
   const remediesByGrade = useSelector((state) => state.Rubric.remediesByGrade);
   const { rubricError, rubricSuccess, rubricsLoading } = useSelector((state) => state.Rubric);
@@ -65,6 +68,7 @@ const AddRubrics = () => {
       const rubricData = {
         SectionId: values.section?.value,
         SubSectionId: values.subSection?.value,
+        SubSectionName: values.subSection?.label || '',
         GradeId: values.grade?.value,
         rubricRemedyAuthorList: rubricRemedyAuthorList,
       };
@@ -78,11 +82,6 @@ const AddRubrics = () => {
   const SectionForSubSectionOptions = sectionForSubSection?.map((section) => ({
     label: section.sectionName,
     value: section.sectionId,
-  })) || [];
-
-  const SubSectionOptions = subSection?.map((section) => ({
-    label: section.subSectionName,
-    value: section.subSectionId,
   })) || [];
 
   const GradeOptions = remedyGrades?.map((grade) => ({
@@ -141,13 +140,43 @@ const AddRubrics = () => {
     }
   }, [rubricSuccess, navigate]);
 
-  // Handle section change
+  // Handle section change — clear subsection; options load via AsyncPaginate (paged).
   const handleSectionChange = (selectedOption) => {
     formik.setFieldValue('section', selectedOption);
-    if (selectedOption) {
-      dispatch(getSubSection(selectedOption.value));
-    }
+    formik.setFieldValue('subSection', null);
+    formik.setFieldValue('grade', null);
+    formik.setFieldValue('remedy', null);
   };
+
+  const loadSubSectionOptions = useCallback(async (search, _loadedOptions, { page }) => {
+    const sectionId = formik.values.section?.value;
+    if (!sectionId) {
+      return { options: [], hasMore: false, additional: { page: 1 } };
+    }
+    try {
+      const response = await getSubSectionPaged({
+        sectionId,
+        queryString: (search || '').trim(),
+        PageNumber: page,
+        PageSize: SUBSECTION_PAGE_SIZE,
+      });
+      const rows = response?.resultObject || response?.ResultObject || [];
+      const totalCount = response?.totalCount ?? response?.TotalCount ?? 0;
+      const options = (Array.isArray(rows) ? rows : []).map((row) => ({
+        value: row.subSectionId ?? row.SubSectionId,
+        label: row.subSectionName ?? row.SubSectionName,
+      }));
+      const loadedSoFar = (page - 1) * SUBSECTION_PAGE_SIZE + options.length;
+      return {
+        options,
+        hasMore: loadedSoFar < totalCount,
+        additional: { page: page + 1 },
+      };
+    } catch (error) {
+      console.error('Failed to load subsections', error);
+      return { options: [], hasMore: false, additional: { page: 1 } };
+    }
+  }, [formik.values.section?.value]);
 
   // Handle grade change
   const handleGradeChange = (selectedOption) => {
@@ -264,19 +293,27 @@ const AddRubrics = () => {
                       <Col xxl={4} md={4}>
                         <div>
                           <Label htmlFor="subSection" className="form-label">Sub Section Name</Label>
-                          <Select
+                          <AsyncPaginate
                             id="subSection"
                             name="subSection"
+                            key={formik.values.section?.value || 'no-section'}
                             value={formik.values.subSection}
                             onChange={(selected) => formik.setFieldValue('subSection', selected)}
-                            options={SubSectionOptions}
+                            loadOptions={loadSubSectionOptions}
+                            additional={{ page: 1 }}
+                            debounceTimeout={300}
                             isClearable
-                            placeholder="Select Sub Section"
+                            placeholder={formik.values.section ? 'Select or type to search' : 'Select Sub Section'}
                             isDisabled={!formik.values.section}
                             className={formik.touched.subSection && formik.errors.subSection ? 'is-invalid' : ''}
                             classNamePrefix="admin-form-select"
                             theme={neutralSelectTheme}
                             styles={getAdminFormSelectStyles({ invalid: Boolean(formik.touched.subSection && formik.errors.subSection) })}
+                            noOptionsMessage={({ inputValue }) =>
+                              formik.values.section
+                                ? (inputValue ? 'No sub sections match' : 'No sub sections')
+                                : 'Select a section first'
+                            }
                           />
                           {formik.touched.subSection && formik.errors.subSection && (
                             <FormFeedback type="invalid">{formik.errors.subSection}</FormFeedback>
