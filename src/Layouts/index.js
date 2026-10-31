@@ -33,6 +33,8 @@ import { useProfile } from '../Components/Hooks/UserHooks';
 import { resolveUserRole, usesDoctorDashboardLayout, usesAdminDashboardLayout, usesPatientDashboardLayout, UserRole } from '../Components/constants/roles';
 import { layoutTypes, sidebarVisibilitytypes } from '../Components/constants/layout';
 import useDoctorLayout from '../Components/Hooks/DoctorLayoutHook';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { isDoctorScreenLocked } from '../helpers/doctorScreenLockHelper';
 
 const Layout = (props) => {
     const [headerClass, setHeaderClass] = useState("");
@@ -44,8 +46,18 @@ const Layout = (props) => {
 
     const userRole = resolveUserRole(userProfile);
     const noSidebarLayout = usesDoctorDashboardLayout(userRole);
+    const location = useLocation();
+    const navigate = useNavigate();
     // Reception keeps a slim top bar elsewhere; Account uses its own slim horizontal finance menus.
     const hideReceptionHorizontalMenu = userRole === UserRole.RECEPTION;
+
+    useEffect(() => {
+        if (!usesDoctorDashboardLayout(userRole)) return;
+        if (!isDoctorScreenLocked()) return;
+        const normalized = String(location.pathname || '').replace(/^\//, '').toLowerCase();
+        if (normalized === 'doctor/lock' || normalized === 'logout' || normalized === 'login') return;
+        navigate('/doctor/lock', { replace: true });
+    }, [userRole, location.pathname, navigate]);
 
     // Immediate role-based layout on mount (before profile hook resolves)
     useEffect(() => {

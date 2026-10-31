@@ -61,7 +61,15 @@ import {
     getAuthDoctorId,
     getAuthUserId,
     normalizeAppointmentSlotsResponse,
+    applyClientPastSlotGuard,
 } from '../../../helpers/appointmentSlotHelper';
+import {
+    getSubscriptionCaseLimitInfo,
+    isAtOrOverCaseLimit,
+} from '../../../helpers/subscriptionCaseLimitHelper';
+import { isEligibleForFollowUpConsultation } from '../../../helpers/followUpConsultHelper';
+
+const SUBSCRIPTION_JUST_ACTIVATED_KEY = 'homeocentrum:subscription-just-activated';
 import {
     getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentSlots,
@@ -1765,7 +1773,7 @@ const getPlanIcon = (pkg, index) => {
 };
 
 // Subscription (Purchase Plan) modal — 2-row card grid (3 per row)
-const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseable = false }) => {
+const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseable = false, purchaseDisabled = false }) => {
     const packages = useSelector((state) => state?.DoctorDashboard?.packages) || [];
     const packagesLoading = useSelector((state) => state?.DoctorDashboard?.packagesLoading);
     const [searchTerm, setSearchTerm] = useState('');
@@ -1880,10 +1888,13 @@ const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseabl
                                         <button
                                             type="button"
                                             className="subscription-plan-card__footer"
-                                            onClick={() => handleOnBuyClick(pkg)}
+                                            disabled={purchaseDisabled}
+                                            onClick={() => {
+                                                if (!purchaseDisabled) handleOnBuyClick(pkg);
+                                            }}
                                         >
                                             <i className="ri-shopping-bag-3-line" aria-hidden="true" />
-                                            Buy Now
+                                            {purchaseDisabled ? 'Processing…' : 'Buy Now'}
                                         </button>
                                     </div>
                                 );
@@ -1956,10 +1967,16 @@ const Widgets = () => {
     const [todaySlotCount, setTodaySlotCount] = useState(null);
     const razorpayInstanceRef = useRef(null);
     const selectedPackageRef = useRef(null);
+    const [subscriptionCheckoutActive, setSubscriptionCheckoutActive] = useState(false);
 
     const patientTotalCount = useMemo(
         () => getDoctorPatientTotalCount(patientList, counts),
         [patientList, counts]
+    );
+
+    const subscriptionCaseLimit = useMemo(
+        () => getSubscriptionCaseLimitInfo(counts, doctorList?.[0]),
+        [counts, doctorList]
     );
 
     const loadTodaySlotCount = () => {
@@ -2034,31 +2051,39 @@ const Widgets = () => {
 
     // Check subscription status and show appropriate modals
     useEffect(() => {
+        if (subscriptionCheckoutActive) return;
         try {
             const auth = JSON.parse(sessionStorage.getItem('authUser'));
-            // Handle both response.data structure and direct data structure
-            const subscriptionData = auth?.data || auth;
+            const subscriptionData = {
+                ...(auth?.data || auth || {}),
+                ...(loginUser && typeof loginUser === 'object' ? loginUser : {}),
+            };
 
             if (!subscriptionData) return;
+
+            const justActivated = sessionStorage.getItem(SUBSCRIPTION_JUST_ACTIVATED_KEY) === '1';
+            if (justActivated) {
+                sessionStorage.removeItem(SUBSCRIPTION_JUST_ACTIVATED_KEY);
+            }
 
             const isPlanActive = readPlanActive(subscriptionData);
             const islastFiveDays = subscriptionData.islastFiveDays === true || subscriptionData.IslastFiveDays === true;
             const daysRemaining = subscriptionData.daysRemaining || subscriptionData.DaysRemaining || 0;
 
-            // If plan is not active, show Purchase Plan list (non-closeable)
-            if (!isPlanActive) {
+            if (!isPlanActive && !justActivated) {
                 setModalSubscriptionList(true);
                 return;
             }
 
-            // If in last 5 days and days remaining > 0, show expiration warning (daily)
+            if (isPlanActive) {
+                setModalSubscriptionList(false);
+            }
+
             if (islastFiveDays === true && daysRemaining > 0) {
-                // Check if we've shown the popup today using localStorage
                 const today = new Date().toDateString();
                 const lastShownDate = localStorage.getItem('subscriptionExpirationWarningDate');
                 const lastDaysRemaining = localStorage.getItem('subscriptionDaysRemaining');
 
-                // Show popup if not shown today or if days remaining changed
                 if (lastShownDate !== today || lastDaysRemaining !== daysRemaining.toString()) {
                     setSubscriptionDaysRemaining(daysRemaining);
                     setModalSubscriptionExpiration(true);
@@ -2069,7 +2094,7 @@ const Widgets = () => {
         } catch (error) {
             console.error('Error checking subscription status:', error);
         }
-    }, []);
+    }, [loginUser, subscriptionCheckoutActive]);
 
     // Modal states for dashboard KPI cards
     const [modal_waiting, setmodal_waiting] = useState(false);
@@ -2175,6 +2200,10 @@ const Widgets = () => {
     const [requireDailyScheduleSave, setRequireDailyScheduleSave] = useState(false);
     const [scheduleModalContext, setScheduleModalContext] = useState(null);
     const [teleConsultationEnabled, setTeleConsultationEnabled] = useState(true);
+    const [doctorFeeConfig, setDoctorFeeConfig] = useState({
+        freeFollowUpDaysInClinic: null,
+        followUpFeeInClinic: null,
+    });
     const availabilityEvaluatedRef = useRef('');
     const appointmentSlotsRequestRef = useRef(0);
     const appointmentResetFormRef = useRef(null);
@@ -2187,6 +2216,10 @@ const Widgets = () => {
                 const me = response?.data || response?.Data || response;
                 if (me) {
                     setTeleConsultationEnabled(Boolean(me.teleconsultation));
+                    setDoctorFeeConfig({
+                        freeFollowUpDaysInClinic: me.freeFollowUpDaysInClinic ?? me.FreeFollowUpDaysInClinic ?? null,
+                        followUpFeeInClinic: me.followUpFeeInClinic ?? me.FollowUpFeeInClinic ?? null,
+                    });
                 }
             } catch {
                 // Silently fail - if we can't fetch, allow teleconsultation by default
@@ -2254,7 +2287,7 @@ const Widgets = () => {
                 return;
             }
             const normalized = normalizeAppointmentSlotsResponse(response);
-            setAppointmentSlots(normalized.slots);
+            setAppointmentSlots(applyClientPastSlotGuard(normalized.slots, apiDate));
             setHasAppointmentSchedule(Boolean(normalized.hasSchedule));
             setAppointmentSlotInterval(normalized.intervalMinutes ?? null);
         } catch (error) {
@@ -2587,6 +2620,20 @@ const Widgets = () => {
             return;
         }
 
+        const appointmentDateKey = formatCalendarDateForSchedule(values.appointmentDate) || formatCalendarDateForApi(values.appointmentDate);
+        const guardedSlots = applyClientPastSlotGuard([{ time: selectedSlotTime, status: 'available' }], appointmentDateKey);
+        if (guardedSlots[0]?.status === 'past') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Past time slot',
+                text: 'This time has already passed. Please choose a current or future slot.',
+                timer: 2400,
+                showConfirmButton: false,
+            });
+            setSubmitting(false);
+            return;
+        }
+
         if (values.consultMode === 'Tele' && !teleConsultationEnabled) {
             Swal.fire({
                 icon: 'error',
@@ -2604,6 +2651,15 @@ const Widgets = () => {
             formattedDate = formatCalendarDateForApi(values.appointmentDate) || values.appointmentDate;
         }
 
+        const followUpEligible =
+            values.consultMode !== 'Tele' &&
+            isEligibleForFollowUpConsultation(
+                values.patient.value,
+                formattedDate,
+                appointmentList,
+                doctorFeeConfig
+            );
+
         const appointmentData = {
             patientAppId: 0,
             patientId: values.patient.value,
@@ -2614,8 +2670,9 @@ const Widgets = () => {
             status: "WAITING",
             deleteStatus: false,
             userId: userId,
-            visitType: values.consultMode || 'InClinic',
+            visitType: followUpEligible ? 'FollowUp' : (values.consultMode || 'InClinic'),
             consultMode: values.consultMode || 'InClinic',
+            isFollowUpConsultation: followUpEligible,
         };
 
         console.log("Appointment data: ", appointmentData);
@@ -2668,6 +2725,46 @@ const Widgets = () => {
     // Handle patient form submission
     const handlePatientSubmit = async (values, { setSubmitting, resetForm, setFieldError, setFieldTouched }) => {
         console.log("handlePatientSubmit called with values:", values);
+
+        if (isAtOrOverCaseLimit(patientTotalCount, subscriptionCaseLimit)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Patient limit reached',
+                text: 'Your subscription case limit has been reached. Purchase or upgrade a plan to register more patients.',
+                confirmButtonText: 'View plans',
+                showCancelButton: true,
+                cancelButtonText: 'Close',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    setModalSubscriptionList(true);
+                }
+            });
+            setSubmitting(false);
+            return;
+        }
+
+        const normalizedMobile = String(values.mobileNo || '').replace(/\D/g, '');
+        const duplicatePatient = (patientList || []).some((row) => {
+            const existing = String(row?.mobileNo ?? row?.MobileNo ?? '').replace(/\D/g, '');
+            return existing.length >= 10 && existing === normalizedMobile;
+        });
+        if (duplicatePatient) {
+            const message = 'This mobile number is already registered for a patient.';
+            if (setFieldError && setFieldTouched) {
+                setFieldError('mobileNo', message);
+                setFieldTouched('mobileNo', true, false);
+            }
+            Swal.fire({
+                icon: 'warning',
+                title: 'Duplicate mobile number',
+                text: message,
+                timer: 2600,
+                showConfirmButton: false,
+            });
+            setSubmitting(false);
+            return;
+        }
+
         const auth = JSON.parse(sessionStorage.getItem('authUser'));
         const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
         const clinicDoctorId = auth?.doctorId || auth?.DoctorId || 0;
@@ -2755,9 +2852,11 @@ const Widgets = () => {
 
     // Handle Buy button click - Payment flow
     const handleOnBuyClick = async (variant) => {
+        if (subscriptionCheckoutActive) return;
         console.log(variant);
         setSelectedPackage(variant);
         selectedPackageRef.current = variant;
+        setSubscriptionCheckoutActive(true);
 
         try {
             // Generate order ID
@@ -2788,6 +2887,11 @@ const Widgets = () => {
                         description: `Doctor subscription: ${variant.packageName || 'package'}`,
                         order_id: result?.orderId,
                         handler: handlePaymentSuccess,
+                        modal: {
+                            ondismiss: () => {
+                                setSubscriptionCheckoutActive(false);
+                            },
+                        },
                         prefill: {
                             name: doctor.doctorName || authFullName || authInfo.userName || authInfo.UserName || '',
                             email: doctor.emailId || doctor.email || authInfo.email || authInfo.emailId || authInfo.EmailId || '',
@@ -2804,14 +2908,18 @@ const Widgets = () => {
                     razorpay.open();
                 };
                 document.body.appendChild(script);
+            } else {
+                setSubscriptionCheckoutActive(false);
             }
         } catch (error) {
             console.error('Error generating order:', error);
+            setSubscriptionCheckoutActive(false);
         }
     };
 
     // Handle payment success
     const handlePaymentSuccess = async (paymentResponse) => {
+        setSubscriptionCheckoutActive(true);
         const pkg = selectedPackageRef.current;
         console.log('obj == ', {
             packageDetailId: 0,
@@ -2838,9 +2946,20 @@ const Widgets = () => {
 
             await dispatch(refreshAuthSubscriptionStatus());
             console.log("result payment==", result);
-            setModalSubscriptionList(false);
+            try {
+                const auth = JSON.parse(sessionStorage.getItem('authUser'));
+                const subscriptionData = auth?.data || auth;
+                if (readPlanActive(subscriptionData)) {
+                    sessionStorage.setItem(SUBSCRIPTION_JUST_ACTIVATED_KEY, '1');
+                    setModalSubscriptionList(false);
+                }
+            } catch {
+                setModalSubscriptionList(false);
+            }
         } catch (error) {
             console.error('Error saving subscription:', error);
+        } finally {
+            setSubscriptionCheckoutActive(false);
         }
 
         console.log('handlePaymentSuccess == ', paymentResponse);
@@ -2879,10 +2998,13 @@ const Widgets = () => {
 
     // Check if subscription modal should be non-closeable
     const isSubscriptionModalNonCloseable = (() => {
+        if (subscriptionCheckoutActive) return true;
         try {
             const auth = JSON.parse(sessionStorage.getItem('authUser'));
-            // Handle both response.data structure and direct data structure
-            const subscriptionData = auth?.data || auth;
+            const subscriptionData = {
+                ...(auth?.data || auth || {}),
+                ...(loginUser && typeof loginUser === 'object' ? loginUser : {}),
+            };
             return !readPlanActive(subscriptionData);
         } catch {
             return false;
@@ -3294,6 +3416,7 @@ const Widgets = () => {
                 toggle={tog_subscriptionList}
                 handleOnBuyClick={handleOnBuyClick}
                 isNonCloseable={isSubscriptionModalNonCloseable}
+                purchaseDisabled={subscriptionCheckoutActive}
             />
 
             <Modal size="xl" id="myModal" isOpen={modal_walkin} toggle={() => { tog_walkin(); }} className="patient-list-modal">

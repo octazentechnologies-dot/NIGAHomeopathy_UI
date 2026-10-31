@@ -237,6 +237,14 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
     });
   };
 
+  const goToNextPeriod = () => {
+    setWeekAnchor((prev) => {
+      const nextWeekStart = getWeekStart(prev).add(1, 'month').startOf('isoWeek');
+      setSelectedDate(nextWeekStart.clone());
+      return nextWeekStart;
+    });
+  };
+
   const handleRefresh = () => {
     if (loading) return;
     refreshAll({ silent: false });
@@ -294,16 +302,17 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
               <div className="doctor-schedule-calendar__range">
                 <span>{weekRangeLabel}</span>
-                <button
-                  type="button"
-                  className="doctor-schedule-calendar__range-next"
-                  onClick={() => shiftDay(1)}
-                  aria-label="Next day"
-                  title="Next day"
-                >
-                  <i className="ri-arrow-right-s-line" aria-hidden="true" />
-                </button>
               </div>
+
+              <button
+                type="button"
+                className="doctor-schedule-calendar__nav-btn"
+                onClick={goToNextPeriod}
+                aria-label="Next month"
+                title="Next month"
+              >
+                <i className="ri-arrow-right-s-line" />
+              </button>
 
               <div className="doctor-schedule-calendar__week-nav">
                 <button
