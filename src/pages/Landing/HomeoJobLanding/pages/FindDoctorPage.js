@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Col, Container, Row } from "reactstrap";
 import { pageWindow } from "../../../../helpers/pageWindow";
 
 import { SITE } from "../../Minimaltheme/constants/siteContent";
@@ -128,12 +129,6 @@ const FindDoctorPage = () => {
     return (
         <section className="homeojob-find-doctor">
             <Container>
-                <nav className="homeojob-find-doctor__breadcrumb" aria-label="Breadcrumb">
-                    <Link to={landingPath()}>Home</Link>
-                    <span>/</span>
-                    <span>Find a Doctor</span>
-                </nav>
-
                 <div className="homeojob-find-doctor__header">
                     <h1 className="homeojob-find-doctor__title">
                         Find the Right <span className="text-primary">Doctor</span> for You

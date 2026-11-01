@@ -264,14 +264,6 @@ const DoctorDetailPage = () => {
     return (
         <section className="homeojob-doctor-detail">
             <Container fluid className="homeojob-doctor-detail__container">
-                <nav className="homeojob-doctor-detail__breadcrumb" aria-label="Breadcrumb">
-                    <Link to={landingPath()}>Home</Link>
-                    <span aria-hidden="true">&gt;</span>
-                    <Link to={landingPath("find-doctor")}>Find a Doctor</Link>
-                    <span aria-hidden="true">&gt;</span>
-                    <span>{doctor.name}</span>
-                </nav>
-
                 <Row className="g-3 g-xl-4 homeojob-doctor-detail__layout">
                     <Col lg={8} className="homeojob-doctor-detail__main">
                         <article className="homeojob-doctor-detail__card homeojob-doctor-detail__profile">

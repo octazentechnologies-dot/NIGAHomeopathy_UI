@@ -142,28 +142,17 @@
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--tv-border);
   border-radius: 5px;
-  background: linear-gradient(135deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
+  background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
   border-color: #d4e4fb;
 }
 
-.tv-stat:has(.tv-stat__icon--green) {
-  background: linear-gradient(135deg, #dcf5e4 0%, #f4fbf6 52%, #ffffff 100%);
-  border-color: #ccebd6;
-}
-
-.tv-stat:has(.tv-stat__icon--amber) {
-  background: linear-gradient(135deg, #fdefd3 0%, #fffaf0 52%, #ffffff 100%);
-  border-color: #f8e4bd;
-}
-
-.tv-stat:has(.tv-stat__icon--blue) {
-  background: linear-gradient(135deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
-  border-color: #d4e4fb;
-}
-
+.tv-stat,
+.tv-stat:has(.tv-stat__icon--green),
+.tv-stat:has(.tv-stat__icon--amber),
+.tv-stat:has(.tv-stat__icon--blue),
 .tv-stat:has(.tv-stat__icon--violet) {
-  background: linear-gradient(135deg, #ede7fe 0%, #f7f5ff 52%, #ffffff 100%);
-  border-color: #ddd6fe;
+  background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
+  border-color: #d4e4fb;
 }
 
 .tv-stat > div {

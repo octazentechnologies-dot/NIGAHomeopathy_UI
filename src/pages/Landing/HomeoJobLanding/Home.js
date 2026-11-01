@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Col, Container, Form, Input, Row } from "reactstrap";
 
-import HeroDoctor from "../../../assets/images/landing/hero-doctor.png";
+import HeroDoctor from "../../../assets/images/landing/hero-section-doctor.png";
 import { HERO } from "../Minimaltheme/constants/siteContent";
 import { landingPath } from "../../../constants/landingRoutes";
 

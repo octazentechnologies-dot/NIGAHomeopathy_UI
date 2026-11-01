@@ -32,6 +32,7 @@ export const LANDING_PUBLIC_PATHS = [
     "/contact",
     "/privacy",
     "/terms",
+    "/disclaimer",
     "/help",
     "/help/:slug",
     "/account",
