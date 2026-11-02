@@ -29,6 +29,10 @@ import {
 } from "../../../../helpers/realbackend_helper";
 import { getPublicFee, unwrapS4 } from "../../../../helpers/s4Week4Api";
 import { paymentStatusMeta } from "../../../../helpers/paymentStatusBadge";
+import {
+  COMPLETED_STATUS_LOCKED_MESSAGE,
+  isAppointmentCompleted,
+} from "../../../../helpers/appointmentStatus";
 import { apiMessage, readReceptionDoctorId, unwrap } from "../../receptionSession";
 import AppointmentPatientViewModal from "./AppointmentPatientViewModal";
 
@@ -184,6 +188,13 @@ const AppointmentActionButtons = ({ row, onView, onEdit, onDelete }) => (
 const AppStatusCell = ({ row, onStatusChange }) => {
   const current = row.appointmentStatus || "";
   if (!current) return <span className="text-muted">-</span>;
+  if (isAppointmentCompleted(current)) {
+    return (
+      <span className="text-nowrap" style={{ fontSize: "0.75rem" }} title={COMPLETED_STATUS_LOCKED_MESSAGE}>
+        {current}
+      </span>
+    );
+  }
   return (
     <UncontrolledDropdown>
       <DropdownToggle
@@ -426,6 +437,10 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
   const handleStatusChange = async (row, newStatus) => {
     const appId = Number(row.patientAppId || row.id);
     if (!appId || !newStatus || newStatus === row.appointmentStatus) return;
+    if (isAppointmentCompleted(row.appointmentStatus)) {
+      Swal.fire({ icon: "info", text: COMPLETED_STATUS_LOCKED_MESSAGE });
+      return;
+    }
     try {
       await updateAppointmentStatus({ patientAppId: appId, status: newStatus });
       onChanged?.();

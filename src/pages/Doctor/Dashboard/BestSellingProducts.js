@@ -36,7 +36,11 @@ import { buildPatientApiPayload, formatCalendarDateForApi, getPatientAuthContext
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
-import { COMPLETED_APPOINTMENT_LOCKED_MESSAGE, isAppointmentCompleted } from '../../../helpers/appointmentStatus';
+import {
+    COMPLETED_APPOINTMENT_LOCKED_MESSAGE,
+    COMPLETED_STATUS_LOCKED_MESSAGE,
+    isAppointmentCompleted,
+} from '../../../helpers/appointmentStatus';
 import { recordMatchesQuery } from '../../../helpers/recordSearch';
 import {
   normalizeAppointmentSlotsResponse,
@@ -1978,6 +1982,17 @@ const BestSellingProducts = () => {
     // Handler for status change
     const handleStatusChange = async (patient, newStatus) => {
         try {
+            if (isAppointmentCompleted(patient?.appStatus || patient?.status || patient?.appointmentStatus)) {
+                Swal.fire({
+                    title: 'Status locked',
+                    text: COMPLETED_STATUS_LOCKED_MESSAGE,
+                    icon: 'info',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
             // Get patientAppId from patient object
             const patientAppId = patient.patientAppId || patient.id || patient.appointmentId;
 
@@ -2141,6 +2156,15 @@ const BestSellingProducts = () => {
                 <td className="dashboard-patient-col-status" style={{ position: 'relative' }}>
                     <div className="dashboard-patient-status-stack">
                     {patient.appStatus ? (
+                        isAppointmentCompleted(patient.appStatus) ? (
+                            <span
+                                className="text-nowrap"
+                                style={{ fontSize: '0.6875rem' }}
+                                title={COMPLETED_STATUS_LOCKED_MESSAGE}
+                            >
+                                {patient.appStatus}
+                            </span>
+                        ) : (
                         <UncontrolledDropdown>
                             <DropdownToggle
                                 tag="button"
@@ -2217,6 +2241,7 @@ const BestSellingProducts = () => {
                                 </DropdownItem>
                             </DropdownMenu>
                         </UncontrolledDropdown>
+                        )
                     ) : (
                         '-'
                     )}

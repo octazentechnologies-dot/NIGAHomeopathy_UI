@@ -5,3 +5,6 @@ export const isAppointmentCompleted = (status) => normalizeAppointmentStatus(sta
 export const isAppointmentCancelled = (status) => normalizeAppointmentStatus(status) === "CANCELLED";
 
 export const COMPLETED_APPOINTMENT_LOCKED_MESSAGE = "Completed appointments cannot be rescheduled or cancelled.";
+
+export const COMPLETED_STATUS_LOCKED_MESSAGE =
+  "Completed appointments cannot change App.Status.";
