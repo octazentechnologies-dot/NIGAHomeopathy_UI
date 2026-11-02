@@ -967,7 +967,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         {section === "tax" ? (
           <Card className="admin-dash-card mb-3">
             <CardBody>
-              <Row className="g-2 align-items-end">
+              <Row className="g-3 align-items-end">
                 <Col md={3}>
                   <Label>From</Label>
                   <Input type="date" value={taxFrom} onChange={(e) => setTaxFrom(e.target.value)} />
@@ -999,7 +999,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         {section === "doctor-earnings" ? (
           <Card className="admin-dash-card mb-3">
             <CardBody>
-              <Row className="g-2 align-items-end">
+              <Row className="g-3 align-items-end">
                 <Col md={3}>
                   <Label>From</Label>
                   <Input type="date" value={ledgerFrom} onChange={(e) => setLedgerFrom(e.target.value)} />
@@ -1122,7 +1122,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         {section === "ledger" ? (
           <Card className="admin-dash-card mb-3">
             <CardBody>
-              <Row className="g-2 align-items-end">
+              <Row className="g-3 align-items-end">
                 <Col md={3}>
                   <Label>From</Label>
                   <Input type="date" value={ledgerFrom} onChange={(e) => setLedgerFrom(e.target.value)} />
@@ -1200,7 +1200,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               <p className="mb-2">
                 Reception cash, offline UPI, card POS, and pay-link collections — not Razorpay online captures.
               </p>
-              <Row className="g-2 align-items-end">
+              <Row className="g-3 align-items-end">
                 <Col sm={6} md={3} xl={2}>
                   <Label>From</Label>
                   <Input type="date" value={clinicFrom} onChange={(e) => setClinicFrom(e.target.value)} />
@@ -1311,7 +1311,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               <p className="mb-2">
                 Click <strong>Edit</strong> on a row. Account name, IFSC, and PAN save directly. Changing the bank account needs a 6-digit OTP (Dev fills the code).
               </p>
-              <Row className="g-2 align-items-end">
+              <Row className="g-3 align-items-end">
                 <Col md={2}>
                   <Label>Payee id</Label>
                   <Input value={payeeEdit.payeeId} disabled />
@@ -1443,7 +1443,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           <Card className="admin-dash-card mb-3">
             <CardBody>
               <h5 className="admin-form-title mb-2"><i className="ri-add-circle-line" aria-hidden="true" />Create refund</h5>
-              <Row className="g-2 align-items-end account-refund-form">
+              <Row className="g-3 align-items-end account-refund-form">
                 <Col xs="auto">
                   <Label className="mb-1">Payment order id</Label>
                   <Input

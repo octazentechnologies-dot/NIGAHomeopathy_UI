@@ -20,9 +20,9 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border: 1px solid #cfe6f8;
-  border-radius: 5px;
-  background: #eaf5fd;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #25a0e2;
   text-decoration: none;
 }
@@ -33,20 +33,20 @@
 }
 
 .account-dashboard-page .account-kpi-view:hover {
-  border-color: #25a0e2;
+  background: transparent;
   color: #0b5cab;
 }
 
 .account-dashboard-page .account-kpi-card {
   border: 1px solid #e3e8ee !important;
-  border-radius: 5px !important;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
   background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .account-dashboard-page .account-kpi-card:hover {
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  box-shadow: none !important;
 }
 
 .account-dashboard-page .account-kpi-card .card-body {
@@ -167,8 +167,8 @@
 
 .account-notice-card {
   border: 1px solid var(--account-card-border) !important;
-  border-radius: 0.25rem !important;
-  box-shadow: 0 1px 2px rgba(56, 65, 74, 0.06) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
   background: #fff !important;
 }
 
@@ -209,13 +209,12 @@
 .account-dashboard-page .account-quick-action-card {
   border-width: 1px !important;
   border-style: solid !important;
-  border-radius: 5px !important;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
-  transition: box-shadow 0.15s ease;
+  border-radius: 3px !important;
+  box-shadow: none !important;
 }
 
 .account-dashboard-page .account-quick-action-card:hover {
-  box-shadow: 0 0 0 1px rgba(37, 160, 226, 0.2), 0 4px 14px rgba(37, 160, 226, 0.12) !important;
+  box-shadow: none !important;
 }
 
 @media (min-width: 1200px) {
@@ -247,8 +246,8 @@
   min-height: 4.85rem;
   border-width: 1px !important;
   border-style: solid !important;
-  border-radius: 5px !important;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
 }
 
 .account-report-card > .card-body {
@@ -323,8 +322,8 @@
 /* Charts — match admin dash card chrome */
 .account-dashboard-page .account-chart-card {
   border: 1px solid #e3e8ee !important;
-  border-radius: 5px !important;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
   background: #fff;
 }
 

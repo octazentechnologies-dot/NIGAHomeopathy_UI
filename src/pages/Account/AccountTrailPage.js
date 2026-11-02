@@ -55,7 +55,7 @@ const AccountTrailPage = () => {
         </div>
         <Card className="admin-dash-card mb-3">
           <CardBody>
-            <Row className="g-2 align-items-end">
+            <Row className="g-3 align-items-end">
               <Col md={3}>
                 <Label>Doctor id</Label>
                 <Input value={form.doctorId} onChange={(e) => setForm({ ...form, doctorId: e.target.value })} />

@@ -601,11 +601,11 @@ const NotificationDropdown = () => {
                         </TabPane>
 
                         <TabPane tabId="3" className="py-2 ps-2">
-                            <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
+                                <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
                                 {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openAlert} />)}
                                 {alerts.length === 0 ? <EmptyRow text="No alerts right now." /> : null}
                                 {viewAll}
-                            </SimpleBar>
+                                </SimpleBar>
                         </TabPane>
                     </TabContent>
                 </DropdownMenu>

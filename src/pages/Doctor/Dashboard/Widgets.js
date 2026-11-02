@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import CountUp from "react-countup";
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Alert, Button, Card, CardBody, Col, Container, Input, Modal, ModalBody, ModalHeader, ModalFooter, PopoverBody, PopoverHeader, Row, UncontrolledPopover, UncontrolledTooltip, Pagination, PaginationItem, PaginationLink, Label, Form, FormGroup, UncontrolledAlert } from 'reactstrap';
+import { Alert, Button, Card, CardBody, Col, Container, Input, Modal, ModalBody, ModalHeader, ModalFooter, PopoverBody, PopoverHeader, Row, UncontrolledPopover, Pagination, PaginationItem, PaginationLink, Label, Form, FormGroup, UncontrolledAlert } from 'reactstrap';
 import Swal from 'sweetalert2';
 import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
@@ -1039,26 +1039,22 @@ const PatientListModal = ({ isOpen, toggle }) => {
                                                                 id={`patient-list-edit-${patient.patientID}`}
                                                                 type="button"
                                                                 className="btn btn-sm btn-soft-success edit-item-btn"
+                                                                title="Edit Patient"
                                                                 onClick={() => openEditModal(patient)}
                                                             >
                                                                 <i className="ri-pencil-fill" />
                                                             </button>
-                                                            <UncontrolledTooltip placement="top" target={`patient-list-edit-${patient.patientID}`}>
-                                                                Edit Patient
-                                                            </UncontrolledTooltip>
                                                         </div>
                                                         <div className="remove">
                                                             <button
                                                                 id={`patient-list-del-${patient.patientID}`}
                                                                 type="button"
                                                                 className="btn btn-sm btn-soft-danger remove-item-btn"
+                                                                title="Delete Patient"
                                                                 onClick={() => handleDeletePatient(patient)}
                                                             >
                                                                 <i className="ri-delete-bin-5-line" />
                                                             </button>
-                                                            <UncontrolledTooltip placement="top" target={`patient-list-del-${patient.patientID}`}>
-                                                                Delete Patient
-                                                            </UncontrolledTooltip>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1110,7 +1106,7 @@ const PatientListModal = ({ isOpen, toggle }) => {
                     />
                 </ModalHeader>
                 <ModalBody>
-                    <div className="row g-2 new-patient-modal__fields">
+                    <div className="row g-3 new-patient-modal__fields">
                         <div className="col-md-6">
                             <Label className="form-label new-patient-modal__label">
                                 <i className="ri-user-line" aria-hidden="true" />
@@ -1680,8 +1676,8 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
   .subscription-plan-card--4,
   .subscription-plan-card--5,
   .subscription-plan-card--6 {
-    background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%) !important;
-    border-color: #d4e4fb;
+    background: #ffffff !important;
+    border-color: #e3e8ee;
   }
   .subscription-plan-card__copy { min-width: 0; }
   .subscription-plan-card__name {
@@ -1732,7 +1728,8 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
     padding: 0 0.65rem;
     border: 1px solid #7dd3fc;
     border-radius: 4px;
-    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+    background: #e8f5ff !important;
+    background-image: none !important;
     color: #0369a1;
     font-size: 0.6875rem;
     font-weight: 700;
@@ -1742,7 +1739,8 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
   .subscription-plan-card__footer i { font-size: 0.85rem; line-height: 1; color: #0369a1; }
   .subscription-plan-card__footer:hover {
     filter: none;
-    background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 100%) !important;
+    background: #d6eeff !important;
+    background-image: none !important;
     color: #075985;
   }
   .subscription-plan-card__footer:hover i { color: #075985; }
@@ -1914,6 +1912,14 @@ const formatIndianRupeeAmount = (amount) => {
         maximumFractionDigits: 0,
         minimumFractionDigits: 0,
     });
+};
+
+const formatCompactRupeeAmount = (amount) => {
+    const value = Math.round(Number(amount) || 0);
+    if (value >= 10000000) return `${(value / 10000000).toFixed(1).replace(/\.0$/, '')}Cr`;
+    if (value >= 100000) return `${(value / 100000).toFixed(1).replace(/\.0$/, '')}L`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1).replace(/\.0$/, '')}K`;
+    return String(value);
 };
 
 const Widgets = () => {
@@ -3051,27 +3057,28 @@ const Widgets = () => {
     return (
 
         <>
-            <div className="row doctor-dashboard-kpi-row">
+            <div className="row doctor-dashboard-kpi-row doctor-kpi-strip">
                 {[
-                    { key: 'waiting', label: 'Waiting', value: counts?.patientAppWaiting ?? 0, icon: 'ri-time-line', onOpen: tog_waiting },
-                    { key: 'walkin', label: 'Walk-in', value: counts?.patientAppWalkIn ?? 0, icon: 'ri-run-fill', onOpen: tog_walkin },
-                    { key: 'notarrived', label: 'Not Arrived', value: counts?.patientAppNotArrived ?? 0, icon: 'ri-user-unfollow-line', onOpen: tog_notarrived },
-                    { key: 'remaining', label: 'Remaining', value: counts?.patientAppRemaining ?? 0, icon: 'ri-group-line', onOpen: tog_remaining },
-                    { key: 'completed', label: 'Completed', value: counts?.patientAppComplated ?? 0, icon: 'ri-checkbox-circle-line', onOpen: tog_completed },
-                    { key: 'cancelled', label: 'Cancelled', value: cancelledCount, icon: 'ri-close-circle-line', onOpen: tog_cancelled },
-                    { key: 'slots', label: 'App. Slots', value: todaySlotCount == null ? '\u2026' : todaySlotCount, icon: 'ri-grid-line', onOpen: openTodaySlotsSetup },
-                    { key: 'telequeue', label: 'Tele Queue', value: counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0, icon: 'ri-vidicon-line', onOpen: tog_econsult },
-                    { key: 'unpaid', label: 'Unpaid', value: counts?.unpaidCount ?? counts?.UnpaidCount ?? 0, icon: 'ri-wallet-3-line', onOpen: tog_billingList },
-                    { key: 'tele', label: 'Tele Consult', value: counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0, icon: 'ri-customer-service-2-line', onOpen: () => navigate('/doctor/tele-consultation') },
-                    { key: 'earnings', label: 'Earnings', value: formatIndianRupeeAmount(earningsTotal), icon: 'ri-hand-coin-line', onOpen: () => navigate('/doctor/earnings') },
-                    { key: 'support', label: 'Help Support', value: supportOpenCount, icon: 'ri-question-answer-line', onOpen: () => navigate('/doctor/support') },
+                    { key: 'waiting', label: 'Waiting', hint: 'Waiting', value: counts?.patientAppWaiting ?? 0, icon: 'ri-time-line', onOpen: tog_waiting },
+                    { key: 'walkin', label: 'Walk-in', hint: 'Walk-in', value: counts?.patientAppWalkIn ?? 0, icon: 'ri-run-fill', onOpen: tog_walkin },
+                    { key: 'notarrived', label: 'Not Arrived', hint: 'Not Arrived', value: counts?.patientAppNotArrived ?? 0, icon: 'ri-user-unfollow-line', onOpen: tog_notarrived },
+                    { key: 'remaining', label: 'Remaining', hint: 'Remaining', value: counts?.patientAppRemaining ?? 0, icon: 'ri-group-line', onOpen: tog_remaining },
+                    { key: 'completed', label: 'Completed', hint: 'Completed', value: counts?.patientAppComplated ?? 0, icon: 'ri-checkbox-circle-line', onOpen: tog_completed },
+                    { key: 'cancelled', label: 'Cancelled', hint: 'Cancelled', value: cancelledCount, icon: 'ri-close-circle-line', onOpen: tog_cancelled },
+                    { key: 'slots', label: 'App. Slots', hint: 'Appointment slots', value: todaySlotCount == null ? '\u2026' : todaySlotCount, icon: 'ri-grid-line', onOpen: openTodaySlotsSetup },
+                    { key: 'telequeue', label: 'Queue', hint: 'Tele queue', value: counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0, icon: 'ri-vidicon-line', onOpen: tog_econsult },
+                    { key: 'unpaid', label: 'Unpaid', hint: 'Unpaid', value: counts?.unpaidCount ?? counts?.UnpaidCount ?? 0, icon: 'ri-wallet-3-line', onOpen: tog_billingList },
+                    { key: 'tele', label: 'Tele Consult', hint: 'Tele consult', value: counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0, icon: 'ri-customer-service-2-line', onOpen: () => navigate('/doctor/tele-consultation') },
+                    { key: 'earnings', label: 'Earnings', hint: `Earnings ₹${formatIndianRupeeAmount(earningsTotal)}`, value: formatCompactRupeeAmount(earningsTotal), icon: 'ri-hand-coin-line', onOpen: () => navigate('/doctor/earnings') },
+                    { key: 'support', label: 'Help', hint: 'Help support', value: supportOpenCount, icon: 'ri-question-answer-line', onOpen: () => navigate('/doctor/support') },
                 ].map((item) => (
                     <div
-                        className="col-6 col-md-4 col-lg-2"
+                        className="doctor-kpi-col"
                         key={item.key}
                         role="button"
                         tabIndex={0}
-                        title={item.label}
+                        title={item.hint}
+                        aria-label={item.hint}
                         onClick={() => item.onOpen()}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -3081,35 +3088,19 @@ const Widgets = () => {
                         }}
                     >
                         <div className="card-animate card mb-0 h-100 admin-kpi-card doctor-kpi-card">
-                            <div className="card-body d-flex align-items-center justify-content-between">
-                                <div className="min-w-0">
-                                    <p className="text-uppercase fw-bold text-truncate mb-0 doctor-kpi-label">{item.label}</p>
-                                    <div className="d-flex align-items-center gap-2 doctor-kpi-card__foot">
-                                        <h4 className="doctor-kpi-count mb-0">{item.value}</h4>
-                                        <button
-                                            type="button"
-                                            className="doctor-kpi-view"
-                                            title="View"
-                                            aria-label={`View ${item.label}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                item.onOpen();
-                                            }}
-                                        >
-                                            <i className="ri-eye-line" aria-hidden="true" />
-                                        </button>
-                                    </div>
-                                </div>
+                            <div className="card-body doctor-kpi-card__stack">
                                 <i className={`${item.icon} kpi-tile-icon`} aria-hidden="true" />
+                                <h4 className="doctor-kpi-count mb-0 text-truncate" title={item.hint}>{item.value}</h4>
+                                <p className="text-uppercase fw-bold mb-0 doctor-kpi-label">{item.label}</p>
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="row mb-2 doctor-dashboard-action-row">
+            <div className="row doctor-dashboard-action-row">
                 <div className="col-md-6 col-xl-3">
-                    <div className="card-animate card mb-2 doctor-action-card">
+                    <div className="card-animate card mb-0 doctor-action-card">
                         <div className="card-body doctor-action-card__body">
                             <div className="d-flex align-items-center doctor-action-card__top">
                                 <div className="flex-grow-1 overflow-hidden doctor-action-card__top-start">
@@ -3157,7 +3148,7 @@ const Widgets = () => {
                     </div>
                 </div>
                 <div className="col-md-6 col-xl-3">
-                    <div className="card-animate card mb-2 doctor-action-card">
+                    <div className="card-animate card mb-0 doctor-action-card">
                         <div className="card-body doctor-action-card__body">
                             <div className="d-flex align-items-center doctor-action-card__top">
                                 <div className="flex-grow-1 overflow-hidden doctor-action-card__top-start">
@@ -3208,7 +3199,7 @@ const Widgets = () => {
                     </div>
                 </div>
                 <div className="col-md-6 col-xl-3">
-                    <div className="card-animate card mb-2 doctor-action-card">
+                    <div className="card-animate card mb-0 doctor-action-card">
                         <div className="card-body doctor-action-card__body">
                             <div className="d-flex align-items-center doctor-action-card__top">
                                 <div className="flex-grow-1 overflow-hidden doctor-action-card__top-start">
@@ -3237,7 +3228,7 @@ const Widgets = () => {
                     </div>
                 </div>
                 <div className="col-md-6 col-xl-3">
-                    <div className="card-animate card mb-2 doctor-action-card">
+                    <div className="card-animate card mb-0 doctor-action-card">
                         <div className="card-body doctor-action-card__body">
                             <div className="d-flex align-items-center doctor-action-card__top">
                                 <div className="flex-grow-1 overflow-hidden doctor-action-card__top-start">
@@ -3439,7 +3430,7 @@ const Widgets = () => {
                                     </div>
                                 )}
                                 <Form>
-                                <div className="row g-2 new-patient-modal__fields">
+                                <div className="row g-3 new-patient-modal__fields">
                                     <div className="col-md-8 new-patient-modal__field">
                                         <Label className="form-label new-patient-modal__label">
                                             <i className="ri-user-line" aria-hidden="true" />
@@ -3674,6 +3665,11 @@ const Widgets = () => {
                             </ModalBody>
                             <ModalFooter className="justify-content-end">
                                 <ModalActionButton
+                                    action="cancel"
+                                    onClick={closeNewPatientModal}
+                                    disabled={isSubmitting}
+                                />
+                                <ModalActionButton
                                     action="save"
                                     disabled={isSubmitting}
                                     loading={isSubmitting}
@@ -3739,7 +3735,7 @@ const Widgets = () => {
                             return (
                             <>
                             <Form>
-                                <div className="row g-2 new-appointment-form-fields">
+                                <div className="row g-3 new-appointment-form-fields">
                                     <div className="col-md-6">
                                         <Label className="form-label new-appointment-modal__label">
                                             <i className="ri-user-heart-line" aria-hidden="true" />

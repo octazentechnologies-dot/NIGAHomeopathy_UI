@@ -91,14 +91,11 @@ const SummaryWidgets = ({ refreshKey = 0 }) => {
                       className="btn btn-link p-0 reception-kpi-link doctor-dashboard-action-link"
                       onClick={() => setActiveModalId(item.id)}
                     >
+                      <i className="ri-eye-line" aria-hidden="true" />
                       View list
                     </button>
                   </div>
-                  <div className="avatar-sm flex-shrink-0">
-                    <span className="avatar-title rounded fs-3 doctor-action-icon">
-                      <i className={item.icon} aria-hidden="true" />
-                    </span>
-                  </div>
+                  <i className={`${item.icon} kpi-tile-icon`} aria-hidden="true" />
                 </div>
               </CardBody>
             </Card>

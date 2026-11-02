@@ -314,15 +314,21 @@ const TopSellers = () => {
             border: 1px solid #e3e8ee;
             border-radius: 5px;
             overflow: hidden;
-            background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+            background: #ffffff;
+            box-shadow: none;
+        }
+        .doctor-reminders-card .calendar-header,
+        .doctor-reminders-card .calendar-row {
+            display: grid !important;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
         }
         .doctor-reminders-card .calendar-header {
             background: #f4f7fa;
             border-bottom: 1px solid #e9ecef;
         }
         .doctor-reminders-card .calendar-day-header {
-            flex: 1;
+            min-width: 0;
+            box-sizing: border-box;
             text-align: center;
             font-size: 0.625rem;
             font-weight: 700;
@@ -396,7 +402,8 @@ const TopSellers = () => {
             border-bottom: none;
         }
         .doctor-reminders-card .calendar-day {
-            flex: 1;
+            min-width: 0;
+            box-sizing: border-box;
             text-align: center;
             font-size: 0.6875rem;
             color: #212529;
@@ -418,10 +425,10 @@ const TopSellers = () => {
             background-color: #e8f5ff;
             color: #25a0e2;
             font-weight: 700;
-            border: 1px solid #cfe9ff;
-            border-radius: 4px;
-            margin: 2px;
-            min-height: 1.4rem;
+            border-right: 1px solid #eef1f4;
+            border-radius: 0;
+            margin: 0;
+            box-shadow: inset 0 0 0 1px #cfe9ff;
         }
         .doctor-reminders-card .calendar-day.empty {
             background-color: #fafbfc;
@@ -438,9 +445,14 @@ const TopSellers = () => {
             background-color: #25a0e2;
             color: #fff;
             font-weight: 700;
-            border-radius: 4px;
-            margin: 2px;
-            min-height: 1.4rem;
+            border-right: 1px solid #eef1f4;
+            border-radius: 0;
+            margin: 0;
+            box-shadow: inset 0 0 0 1px #25a0e2;
+        }
+        .doctor-reminders-card .calendar-day.today:last-child,
+        .doctor-reminders-card .calendar-day.selected:last-child {
+            border-right: none;
         }
         .doctor-reminders-card .calendar-day.has-reminder::after {
             content: '';

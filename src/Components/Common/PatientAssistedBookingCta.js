@@ -54,7 +54,7 @@ const PatientAssistedBookingCta = ({ patientId, contactMobile }) => {
         </p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {ok ? <Alert color="success">{ok}</Alert> : null}
-        <Row className="g-2 align-items-end">
+        <Row className="g-3 align-items-end">
           <Col xs={12}>
             <FormGroup className="mb-0">
               <Label htmlFor="assist-notes">What do you need?</Label>

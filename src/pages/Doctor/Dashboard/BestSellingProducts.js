@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiddenLink, navigateHidden, useHiddenSearchParams } from '../../../helpers/hiddenRouteParams';
-import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Accordion, AccordionItem, Collapse, Nav, NavItem, NavLink, TabContent, TabPane, UncontrolledTooltip, Container, Row, Label } from 'reactstrap';
+import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown, Modal, ModalHeader, ModalBody, ModalFooter, Button, Input, Accordion, AccordionItem, Collapse, Nav, NavItem, NavLink, TabContent, TabPane, Container, Row, Label } from 'reactstrap';
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "../../../Components/Common/ClassicEditor";
@@ -91,8 +91,10 @@ const PatientDashboardActionButton = ({
     const wrapperClass = variant === 'remove' ? 'remove' : 'edit';
     const itemBtnClass = variant === 'remove' ? 'remove-item-btn' : 'edit-item-btn';
 
+    const tip = tooltip || label;
+
     return (
-        <div className={wrapperClass}>
+        <div className={wrapperClass} title={disabled ? tip : undefined}>
             <button
                 type="button"
                 id={id}
@@ -100,13 +102,11 @@ const PatientDashboardActionButton = ({
                 disabled={disabled}
                 style={disabled ? { pointerEvents: 'none', opacity: 0.55 } : undefined}
                 onClick={onClick}
-                aria-label={tooltip || label}
+                aria-label={tip}
+                title={tip}
             >
                 <i className={icon} />
             </button>
-            <UncontrolledTooltip placement="top" target={id}>
-                {tooltip || label}
-            </UncontrolledTooltip>
         </div>
     );
 };
@@ -431,7 +431,12 @@ const AppointmentTimeCell = ({
         <>
             <div className="appointment-time-cell">
                 <span className="appointment-time-value">{displayTime}</span>
-                <span id={editButtonId} className="d-inline-block" tabIndex={isLocked ? 0 : undefined}>
+                <span
+                    id={editButtonId}
+                    className="d-inline-block"
+                    tabIndex={isLocked ? 0 : undefined}
+                    title={isLocked ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : 'Edit appointment — update time, reschedule, or cancel'}
+                >
                     <button
                         type="button"
                         className="btn btn-sm btn-soft-success edit-item-btn appointment-time-edit-btn"
@@ -439,13 +444,11 @@ const AppointmentTimeCell = ({
                         disabled={isLocked}
                         style={isLocked ? { pointerEvents: 'none' } : undefined}
                         aria-label="Edit appointment"
+                        title={isLocked ? undefined : 'Edit appointment — update time, reschedule, or cancel'}
                     >
                         <i className="ri-pencil-fill" aria-hidden="true" />
                     </button>
                 </span>
-                <UncontrolledTooltip placement="top" target={editButtonId}>
-                    {isLocked ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : 'Edit appointment — update time, reschedule, or cancel'}
-                </UncontrolledTooltip>
             </div>
 
             <Modal
@@ -1440,6 +1443,7 @@ const BestSellingProducts = () => {
             <span
                 id={tooltipId}
                 className={isNameDisabled ? 'dashboard-patient-name-text dashboard-patient-name-text--disabled' : 'dashboard-patient-name-text'}
+                title={fullName}
             >
                 {displayName}
             </span>
@@ -1454,41 +1458,28 @@ const BestSellingProducts = () => {
                         type="button"
                         className="btn btn-link p-0 dashboard-patient-name-text"
                         onClick={() => openReceptionPatientRow(rowPatientId, navigate)}
+                        title={fullName}
                     >
                         {displayName}
                     </button>
-                    <UncontrolledTooltip placement="top" target={tooltipId}>
-                        {fullName}
-                    </UncontrolledTooltip>
                 </>
             );
         }
 
         if (isNameDisabled) {
-            return (
-                <>
-                    {nameLabel}
-                    <UncontrolledTooltip placement="top" target={tooltipId}>
-                        {fullName}
-                    </UncontrolledTooltip>
-                </>
-            );
+            return nameLabel;
         }
 
         return (
-            <>
-                <HiddenLink
-                    id={tooltipId}
-                    to={buildPatientBoardPath(boardPatient)}
-                    className="dashboard-patient-name-link fw-medium"
-                    onClick={(event) => handlePatientBoardLinkClick(event, boardPatient)}
-                >
-                    {displayName}
-                </HiddenLink>
-                <UncontrolledTooltip placement="top" target={tooltipId}>
-                    {fullName}
-                </UncontrolledTooltip>
-            </>
+            <HiddenLink
+                id={tooltipId}
+                to={buildPatientBoardPath(boardPatient)}
+                className="dashboard-patient-name-link fw-medium"
+                title={fullName}
+                onClick={(event) => handlePatientBoardLinkClick(event, boardPatient)}
+            >
+                {displayName}
+            </HiddenLink>
         );
     };
 
@@ -3127,7 +3118,7 @@ const BestSellingProducts = () => {
                                     disabled={importTemplateLoading || importLoading}
                                     onClick={() => handleDownloadImportTemplate('excel')}
                                 >
-                                    <i className="ri-file-excel-2-line align-middle" /> Sample Excel
+                                    <i className="ri-file-excel-2-line align-middle" /> Excel
                                 </button>
                                 <button
                                     type="button"
@@ -3135,7 +3126,7 @@ const BestSellingProducts = () => {
                                     disabled={importTemplateLoading || importLoading}
                                     onClick={() => handleDownloadImportTemplate('csv')}
                                 >
-                                    <i className="ri-file-text-line align-middle" /> Sample CSV
+                                    <i className="ri-file-text-line align-middle" /> CSV
                                 </button>
                             </div>
                             <div>
@@ -3465,7 +3456,7 @@ const BestSellingProducts = () => {
                     </span>
                 </ModalHeader>
                 <ModalBody>
-                    <div className="row g-2 new-patient-modal__fields">
+                    <div className="row g-3 new-patient-modal__fields">
                         <div className="col-md-6">
                             <Label className="form-label new-patient-modal__label">
                                 <i className="ri-user-line" aria-hidden="true" />

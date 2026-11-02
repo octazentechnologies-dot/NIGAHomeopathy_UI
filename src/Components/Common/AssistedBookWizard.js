@@ -536,7 +536,7 @@ const AssistedBookWizard = ({
         <p className="text-muted small mb-0">Search by name, mobile, or email, then pick the patient.</p>
       )}
 
-      <div className="row g-2 mt-1">
+      <div className="row g-3 mt-1">
         <div className="col-md-4">
           <Label htmlFor="assisted-date">Date</Label>
           <div className="assisted-date-picker">

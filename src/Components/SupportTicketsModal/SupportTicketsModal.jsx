@@ -12,7 +12,6 @@ import {
   PaginationItem,
   PaginationLink,
   Spinner,
-  UncontrolledTooltip,
 } from "reactstrap";
 import ModalActionButton from "../Common/ModalActionButton";
 import TicketConversationModal from "./TicketConversationModal";
@@ -365,13 +364,11 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                         id={`support-view-${ticket.id}`}
                         className="btn btn-sm btn-soft-primary"
                         aria-label="View"
+                        title="View Conversation"
                         onClick={() => setViewTicketId(ticket.id)}
                       >
                         <i className="ri-eye-fill" />
                       </button>
-                      <UncontrolledTooltip placement="top" target={`support-view-${ticket.id}`}>
-                        View Conversation
-                      </UncontrolledTooltip>
                     </td>
                   </tr>
                 ))}

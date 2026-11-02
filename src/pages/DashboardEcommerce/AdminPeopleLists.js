@@ -117,6 +117,7 @@ const PeopleCard = ({ kind, title, icon, rows, loading, detailLabel }) => {
           <span className="apl-count">{rows.length}</span>
         </h4>
         <Link to="/admin/listusers" className="btn btn-sm doctor-dashboard-toolbar-btn flex-shrink-0">
+          <i className="ri-eye-line" aria-hidden="true" />
           View all
         </Link>
       </CardHeader>

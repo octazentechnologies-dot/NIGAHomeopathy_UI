@@ -103,11 +103,7 @@ const Widgets = ({ summary, loading }) => {
                   </h4>
                   <span className="text-muted">{item.note}</span>
                 </div>
-                <div className="avatar-sm flex-shrink-0">
-                  <span className="avatar-title rounded fs-3 bg-info-subtle border border-info border-opacity-25">
-                    <i className={`text-info ${item.icon}`} />
-                  </span>
-                </div>
+                <i className={`${item.icon} kpi-tile-icon`} aria-hidden="true" />
               </div>
             </CardBody>
           </Card>

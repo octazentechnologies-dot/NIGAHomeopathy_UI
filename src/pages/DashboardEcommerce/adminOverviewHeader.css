@@ -30,7 +30,7 @@
 .apo-select {
   height: 32px;
   border: 1px solid #d5dde6;
-  border-radius: 5px;
+  border-radius: 3px;
   background: #fff;
   transition: border-color 0.15s ease;
 }

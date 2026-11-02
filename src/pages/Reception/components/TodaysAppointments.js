@@ -11,7 +11,6 @@ import {
   Row,
   TabContent,
   TabPane,
-  UncontrolledTooltip,
 } from "reactstrap";
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from "../../../Components/Common/DateOfBirthPicker";
 import moment from "moment";
@@ -155,72 +154,56 @@ const AppointmentActionButtons = ({
       type="button"
       className="btn btn-sm btn-soft-info"
       aria-label="View"
+      title="View"
       onClick={() => onView?.(row)}
     >
       <i className="ri-eye-line" />
     </button>
-    <UncontrolledTooltip placement="top" target={`reception-appt-view-${row.id}`}>
-      View
-    </UncontrolledTooltip>
     <button
       id={`reception-appt-edit-${row.id}`}
       type="button"
       className="btn btn-sm btn-soft-success edit-item-btn"
       aria-label={editLabel}
+      title={editLabel}
       onClick={() => onEdit?.(row)}
     >
       <i className="ri-pencil-fill" />
     </button>
-    <UncontrolledTooltip placement="top" target={`reception-appt-edit-${row.id}`}>
-      {editLabel}
-    </UncontrolledTooltip>
     {onUpdateTime ? (
-      <>
-        <button
-          id={`reception-appt-time-${row.id}`}
-          type="button"
-          className="btn btn-sm btn-soft-secondary"
-          aria-label="Update appointment time"
-          onClick={() => onUpdateTime(row)}
-        >
-          <i className="ri-time-line" />
-        </button>
-        <UncontrolledTooltip placement="top" target={`reception-appt-time-${row.id}`}>
-          Update time
-        </UncontrolledTooltip>
-      </>
+      <button
+        id={`reception-appt-time-${row.id}`}
+        type="button"
+        className="btn btn-sm btn-soft-secondary"
+        aria-label="Update appointment time"
+        title="Update time"
+        onClick={() => onUpdateTime(row)}
+      >
+        <i className="ri-time-line" />
+      </button>
     ) : null}
     {onReschedule ? (
-      <>
-        <button
-          id={`reception-appt-reschedule-${row.id}`}
-          type="button"
-          className="btn btn-sm btn-soft-warning"
-          aria-label="Reschedule"
-          onClick={() => onReschedule(row)}
-        >
-          <i className="ri-calendar-event-line" />
-        </button>
-        <UncontrolledTooltip placement="top" target={`reception-appt-reschedule-${row.id}`}>
-          Reschedule
-        </UncontrolledTooltip>
-      </>
+      <button
+        id={`reception-appt-reschedule-${row.id}`}
+        type="button"
+        className="btn btn-sm btn-soft-warning"
+        aria-label="Reschedule"
+        title="Reschedule"
+        onClick={() => onReschedule(row)}
+      >
+        <i className="ri-calendar-event-line" />
+      </button>
     ) : null}
     {onCancel ? (
-      <>
-        <button
-          id={`reception-appt-cancel-${row.id}`}
-          type="button"
-          className="btn btn-sm btn-soft-danger"
-          aria-label="Cancel appointment"
-          onClick={() => onCancel(row)}
-        >
-          <i className="ri-close-circle-line" />
-        </button>
-        <UncontrolledTooltip placement="top" target={`reception-appt-cancel-${row.id}`}>
-          Cancel
-        </UncontrolledTooltip>
-      </>
+      <button
+        id={`reception-appt-cancel-${row.id}`}
+        type="button"
+        className="btn btn-sm btn-soft-danger"
+        aria-label="Cancel appointment"
+        title="Cancel"
+        onClick={() => onCancel(row)}
+      >
+        <i className="ri-close-circle-line" />
+      </button>
     ) : null}
   </div>
 );

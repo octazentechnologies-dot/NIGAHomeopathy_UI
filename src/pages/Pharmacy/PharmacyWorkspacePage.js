@@ -307,7 +307,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               <Card className="admin-dash-card mb-0">
                 <CardBody>
                   <h5 className="pharmacy-section-title">Submitted for activation</h5>
-                  <Row className="g-2 pharmacy-form">
+                  <Row className="g-3 pharmacy-form">
                     <Col md={4}>
                       <FormGroup>
                         <Label>Pharmacy name</Label>
@@ -365,7 +365,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           ) : (
             <Card className="admin-dash-card mb-0">
               <CardBody>
-                <Row className="g-2 pharmacy-form">
+                <Row className="g-3 pharmacy-form">
                   <Col md={4}>
                     <FormGroup>
                       <Label>Pharmacy name</Label>
@@ -578,7 +578,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     const items = detail.items || detail.Items || [];
     const events = detail.events || detail.Events || [];
     return (
-      <Row className="g-3">
+      <Row className="g-2">
         <Col md={6}>
           <h6 className="mb-2">Medicines</h6>
           {items.length === 0 ? (

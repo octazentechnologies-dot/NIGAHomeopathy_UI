@@ -136,9 +136,10 @@
   gap: 0.35rem;
   min-width: 0;
   padding: 0.35rem 0.5rem;
-  border: 1px solid #d4e4fb;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
+  border: 1px solid #e3e8ee;
+  border-radius: 3px;
+  background: #ffffff;
+  box-shadow: none;
 }
 
 .drp-kpi--blue,
@@ -148,8 +149,8 @@
 .drp-kpi--amber,
 .drp-kpi--purple,
 .drp-kpi.is-emphasis {
-  background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
-  border-color: #d4e4fb;
+  background: #ffffff;
+  border-color: #e3e8ee;
 }
 
 .drp-kpi.is-emphasis .drp-kpi__value strong {
@@ -256,7 +257,7 @@
   padding: 5px 8px;
   border-bottom: 1px solid var(--drp-divider);
   border-radius: 5px 5px 0 0;
-  background: linear-gradient(180deg, #fff 0%, #fafbfc 100%);
+  background: #ffffff;
 }
 
 .drp-card__title {
@@ -462,9 +463,10 @@
   width: 20px;
   height: 20px;
   padding: 0;
-  border: 1px solid;
-  border-radius: 4px;
-  transition: filter 0.15s ease;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: color 0.15s ease;
 }
 
 .drp-act i {
@@ -473,7 +475,7 @@
 }
 
 .drp-act:hover:not(:disabled) {
-  filter: brightness(0.95);
+  filter: none;
 }
 
 .drp-act:disabled {
@@ -481,11 +483,11 @@
   cursor: not-allowed;
 }
 
-.drp-act--view { border-color: #cfe6f8; background: #eaf5fd; color: var(--drp-blue-dark); }
-.drp-act--edit { border-color: #c9ebd6; background: #effaf3; color: #15803d; }
-.drp-act--delete { border-color: #f5c2c7; background: #fdf2f2; color: #dc2626; }
-.drp-act--whatsapp { border-color: #c4ecd2; background: #effbf3; color: #16a34a; }
-.drp-act--done { border-color: #c9defa; background: #eff6ff; color: #1d4ed8; }
+.drp-act--view { background: transparent; color: var(--drp-blue-dark); }
+.drp-act--edit { background: transparent; color: #15803d; }
+.drp-act--delete { background: transparent; color: #dc2626; }
+.drp-act--whatsapp { background: transparent; color: #16a34a; }
+.drp-act--done { background: transparent; color: #1d4ed8; }
 
 .drp-card-btn {
   display: inline-flex;

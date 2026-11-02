@@ -261,7 +261,7 @@ const NotificationsPage = () => {
               <h5 className="ntf-prefs__title">Notification preferences</h5>
               {prefsNote ? <div className="text-success small mb-2">{prefsNote}</div> : null}
               {prefsError ? <div className="text-danger small mb-2">{prefsError}</div> : null}
-              <Row className="g-2 ntf-prefs__grid">
+              <Row className="g-3 ntf-prefs__grid">
                 {[
                   ["pushEnabled", "Push"],
                   ["smsEnabled", "SMS"],

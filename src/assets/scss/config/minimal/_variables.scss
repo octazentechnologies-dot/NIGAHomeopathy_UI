@@ -887,9 +887,9 @@ $btn-link-disabled-color: $gray-600;
 $btn-link-focus-shadow-rgb:   to-rgb(mix(color-contrast($link-color), $link-color, 15%));
 
 // Allows for customizing button radius independently from global border radius
-$btn-border-radius: var(--#{$prefix}border-radius);
-$btn-border-radius-sm: var(--#{$prefix}border-radius-sm);
-$btn-border-radius-lg: var(--#{$prefix}border-radius-lg);
+$btn-border-radius: 3px;
+$btn-border-radius-sm: 3px;
+$btn-border-radius-lg: 3px;
 
 $btn-transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 
@@ -1386,7 +1386,7 @@ $card-title-color: var(--#{$prefix}heading-color);
 $card-subtitle-color: null;
 $card-border-width: 1px;
 $card-border-color: var(--#{$prefix}border-color);
-$card-border-radius: 5px; // app-wide card corners
+$card-border-radius: 3px; // app-wide card corners
 $card-box-shadow: none;
 $card-inner-border-radius: $card-border-radius;
 $card-cap-padding-y: $card-spacer-y;
@@ -1548,7 +1548,7 @@ $modal-content-color: null;
 $modal-content-bg: var(--#{$prefix}secondary-bg);
 $modal-content-border-color: var(--#{$prefix}border-color);
 $modal-content-border-width: var(--#{$prefix}border-width);
-$modal-content-border-radius: var(--#{$prefix}border-radius-lg);
+$modal-content-border-radius: 3px;
 $modal-content-inner-border-radius: subtract($modal-content-border-radius, $modal-content-border-width);
 $modal-content-box-shadow-xs: $box-shadow-sm;
 $modal-content-box-shadow-sm-up: $box-shadow;

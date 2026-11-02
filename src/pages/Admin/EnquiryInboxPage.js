@@ -16,7 +16,6 @@ import {
   PaginationItem,
   PaginationLink,
   Spinner,
-  UncontrolledTooltip,
 } from "reactstrap";
 import { getAuthUserId } from "../../helpers/menuByRole";
 import { getEnquiries, updateEnquiry } from "../../helpers/realbackend_helper";
@@ -390,13 +389,11 @@ const EnquiryInboxPage = () => {
                           id={`enq-open-${row.enquiryId}`}
                           className="btn btn-sm btn-soft-primary"
                           aria-label="Open"
+                          title="View & update"
                           onClick={() => openDetail(row)}
                         >
                           <i className="ri-eye-fill" />
                         </button>
-                        <UncontrolledTooltip placement="top" target={`enq-open-${row.enquiryId}`}>
-                          View &amp; update
-                        </UncontrolledTooltip>
                       </td>
                     </tr>
                   ))}

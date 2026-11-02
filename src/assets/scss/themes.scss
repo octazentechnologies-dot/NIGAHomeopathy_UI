@@ -796,12 +796,12 @@ $value in $theme-colors {
   height: var(--app-form-field-height) !important;
   max-height: var(--app-form-field-height) !important;
   align-items: center !important;
-  border-color: $input-border-color !important;
+  border-color: #aaabab !important;
   box-shadow: none !important;
   font-size: var(--app-form-field-font-size) !important;
 
   &:hover {
-    border-color: $input-border-color !important;
+    border-color: #aaabab !important;
     box-shadow: none !important;
   }
 }
@@ -1140,18 +1140,23 @@ html:not([data-bs-theme="dark"]) {
   }
 
   .btn-soft-primary {
-    color: #25a0e2 !important;
+    color: #0369a1 !important;
     background-color: #e8f5ff !important;
-    border-color: #cfe9ff !important;
+    border: 1px solid #85c1dd !important;
+
+    i,
+    svg {
+      color: #0369a1 !important;
+    }
   }
 
   .btn-soft-primary:hover,
   .btn-soft-primary:focus,
   .btn-soft-primary:active,
   .btn-soft-primary.active {
-    color: #1a8bc9 !important;
+    color: #0369a1 !important;
     background-color: #d6eeff !important;
-    border-color: #b3dbff !important;
+    border: 1px solid #85c1dd !important;
   }
 
   // Modal footers: soft button sizing
@@ -1169,23 +1174,28 @@ html:not([data-bs-theme="dark"]) {
 
     .btn-soft-primary,
     .modal-action-btn.btn-soft-primary {
-      color: #25a0e2 !important;
-      background-color: rgba(37, 160, 226, 0.12) !important;
-      border-color: transparent !important;
+      color: #0369a1 !important;
+      background-color: #e8f5ff !important;
+      border: 1px solid #85c1dd !important;
+
+      i,
+      svg {
+        color: #0369a1 !important;
+      }
 
       &:hover:not(:disabled):not(.disabled),
       &:focus:not(:disabled):not(.disabled),
       &:active:not(:disabled):not(.disabled) {
-    color: #ffffff !important;
-        background-color: #25a0e2 !important;
-        border-color: #25a0e2 !important;
+        color: #0369a1 !important;
+        background-color: #d6eeff !important;
+        border: 1px solid #85c1dd !important;
       }
 
       &:disabled,
       &.disabled {
-        color: #25a0e2 !important;
-        background-color: rgba(37, 160, 226, 0.12) !important;
-        border-color: transparent !important;
+        color: #0369a1 !important;
+        background-color: #e8f5ff !important;
+        border: 1px solid #85c1dd !important;
         opacity: 0.55;
       }
     }
@@ -1304,7 +1314,7 @@ html:not([data-bs-theme="dark"]) {
   .form-select,
   textarea.form-control {
     border-width: $input-border-width !important;
-    border-color: $input-border-color !important;
+    border-color: #aaabab !important;
     border-radius: $input-border-radius !important;
     box-shadow: none !important;
   }
@@ -1316,14 +1326,14 @@ html:not([data-bs-theme="dark"]) {
     align-items: center !important;
     border-width: $input-border-width !important;
     border-style: solid !important;
-    border-color: $input-border-color !important;
+    border-color: #aaabab !important;
     border-radius: $input-border-radius !important;
     background-color: $input-bg !important;
     box-shadow: none !important;
     font-size: var(--app-form-field-font-size) !important;
 
     &:hover {
-      border-color: $input-border-color !important;
+      border-color: #aaabab !important;
       box-shadow: none !important;
     }
   }
@@ -1803,7 +1813,7 @@ html:not([data-bs-theme="dark"]) {
 
   // search-box + react-select (Patient Board Materia Medica, doctor dashboard modals): room for leading icon
   .search-box .react-select-container .react-select__control {
-    padding-left: 25px !important;
+    padding-left: 0 !important;
   }
 
   // base template: .dropdownmenu-primary etc. — minimal blue text, no background fill
@@ -2190,9 +2200,9 @@ body.doctor-layout .doctor-dashboard-stats-row {
       text-transform: none;
       max-width: 100%;
       color: #0369a1 !important;
-      border: 1px solid #7dd3fc !important;
-      background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-      background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+      border: 1px solid #85c1dd !important;
+      background: #e8f5ff !important;
+      background-image: none !important;
       box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
 
       i {
@@ -2204,16 +2214,16 @@ body.doctor-layout .doctor-dashboard-stats-row {
       &:focus-visible,
       &:active {
         color: #0c4a6e !important;
-        border-color: #38bdf8 !important;
-        background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-        background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+        border: 1px solid #85c1dd !important;
+        background: #d6eeff !important;
+        background-image: none !important;
       }
 
       &:focus:not(:focus-visible) {
         color: #0369a1 !important;
-        border-color: #7dd3fc !important;
-        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        border: 1px solid #85c1dd !important;
+        background: #e8f5ff !important;
+        background-image: none !important;
         box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12) !important;
       }
     }
@@ -2222,9 +2232,9 @@ body.doctor-layout .doctor-dashboard-stats-row {
 
 /* Import / Export — same light blue gradient as Add Rubric / KPI icon boxes */
 .doctor-dashboard-toolbar-btn {
-  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-  background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-  border: 1px solid #7dd3fc !important;
+  background: #e8f5ff !important;
+  background-image: none !important;
+  border: 1px solid #85c1dd !important;
   color: #0369a1 !important;
   box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12) !important;
   font-weight: 600;
@@ -2237,9 +2247,9 @@ body.doctor-layout .doctor-dashboard-stats-row {
   &:focus,
   &:active,
   &.active {
-    background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-    background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-    border-color: #38bdf8 !important;
+    background: #d6eeff !important;
+    background-image: none !important;
+    border: 1px solid #85c1dd !important;
     color: #0c4a6e !important;
     box-shadow: 0 1px 2px rgba(14, 165, 233, 0.16) !important;
   }
@@ -2518,10 +2528,10 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
 
     --#{$prefix}btn-hover-color: #25a0e2;
     --#{$prefix}btn-hover-bg: #e8f5ff;
-    --#{$prefix}btn-hover-border-color: #cfe9ff;
+    --#{$prefix}btn-hover-border-color: #85c1dd;
     --#{$prefix}btn-active-color: #25a0e2;
     --#{$prefix}btn-active-bg: #e8f5ff;
-    --#{$prefix}btn-active-border-color: #cfe9ff;
+    --#{$prefix}btn-active-border-color: #85c1dd;
 
     &:hover,
     &:focus,
@@ -2531,7 +2541,7 @@ body.doctor-layout .doctor-dashboard-patient-row > [class*="col"] > .card > .car
     &.show {
       color: #25a0e2 !important;
       background-color: #e8f5ff !important;
-      border-color: #cfe9ff !important;
+      border: 1px solid #85c1dd !important;
       box-shadow: none !important;
 
       i,
@@ -2773,27 +2783,29 @@ body.doctor-layout {
         font-weight: 600;
         text-transform: none;
         max-width: 100%;
-        color: #25a0e2 !important;
-        border-color: #25a0e2 !important;
-        background-color: transparent !important;
+        color: #0369a1 !important;
+        border: 1px solid #85c1dd !important;
+        background-color: #e8f5ff !important;
+        background-image: none !important;
 
         i {
           font-size: 14px;
           line-height: 1;
+          color: #0369a1 !important;
         }
 
         &:hover,
         &:focus-visible,
         &:active {
-          color: #2099d4 !important;
-          border-color: #2099d4 !important;
-          background-color: rgba(37, 160, 226, 0.1) !important;
+          color: #0369a1 !important;
+          border-color: #85c1dd !important;
+          background-color: #d6eeff !important;
         }
 
         &:focus:not(:focus-visible) {
-          color: #25a0e2 !important;
-          border-color: #25a0e2 !important;
-          background-color: transparent !important;
+          color: #0369a1 !important;
+          border-color: #85c1dd !important;
+          background-color: #e8f5ff !important;
           box-shadow: none !important;
         }
       }
@@ -2955,8 +2967,8 @@ body.doctor-layout {
     .row.mb-2:not(.doctor-dashboard-kpi-row):has(> [class*="col"] > .card-animate),
     .row.mb-3:has(> [class*="col"] > .card),
     .row.mb-3:has(> [class*="col"] > .card-animate) {
-      margin-bottom: $doctor-card-gap !important;
-      margin-top: $doctor-card-gap !important;
+      margin-bottom: 0 !important;
+      margin-top: 0 !important;
     }
 
     .row.doctor-dashboard-kpi-row {
@@ -3122,6 +3134,69 @@ body.doctor-layout {
       margin-top: $doctor-card-gap !important;
     }
 
+    .doctor-kpi-strip.row {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: $doctor-card-gap !important;
+      width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: calc(#{$doctor-card-gap} * 0.5) !important;
+      padding-right: calc(#{$doctor-card-gap} * 0.5) !important;
+
+      > .doctor-kpi-col {
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      @media (min-width: 576px) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      @media (min-width: 992px) {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+      }
+
+      .doctor-kpi-card .card-body {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        text-align: center;
+        gap: 0.1rem;
+        padding: 0.42rem 0.15rem 0.12rem !important;
+      }
+
+      .doctor-kpi-label,
+      .doctor-kpi-count {
+        width: 100%;
+        margin: 0 !important;
+        text-align: center;
+      }
+
+      .doctor-kpi-label {
+        white-space: normal !important;
+        overflow: visible !important;
+        line-height: 1.25 !important;
+        letter-spacing: 0.01em !important;
+        margin-top: 2px !important;
+        margin-bottom: 6px !important;
+        padding-top: 0;
+      }
+
+      .doctor-kpi-count {
+        margin-top: 0.16rem !important;
+      }
+
+      .doctor-kpi-card i.kpi-tile-icon {
+        font-size: 1.05rem !important;
+        line-height: 1 !important;
+      }
+    }
+
     .doctor-kpi-card,
     .doctor-action-card,
     .doctor-appointments-card,
@@ -3130,10 +3205,10 @@ body.doctor-layout {
     .user-profile-card,
     .help-faqs-card {
       border: 1px solid #e3e8ee !important;
-      border-radius: 5px !important;
-      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+      border-radius: 3px !important;
+      box-shadow: none !important;
       background: #ffffff;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+      transition: border-color 0.18s ease, background-color 0.18s ease;
     }
 
     /* Prevent base template .card-animate translateY from clipping rounded corners on hover */
@@ -3243,7 +3318,7 @@ body.doctor-layout {
         justify-content: flex-start;
         gap: 0.55rem;
         height: 100%;
-        padding: 0.72rem 0.65rem !important;
+        padding: 0.4rem 0.4rem 0.72rem 0.65rem !important;
         background: transparent !important;
         border-radius: inherit;
       }
@@ -3252,7 +3327,7 @@ body.doctor-layout {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        min-height: 0;
+        min-height: 1.65rem;
         gap: 0.4rem;
         margin-bottom: 0;
         width: 100%;
@@ -3270,12 +3345,15 @@ body.doctor-layout {
         align-items: flex-start;
         justify-content: flex-end;
         margin-left: auto;
+        margin-top: 0;
+        margin-right: 0;
+        padding-right: 0.55rem;
         min-height: 0;
         flex-shrink: 0;
       }
 
       .doctor-action-card__bottom {
-        margin-top: 0;
+        margin-top: auto;
         padding-top: 0;
         gap: 0.45rem;
         align-items: center;
@@ -3296,11 +3374,11 @@ body.doctor-layout {
         height: auto;
         min-height: 1.65rem;
         padding: 0.28rem 0.65rem !important;
-        border-radius: 6px !important;
-        border: 1px solid #7dd3fc !important;
+        border-radius: 3px !important;
+        border: 1px solid #85c1dd !important;
         color: #0369a1 !important;
-        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+        background: #e8f5ff !important;
+        background-image: none !important;
         box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
         font-size: 0.6875rem !important;
         font-weight: 600 !important;
@@ -3310,9 +3388,9 @@ body.doctor-layout {
       .doctor-dashboard-create-new-btn:hover,
       .doctor-dashboard-create-new-btn:focus-visible {
         color: #0c4a6e !important;
-        border-color: #38bdf8 !important;
-        background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-        background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+        border: 1px solid #85c1dd !important;
+        background: #d6eeff !important;
+        background-image: none !important;
       }
 
       .doctor-action-title {
@@ -3353,46 +3431,33 @@ body.doctor-layout {
 
       .doctor-action-metric-pill,
       .doctor-action-status-pill {
-        min-height: 1.35rem;
-        padding: 0.12rem 0.5rem !important;
-        border-radius: 999px !important;
-        font-size: 0.65rem !important;
+        min-height: 0;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        font-size: 0.78rem !important;
         font-weight: 700 !important;
         line-height: 1.2;
       }
 
       .doctor-action-metric-pill {
-        background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
-        background-image: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
-        border: 1px solid #a7f3d0 !important;
         color: #047857 !important;
-        box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
       }
 
-      .doctor-action-status-pill.text-success,
       .doctor-action-status-pill {
         &.text-success {
-          background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
-          background-image: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
-          border: 1px solid #a7f3d0;
           color: #047857 !important;
-          box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
         }
 
         &.text-warning {
-          background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%) !important;
-          background-image: linear-gradient(180deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%) !important;
-          border: 1px solid #fcd34d;
           color: #b45309 !important;
-          box-shadow: 0 1px 2px rgba(245, 158, 11, 0.12);
         }
 
         &.text-danger {
-          background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 55%, #fecdd3 100%) !important;
-          background-image: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 55%, #fecdd3 100%) !important;
-          border: 1px solid #fda4af;
           color: #be123c !important;
-          box-shadow: 0 1px 2px rgba(244, 63, 94, 0.1);
         }
       }
 
@@ -3400,9 +3465,9 @@ body.doctor-layout {
         width: 2.65rem !important;
         height: 2.65rem !important;
         border-radius: 12px !important;
-        background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        background-image: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-        border: 1px solid #7dd3fc;
+        background: #e8f5ff !important;
+        background-image: none !important;
+        border: 1px solid #85c1dd !important;
         color: #0369a1 !important;
         box-shadow: 0 1px 2px rgba(14, 165, 233, 0.12);
       }
@@ -3416,7 +3481,7 @@ body.doctor-layout {
 
         &:hover,
         &:focus-visible {
-          background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
+          background: #d6eeff !important;
           color: #0c4a6e !important;
         }
       }
@@ -3455,9 +3520,9 @@ body.doctor-layout {
         transform: none !important;
 
         .doctor-action-icon {
-          background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-          background-image: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%) !important;
-          border-color: #38bdf8 !important;
+          background: #d6eeff !important;
+          background-image: none !important;
+          border: 1px solid #85c1dd !important;
         }
       }
 
@@ -3471,9 +3536,9 @@ body.doctor-layout {
     .doctor-stats-card {
       .doctor-dashboard-card-header {
         border-bottom: 1px solid #eef1f4 !important;
-        background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-        border-top-left-radius: 12px !important;
-        border-top-right-radius: 12px !important;
+        background: #ffffff;
+        border-top-left-radius: 3px !important;
+        border-top-right-radius: 3px !important;
 
         .card-title {
           font-weight: 700;
@@ -3518,7 +3583,7 @@ body.doctor-layout {
     }
 
     .doctor-dashboard-toolbar-btn {
-      border-radius: 8px !important;
+      border-radius: 3px !important;
     }
 
     /* ===== Doctor Dashboard mobile responsive (admin-style) ===== */
@@ -4542,7 +4607,7 @@ body.admin-layout {
   .page-content .admin-list-btn,
   .whatsapp-modal .admin-list-btn,
   .modal .admin-list-btn {
-    border-radius: 4px !important;
+    border-radius: 3px !important;
     font-weight: 600;
     font-size: 0.6875rem !important; // ~11px
     line-height: 1.2 !important;
@@ -4559,13 +4624,13 @@ body.admin-layout {
 
     &--import {
       background: #e8f5ff !important;
-      border: 1px solid #cfe9ff !important;
+      border: 1px solid #85c1dd !important;
       color: #25a0e2 !important;
 
       &:hover,
       &:focus {
         background: #d6eeff !important;
-        border-color: #b3dbff !important;
+        border: 1px solid #85c1dd !important;
         color: #1a8bc9 !important;
       }
     }
@@ -5428,7 +5493,7 @@ body.admin-layout {
     }
 
     .doctor-dashboard-toolbar-btn {
-      border-radius: 8px !important;
+      border-radius: 3px !important;
       padding: 0.28rem 0.65rem !important;
       font-size: 0.75rem !important;
       line-height: 1.2 !important;
@@ -5451,7 +5516,7 @@ body.admin-layout {
   // Keep period/toolbar styling on generic page-content if used outside dashboard shell
   .page-content {
     .doctor-dashboard-toolbar-btn {
-      border-radius: 8px !important;
+      border-radius: 3px !important;
       padding: 0.28rem 0.65rem !important;
       font-size: 0.75rem !important;
       line-height: 1.2 !important;
@@ -5540,7 +5605,7 @@ body.admin-layout {
   margin-right: 0.35rem;
   padding: 0 0.6rem !important;
   border: 1px solid #d5dde6 !important;
-  border-radius: 6px !important;
+  border-radius: 3px !important;
   background: #fff !important;
   font-size: 0.78rem;
   font-weight: 500;
@@ -5719,8 +5784,8 @@ html:not([data-bs-theme="dark"]) {
 @import "./pages/patient-portal";
 @import "./theme/minimal-skin";
 
-// App-wide card border radius (5px) — overrides page-specific card styles
-$app-card-radius: 5px;
+// App-wide card border radius — overrides page-specific card styles
+$app-card-radius: 3px;
 
 .card,
 .subscription-plan-card,
@@ -5762,14 +5827,20 @@ $app-card-radius: 5px;
   border-radius: 4px !important;
 }
 
-// App-wide: keep card box-shadow unchanged on hover (no shadow lift)
-.card:hover,
-.card.card-animate:hover,
-.card-animate:hover,
-.explore-box.card:hover,
-.explore-box.card-animate:hover,
-.plan-box:hover {
-  box-shadow: $card-box-shadow !important;
+// Login screens: cards stay flat. No shadow lift on hover.
+body.doctor-layout,
+body.admin-layout,
+body.patient-layout,
+body.reception-layout,
+body.account-layout {
+  .card:hover,
+  .card.card-animate:hover,
+  .card-animate:hover,
+  .explore-box.card:hover,
+  .explore-box.card-animate:hover,
+  .plan-box:hover {
+    box-shadow: none !important;
+  }
 }
 
 .subscription-plan-card:hover {
@@ -5787,8 +5858,10 @@ body.doctor-layout .doctor-dashboard-page {
   .doctor-action-card:hover,
   .doctor-appointments-card:hover,
   .doctor-reminders-card:hover,
-  .doctor-stats-card:hover {
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+  .doctor-stats-card:hover,
+  .user-profile-card:hover,
+  .help-faqs-card:hover {
+    box-shadow: none !important;
   }
 
   .subscription-plan-card:hover {
@@ -6864,18 +6937,18 @@ html:not([data-bs-theme="dark"]) {
   .reception-primary-btn {
     --#{$prefix}btn-color: #25a0e2;
     --#{$prefix}btn-bg: #e8f5ff;
-    --#{$prefix}btn-border-color: #cfe9ff;
+    --#{$prefix}btn-border-color: #85c1dd;
     --#{$prefix}btn-hover-color: #1a8bc9;
     --#{$prefix}btn-hover-bg: #d6eeff;
-    --#{$prefix}btn-hover-border-color: #b3dbff;
+    --#{$prefix}btn-hover-border-color: #85c1dd;
     --#{$prefix}btn-active-color: #1a8bc9;
     --#{$prefix}btn-active-bg: #d6eeff;
-    --#{$prefix}btn-active-border-color: #b3dbff;
+    --#{$prefix}btn-active-border-color: #85c1dd;
     --#{$prefix}btn-disabled-color: #25a0e2;
     --#{$prefix}btn-disabled-bg: #e8f5ff;
-    --#{$prefix}btn-disabled-border-color: #cfe9ff;
+    --#{$prefix}btn-disabled-border-color: #85c1dd;
     background-color: #e8f5ff !important;
-    border-color: #cfe9ff !important;
+    border: 1px solid #85c1dd !important;
     color: #25a0e2 !important;
     box-shadow: none !important;
   }
@@ -6898,7 +6971,7 @@ html:not([data-bs-theme="dark"]) {
   .reception-primary-btn:focus,
   .reception-primary-btn:active {
     background-color: #d6eeff !important;
-    border-color: #b3dbff !important;
+    border: 1px solid #85c1dd !important;
     color: #1a8bc9 !important;
   }
 
@@ -6909,14 +6982,14 @@ html:not([data-bs-theme="dark"]) {
   .pharmacy-primary-btn:disabled,
   .reception-primary-btn:disabled {
     background-color: #e8f5ff !important;
-    border-color: #cfe9ff !important;
+    border: 1px solid #85c1dd !important;
     color: #25a0e2 !important;
     opacity: 0.55;
   }
 
   .swal2-styled.swal2-confirm {
     background: #e8f5ff !important;
-    border: 1px solid #cfe9ff !important;
+    border: 1px solid #85c1dd !important;
     color: #25a0e2 !important;
     box-shadow: none !important;
   }
@@ -6924,7 +6997,7 @@ html:not([data-bs-theme="dark"]) {
   .swal2-styled.swal2-confirm:hover,
   .swal2-styled.swal2-confirm:focus {
     background: #d6eeff !important;
-    border-color: #b3dbff !important;
+    border: 1px solid #85c1dd !important;
     color: #1a8bc9 !important;
   }
 }
@@ -6934,29 +7007,35 @@ html:not([data-bs-theme="dark"]) {
 .modal,
 .offcanvas {
   .btn-soft-primary {
-    color: #25a0e2 !important;
+    color: #0369a1 !important;
     background-color: #e8f5ff !important;
-    border-color: #cfe9ff !important;
+    border: 1px solid #85c1dd !important;
+
+    i,
+    svg {
+      color: #0369a1 !important;
+    }
 
     &:hover,
     &:focus,
     &:active {
-      color: #1a8bc9 !important;
+      color: #0369a1 !important;
       background-color: #d6eeff !important;
-      border-color: #b3dbff !important;
+      border: 1px solid #85c1dd !important;
     }
   }
 
   .btn-soft-info {
     color: #0369a1 !important;
     background-color: #e0f2fe !important;
-    border-color: #bae6fd !important;
+    border: 1px solid #85c1dd !important;
   }
 
   .btn-soft-success {
     color: #15803d !important;
     background-color: #dcfce7 !important;
-    border-color: #bbf7d0 !important;
+    border: 1px solid #9ed6b1 !important;
+    border-radius: 3px !important;
   }
 
   .btn-soft-danger {
@@ -7009,14 +7088,14 @@ html:not([data-bs-theme="dark"]) {
       color: #25a0e2 !important;
       background-color: #e8f5ff !important;
       background-image: none !important;
-      border-color: #cfe9ff !important;
+      border: 1px solid #85c1dd !important;
 
       &:hover,
       &:focus,
       &:active {
         color: #1a8bc9 !important;
         background-color: #d6eeff !important;
-        border-color: #b3dbff !important;
+        border: 1px solid #85c1dd !important;
       }
     }
 
@@ -7116,57 +7195,83 @@ html:not([data-bs-theme="dark"]) {
   min-height: 8.5rem;
 }
 
-// Small metric tiles use the WhatsApp campaign washes.
-// Table and chart cards stay white.
+// Login-screen cards: plain white, 3px corners, no drop shadow.
 html:not([data-bs-theme="dark"]) {
-  @mixin stat-wash($soft, $mid, $border) {
-    background: linear-gradient(180deg, $soft 0%, $mid 52%, #ffffff 100%) !important;
-    border-color: $border !important;
-
-    > .card-body,
-    .card-body {
-      background: transparent !important;
+  body.doctor-layout,
+  body.admin-layout,
+  body.patient-layout,
+  body.reception-layout,
+  body.account-layout {
+    .card,
+    .card:hover,
+    .card.card-animate:hover,
+    .card-animate:hover,
+    .subscription-plan-card,
+    .subscription-plan-card:hover,
+    .doctor-kpi-card,
+    .doctor-action-card,
+    .doctor-appointments-card,
+    .doctor-reminders-card,
+    .doctor-stats-card,
+    .user-profile-card,
+    .help-faqs-card,
+    .admin-kpi-card,
+    .admin-dash-card,
+    .account-kpi-card,
+    .account-kpi-card:hover,
+    .account-quick-action-card,
+    .account-quick-action-card:hover,
+    .account-report-card,
+    .account-chart-card,
+    .patient-quick-action-card,
+    .reception-appointments-card,
+    .drp-card,
+    .drp-kpi,
+    .prx-card,
+    .prx-stat,
+    .tv-card,
+    .tv-stat,
+    .wac-card,
+    .wac-stat,
+    .pcs-card,
+    .pcs-tile,
+    .pcs-status,
+    .erx-card,
+    .phc-card,
+    .apl-card,
+    .tele-consultation-panel-card,
+    .plan-box,
+    .plan-box:hover {
+      border-radius: 3px !important;
+      border-color: #e3e8ee !important;
+      background: #ffffff !important;
+      background-image: none !important;
+      box-shadow: none !important;
     }
-  }
 
-  // Waiting-card light blue, used on every dashboard gradient tile.
-  $waiting-wash: (#e4efff, #f4f9ff, #d4e4fb);
-
-  $stat-washes: (
-    1: $waiting-wash,
-    2: $waiting-wash,
-    3: $waiting-wash,
-    4: $waiting-wash,
-    5: $waiting-wash,
-    6: $waiting-wash,
-  );
-
-  @each $n, $colors in $stat-washes {
-    .doctor-dashboard-kpi-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-kpi-card,
-    .doctor-dashboard-chrome-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-kpi-card,
-    .doctor-dashboard-action-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-action-card,
-    .tele-consultation-kpi-row > [class*="col"]:nth-child(6n + #{$n}) > .doctor-kpi-card,
-    .account-kpi-col:nth-child(6n + #{$n}) > .account-kpi-card,
-    .account-action-col:nth-child(6n + #{$n}) > .account-quick-action-card,
-    .patient-action-col:nth-child(6n + #{$n}) > a > .patient-quick-action-card,
-    .reception-kpi-col:nth-child(6n + #{$n}) > .card,
-    .reception-action-col:nth-child(6n + #{$n}) > .card,
-    .patient-kpi-col:nth-child(6n + #{$n}) > .card,
-    .pharmacy-kpi-col:nth-child(6n + #{$n}) > .card,
-    .row > [class*="col"]:nth-child(6n + #{$n}) > .admin-kpi-card {
-      @include stat-wash(nth($colors, 1), nth($colors, 2), nth($colors, 3));
+    .card > .card-header,
+    .card > .card-body,
+    .drp-card__head,
+    .erx-card__head,
+    .prx-card__head,
+    .tv-card__head,
+    .wac-card__head,
+    .pcs-card__head,
+    .pc-card__head {
+      background-color: transparent;
+      background-image: none;
     }
-  }
 
-  @for $i from 1 through 12 {
-    .doctor-dashboard-page .doctor-dashboard-kpi-row > [class*="col"]:nth-child(#{$i}) > .doctor-kpi-card {
-      @include stat-wash(nth($waiting-wash, 1), nth($waiting-wash, 2), nth($waiting-wash, 3));
-    }
-  }
-
-  @for $i from 1 through 4 {
-    .doctor-dashboard-page .doctor-dashboard-action-row > [class*="col"]:nth-child(#{$i}) > .doctor-action-card {
-      @include stat-wash(nth($waiting-wash, 1), nth($waiting-wash, 2), nth($waiting-wash, 3));
+    .card > .card-header:first-child,
+    .drp-card__head,
+    .erx-card__head,
+    .prx-card__head,
+    .tv-card__head,
+    .wac-card__head,
+    .pcs-card__head,
+    .pc-card__head {
+      border-top-left-radius: 3px !important;
+      border-top-right-radius: 3px !important;
     }
   }
 
@@ -7288,9 +7393,9 @@ html:not([data-bs-theme="dark"]) {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border: 1px solid #cfe6f8;
-  border-radius: 5px;
-  background: #eaf5fd;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #25a0e2;
   cursor: pointer;
   padding: 0;
@@ -7498,4 +7603,354 @@ body.doctor-layout .doctor-dashboard-page .doctor-reminders-card .doctor-dashboa
   margin: 0 !important;
   font-size: 0.85rem !important;
   line-height: 1 !important;
+}
+
+// App buttons (login through every signed-in screen) use the soft fills.
+// Landing pages are excluded. Height, padding, and icons are not set here.
+body:not(:has(.homeojob-nav)) {
+  $app-soft-buttons: (
+    primary: (#0369a1, #e8f5ff, #85c1dd, #0369a1, #d6eeff, #85c1dd),
+    info: (#0369a1, #e0f2fe, #85c1dd, #0369a1, #bae6fd, #85c1dd),
+    success: (#0369a1, #dcfce7, #9ed6b1, #0369a1, #bbf7d0, #9ed6b1),
+    danger: (#0369a1, #fef2f2, #fecaca, #0369a1, #fee2e2, #fca5a5),
+    warning: (#0369a1, #fff7e0, #fde68a, #0369a1, #fef3c7, #fcd34d),
+    secondary: (#0369a1, #eef2f7, #d8dee8, #0369a1, #e2e8f0, #cbd5e1),
+    dark: (#0369a1, #e9ecef, #dee2e6, #0369a1, #dee2e6, #ced4da),
+  );
+
+  @each $name, $tone in $app-soft-buttons {
+    .btn-#{$name}:not(.btn-outline-#{$name}):not(.btn-link):not(.btn-close):not([class*="btn-ghost-"]) {
+      background-color: nth($tone, 2) !important;
+      background-image: none !important;
+      border-color: nth($tone, 3) !important;
+      border-radius: 3px !important;
+      color: nth($tone, 1) !important;
+      box-shadow: none !important;
+
+      i,
+      svg {
+        color: #0369a1 !important;
+      }
+
+      &:hover,
+      &:focus,
+      &:active,
+      &.active,
+      &.show {
+        background-color: nth($tone, 5) !important;
+        background-image: none !important;
+        border-color: nth($tone, 6) !important;
+        color: nth($tone, 4) !important;
+
+        i,
+        svg {
+          color: #0369a1 !important;
+        }
+      }
+    }
+  }
+
+  .doctor-dashboard-create-new-btn,
+  .doctor-dashboard-toolbar-btn,
+  .subscription-plan-card__footer,
+  .clinic-primary-btn,
+  .account-primary-btn,
+  .pharmacy-primary-btn,
+  .reception-primary-btn,
+  .doctor-action-icon {
+    background-color: #e8f5ff !important;
+    background-image: none !important;
+    border: 1px solid #85c1dd !important;
+    border-radius: 3px !important;
+    color: #0369a1 !important;
+    box-shadow: none !important;
+
+    i,
+    svg {
+      color: #0369a1 !important;
+    }
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: #d6eeff !important;
+      background-image: none !important;
+      border: 1px solid #85c1dd !important;
+      color: #0369a1 !important;
+
+      i,
+      svg {
+        color: #0369a1 !important;
+      }
+    }
+  }
+
+  .form-control:not(.dob-picker__input):not(.is-invalid):not(:focus):not(:focus-visible),
+  .form-select:not(.is-invalid):not(:focus):not(:focus-visible),
+  textarea.form-control:not(.is-invalid):not(:focus):not(:focus-visible),
+  .dob-picker__input-group:not(.is-invalid):not(:focus-within),
+  .flatpickr-input.form-control:not(.is-invalid):not(:focus),
+  .input-group-text,
+  .appointment-slot-interval-display,
+  .appointment-time-picker:not(.is-invalid):not(:focus-within),
+  .select2-container:not(.select2-container--open):not(.select2-container--focus) .select2-selection--single,
+  .select2-container:not(.select2-container--open):not(.select2-container--focus) .select2-selection--multiple,
+  .choices:not(.is-focused):not(.is-open) .choices__inner,
+  .rdw-editor-wrapper:not(:focus-within),
+  .demo-wrapper:not(:focus-within),
+  :not(.is-invalid) > [class*="__control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]),
+  div[class*="-container"]:not(.is-invalid) > div[class*="-control"]:not([class*="--is-focused"]):not([class*="--menu-is-open"]) {
+    border-color: #aaabab !important;
+  }
+
+  .search-box .react-select-container .react-select__control {
+    padding-left: 0 !important;
+  }
+
+  .search-box .react-select-container .react-select__value-container {
+    padding-left: 1.45rem !important;
+  }
+
+  .search-box .form-control,
+  .search-box .form-control-sm,
+  .search-box input.form-control {
+    padding-left: 1.85rem !important;
+  }
+
+  .search-box .search-icon,
+  .patient-list-modal__search-icon,
+  .search-widget-icon {
+    color: #64748b !important;
+  }
+
+  .modal .form-label i,
+  .modal label i,
+  .offcanvas .form-label i,
+  .offcanvas label i {
+    font-weight: 400 !important;
+    font-size: 0.72rem !important;
+  }
+
+  .modal .patient-list-modal__search-icon,
+  .modal .search-box .search-icon,
+  .modal .search-icon,
+  .offcanvas .patient-list-modal__search-icon,
+  .offcanvas .search-box .search-icon,
+  .offcanvas .search-icon {
+    font-weight: 400 !important;
+    font-size: 0.68rem !important;
+  }
+
+  .search-box .search-icon {
+    position: absolute;
+    left: 0.55rem;
+    top: 0;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85rem;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  input.form-control[type="file"] {
+    padding: 0 0.75rem 0 0 !important;
+    line-height: var(--app-form-field-height, 1.75rem) !important;
+
+    &::file-selector-button {
+      margin: 0 0.75rem 0 0 !important;
+      padding: 0 0.85rem !important;
+      height: 100% !important;
+      border: 0 !important;
+      border-inline-end: 1px solid #aaabab !important;
+      border-radius: 0 !important;
+      background-color: #f8fafc !important;
+      color: #334155 !important;
+      font-size: var(--app-form-field-font-size, 0.6875rem) !important;
+      line-height: 1 !important;
+    }
+  }
+
+  .form-control:not(textarea):not(.dob-picker__input),
+  .form-select:not([multiple]),
+  .dob-picker__input-group,
+  .appointment-slot-interval-display,
+  .appointment-time-picker,
+  .flatpickr-input.form-control {
+    box-sizing: border-box !important;
+    height: var(--app-form-field-height, 1.75rem) !important;
+    min-height: var(--app-form-field-height, 1.75rem) !important;
+    max-height: var(--app-form-field-height, 1.75rem) !important;
+  }
+
+  .dob-picker__input.form-control {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    border-width: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0.15rem !important;
+  }
+
+  .dob-picker__icon {
+    padding: 0 0.28rem 0 0.55rem !important;
+  }
+
+  .dob-picker__icon i,
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    font-size: 0.68rem !important;
+    font-weight: 400 !important;
+    width: 0.68rem;
+    height: 0.68rem;
+  }
+
+  .doctor-patient-nav-tabs .doctor-dashboard-appointment-date .dob-picker__input-group,
+  .patient-dashboard-page .doctor-dashboard-appointment-date .dob-picker__input-group,
+  .reception-dashboard-page .doctor-dashboard-appointment-date .dob-picker__input-group {
+    height: var(--doctor-patient-toolbar-input-h, 1.65rem) !important;
+    min-height: var(--doctor-patient-toolbar-input-h, 1.65rem) !important;
+    max-height: var(--doctor-patient-toolbar-input-h, 1.65rem) !important;
+  }
+
+  .form-control:focus:not(.is-invalid),
+  .form-control:focus-visible:not(.is-invalid),
+  .form-select:focus:not(.is-invalid),
+  .form-select:focus-visible:not(.is-invalid),
+  textarea.form-control:focus:not(.is-invalid),
+  textarea.form-control:focus-visible:not(.is-invalid),
+  .dob-picker__input-group:focus-within:not(.is-invalid),
+  .flatpickr-input.form-control:focus:not(.is-invalid),
+  .appointment-time-picker:focus-within:not(.is-invalid),
+  .select2-container--open .select2-selection--single,
+  .select2-container--open .select2-selection--multiple,
+  .select2-container--focus .select2-selection--single,
+  .select2-container--focus .select2-selection--multiple,
+  .choices.is-focused .choices__inner,
+  .choices.is-open .choices__inner,
+  .rdw-editor-wrapper:focus-within,
+  .demo-wrapper:focus-within,
+  [class*="-control--is-focused"],
+  [class*="__control--is-focused"],
+  [class*="-control--menu-is-open"],
+  [class*="__control--menu-is-open"] {
+    border-color: #25a0e2 !important;
+  }
+
+  .btn.btn-soft-primary,
+  .modal-action-btn.btn.btn-soft-primary,
+  .modal .modal-action-btn.btn.btn-soft-primary,
+  .modal-footer .btn.btn-soft-primary {
+    color: #0369a1 !important;
+    background-color: #e8f5ff !important;
+    border: 1px solid #85c1dd !important;
+    border-radius: 3px !important;
+
+    i,
+    svg {
+      color: #0369a1 !important;
+    }
+
+    &:hover,
+    &:focus,
+    &:active,
+    &:disabled,
+    &.disabled {
+      color: #0369a1 !important;
+      border: 1px solid #85c1dd !important;
+    }
+
+    &:hover:not(:disabled):not(.disabled),
+    &:focus:not(:disabled):not(.disabled),
+    &:active:not(:disabled):not(.disabled) {
+      background-color: #d6eeff !important;
+    }
+  }
+
+  .user-profile-page .user-profile-page__tabs.nav-tabs-custom {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.12rem !important;
+    border: 0 !important;
+    border-radius: 3px !important;
+    background: #f1f5f9 !important;
+    overflow-x: auto;
+
+    .nav-item .nav-link {
+      height: 24px;
+      margin: 0 !important;
+      padding: 0 0.7rem !important;
+      border: 0 !important;
+      border-radius: 3px !important;
+      background: transparent !important;
+      color: #64748b !important;
+      box-shadow: none !important;
+
+      &::before,
+      &::after {
+        display: none !important;
+        content: none !important;
+        transform: none !important;
+      }
+
+      &:hover {
+        color: #0b5cab !important;
+      }
+
+      &.active,
+      &.active:hover,
+      &.active:focus {
+        background: #fff !important;
+        color: #0b5cab !important;
+        border: 0 !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7 !important;
+      }
+    }
+  }
+
+  .btn.btn-soft-success,
+  .modal-action-btn.btn.btn-soft-success,
+  .modal .modal-action-btn.btn.btn-soft-success {
+    border: 1px solid #9ed6b1 !important;
+    border-radius: 3px !important;
+
+    &:hover,
+    &:focus,
+    &:active,
+    &:disabled,
+    &.disabled {
+      border: 1px solid #9ed6b1 !important;
+    }
+  }
+
+  // Icon-only actions in table bodies stay as the icon. Labeled row buttons keep their fill.
+  :is(table, .table, .gridjs-table, table.dataTable) tbody :is(.edit-item-btn, .remove-item-btn, .btn-icon),
+  :is(table, .table, .gridjs-table, table.dataTable) tbody :is(a, button, .btn):has(> i:only-child):not(.clinic-action-btn):not(.modal-action-btn):not(.btn-light):not([class*="btn-outline"]),
+  :is(table, .table, .gridjs-table, table.dataTable) tbody :is(a, button, .btn):has(> svg:only-child):not(.clinic-action-btn):not(.modal-action-btn):not(.btn-light):not([class*="btn-outline"]),
+  :is(table, .table, .gridjs-table, table.dataTable) tbody span.apl-view-btn,
+  .gridjs-td :is(.edit-item-btn, .remove-item-btn, .btn-icon, a, button):has(> i:only-child):not(.clinic-action-btn):not(.modal-action-btn) {
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+
+    &:hover,
+    &:focus,
+    &:focus-visible,
+    &:active,
+    &.active,
+    &.is-active,
+    &.show,
+    &:disabled,
+    &.disabled,
+    &.is-disabled {
+      background-color: transparent !important;
+      background-image: none !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+  }
 }

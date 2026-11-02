@@ -17,6 +17,7 @@ import { isRegisteredAppPath } from '../helpers/menuDestination';
 import { LANDING_PUBLIC_PATHS, LANDING_SPLAT_PATH } from '../constants/landingRoutes';
 import PageNotAvailable from '../pages/Pages/PageNotAvailable';
 import HomeoJobLanding from '../pages/Landing/HomeoJobLanding';
+import '../app-radius.css';
 
 const pathPattern = (pattern) => {
     let path = String(pattern || "").trim();

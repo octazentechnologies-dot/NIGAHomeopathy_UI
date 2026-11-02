@@ -1121,7 +1121,7 @@ const CompletedStep = ({ patient, durationMin, initialSummary, erx, erxLoading, 
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
               />
-              <div className="row g-2">
+              <div className="row g-3">
                 <div className="col-md-6">
                   <label className="tele-complete-label">Diagnosis / Impression</label>
                   <Input value={diagnosis} maxLength={300} onChange={(e) => setDiagnosis(e.target.value)} />

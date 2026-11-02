@@ -220,10 +220,10 @@ const PatientContinuityPage = () => {
     setError("");
     setPartialError("");
     const results = await Promise.allSettled([
-      getPatientTimeline(),
-      getPatientFollowUps(),
-      getPatientDiary(),
-      getPatientProgress(),
+          getPatientTimeline(),
+          getPatientFollowUps(),
+          getPatientDiary(),
+          getPatientProgress(),
       getPatientConsents(),
       getPatientProfileS4(),
       listPatientDocuments(),
@@ -374,9 +374,9 @@ const PatientContinuityPage = () => {
     try {
       await deletePatientDocument(doc.id);
       setDocuments((prev) => prev.filter((row) => row.id !== doc.id));
-    } catch (err) {
-      setError(s4Message(err));
-    } finally {
+                                    } catch (err) {
+                                      setError(s4Message(err));
+                                    } finally {
       setBusyDocId("");
     }
   };
@@ -394,9 +394,9 @@ const PatientContinuityPage = () => {
         ...prev,
       ]);
       Swal.fire({ title: "Diary entry saved", icon: "success", timer: 1200, showConfirmButton: false });
-    } catch (err) {
-      setError(s4Message(err));
-    } finally {
+                                      } catch (err) {
+                                        setError(s4Message(err));
+                                      } finally {
       setSavingDiary(false);
     }
   };
@@ -422,9 +422,9 @@ const PatientContinuityPage = () => {
             : row
         )
       );
-    } catch (err) {
-      setError(s4Message(err));
-    } finally {
+                                      } catch (err) {
+                                        setError(s4Message(err));
+                                      } finally {
       setBusyConsentId("");
     }
   };
@@ -449,9 +449,9 @@ const PatientContinuityPage = () => {
           row.id === consent.id ? { ...row, granted: false, recordId: null, withdrawnAt: new Date().toISOString() } : row
         )
       );
-    } catch (err) {
-      setError(s4Message(err));
-    } finally {
+                                  } catch (err) {
+                                    setError(s4Message(err));
+                                  } finally {
       setBusyConsentId("");
     }
   };
@@ -537,8 +537,8 @@ const PatientContinuityPage = () => {
                           </div>
                           <strong>{event.title}</strong>
                           {event.summary ? <span>{event.summary}</span> : null}
-                        </div>
-                      </li>
+                          </div>
+                        </li>
                     );
                   })}
                 </ol>
@@ -567,11 +567,11 @@ const PatientContinuityPage = () => {
                             <span className="prx-chip">{request.status}</span>
                           </div>
                           {request.at ? <span>{formatDate(request.at)}</span> : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
+                    </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
                   <p className="pcon-hint">No data requests yet. A request is recorded and is not carried out automatically.</p>
                 )}
                 {consents.length === 0 ? <p className="pcon-hint">No consent records yet.</p> : null}
@@ -629,8 +629,8 @@ const PatientContinuityPage = () => {
                               >
                                 Withdraw
                               </button>
-                            </>
-                          ) : (
+                    </>
+                  ) : (
                             <>
                             {consent.withdrawnAt ? <small>Withdrawn {formatDate(consent.withdrawnAt)}</small> : null}
                             <button
@@ -771,10 +771,10 @@ const PatientContinuityPage = () => {
                         >
                           Delete
                         </button>
-                      </li>
+                          </li>
                     ))}
-                  </ul>
-                )}
+                    </ul>
+                  )}
               </PconCard>
 
               <PconCard icon="ri-heart-pulse-line" title="Symptom Diary">
@@ -788,18 +788,18 @@ const PatientContinuityPage = () => {
                   <input
                     type="range"
                     className="form-range pcon-range"
-                    min={0}
-                    max={10}
-                    value={diarySeverity}
+                      min={0}
+                      max={10}
+                      value={diarySeverity}
                     onChange={(e) => setDiarySeverity(Number(e.target.value))}
-                  />
-                  <Input
-                    type="textarea"
+                    />
+                    <Input
+                      type="textarea"
                     className="pcon-diary-input"
-                    value={diaryText}
-                    onChange={(e) => setDiaryText(e.target.value)}
-                    placeholder="How are you feeling today?"
-                  />
+                      value={diaryText}
+                      onChange={(e) => setDiaryText(e.target.value)}
+                      placeholder="How are you feeling today?"
+                    />
                   <button
                     type="button"
                     className="btn btn-sm btn-soft-primary"
@@ -820,10 +820,10 @@ const PatientContinuityPage = () => {
                       <div>
                         <strong>{entry.note}</strong>
                         <span>{formatDate(entry.at)}</span>
-                      </div>
-                    </li>
+                            </div>
+                          </li>
                   ))}
-                </ul>
+                    </ul>
               </PconCard>
 
               <PconCard icon="ri-line-chart-line" title="Progress">

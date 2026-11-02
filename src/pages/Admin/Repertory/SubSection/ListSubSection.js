@@ -834,7 +834,7 @@ const ListSubSection = () => {
               onClick={() => handleDownloadRefRubricTemplate('excel')}
             >
               <i className="ri-file-excel-2-line align-middle me-1" aria-hidden="true" />
-              Sample Excel
+              Excel
             </button>
             <button
               type="button"
@@ -843,7 +843,7 @@ const ListSubSection = () => {
               onClick={() => handleDownloadRefRubricTemplate('csv')}
             >
               <i className="ri-file-text-line align-middle me-1" aria-hidden="true" />
-              Sample CSV
+              CSV
             </button>
           </div>
           <div>

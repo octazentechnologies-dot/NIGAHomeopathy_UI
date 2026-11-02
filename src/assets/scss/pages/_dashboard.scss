@@ -296,7 +296,7 @@
     &__title-icon {
         width: 32px;
         height: 32px;
-        border-radius: 9px;
+        border-radius: 3px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -374,8 +374,9 @@
         left: 0.65rem;
         top: 50%;
         transform: translateY(-50%);
-        color: #25a0e2;
-        font-size: 0.8rem !important;
+        color: #64748b;
+        font-weight: 400 !important;
+        font-size: 0.68rem !important;
         pointer-events: none;
         z-index: 0;
     }
@@ -642,7 +643,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     &__title-icon {
         width: 32px;
         height: 32px;
-        border-radius: 9px;
+        border-radius: 3px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -684,18 +685,16 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         margin-bottom: 0.2rem;
 
         > i {
-            font-size: 0.8125rem;
+            font-size: 0.72rem;
+            font-weight: 400;
             color: #25a0e2;
             line-height: 1;
         }
     }
 
     &__fields {
-        --bs-gutter-x: 0.45rem;
-        --bs-gutter-y: 0.35rem;
-
         .form-control:not(textarea) {
-            border-radius: 8px;
+            border-radius: 3px;
             border-color: #e2ebf3;
             min-height: var(--app-form-field-height, 1.75rem);
             height: var(--app-form-field-height, 1.75rem);
@@ -705,7 +704,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
             line-height: 1.25 !important;
 
             &:focus {
-                border-color: #93c5fd;
+                border-color: #25a0e2;
                 box-shadow: none;
             }
 
@@ -721,7 +720,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         }
 
         textarea.form-control {
-            border-radius: 8px;
+            border-radius: 3px;
             border-color: #e2ebf3;
             height: auto;
             min-height: 2.6rem;
@@ -730,7 +729,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
             line-height: 1.35 !important;
 
             &:focus {
-                border-color: #93c5fd;
+                border-color: #25a0e2;
                 box-shadow: none;
             }
 
@@ -800,7 +799,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         margin: 0;
         padding: 0 8px 0 6px;
         border: 1px solid #d7e3ef;
-        border-radius: 8px;
+        border-radius: 3px;
         background: #fff;
         display: inline-flex;
         align-items: center;
@@ -881,7 +880,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     &__consent {
         background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
         border-color: #e2ebf3 !important;
-        border-radius: 10px !important;
+        border-radius: 3px !important;
         margin-top: 0.15rem !important;
         margin-bottom: 0 !important;
         padding: 0.45rem 0.65rem !important;
@@ -909,7 +908,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
 .new-appointment-modal {
     .modal-content {
         border: 1px solid #e2ebf3;
-        border-radius: 14px;
+        border-radius: 3px;
         box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
         overflow: hidden;
     }
@@ -954,7 +953,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     &__title-icon {
         width: 32px;
         height: 32px;
-        border-radius: 9px;
+        border-radius: 3px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -996,7 +995,8 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         margin-bottom: 0.22rem;
 
         > i {
-            font-size: 0.8125rem;
+            font-size: 0.72rem;
+            font-weight: 400;
             color: #25a0e2;
             line-height: 1;
         }
@@ -1007,7 +1007,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         .form-control,
         .dob-picker__input,
         input {
-            border-radius: 8px;
+            border-radius: 3px;
             font-size: var(--app-form-field-font-size, 0.6875rem) !important;
         }
 
@@ -1021,8 +1021,8 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         position: relative;
 
         .appointment-slot-interval-display {
-            border-radius: 8px;
-            border: 1px solid #e2ebf3;
+            border-radius: 3px;
+            border: 1px solid #aaabab;
             background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
             color: #0f172a;
             font-weight: 600;
@@ -1037,7 +1037,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
 
     &__slots {
         border: 1px solid #e2ebf3;
-        border-radius: 10px;
+        border-radius: 3px;
         padding: 0.45rem 0.6rem 0.4rem;
         background: linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%);
         box-shadow: none;
@@ -1052,7 +1052,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         align-items: flex-start;
         gap: 12px;
         padding: 16px;
-        border-radius: 10px;
+        border-radius: 3px;
         border: 1px dashed #cfe3f7;
         background: #fff;
     }
@@ -1060,7 +1060,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     &__empty-icon {
         width: 40px;
         height: 40px;
-        border-radius: 10px;
+        border-radius: 3px;
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
@@ -1085,7 +1085,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     &__setup {
         background: #fff !important;
         border-color: #e2ebf3 !important;
-        border-radius: 10px !important;
+        border-radius: 3px !important;
     }
 
     &__setup-icon {
@@ -1135,11 +1135,18 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         .appointment-time-picker {
             display: flex;
             align-items: center;
-            height: $input-height;
-            border: 1px solid var(--#{$prefix}border-color);
+            box-sizing: border-box;
+            height: var(--app-form-field-height, 1.75rem) !important;
+            min-height: var(--app-form-field-height, 1.75rem) !important;
+            max-height: var(--app-form-field-height, 1.75rem) !important;
+            border: 1px solid #aaabab;
             border-radius: $input-border-radius;
             background-color: $input-bg;
             padding: 0 0.5rem 0 0.65rem;
+
+            &:focus-within:not(.is-invalid) {
+                border-color: #25a0e2;
+            }
 
             &.is-invalid {
                 border-color: $form-feedback-invalid-color;
@@ -1275,11 +1282,19 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
 
     &__input-group {
         display: flex;
-        align-items: stretch;
-        border: 1px solid var(--#{$prefix}border-color);
+        align-items: center;
+        box-sizing: border-box;
+        height: var(--app-form-field-height, 1.75rem);
+        min-height: var(--app-form-field-height, 1.75rem);
+        max-height: var(--app-form-field-height, 1.75rem);
+        border: 1px solid #aaabab;
         border-radius: $input-border-radius;
         background-color: $input-bg;
         overflow: hidden;
+
+        &:focus-within:not(.is-invalid) {
+            border-color: #25a0e2;
+        }
 
         &.is-invalid {
             border-color: $form-feedback-invalid-color;
@@ -1290,7 +1305,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0 0.5rem 0 0.75rem;
+        padding: 0 0.28rem 0 0.55rem;
         color: var(--#{$prefix}secondary-color);
         border: 0;
         border-right: none;
@@ -1300,8 +1315,16 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     }
 
     &__input {
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
         border: 0 !important;
+        border-width: 0 !important;
         box-shadow: none !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
         cursor: text;
         background: transparent;
     }
@@ -1460,10 +1483,11 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
 
 .doctor-modal-date-picker {
     .dob-picker__icon {
-        padding: 0 0.5rem 0 0.85rem;
+        padding: 0 0.28rem 0 0.55rem;
 
         i {
-            font-size: 1.25rem;
+            font-size: 0.68rem;
+            font-weight: 400;
             line-height: 1;
         }
     }
@@ -1566,7 +1590,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     .case-notes-modal__history-nav {
         .nav-link {
             border: 1px solid #e2ebf3;
-            border-radius: 8px;
+        border-radius: 8px;
             color: #475569;
             font-size: 0.72rem;
             font-weight: 600;
@@ -1608,7 +1632,7 @@ body.doctor-layout .patient-list-modal:has(.patient-list-modal__table) {
     &__editor-wrap {
         .demo-wrapper {
             border: 1px solid #e2ebf3 !important;
-            border-radius: 8px;
+            border-radius: 3px;
             overflow: hidden;
             background: #fff;
         }
@@ -2074,10 +2098,11 @@ body.admin-mobile-topbar {
   &__nav-btn {
     width: 36px;
     height: 36px;
-    border: 0;
-    border-radius: 10px;
+    box-sizing: border-box;
+    border: 1px solid #85c1dd;
+    border-radius: 3px;
     background: #e8f5ff;
-    color: #0b5cab;
+    color: #0369a1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2090,14 +2115,15 @@ body.admin-mobile-topbar {
     }
 
     &:hover {
-      background: #d7efff;
-      color: #084a8a;
+      background: #d6eeff;
+      color: #0369a1;
+      border-color: #85c1dd;
     }
 
     &--sm {
       width: 32px;
       height: 32px;
-      border-radius: 8px;
+      border-radius: 3px;
 
       i {
         font-size: 1.1rem;
@@ -2141,7 +2167,7 @@ body.admin-mobile-topbar {
     justify-content: center;
     color: #0b5cab;
     line-height: 1;
-    border-radius: 6px;
+    border-radius: 3px;
 
     &:hover {
       background: #e8f5ff;
@@ -2166,7 +2192,7 @@ body.admin-mobile-topbar {
     font-size: 0.7rem;
     font-weight: 600;
     padding: 0.4rem 0.15rem;
-    border-radius: 999px;
+    border-radius: 3px;
     position: relative;
     transition: color 0.15s ease, background 0.15s ease;
     white-space: nowrap;
@@ -2223,13 +2249,13 @@ body.admin-mobile-topbar {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    border: 0;
+    border: 1px solid #85c1dd;
     background: #e8f5ff;
-    color: #0b5cab;
+    color: #0369a1;
     font-size: 0.7rem;
     font-weight: 600;
     padding: 0.2rem 0.45rem;
-    border-radius: 999px;
+    border-radius: 3px;
     line-height: 1.2;
 
     i {
@@ -2242,7 +2268,9 @@ body.admin-mobile-topbar {
     }
 
     &:hover:not(:disabled) {
-      background: #d7efff;
+      background: #d6eeff;
+      color: #0369a1;
+      border-color: #85c1dd;
     }
 
     &:disabled {
@@ -2275,7 +2303,7 @@ body.admin-mobile-topbar {
     overflow: auto;
     max-height: min(52vh, 420px);
     border: 1px solid #e8eef4;
-    border-radius: 12px;
+    border-radius: 3px;
     background: #fff;
   }
 
@@ -2311,7 +2339,7 @@ body.admin-mobile-topbar {
   &__slot {
     height: 100%;
     min-height: 38px;
-    border-radius: 10px;
+    border-radius: 3px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2423,7 +2451,7 @@ body.admin-mobile-topbar {
   .doctor-schedule-calendar__nav-btn--sm {
     width: 1.75rem;
     height: 1.75rem;
-    border-radius: 6px;
+    border-radius: 3px;
 
     i {
       font-size: 1rem;
@@ -2447,7 +2475,7 @@ body.admin-mobile-topbar {
     gap: 0.05rem;
     min-height: 2.35rem;
     padding: 0.2rem 0.1rem;
-    border-radius: 8px;
+    border-radius: 3px;
     line-height: 1.1;
   }
 
@@ -2497,7 +2525,7 @@ body.admin-mobile-topbar {
     gap: 0.05rem;
     min-width: 0;
     padding: 0.28rem 0.4rem;
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid #e8eef4;
     background: #f8fafc;
     font-size: 0.58rem;
@@ -2530,7 +2558,7 @@ body.admin-mobile-topbar {
   }
 
   .doctor-schedule-calendar__grid-wrap {
-    border-radius: 8px;
+    border-radius: 3px;
     max-height: min(46vh, 360px);
   }
 
@@ -2557,7 +2585,7 @@ body.admin-mobile-topbar {
   }
 
   .doctor-schedule-calendar__slot {
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 0.15rem 0.45rem;
     font-size: 0.68rem;
     font-weight: 600;

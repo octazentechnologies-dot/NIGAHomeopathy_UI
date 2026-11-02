@@ -16,7 +16,6 @@ import {
   Row,
   Spinner,
   Table,
-  UncontrolledTooltip,
 } from "reactstrap";
 import Swal from "sweetalert2";
 import {
@@ -307,51 +306,43 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                                   type="button"
                                   className="btn btn-sm btn-icon btn-soft-info sms-action-btn"
                                   aria-label="View"
+                                  title="View"
                                   onClick={() => openView(row)}
                                 >
                                   <i className="ri-eye-line" />
                                 </button>
-                                <UncontrolledTooltip placement="top" target={viewId}>
-                                  View
-                                </UncontrolledTooltip>
                                 <button
                                   id={editId}
                                   type="button"
                                   className="btn btn-sm btn-icon btn-soft-success sms-action-btn"
                                   aria-label="Edit"
+                                  title="Edit"
                                   onClick={() => openEdit(row)}
                                 >
                                   <i className="ri-pencil-fill" />
                                 </button>
-                                <UncontrolledTooltip placement="top" target={editId}>
-                                  Edit
-                                </UncontrolledTooltip>
                                 <button
                                   id={toggleId}
                                   type="button"
                                   className={`btn btn-sm btn-icon sms-action-btn ${active ? "btn-soft-warning" : "btn-soft-primary"}`}
                                   aria-label={active ? "Deactivate" : "Activate"}
+                                  title={active ? "Deactivate" : "Activate"}
                                   disabled={busy === `active-${id}`}
                                   onClick={() => toggleActive(row)}
                                 >
                                   <i className={active ? "ri-toggle-fill" : "ri-toggle-line"} />
                                 </button>
-                                <UncontrolledTooltip placement="top" target={toggleId}>
-                                  {active ? "Deactivate" : "Activate"}
-                                </UncontrolledTooltip>
                                 <button
                                   id={delId}
                                   type="button"
                                   className="btn btn-sm btn-icon btn-soft-danger sms-action-btn"
                                   aria-label="Delete"
+                                  title="Delete"
                                   disabled={busy === `del-${id}`}
                                   onClick={() => removeTemplate(row)}
                                 >
                                   <i className="ri-delete-bin-line" />
                                 </button>
-                                <UncontrolledTooltip placement="top" target={delId}>
-                                  Delete
-                                </UncontrolledTooltip>
                               </div>
                             </td>
                           ) : null}
@@ -375,7 +366,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
               {formTitle}
             </ModalHeader>
             <ModalBody>
-              <Row className="g-2">
+              <Row className="g-3">
                 <Col md={4}>
                   <FormGroup className="mb-0">
                     <Label htmlFor="sms-code">Code</Label>

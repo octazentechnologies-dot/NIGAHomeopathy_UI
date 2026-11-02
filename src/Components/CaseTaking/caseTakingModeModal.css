@@ -45,7 +45,7 @@
   width: 100%;
   text-align: left;
   padding: 0.55rem 0.65rem;
-  border-radius: 8px;
+  border-radius: 3px;
   border: 1px solid #e2ebf3;
   background: #fff;
   color: inherit;
@@ -72,7 +72,7 @@
 .ctm-choice__icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -111,7 +111,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.08rem 0.35rem;
-  border-radius: 999px;
+  border-radius: 3px;
   font-size: 0.5625rem;
   font-weight: 600;
   letter-spacing: 0.03em;
