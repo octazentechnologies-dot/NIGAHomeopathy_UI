@@ -14,7 +14,12 @@ export const formatApiDate = (value) => {
     const parsed = moment(value);
     return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '';
   }
-  const parsed = moment(value, ['YYYY-MM-DD', 'DD-MM-YYYY', 'MM/DD/YYYY', 'M/D/YYYY', 'D-M-YYYY'], true);
+  // Day-first before US so appointment DD/MM (e.g. 01/11/2026 = 1 Nov) is not read as 11 Jan.
+  const parsed = moment(
+    value,
+    ['YYYY-MM-DD', 'DD/MM/YYYY', 'D/M/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'MM/DD/YYYY', 'M/D/YYYY'],
+    true
+  );
   return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '';
 };
 
@@ -24,7 +29,11 @@ export const formatCalendarDateForSchedule = (displayDate) => {
     const parsed = moment(displayDate);
     return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '';
   }
-  const parsed = moment(displayDate, ['DD-MM-YYYY', 'MM/DD/YYYY', 'M/D/YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+  const parsed = moment(
+    displayDate,
+    ['DD/MM/YYYY', 'D/M/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD', 'MM/DD/YYYY', 'M/D/YYYY'],
+    true
+  );
   return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '';
 };
 

@@ -1,11 +1,44 @@
 import moment from 'moment';
 
-/** Calendar date for API — keeps selected day (no local→UTC day shift). */
-export const formatCalendarDateForApi = (dateStr) => {
+/** US-first slash dates (DOB / legacy M/D/YYYY pickers). YYYY-MM-DD always first (unambiguous). */
+export const CALENDAR_DATE_API_FORMATS_US = [
+    'YYYY-MM-DD',
+    'M/D/YYYY',
+    'MM/DD/YYYY',
+    'DD-MM-YYYY',
+    'D-M-YYYY',
+    'DD/MM/YYYY',
+    'D/M/YYYY',
+];
+
+/** Day-first slash dates (appointment pickers using DD/MM/YYYY). */
+export const CALENDAR_DATE_API_FORMATS_IN = [
+    'YYYY-MM-DD',
+    'DD/MM/YYYY',
+    'D/M/YYYY',
+    'DD-MM-YYYY',
+    'D-M-YYYY',
+    'M/D/YYYY',
+    'MM/DD/YYYY',
+];
+
+/**
+ * Calendar date for API — keeps selected day (no local→UTC day shift).
+ * Pass preferredFormats for DD/MM appointment fields so 01/11/2026 is 1 Nov, not 11 Jan.
+ */
+export const formatCalendarDateForApi = (dateStr, preferredFormats) => {
     if (!dateStr) return '';
-    const parsed = String(dateStr).includes('T')
-        ? moment(dateStr)
-        : moment(dateStr, ['M/D/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'DD/MM/YYYY', 'D/M/YYYY', 'YYYY-MM-DD'], true);
+    if (String(dateStr).includes('T')) {
+        const parsedIso = moment(dateStr);
+        return parsedIso.isValid() ? `${parsedIso.format('YYYY-MM-DD')}T00:00:00.000Z` : '';
+    }
+    const preferred = Array.isArray(preferredFormats)
+        ? preferredFormats.filter(Boolean)
+        : [];
+    const formats = preferred.length
+        ? [...preferred, ...CALENDAR_DATE_API_FORMATS_US.filter((f) => !preferred.includes(f))]
+        : CALENDAR_DATE_API_FORMATS_US;
+    const parsed = moment(dateStr, formats, true);
     return parsed.isValid() ? `${parsed.format('YYYY-MM-DD')}T00:00:00.000Z` : '';
 };
 

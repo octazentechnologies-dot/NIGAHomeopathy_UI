@@ -11,7 +11,10 @@ import {
 import Select from "react-select";
 import ModalActionButton from "../../../../Components/Common/ModalActionButton";
 import { getAppointmentQueue, patientNewAppointment } from "../../../../helpers/realbackend_helper";
-import { formatCalendarDateForApi } from "../../../../helpers/patient_payload_helper";
+import {
+  CALENDAR_DATE_API_FORMATS_IN,
+  formatCalendarDateForApi,
+} from "../../../../helpers/patient_payload_helper";
 import { timeInputToApiTime } from "../../../../helpers/appointmentSlotHelper";
 import { getAuthUserId } from "../../../../helpers/menuByRole";
 import { apiMessage, readReceptionDoctorId, unwrap } from "../../receptionSession";
@@ -155,7 +158,10 @@ const BookAppointmentModal = ({
         patientId,
         patientName: selectedPatient.fullName,
         doctorId,
-        appointmentDate: formatCalendarDateForApi(allottedSchedule.date),
+        appointmentDate: formatCalendarDateForApi(
+          allottedSchedule.date,
+          CALENDAR_DATE_API_FORMATS_IN
+        ),
         appointmentTime,
         status: "WAITING",
         deleteStatus: false,

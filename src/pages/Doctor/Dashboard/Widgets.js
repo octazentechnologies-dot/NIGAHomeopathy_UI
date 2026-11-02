@@ -36,6 +36,7 @@ import { getLoggedinUserInfo } from "../../../helpers/api_helper";
 import { getDoctorProfileMe } from "../../../helpers/realbackend_helper";
 import {
     buildPatientApiPayload,
+    CALENDAR_DATE_API_FORMATS_IN,
     formatCalendarDateForApi,
     formatDateOfBirthForApi,
     getPatientAuthContext,
@@ -201,7 +202,11 @@ const dashboardQueryDateIso = (d = new Date()) =>
     formatCalendarDateForApi(moment(d).format('YYYY-MM-DD'));
 
 const toAppointmentListDateIso = (displayDateStr) => {
-    const parsed = moment(displayDateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+    const parsed = moment(
+        displayDateStr,
+        [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY'],
+        true
+    );
     if (!parsed.isValid()) return '';
     return formatCalendarDateForApi(parsed.format('YYYY-MM-DD'));
 };
@@ -2580,7 +2585,7 @@ const Widgets = () => {
     const appointmentFormInitialValues = useMemo(() => ({
         patient: prefilledAppointmentPatient,
         doctor: defaultAppointmentDoctor,
-        appointmentDate: prefilledAppointmentPatient ? moment().format(DOB_DISPLAY_FORMAT) : '',
+        appointmentDate: prefilledAppointmentPatient ? moment().format(APPOINTMENT_INDIAN_DISPLAY_FORMAT) : '',
         consultMode: 'InClinic',
     }), [prefilledAppointmentPatient, defaultAppointmentDoctor]);
 
@@ -2649,9 +2654,12 @@ const Widgets = () => {
             return;
         }
 
+        // Picker stores DD/MM/YYYY — must not use US-first parse (01/11/2026 → 11 Jan).
         let formattedDate = values.appointmentDate;
         if (values.appointmentDate) {
-            formattedDate = formatCalendarDateForApi(values.appointmentDate) || values.appointmentDate;
+            formattedDate =
+                formatCalendarDateForApi(values.appointmentDate, CALENDAR_DATE_API_FORMATS_IN) ||
+                values.appointmentDate;
         }
 
         const followUpEligible =
