@@ -253,6 +253,9 @@ export const createUpdateRemedyGrade = data => api.post(url.CREATE_UPDATE_REMEDY
 
 //remedical rubric
 export const getRubricRemedyDetails = (data, config) =>  nigahomeoAPI.get(url.GET_RUBRIC_REMEDY_DETAILS + "/" + data.remedyId, config ?? null);
+/** Fast (i) popup — single RemedyMaster row; always fresh (no-store). */
+export const getRemedyTooltipInfo = (data, config) =>
+  nigahomeoAPI.get(`${url.GET_REMEDY_TOOLTIP_INFO}/${data.remedyId}`, config ?? null);
 
 export const updateIsSmallRubric = data => api.get(url.UPDATE_ISSMALL_RUBRIC + "/" + data.rubricId + "/" + data.isSmallRubric, null);
 

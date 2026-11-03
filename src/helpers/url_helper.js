@@ -360,6 +360,8 @@ export const CREATE_UPDATE_REMEDY_GRADE = "/remedygrade";
 
 //Remedical Rubric
 export const GET_RUBRIC_REMEDY_DETAILS = "/RubricRemedy/GetRubricRemedyDetails";
+/** Lightweight PatientBoard (i) tooltip — RemedyMaster fields only (live, no server cache). */
+export const GET_REMEDY_TOOLTIP_INFO = "/RubricRemedy/GetRemedyTooltipInfo";
 export const UPDATE_ISSMALL_RUBRIC = "/RubricRemedy/UpdateIsSmallRubric";
 export const UPDATE_ISCONFIRMATION_RUBRIC = "/RubricRemedy/UpdateIsConfirmationRubric";
 

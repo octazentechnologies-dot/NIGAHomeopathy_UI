@@ -85,7 +85,7 @@ import {
   searchSubSectionsBySectionPaged,
   searchSubSectionsGlobalPaged,
   getRepertorizarionRemedyForAccordion as getRepertorizarionRemedyForAccordionApi,
-  getRubricRemedyDetails as getRubricRemedyDetailsApi,
+  getRemedyTooltipInfo as getRemedyTooltipInfoApi,
   searchRubricsByKeyword as searchRubricsByKeywordApi,
   getMateriaMedicaHeadingByAuthorId as getMateriaMedicaHeadingByAuthorIdApi,
   runCenterOfGravity,
@@ -2204,7 +2204,8 @@ const PatientBoard = () => {
   // ###### Dj UI Code Start - Remedy Abbreviation Hover Tooltip State ######
   const [hoveredRemedyAbbrev, setHoveredRemedyAbbrev] = useState(null);
   const hoveredRemedyAbbrevIdRef = useRef(null);
-  const remedyInfoCacheRef = useRef(new Map());
+  /** In-flight only (no result cache) — admin edits must always hit the live API. */
+  const remedyTooltipInFlightRef = useRef(new Map());
   // ###### Dj UI Code End - Remedy Abbreviation Hover Tooltip State ######
   // Prescription Modal State
   const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
@@ -2527,10 +2528,9 @@ const PatientBoard = () => {
   };
 
   // ###### Dj UI Code Start - Remedy Abbreviation Hover Tooltip Functions ######
-  // Remedy abbreviation hover tooltip functions
-  // Single-flight remedy details fetch: concurrent triggers for the same
-  // remedy share one network request; starting another remedy aborts the
-  // previous one so stale responses never compete.
+  // Fast (i) / abbrev tooltip: open immediately, fetch live RemedyMaster fields only
+  // (GetRemedyTooltipInfo). No result cache — admin edits appear on next open.
+  // Concurrent clicks for the same remedyId share one in-flight request.
   const abortRemedyDetailsFetch = () => {
     if (remedyDetailsAbortRef.current) {
       try {
@@ -2542,16 +2542,35 @@ const PatientBoard = () => {
     }
   };
 
-  const fetchRemedyDetailsOnce = (remedyId) => {
+  const fetchRemedyTooltipLive = (remedyId) => {
     if (remedyId == null) return Promise.resolve(null);
+    const key = String(remedyId);
+    const existing = remedyTooltipInFlightRef.current.get(key);
+    if (existing) return existing;
+
     abortRemedyDetailsFetch();
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     remedyDetailsAbortRef.current = controller;
-    return getRubricRemedyDetailsApi(
+    const promise = getRemedyTooltipInfoApi(
       { remedyId },
-      controller ? { signal: controller.signal } : undefined
-    );
+      controller
+        ? { signal: controller.signal, headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } }
+        : { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } }
+    )
+      .finally(() => {
+        if (remedyTooltipInFlightRef.current.get(key) === promise) {
+          remedyTooltipInFlightRef.current.delete(key);
+        }
+      });
+    remedyTooltipInFlightRef.current.set(key, promise);
+    return promise;
   };
+
+  const applyLiveTooltipPayload = (response, fallback) => {
+    const payload = response?.resultObject ?? response?.data ?? response;
+    return { ...mergeRemedyTooltipData(payload, fallback), _loading: false };
+  };
+
   const handleRemedyAbbrevHover = (remedy) => {
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
@@ -2564,33 +2583,26 @@ const PatientBoard = () => {
     const base = { ...remedy, ...inline };
 
     if (hasRemedyTooltipContent(inline)) {
-      setHoveredRemedyAbbrev(base);
+      setHoveredRemedyAbbrev({ ...base, _loading: false });
       return;
     }
 
-    if (remedyId != null && remedyInfoCacheRef.current.has(remedyId)) {
-      setHoveredRemedyAbbrev(remedyInfoCacheRef.current.get(remedyId));
-      return;
-    }
-
-    setHoveredRemedyAbbrev(base);
+    // Open immediately; fill from live API (no cache).
+    setHoveredRemedyAbbrev({ ...base, _loading: remedyId != null });
 
     if (remedyId == null) {
       return;
     }
 
-    fetchRemedyDetailsOnce(remedyId)
+    fetchRemedyTooltipLive(remedyId)
       .then((response) => {
-        const payload = response?.resultObject ?? response?.data ?? response;
-        const fetched = extractRemedyTooltipData(payload);
-        const merged = { ...remedy, ...fetched };
-        remedyInfoCacheRef.current.set(remedyId, merged);
-        if (hoveredRemedyAbbrevIdRef.current === remedyId) {
-          setHoveredRemedyAbbrev(merged);
-        }
+        if (hoveredRemedyAbbrevIdRef.current !== remedyId) return;
+        setHoveredRemedyAbbrev(applyLiveTooltipPayload(response, remedy));
       })
       .catch(() => {
-        /* keep inline / no-data state */
+        if (hoveredRemedyAbbrevIdRef.current === remedyId) {
+          setHoveredRemedyAbbrev({ ...base, _loading: false });
+        }
       });
   };
 
@@ -2611,25 +2623,36 @@ const PatientBoard = () => {
     hoveredRemedyInfoIdRef.current = remedyId;
 
     const inline = extractRemedyTooltipData(remedy);
+    // Always open popup instantly (name + loading), then refresh from live API.
     if (hasRemedyTooltipContent(inline)) {
-      setHoveredRemedyInfo(inline);
+      setHoveredRemedyInfo({ ...inline, _loading: false });
+      // Still refresh in background so admin edits appear without waiting for a remount.
+      if (remedyId != null) {
+        fetchRemedyTooltipLive(remedyId)
+          .then((response) => {
+            if (hoveredRemedyInfoIdRef.current !== remedyId) return;
+            setHoveredRemedyInfo(applyLiveTooltipPayload(response, remedy));
+          })
+          .catch(() => { /* keep inline */ });
+      }
       return;
     }
+
+    setHoveredRemedyInfo({ ...inline, _loading: remedyId != null });
 
     if (remedyId == null) {
       return;
     }
 
-    fetchRemedyDetailsOnce(remedyId)
+    fetchRemedyTooltipLive(remedyId)
       .then((response) => {
-        const payload = response?.resultObject ?? response?.data ?? response;
-        const fetched = mergeRemedyTooltipData(payload, remedy);
-        if (hoveredRemedyInfoIdRef.current === remedyId) {
-          setHoveredRemedyInfo(fetched);
-        }
+        if (hoveredRemedyInfoIdRef.current !== remedyId) return;
+        setHoveredRemedyInfo(applyLiveTooltipPayload(response, remedy));
       })
       .catch(() => {
-        /* keep inline / no-data state */
+        if (hoveredRemedyInfoIdRef.current === remedyId) {
+          setHoveredRemedyInfo({ ...inline, _loading: false });
+        }
       });
   };
 
@@ -4633,11 +4656,35 @@ const PatientBoard = () => {
     return remedyName || getRemedyTooltipBadgeLabel(remedy);
   };
 
-  const formatInfoTooltipSection = (value) =>
-    value != null && String(value).trim() !== '' ? ReactHtmlParser(String(value)) : 'No data found.';
+  const formatInfoTooltipSection = (value, loading = false) => {
+    if (loading) return 'Loading…';
+    return value != null && String(value).trim() !== '' ? ReactHtmlParser(String(value)) : 'No data found.';
+  };
 
-  const renderInfoTooltipPopupContent = (remedyOverride = null, { useRemedyName = false, useRemedyInfoTitle = false } = {}) => {
+  const closeRemedyInfoPopup = () => {
+    hoveredRemedyInfoIdRef.current = null;
+    if (remedyInfoTooltipTimeoutRef.current) {
+      clearTimeout(remedyInfoTooltipTimeoutRef.current);
+    }
+    abortRemedyDetailsFetch();
+    setHoveredRemedyInfo(null);
+  };
+
+  const closeRemedyAbbrevPopup = () => {
+    hoveredRemedyAbbrevIdRef.current = null;
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
+    abortRemedyDetailsFetch();
+    setHoveredRemedyAbbrev(null);
+  };
+
+  const renderInfoTooltipPopupContent = (
+    remedyOverride = null,
+    { useRemedyName = false, useRemedyInfoTitle = false, onClose = null } = {}
+  ) => {
     const remedy = remedyOverride ?? hoveredRemedyInfo;
+    const loading = Boolean(remedy?._loading);
     const badgeLabel = useRemedyInfoTitle
       ? getRemedyInfoTooltipTitle(remedy)
       : useRemedyName
@@ -4650,23 +4697,38 @@ const PatientBoard = () => {
           <span className="info-tooltip-rubric-badge" title={badgeLabel}>
             {badgeLabel}
           </span>
+          {typeof onClose === 'function' ? (
+            <button
+              type="button"
+              className="info-tooltip__close"
+              aria-label="Close"
+              title="Close"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }}
+            >
+              <i className="ri-close-line" aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
         <div className="info-tooltip__sections">
           <div className="section section-themes">
             <div className="section-title">Themes/Characteristics :</div>
-            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.themesOrCharacteristics ?? remedy?.themes)}</div>
+            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.themesOrCharacteristics ?? remedy?.themes, loading)}</div>
           </div>
           <div className="section section-generals">
             <div className="section-title">Generals :</div>
-            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.generals)}</div>
+            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.generals, loading)}</div>
           </div>
           <div className="section section-modalities">
             <div className="section-title">Modalities :</div>
-            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.modalities)}</div>
+            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.modalities, loading)}</div>
           </div>
           <div className="section section-particulars mb-0">
             <div className="section-title">Particulars :</div>
-            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.particulars)}</div>
+            <div className="text-muted info-tooltip__section-body">{formatInfoTooltipSection(remedy?.particulars, loading)}</div>
           </div>
         </div>
       </>
@@ -4695,7 +4757,10 @@ const PatientBoard = () => {
         }}
         onMouseLeave={handleRemedyInfoLeave}
       >
-        {renderInfoTooltipPopupContent(hoveredRemedyInfo, { useRemedyInfoTitle: true })}
+        {renderInfoTooltipPopupContent(hoveredRemedyInfo, {
+          useRemedyInfoTitle: true,
+          onClose: closeRemedyInfoPopup,
+        })}
       </div>,
       document.body
     );
@@ -4717,7 +4782,10 @@ const PatientBoard = () => {
         }}
         onMouseLeave={handleRemedyAbbrevLeave}
       >
-        {renderInfoTooltipPopupContent(hoveredRemedyAbbrev, { useRemedyName: true })}
+        {renderInfoTooltipPopupContent(hoveredRemedyAbbrev, {
+          useRemedyName: true,
+          onClose: closeRemedyAbbrevPopup,
+        })}
       </div>,
       document.body
     );
@@ -8919,9 +8987,15 @@ const PatientBoard = () => {
       background:#fff;
       border:1px solid #e2e8f0;
       box-shadow:none;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:8px;
     }
     .info-tooltip-rubric-badge {
       display:block;
+      flex:1 1 auto;
+      min-width:0;
       max-width:100%;
       padding:0;
       font-size:11px;
@@ -8936,6 +9010,31 @@ const PatientBoard = () => {
       overflow:hidden;
       text-overflow:ellipsis;
       word-break:break-word;
+    }
+    .info-tooltip__close {
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:24px;
+      height:24px;
+      margin:-2px -4px 0 0;
+      padding:0;
+      border:none;
+      border-radius:999px;
+      background:transparent;
+      color:#64748b;
+      cursor:pointer;
+      line-height:1;
+      font-size:16px;
+    }
+    .info-tooltip__close:hover {
+      background:#f1f5f9;
+      color:#0f172a;
+    }
+    .info-tooltip__close:focus-visible {
+      outline:2px solid #93c5fd;
+      outline-offset:1px;
     }
     .info-tooltip__sections {
       display:flex;
@@ -17055,7 +17154,7 @@ const PatientBoard = () => {
                   <Input
                     type="textarea"
                     name="remedyDescription"
-                    placeholder="Remedy Description"
+                    placeholder="Remedy Description (optional)"
                     rows="1"
                     value={prescriptionRemedyDescription}
                     onChange={(e) => setPrescriptionRemedyDescription(e.target.value)}
@@ -17133,20 +17232,10 @@ const PatientBoard = () => {
                       return;
                     }
 
-                    if (!prescriptionRemedyDescription || prescriptionRemedyDescription.trim() === '') {
-                      Swal.fire({
-                        icon: 'warning',
-                        title: 'Warning',
-                        text: 'Please enter remedy description.',
-                        confirmButtonColor: '#000000'
-                      });
-                      return;
-                    }
-
                     const newRemedy = {
                       remedyId: selectedPrescriptionRemedy.value,
                       remedyName: selectedPrescriptionRemedy.label,
-                      description: prescriptionRemedyDescription.trim(),
+                      description: (prescriptionRemedyDescription || '').trim(),
                       dose: selectedPotency?.label || '',
                       potencyId: selectedPotency?.value || null,
                       potencyCode: selectedPotency?.label || '',
