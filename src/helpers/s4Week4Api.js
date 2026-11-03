@@ -144,9 +144,14 @@ export const getConsultNote = (patientAppId) =>
   nigahomeoAPI.get(`/Patient/Consultations/${patientAppId}/Note`, null);
 export const uploadPatientDocument = (payload) => {
   const file = payload instanceof File ? payload : payload?.file;
-  if (file instanceof File) {
-    const body = new FormData();
-    body.append("file", file);
+  if (file instanceof File || (typeof FormData !== "undefined" && payload instanceof FormData)) {
+    const body = payload instanceof FormData ? payload : new FormData();
+    if (!(payload instanceof FormData)) {
+      body.append("file", file);
+      if (payload?.patientId) body.append("patientId", String(payload.patientId));
+      if (payload?.documentType) body.append("documentType", String(payload.documentType));
+      if (payload?.description) body.append("description", String(payload.description));
+    }
     return apiHelpers.nigahomeoMultipart.post("/Patient/Documents", body);
   }
   return nigahomeoAPI.post("/Patient/Documents", payload);
@@ -169,7 +174,8 @@ export const getPatientConsents = () => nigahomeoAPI.get("/Patient/Consents", nu
 export const withdrawConsent = (id) => nigahomeoAPI.post(`/Patient/Consents/${id}/Withdraw`, null);
 export const grantPatientConsent = (consentTypeId) =>
   nigahomeoAPI.post(`/Patient/Consents/Types/${consentTypeId}/Grant`, null);
-export const listPatientDocuments = () => nigahomeoAPI.get("/Patient/Documents", null);
+export const listPatientDocuments = (patientId) =>
+  nigahomeoAPI.get("/Patient/Documents", patientId ? { patientId } : null);
 export const openPatientDocument = (documentId) =>
   nigahomeoAPI.get(`/Patient/Documents/${documentId}`, { responseType: "blob" });
 export const deletePatientDocument = (documentId) => nigahomeoAPI.delete(`/Patient/Documents/${documentId}`);

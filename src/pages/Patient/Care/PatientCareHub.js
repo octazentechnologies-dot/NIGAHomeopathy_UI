@@ -51,7 +51,7 @@ const requestStatusClass = (status) => {
   return "pc-status--pending";
 };
 
-const emptyAddress = { label: "", line1: "", line2: "", city: "", state: "", pincode: "", phone: "", isDefault: false, countryId: "", stateId: "", districtId: "", cityId: "" };
+const emptyAddress = { label: "", line1: "", line2: "", city: "", state: "", pincode: "", phone: "", isDefault: true, countryId: "", stateId: "", districtId: "", cityId: "" };
 const emptyReminder = { title: "", dueAt: "", kind: "", isDone: false };
 
 const options = (rows, idKeys, nameKeys) =>
@@ -325,9 +325,12 @@ const PatientCareHub = ({ tab = "addresses" }) => {
 
         {tab === "addresses" ? (
           <>
+            <p className="text-muted small mb-2">
+              The address saved when the patient was created is used as the default delivery address when available.
+            </p>
             <Card className="admin-dash-card mb-3"><CardBody>
               <Row className="g-3">
-                <Col md={3}><Label>Label</Label><Input value={address.label} onChange={(e) => setAddress({ ...address, label: e.target.value })} /></Col>
+                <Col md={3}><Label>Label</Label><Input value={address.label} onChange={(e) => setAddress({ ...address, label: e.target.value })} placeholder="Home" /></Col>
                 <Col md={5}><Label>Line 1</Label><Input value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value })} /></Col>
                 <Col md={4}><Label>Line 2</Label><Input value={address.line2} onChange={(e) => setAddress({ ...address, line2: e.target.value })} /></Col>
                 <Col md={3}><Label>Country</Label>
@@ -370,17 +373,26 @@ const PatientCareHub = ({ tab = "addresses" }) => {
               </Row>
             </CardBody></Card>
             <Table responsive>
-              <thead><tr><th>Label</th><th>Address</th><th>Phone</th><th /></tr></thead>
+              <thead><tr><th>Label</th><th>Address</th><th>Phone</th><th>Default</th><th /></tr></thead>
               <tbody>
+                {rows.length === 0 && !loading ? (
+                  <tr>
+                    <td colSpan={5} className="text-muted">
+                      No delivery addresses yet. Add one below, or ensure the patient chart has address + pincode so it can be seeded as default.
+                    </td>
+                  </tr>
+                ) : null}
                 {rows.map((row) => {
                   const id = row.deliveryAddressId || row.addressId;
+                  const isDefault = Boolean(row.isDefault ?? row.IsDefault);
                   return (
                     <tr key={id}>
-                      <td>{row.label || (row.isDefault ? "Default" : "—")}</td>
+                      <td>{row.label || "—"}</td>
                       <td>{[row.line1, row.line2, row.city, row.state, row.pincode].filter(Boolean).join(", ")}</td>
                       <td>{row.phone || "—"}</td>
+                      <td>{isDefault ? <span className="badge bg-success-subtle text-success">Default</span> : "—"}</td>
                       <td className="text-end">
-                        <Button size="sm" color="light" className="me-2" onClick={() => { setEditId(id); setAddress({ ...emptyAddress, ...row, isDefault: Boolean(row.isDefault) }); }}><i className="ri-edit-line" aria-hidden="true" /> Edit</Button>
+                        <Button size="sm" color="light" className="me-2" onClick={() => { setEditId(id); setAddress({ ...emptyAddress, ...row, isDefault }); }}><i className="ri-edit-line" aria-hidden="true" /> Edit</Button>
                         <Button size="sm" color="danger" outline disabled={busy} onClick={() => run(() => deleteDeliveryAddress(id))}><i className="ri-delete-bin-line" aria-hidden="true" /> Delete</Button>
                       </td>
                     </tr>
