@@ -326,7 +326,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
         {tab === "addresses" ? (
           <>
             <Card className="admin-dash-card mb-3"><CardBody>
-              <Row className="g-2">
+              <Row className="g-3">
                 <Col md={3}><Label>Label</Label><Input value={address.label} onChange={(e) => setAddress({ ...address, label: e.target.value })} /></Col>
                 <Col md={5}><Label>Line 1</Label><Input value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value })} /></Col>
                 <Col md={4}><Label>Line 2</Label><Input value={address.line2} onChange={(e) => setAddress({ ...address, line2: e.target.value })} /></Col>
@@ -394,7 +394,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
         {tab === "reminders" ? (
           <>
             <Card className="admin-dash-card mb-3"><CardBody>
-              <Row className="g-2 align-items-end">
+              <Row className="g-3 align-items-end">
                 <Col md={4}><Label>Title</Label><Input value={reminder.title} onChange={(e) => setReminder({ ...reminder, title: e.target.value })} /></Col>
                 <Col md={3}><Label>Due</Label><Input type="datetime-local" value={reminder.dueAt} onChange={(e) => setReminder({ ...reminder, dueAt: e.target.value })} /></Col>
                 <Col md={2}><Label>Kind</Label><Input value={reminder.kind} onChange={(e) => setReminder({ ...reminder, kind: e.target.value })} /></Col>

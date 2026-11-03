@@ -368,7 +368,7 @@ const PatientDetailsModal = ({ isOpen, toggle, onPatientConfirmed }) => {
           </TabPane>
 
           <TabPane tabId="2">
-            <div className="row g-2 new-patient-modal__fields">
+            <div className="row g-3 new-patient-modal__fields">
               <div className="col-md-4 new-patient-modal__field">
                 <Label className="form-label new-patient-modal__label">
                   <i className="ri-user-line" aria-hidden="true" />

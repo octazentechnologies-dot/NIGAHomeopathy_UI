@@ -74,7 +74,7 @@ const PackageTopupsPage = () => {
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
         <Card className="admin-dash-card mb-3"><CardBody>
-          <Row className="g-2 align-items-end">
+          <Row className="g-3 align-items-end">
             <Col md={4}><Label>Name</Label><Input value={form.packageTopupName} onChange={(e) => setForm({ ...form, packageTopupName: e.target.value })} /></Col>
             <Col md={3}><Label>Case count</Label><Input type="number" min="1" value={form.caseCount} onChange={(e) => setForm({ ...form, caseCount: e.target.value })} /></Col>
             <Col md={3}><Label>Amount</Label><Input type="number" min="0" step="0.01" value={form.topupAmount} onChange={(e) => setForm({ ...form, topupAmount: e.target.value })} /></Col>

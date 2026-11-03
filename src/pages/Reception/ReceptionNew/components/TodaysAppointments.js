@@ -15,7 +15,6 @@ import {
   TabContent,
   TabPane,
   UncontrolledDropdown,
-  UncontrolledTooltip,
 } from "reactstrap";
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from "../../../../Components/Common/DateOfBirthPicker";
 import moment from "moment";
@@ -151,37 +150,31 @@ const AppointmentActionButtons = ({ row, onView, onEdit, onDelete }) => (
       type="button"
       className="btn btn-sm btn-soft-info"
       aria-label="View"
+      title="View"
       onClick={() => onView?.(row)}
     >
       <i className="ri-eye-line" />
     </button>
-    <UncontrolledTooltip placement="top" target={`reception-appt-view-${row.id}`}>
-      View
-    </UncontrolledTooltip>
     <button
       id={`reception-appt-edit-${row.id}`}
       type="button"
       className="btn btn-sm btn-soft-success edit-item-btn"
       aria-label="Edit"
+      title="Edit"
       onClick={() => onEdit?.(row)}
     >
       <i className="ri-pencil-fill" />
     </button>
-    <UncontrolledTooltip placement="top" target={`reception-appt-edit-${row.id}`}>
-      Edit
-    </UncontrolledTooltip>
     <button
       id={`reception-appt-del-${row.id}`}
       type="button"
       className="btn btn-sm btn-soft-danger remove-item-btn"
       aria-label="Cancel appointment"
+      title="Cancel"
       onClick={() => onDelete?.(row)}
     >
       <i className="ri-delete-bin-5-line" />
     </button>
-    <UncontrolledTooltip placement="top" target={`reception-appt-del-${row.id}`}>
-      Cancel
-    </UncontrolledTooltip>
   </div>
 );
 

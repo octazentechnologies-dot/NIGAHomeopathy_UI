@@ -153,9 +153,10 @@
   align-items: flex-start;
   gap: 0.6rem;
   padding: 0.65rem 0.75rem;
-  border: 1px solid var(--wac-tone-border);
-  border-radius: 6px;
-  background: linear-gradient(180deg, var(--wac-tone-soft) 0%, var(--wac-tone-bg) 52%, #ffffff 100%);
+  border: 1px solid #e3e8ee;
+  border-radius: 3px;
+  background: #ffffff;
+  box-shadow: none;
 }
 
 .wac-stat,
@@ -175,10 +176,10 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  background: var(--wac-tone-soft);
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
   color: var(--wac-tone);
 }
 

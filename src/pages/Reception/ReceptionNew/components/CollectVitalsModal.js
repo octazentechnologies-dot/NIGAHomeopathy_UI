@@ -165,7 +165,7 @@ const CollectVitalsModal = ({
           </div>
         ) : null}
 
-        <div className="row g-2 new-patient-modal__fields">
+        <div className="row g-3 new-patient-modal__fields">
           <div className="col-md-6 new-patient-modal__field">
             <Label className="form-label new-patient-modal__label">
               <i className="ri-heart-2-line" aria-hidden="true" />

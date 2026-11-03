@@ -17,7 +17,6 @@ import {
   NavLink,
   TabContent,
   TabPane,
-  UncontrolledTooltip,
 } from "reactstrap";
 
 import { useSelector, useDispatch } from "react-redux";
@@ -679,7 +678,7 @@ const UserProfile = () => {
 
   const selectLayoutState = (state) => state.Profile;
   const userprofileData = createSelector(selectLayoutState, (state) => ({
-    user: state.user,
+      user: state.user,
   }));
 
   const { user } = useSelector(userprofileData);
@@ -1572,7 +1571,7 @@ const UserProfile = () => {
   const handleRemovePhoto = async () => {
     if (photoFile) {
       setPhotoFile(null);
-    } else {
+        } else {
       try {
         await removeDoctorProfilePhoto();
         notifyProfilePhotoChanged();
@@ -1712,7 +1711,7 @@ const UserProfile = () => {
     try {
       if (isEdit) {
         await updateDoctorCredentialDocument(editingQualificationId, buildQualificationFormData());
-      } else {
+    } else {
         await uploadDoctorCredentialDocument(buildQualificationFormData());
       }
       resetQualificationForm();
@@ -2054,7 +2053,7 @@ const UserProfile = () => {
     : "Profile | Niga Homeocentrum";
 
   if (isPatientProfile) {
-    return (
+  return (
       <div className="page-content user-profile-page doctor-dashboard-page">
         <Container fluid>
           <Row>
@@ -2089,7 +2088,7 @@ const UserProfile = () => {
             </Col>
           </Row>
         </Container>
-      </div>
+                    </div>
     );
   }
 
@@ -2116,7 +2115,7 @@ const UserProfile = () => {
                       {roleLabel ? (
                         <ProfileBadge tone="info">{roleLabel}</ProfileBadge>
                       ) : null}
-                    </div>
+                      </div>
                     <div className="user-profile-page__summary-contacts">
                       <span>
                         <i className="ri-mail-line" aria-hidden="true" />
@@ -2241,7 +2240,7 @@ const UserProfile = () => {
                                   value={personalForm.firstName}
                                   onChange={(e) => setPersonalForm((prev) => ({ ...prev, firstName: e.target.value }))}
                                 />
-                              </Col>
+                      </Col>
                               <Col md={4} xs={12}>
                                 <Label className="form-label new-patient-modal__label">Middle Name</Label>
                                 <Input
@@ -2249,7 +2248,7 @@ const UserProfile = () => {
                                   value={personalForm.middleName}
                                   onChange={(e) => setPersonalForm((prev) => ({ ...prev, middleName: e.target.value }))}
                                 />
-                              </Col>
+                      </Col>
                               <Col md={4} xs={12}>
                                 <Label className="form-label new-patient-modal__label">
                                   Last Name
@@ -2319,10 +2318,10 @@ const UserProfile = () => {
                               >
                                 Save
                               </ModalActionButton>
-                            </div>
+                        </div>
                           </Form>
                         ) : (
-                        <Row className="g-2 new-patient-modal__fields user-profile-page__info-grid">
+                        <Row className="g-3 new-patient-modal__fields user-profile-page__info-grid">
                           <ProfileInfoField label="Full Name">
                             {[userData.firstName, userData.middleName, userData.lastName].filter(Boolean).join(" ") || userData.displayName || userData.userName || "—"}
                           </ProfileInfoField>
@@ -2482,7 +2481,7 @@ const UserProfile = () => {
                                   value={personalForm.firstName}
                                   onChange={(e) => setPersonalForm((prev) => ({ ...prev, firstName: e.target.value }))}
                                 />
-                              </Col>
+                      </Col>
                               <Col md={4} xs={12}>
                                 <Label htmlFor="profileMiddleName" className="form-label new-patient-modal__label">
                                   Middle Name
@@ -2709,9 +2708,9 @@ const UserProfile = () => {
                           {pincodeError && (
                             <div className="text-danger mt-1" style={{ fontSize: "0.875rem" }}>
                               {pincodeError}
-                            </div>
+                        </div>
                           )}
-                        </Col>
+                      </Col>
 
                         <Col lg={4} md={6} xs={12}>
                           <Label htmlFor="clinicContact" className="form-label new-patient-modal__label">
@@ -2729,9 +2728,9 @@ const UserProfile = () => {
                           {contactNumberError && (
                             <div className="text-danger mt-1" style={{ fontSize: "0.875rem" }}>
                               {contactNumberError}
-                            </div>
+                        </div>
                           )}
-                        </Col>
+                      </Col>
                         <Col lg={4} md={6} xs={12}>
                           <Label htmlFor="clinicEmail" className="form-label new-patient-modal__label">
                             Email
@@ -2759,9 +2758,9 @@ const UserProfile = () => {
                           {googleMapsLinkError && (
                             <div className="text-danger mt-1" style={{ fontSize: "0.875rem" }}>
                               {googleMapsLinkError}
-                            </div>
+                        </div>
                           )}
-                        </Col>
+                      </Col>
                       </Row>
 
                       <div className="user-profile-page__form-footer">
@@ -2838,7 +2837,7 @@ const UserProfile = () => {
                           <span className="user-profile-page__fee-validity-label">
                             <i className="ri-calendar-check-line" aria-hidden="true" />
                             Free Follow-up Validity (Days)
-                          </span>
+                            </span>
                           <Input
                             type="number"
                             min="0"
@@ -2884,7 +2883,7 @@ const UserProfile = () => {
                               value={feesForm.tele.consultationFee}
                               onChange={(e) => updateFeesSection("tele", "consultationFee", e.target.value)}
                             />
-                          </Col>
+                      </Col>
                           <Col lg={4} md={6} xs={12}>
                             <Label htmlFor="teleFollowUpFee" className="form-label new-patient-modal__label">
                               Follow-up Fee
@@ -2922,7 +2921,7 @@ const UserProfile = () => {
                           <span className="user-profile-page__fee-validity-label">
                             <i className="ri-calendar-check-line" aria-hidden="true" />
                             Free Follow-up Validity (Days)
-                          </span>
+                            </span>
                           <Input
                             type="number"
                             min="0"
@@ -3120,7 +3119,7 @@ const UserProfile = () => {
                                 </option>
                               ))}
                             </Input>
-                          </Col>
+                      </Col>
                           <Col lg={4} md={6} xs={12}>
                             <Label htmlFor="qualificationSpecialization" className="form-label new-patient-modal__label">
                               Specialization
@@ -3189,9 +3188,9 @@ const UserProfile = () => {
                                 className="d-none"
                                 onChange={handleQualificationFileChange}
                               />
-                            </div>
+                          </div>
                             <small className="text-muted d-block mt-1">PDF, JPG, PNG (Max 5 MB)</small>
-                          </Col>
+                        </Col>
                         </Row>
 
                         <div className="user-profile-page__qualification-actions">
@@ -3252,25 +3251,21 @@ const UserProfile = () => {
                                       id={`qualification-edit-${item.id}`}
                                       type="button"
                                       className="btn btn-sm btn-soft-success edit-item-btn"
+                                      title="Edit"
                                       onClick={() => handleEditQualification(item)}
                                     >
                                       <i className="ri-pencil-fill" />
                                     </button>
-                                    <UncontrolledTooltip placement="top" target={`qualification-edit-${item.id}`}>
-                                      Edit
-                                    </UncontrolledTooltip>
                                     <button
                                       id={`qualification-del-${item.id}`}
                                       type="button"
                                       className="btn btn-sm btn-soft-danger remove-item-btn"
+                                      title="Delete"
                                       onClick={() => handleDeleteQualification(item)}
                                     >
                                       <i className="ri-delete-bin-5-line" />
                                     </button>
-                                    <UncontrolledTooltip placement="top" target={`qualification-del-${item.id}`}>
-                                      Delete
-                                    </UncontrolledTooltip>
-                                  </div>
+                          </div>
                                 </td>
                               </tr>
                             ))}
@@ -3405,7 +3400,7 @@ const UserProfile = () => {
                                 {timeOffBusy ? "Saving..." : "Add"}
                               </ModalActionButton>
                             </Col>
-                          </Row>
+                    </Row>
                           {timeOffRows.length ? (
                             <div className="table-responsive">
                               <table className="table align-middle mb-0">
@@ -3472,8 +3467,8 @@ const UserProfile = () => {
                                 value={bookingRules.horizonDays}
                                 onChange={(e) => setBookingRules((prev) => ({ ...prev, horizonDays: e.target.value }))}
                               />
-                            </Col>
-                          </Row>
+            </Col>
+          </Row>
                         </div>
                       ) : null}
 
@@ -3535,9 +3530,9 @@ const UserProfile = () => {
                             Account Holder Name
                             <RequiredMark />
                           </Label>
-                          <Input
+                  <Input
                             id="bankAccountHolderName"
-                            type="text"
+                    type="text"
                             value={bankForm.accountHolderName}
                             onChange={(e) => updateBankField("accountHolderName", e.target.value)}
                           />
@@ -3556,7 +3551,7 @@ const UserProfile = () => {
                             <option value="">Select bank</option>
                             {bankForm.bankName && !BANK_NAME_OPTIONS.includes(bankForm.bankName) ? (
                               <option value={bankForm.bankName}>{bankForm.bankName}</option>
-                            ) : null}
+                  ) : null}
                             {BANK_NAME_OPTIONS.map((bank) => (
                               <option key={bank} value={bank}>
                                 {bank}
@@ -3656,7 +3651,7 @@ const UserProfile = () => {
                             ? "Your bank details are securely stored for salary and reimbursement purposes only."
                             : "Your bank details are securely stored and used for payout purposes only."}
                         </span>
-                      </div>
+                </div>
 
                       <div className="user-profile-page__form-footer">
                         <ModalActionButton action="cancel" type="button" onClick={handleBackToDashboard}>
@@ -3665,8 +3660,8 @@ const UserProfile = () => {
                         <ModalActionButton action="update" type="submit">
                           Update
                         </ModalActionButton>
-                      </div>
-                    </Form>
+                </div>
+              </Form>
                   </TabPane>
                   <TabPane tabId="reviews">
                     {activeTab === "reviews" ? <DoctorReviewsPanel /> : null}
@@ -3674,12 +3669,12 @@ const UserProfile = () => {
                   </>
                   ) : null}
                 </TabContent>
-              </CardBody>
-            </Card>
+            </CardBody>
+          </Card>
           </Col>
         </Row>
-      </Container>
-    </div>
+        </Container>
+      </div>
   );
 };
 

@@ -140,31 +140,31 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
 
   const load = useCallback(
     async (idOverride) => {
-      const raw = idOverride != null && typeof idOverride !== "object" ? idOverride : patientAppId;
-      const id = Number(raw);
-      if (!id) {
+    const raw = idOverride != null && typeof idOverride !== "object" ? idOverride : patientAppId;
+    const id = Number(raw);
+    if (!id) {
         setError("Select a visit or enter a visit id.");
-        return;
-      }
-      setLoading(true);
-      setError("");
+      return;
+    }
+    setLoading(true);
+    setError("");
       setUnsignedVisitId("");
       setUnsignedHint("");
-      try {
-        const response = await erxByAppointment(id);
+    try {
+      const response = await erxByAppointment(id);
         const next = asSnapshot(unwrapS4(response));
         setSnapshot(next);
         setLineDrafts({});
-      } catch (err) {
-        setSnapshot(null);
+    } catch (err) {
+      setSnapshot(null);
         const message = s4Message(err);
         if (NOT_SIGNED_PATTERN.test(message)) {
           setUnsignedVisitId(String(id));
           setUnsignedHint(message);
         } else setError(message);
-      } finally {
-        setLoading(false);
-      }
+    } finally {
+      setLoading(false);
+    }
     },
     [patientAppId]
   );
@@ -561,34 +561,34 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
             </div>
           ) : (
             <div className="erx-page__picker">
-              <Input
-                type="select"
+                  <Input
+                    type="select"
                 bsSize="sm"
                 value={selectedVisit ? String(patientAppId) : ""}
-                onChange={(e) => {
-                  setPatientAppId(e.target.value);
-                  if (e.target.value) load(e.target.value);
-                }}
-              >
+                    onChange={(e) => {
+                      setPatientAppId(e.target.value);
+                      if (e.target.value) load(e.target.value);
+                    }}
+                  >
                 <option value="">{visits.length ? "Today's visits" : "No visits today"}</option>
-                {visits.map((row) => {
-                  const id = visitIdOf(row);
-                  if (!id) return null;
-                  return (
-                    <option key={id} value={id}>
-                      {visitLabel(row)}
-                    </option>
-                  );
-                })}
-              </Input>
-              <Input
-                type="number"
+                    {visits.map((row) => {
+                      const id = visitIdOf(row);
+                      if (!id) return null;
+                      return (
+                        <option key={id} value={id}>
+                          {visitLabel(row)}
+                        </option>
+                      );
+                    })}
+                  </Input>
+                  <Input
+                    type="number"
                 bsSize="sm"
-                min={1}
+                    min={1}
                 placeholder="Visit id"
                 className="erx-page__visit-id"
-                value={patientAppId}
-                onChange={(e) => setPatientAppId(e.target.value)}
+                    value={patientAppId}
+                    onChange={(e) => setPatientAppId(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") load();
                 }}
@@ -611,18 +611,21 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
           <CardBody className="py-2">
             <div className="d-flex flex-wrap gap-2 align-items-center">
               <span className="text-muted small me-1">Remedy catalogue</span>
-              <Input
-                bsSize="sm"
-                style={{ maxWidth: 220 }}
-                value={remedyQuery}
-                placeholder="Search e.g. Sulph"
-                onChange={(e) => setRemedyQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") searchCatalogue();
-                }}
-              />
-              <button type="button" className="btn btn-sm btn-soft-primary" disabled={remedySearching} onClick={searchCatalogue}>
-                {remedySearching ? <Spinner size="sm" /> : "Search"}
+              <div className="search-box" style={{ maxWidth: 220, width: 220 }}>
+                <Input
+                  bsSize="sm"
+                  value={remedyQuery}
+                  placeholder="Search e.g. Sulph"
+                  onChange={(e) => setRemedyQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") searchCatalogue();
+                  }}
+                />
+                <i className="ri-search-line search-icon" aria-hidden="true" />
+              </div>
+              <button type="button" className="btn btn-sm btn-soft-primary d-inline-flex align-items-center gap-1" disabled={remedySearching} onClick={searchCatalogue}>
+                {remedySearching ? <Spinner size="sm" /> : <i className="ri-search-line" aria-hidden="true" />}
+                <span>Search</span>
               </button>
               {remedyHits.length > 0 ? (
                 <span className="small text-muted">
@@ -632,16 +635,16 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                     .join(" · ")}
                 </span>
               ) : null}
-            </div>
-          </CardBody>
-        </Card>
+                  </div>
+              </CardBody>
+            </Card>
 
         {visitLoaded ? (
           <div className="erx-page__patient">
             <span className="erx-page__patient-avatar" aria-hidden="true">
               <i className="ri-user-heart-line" />
             </span>
-            <div>
+                        <div>
               <div className="erx-page__patient-name">{patientName}</div>
               <div className="erx-page__patient-meta">
                 Visit {patientAppId} · eRx {erxId || "not created yet"}
@@ -676,21 +679,21 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                 <div className="erx-empty">
                   <i className="ri-capsule-line" aria-hidden="true" />
                   No remedies on this prescription. Add them from Patient Board.
-                </div>
-              ) : (
-                <div className="table-responsive">
+                        </div>
+                    ) : (
+                      <div className="table-responsive">
                   <table className="table align-middle mb-0 erx-table">
-                    <thead>
-                      <tr>
-                        <th>Remedy</th>
-                        <th>Potency</th>
-                        <th>Frequency</th>
-                        <th>Duration</th>
-                        <th>Instructions</th>
+                          <thead>
+                            <tr>
+                              <th>Remedy</th>
+                              <th>Potency</th>
+                              <th>Frequency</th>
+                              <th>Duration</th>
+                              <th>Instructions</th>
                         {!isLocked ? <th className="text-end">Action</th> : null}
-                      </tr>
-                    </thead>
-                    <tbody>
+                            </tr>
+                          </thead>
+                          <tbody>
                       {items.map((row, index) => {
                         const id = lineIdOf(row) || index;
                         const draft = draftFor(row);
@@ -736,13 +739,13 @@ const DoctorErxPage = ({ lockedPatientAppId = null, embedded = false, onClose = 
                                 </button>
                               </td>
                             ) : null}
-                          </tr>
+                              </tr>
                         );
                       })}
-                    </tbody>
+                          </tbody>
                   </table>
-                </div>
-              )}
+                      </div>
+                    )}
             </ErxCard>
           </div>
 

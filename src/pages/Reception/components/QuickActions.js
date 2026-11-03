@@ -122,11 +122,7 @@ const QuickActions = ({
                 className="reception-quick-action-btn text-decoration-none d-block w-100 border-0 bg-transparent p-0"
                 onClick={() => onActionClick?.(action.id)}
               >
-                <div className="avatar-sm mx-auto mb-2">
-                  <span className="avatar-title rounded fs-3 doctor-action-icon">
-                    <i className={action.icon} aria-hidden="true" />
-                  </span>
-                </div>
+                <i className={`${action.icon} kpi-tile-icon`} aria-hidden="true" />
                 <p className="mb-0 fw-semibold reception-action-label">{action.label}</p>
               </button>
             </CardBody>

@@ -15,7 +15,6 @@ import {
   PaginationLink,
   Row,
   Spinner,
-  UncontrolledTooltip,
 } from "reactstrap";
 import { pageWindow } from "../../../helpers/pageWindow";
 import moment from "moment";
@@ -179,13 +178,11 @@ const TelePatientActionButtons = ({ row, idPrefix = "tele", showJoin = true, onJ
           id={btnId}
           className="btn btn-sm btn-soft-secondary"
           aria-label="Call completed"
+          title="Call completed"
           disabled
         >
           <i className="ri-vidicon-line" />
         </button>
-        <UncontrolledTooltip placement="top" target={btnId}>
-          Call completed
-        </UncontrolledTooltip>
       </div>
     );
   }
@@ -196,13 +193,11 @@ const TelePatientActionButtons = ({ row, idPrefix = "tele", showJoin = true, onJ
         id={btnId}
         className="btn btn-sm btn-soft-primary"
         aria-label="Join call"
+        title={row.sessionStatus === "Active" ? "Rejoin Call" : "Join Call"}
         onClick={() => onJoin?.(row)}
       >
         <i className="ri-vidicon-line" />
       </button>
-      <UncontrolledTooltip placement="top" target={btnId}>
-        {row.sessionStatus === "Active" ? "Rejoin Call" : "Join Call"}
-      </UncontrolledTooltip>
     </div>
   );
 };
@@ -215,12 +210,10 @@ const TelePatientNameCell = ({ row, idPrefix = "tele" }) => (
           id={`${idPrefix}-instant-${row.id}`}
           className="tele-consultation-instant-icon"
           aria-label="Instant consultation"
+          title="Instant Consult"
         >
           <i className="ri-flashlight-fill" aria-hidden="true" />
         </span>
-        <UncontrolledTooltip placement="top" target={`${idPrefix}-instant-${row.id}`}>
-          Instant Consult
-        </UncontrolledTooltip>
       </>
     )}
     <span>{row.patient}</span>
@@ -235,26 +228,22 @@ const CompletedRecordsButtons = ({ row, onOpenChat, onOpenRx }) => (
       id={`kpi-chat-${row.id}`}
       className="btn btn-sm btn-soft-info"
       aria-label="Chat history"
+      title={row.teleSessionId ? "Chat History" : "No tele session"}
       disabled={!row.teleSessionId}
       onClick={() => onOpenChat(row)}
     >
       <i className="ri-chat-history-line" />
     </button>
-    <UncontrolledTooltip placement="top" target={`kpi-chat-${row.id}`}>
-      {row.teleSessionId ? "Chat History" : "No tele session"}
-    </UncontrolledTooltip>
     <button
       type="button"
       id={`kpi-rx-${row.id}`}
       className="btn btn-sm btn-soft-primary"
       aria-label="Prescription"
+      title="Prescription"
       onClick={() => onOpenRx(row)}
     >
       <i className="ri-file-list-3-line" />
     </button>
-    <UncontrolledTooltip placement="top" target={`kpi-rx-${row.id}`}>
-      Prescription
-    </UncontrolledTooltip>
   </div>
 );
 

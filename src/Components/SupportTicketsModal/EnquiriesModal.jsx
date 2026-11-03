@@ -9,7 +9,6 @@ import {
   PaginationItem,
   PaginationLink,
   Spinner,
-  UncontrolledTooltip,
 } from "reactstrap";
 import TicketConversationModal from "./TicketConversationModal";
 import { CompactPaginationPages, PAGE_SIZE, priorityBadgeClass, statusBadgeClass } from "./supportShared";
@@ -353,13 +352,11 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
                         id={`enq-view-${ticket.id}`}
                         className="btn btn-sm btn-soft-primary"
                         aria-label="View"
+                        title="View & Reply"
                         onClick={() => setViewId(ticket.id)}
                       >
                         <i className="ri-eye-fill" />
                       </button>
-                      <UncontrolledTooltip placement="top" target={`enq-view-${ticket.id}`}>
-                        View &amp; Reply
-                      </UncontrolledTooltip>
                     </td>
                   </tr>
                 ))}

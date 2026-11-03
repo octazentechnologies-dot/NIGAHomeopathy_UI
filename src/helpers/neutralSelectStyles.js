@@ -1,5 +1,5 @@
 const MINIMAL_BLUE = '#25a0e2';
-const NEUTRAL_BORDER = '#dee2e6';
+const NEUTRAL_BORDER = '#aaabab';
 
 /** Keep in sync with themes.scss `$app-form-field-*` / `:root` CSS vars. */
 export const APP_FORM_FIELD_HEIGHT = 'var(--app-form-field-height, 1.75rem)';

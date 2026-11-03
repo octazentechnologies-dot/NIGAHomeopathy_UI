@@ -519,7 +519,7 @@ const PatientProfileFields = () => {
       </div>
       </>
       ) : (
-        <Row className="g-2 user-profile-page__info-grid">
+        <Row className="g-3 user-profile-page__info-grid">
           <InfoField label="Full name">{fullName === "Patient" && !form.firstName ? "" : fullName}</InfoField>
           <InfoField label="First name">{form.firstName}</InfoField>
           <InfoField label="Last name">{form.lastName}</InfoField>
@@ -619,7 +619,7 @@ const PatientProfileFields = () => {
       </div>
       </>
       ) : (
-        <Row className="g-2 user-profile-page__info-grid">
+        <Row className="g-3 user-profile-page__info-grid">
           <InfoField label="Blood group">{health.bloodGroup}</InfoField>
           <InfoField label="Allergies">{health.allergies}</InfoField>
           <InfoField label="Chronic conditions">{health.chronicConditions}</InfoField>

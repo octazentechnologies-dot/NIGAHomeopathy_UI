@@ -625,7 +625,7 @@ export default function WhatsAppModal({ isOpen, toggle }) {
           </div>
         ) : null}
         <div className="whatsapp-modal__form-stack">
-        <Row className="g-2">
+        <Row className="g-3">
           <Col md={6}>
             <WhatsAppFormLabel icon="ri-translate-2">Language</WhatsAppFormLabel>
             <Select

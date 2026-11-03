@@ -14,7 +14,6 @@ import {
   PaginationLink,
   Row,
   Spinner,
-  UncontrolledTooltip,
 } from "reactstrap";
 import { navigateHidden, useHiddenSearchParams } from "../../helpers/hiddenRouteParams";
 import TicketConversationModal from "../../Components/SupportTicketsModal/TicketConversationModal";
@@ -212,7 +211,7 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
         {!isAdmin ? (
           <Card className="admin-dash-card mb-0 support-workspace-page__create-card">
             <CardBody>
-              <Row className="g-2 align-items-end">
+              <Row className="g-3 align-items-end">
                 <Col sm={6} lg={2}>
                   <Label className="mb-1">Category</Label>
                   <Input
@@ -438,13 +437,11 @@ const SupportWorkspacePage = ({ mode = "mine" }) => {
                           id={`sup-view-${ticket.id}`}
                           className="btn btn-sm btn-soft-primary"
                           aria-label="View"
+                          title={isAdmin ? "View, reply & update" : "View & reply"}
                           onClick={() => openTicket(ticket)}
                         >
                           <i className="ri-eye-fill" />
                         </button>
-                        <UncontrolledTooltip placement="top" target={`sup-view-${ticket.id}`}>
-                          {isAdmin ? "View, reply & update" : "View & reply"}
-                        </UncontrolledTooltip>
                       </td>
                     </tr>
                   ))}

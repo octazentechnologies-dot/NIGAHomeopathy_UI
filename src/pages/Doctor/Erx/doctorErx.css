@@ -110,7 +110,7 @@
   margin-bottom: 0.3rem;
   border: 1px solid var(--erx-border);
   border-radius: 5px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  background: #ffffff;
 }
 
 .erx-page__patient-avatar {
@@ -228,7 +228,7 @@
   min-height: 32px;
   padding: 5px 8px;
   border-bottom: 1px solid var(--erx-divider);
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  background: #ffffff;
 }
 
 .erx-card__title {
@@ -818,10 +818,10 @@ textarea.form-control.erx-notes__input {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 5px;
-  background: #eaf5fd;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
   color: var(--erx-blue);
   font-size: 0.85rem;
 }

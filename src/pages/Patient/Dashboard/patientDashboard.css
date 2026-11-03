@@ -124,9 +124,9 @@ body.admin-layout .page-content.patient-dashboard-page .patient-dashboard-charts
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid #cfe6f8;
-  border-radius: 5px;
-  background: #eaf5fd;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #25a0e2;
   text-decoration: none;
   line-height: 1;
@@ -139,7 +139,7 @@ body.admin-layout .page-content.patient-dashboard-page .patient-dashboard-charts
 }
 
 .patient-dashboard-page .patient-kpi-view:hover {
-  border-color: #25a0e2;
+  background: transparent;
   color: #0b5cab;
 }
 

@@ -1,0 +1,219 @@
+/* Cards, modal popups, and buttons: 3px corners across the app.
+   The marketing landing site is left unchanged. */
+html body:not(:has(.homeojob-nav)) .card[class],
+html body:not(:has(.homeojob-nav)) .modal .modal-content,
+html body:not(:has(.homeojob-nav)) .swal2-popup,
+html body:not(:has(.homeojob-nav)) .offcanvas,
+html body:not(:has(.homeojob-nav)) .btn.btn,
+html body:not(:has(.homeojob-nav)) a.btn.btn,
+html body:not(:has(.homeojob-nav)) button.btn.btn,
+html body:not(:has(.homeojob-nav)) .doctor-dashboard-create-new-btn,
+html body:not(:has(.homeojob-nav)) .doctor-dashboard-toolbar-btn,
+html body:not(:has(.homeojob-nav)) .subscription-plan-card,
+html body:not(:has(.homeojob-nav)) .subscription-plan-card__footer,
+html body:not(:has(.homeojob-nav)) .doctor-kpi-card,
+html body:not(:has(.homeojob-nav)) .doctor-action-card,
+html body:not(:has(.homeojob-nav)) .doctor-appointments-card,
+html body:not(:has(.homeojob-nav)) .doctor-reminders-card,
+html body:not(:has(.homeojob-nav)) .doctor-stats-card,
+html body:not(:has(.homeojob-nav)) .admin-kpi-card,
+html body:not(:has(.homeojob-nav)) .admin-dash-card,
+html body:not(:has(.homeojob-nav)) .account-kpi-card,
+html body:not(:has(.homeojob-nav)) .account-quick-action-card,
+html body:not(:has(.homeojob-nav)) .account-report-card,
+html body:not(:has(.homeojob-nav)) .account-chart-card,
+html body:not(:has(.homeojob-nav)) .account-notice-card,
+html body:not(:has(.homeojob-nav)) .drp-card,
+html body:not(:has(.homeojob-nav)) .drp-kpi,
+html body:not(:has(.homeojob-nav)) .erx-card,
+html body:not(:has(.homeojob-nav)) .prx-card,
+html body:not(:has(.homeojob-nav)) .prx-stat,
+html body:not(:has(.homeojob-nav)) .tv-card,
+html body:not(:has(.homeojob-nav)) .tv-stat,
+html body:not(:has(.homeojob-nav)) .wac-card,
+html body:not(:has(.homeojob-nav)) .wac-stat,
+html body:not(:has(.homeojob-nav)) .pcs-card,
+html body:not(:has(.homeojob-nav)) .pcs-tile,
+html body:not(:has(.homeojob-nav)) .user-profile-card,
+html body:not(:has(.homeojob-nav)) .help-faqs-card,
+html body:not(:has(.homeojob-nav)) .tele-consultation-panel-card,
+html body:not(:has(.homeojob-nav)) .reception-appointments-card,
+html body:not(:has(.homeojob-nav)) .auth-signin-btn,
+html body:not(:has(.homeojob-nav)) .doctor-dashboard-page .doctor-dashboard-toolbar-btn.btn,
+html body:not(:has(.homeojob-nav)) .page-content .doctor-dashboard-toolbar-btn.btn,
+html body:not(:has(.homeojob-nav)) .doctor-dashboard-page .doctor-action-card .doctor-dashboard-create-new-btn,
+html body:not(:has(.homeojob-nav)) .admin-more-menu-dropdown .btn.btn.btn-topbar,
+html body:not(:has(.homeojob-nav)) button.btn.btn,
+html body:not(:has(.homeojob-nav)) a.btn.btn,
+html body:not(:has(.homeojob-nav)) .btn-soft-primary,
+html body:not(:has(.homeojob-nav)) .btn-soft-info,
+html body:not(:has(.homeojob-nav)) .btn-soft-success,
+html body:not(:has(.homeojob-nav)) .btn-soft-danger,
+html body:not(:has(.homeojob-nav)) .btn-soft-warning,
+html body:not(:has(.homeojob-nav)) .btn-soft-secondary,
+html body:not(:has(.homeojob-nav)) .btn-soft-dark,
+html body:not(:has(.homeojob-nav)) .modal .admin-list-btn.admin-list-btn,
+html body:not(:has(.homeojob-nav)) .page-content .admin-list-btn.admin-list-btn {
+  border-radius: 3px !important;
+}
+
+html body:not(:has(.homeojob-nav)) .modal-content > .modal-header:first-child,
+html body:not(:has(.homeojob-nav)) .card > .card-header:first-child {
+  border-top-left-radius: 3px !important;
+  border-top-right-radius: 3px !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+html body:not(:has(.homeojob-nav)) .modal-content > .modal-footer:last-child,
+html body:not(:has(.homeojob-nav)) .card > .card-footer:last-child {
+  border-bottom-left-radius: 3px !important;
+  border-bottom-right-radius: 3px !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+/* Match the doctor KPI tiles: 0.15rem padding each side = 0.3rem between cards. */
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) > [class*="col"],
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card) > [class*="col"],
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) > [class*="col"],
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card) > [class*="col"] {
+  padding: 0.15rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card),
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card),
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card),
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card) {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) + .row:has(> [class*="col"] > .card),
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card) + .row:has(> [class*="col"] > .card),
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) + .row:has(> [class*="col"] > .card),
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card) + .row:has(> [class*="col"] > .card) {
+  margin-top: 0 !important;
+}
+
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) > [class*="col"] > .card,
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card) > [class*="col"] > .card,
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) > [class*="col"] > .card,
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card-animate.card) > [class*="col"] > .card {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+html body.doctor-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) > [class*="col"] > .card:not(:last-child),
+html body.admin-layout .page-content .container-fluid .row.row:has(> [class*="col"] > .card.card) > [class*="col"] > .card:not(:last-child) {
+  margin-bottom: 0.3rem !important;
+}
+
+html body.doctor-layout .page-content .card-height-100,
+html body.admin-layout .page-content .card-height-100 {
+  height: 100% !important;
+}
+
+html body.doctor-layout .page-content.page-content.doctor-dashboard-page .container-fluid .row.row.doctor-kpi-strip.doctor-kpi-strip:has(> .doctor-kpi-col > .card.card) {
+  margin-top: 0.3rem !important;
+  margin-bottom: 0.3rem !important;
+}
+
+html body.doctor-layout .page-content.page-content.doctor-dashboard-page .container-fluid .row.doctor-kpi-strip + .row.row.doctor-dashboard-action-row:has(> [class*="col"] > .card.card) > [class*="col"] {
+  padding-top: 0 !important;
+}
+
+html body.doctor-layout .page-content.doctor-dashboard-page:not(.tele-consultation-dashboard-page) .container-fluid .row.doctor-kpi-strip.row {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem !important;
+  padding-left: 0.15rem !important;
+  padding-right: 0.15rem !important;
+}
+
+html body.doctor-layout .page-content.doctor-dashboard-page:not(.tele-consultation-dashboard-page) .container-fluid .row.doctor-kpi-strip.row > .doctor-kpi-col {
+  width: auto !important;
+  max-width: none !important;
+  flex: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+@media (min-width: 576px) {
+  html body.doctor-layout .page-content.doctor-dashboard-page:not(.tele-consultation-dashboard-page) .container-fluid .row.doctor-kpi-strip.row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 992px) {
+  html body.doctor-layout .page-content.doctor-dashboard-page:not(.tele-consultation-dashboard-page) .container-fluid .row.doctor-kpi-strip.row {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+/* Inputs, selects, and status chips use the same 3px corners as cards and buttons. */
+html body:not(:has(.homeojob-nav)) .form-control,
+html body:not(:has(.homeojob-nav)) .form-select,
+html body:not(:has(.homeojob-nav)) .input-group-text,
+html body:not(:has(.homeojob-nav)) .dropdown-menu,
+html body:not(:has(.homeojob-nav)) .page-link,
+html body:not(:has(.homeojob-nav)) .badge,
+html body:not(:has(.homeojob-nav)) .badge.rounded-pill,
+html body:not(:has(.homeojob-nav)) .patient-list-modal__status,
+html body:not(:has(.homeojob-nav)) .support-conv__sla,
+html body:not(:has(.homeojob-nav)) .support-tickets-modal__tab,
+html body:not(:has(.homeojob-nav)) .support-tickets-modal__tabs,
+html body:not(:has(.homeojob-nav)) .patient-list-modal__table-wrap,
+html body:not(:has(.homeojob-nav)) .doctor-action-metric-pill,
+html body:not(:has(.homeojob-nav)) .doctor-action-status-pill,
+html body.doctor-layout .doctor-dashboard-page .doctor-action-card .doctor-action-metric-pill.doctor-action-metric-pill,
+html body.doctor-layout .doctor-dashboard-page .doctor-action-card .doctor-action-status-pill.doctor-action-status-pill {
+  border-radius: 3px !important;
+  --bs-badge-border-radius: 3px;
+}
+
+/* Modal panels and message boxes follow the same 3px corners and 0.3rem gap. */
+html body:not(:has(.homeojob-nav)) .modal .support-conv,
+html body:not(:has(.homeojob-nav)) .modal .support-conv__thread,
+html body:not(:has(.homeojob-nav)) .modal .pc-grid {
+  gap: 0.3rem !important;
+}
+
+html body:not(:has(.homeojob-nav)) .modal .support-conv__panel,
+html body:not(:has(.homeojob-nav)) .modal .support-conv__bubble,
+html body:not(:has(.homeojob-nav)) .modal .support-conv__msg--support .support-conv__bubble,
+html body:not(:has(.homeojob-nav)) .modal .support-conv__file,
+html body:not(:has(.homeojob-nav)) .modal .pc-card,
+html body:not(:has(.homeojob-nav)) .modal .ctm-choice,
+html body:not(:has(.homeojob-nav)) .modal .ctm-choice__icon,
+html body:not(:has(.homeojob-nav)) .modal .ctm-choice__badge,
+html body:not(:has(.homeojob-nav)) .modal .whatsapp-modal__chip,
+html body:not(:has(.homeojob-nav)) .modal .whatsapp-modal__count-badge,
+html body:not(:has(.homeojob-nav)) .tele-consultation-panel-card,
+html body:not(:has(.homeojob-nav)) .tele-consultation-date-hours-item,
+html body:not(:has(.homeojob-nav)) .tele-consultation-day-check,
+html body:not(:has(.homeojob-nav)) .tele-consultation-chat-history__bubble,
+html body:not(:has(.homeojob-nav)) .tele-consultation-chat-history__file {
+  border-radius: 3px !important;
+}
+
+/* Stat-card icons stay as the glyph. The colored square behind them is removed. */
+html body:not(:has(.homeojob-nav)) .tv-stat__icon,
+html body:not(:has(.homeojob-nav)) .wac-stat__icon,
+html body:not(:has(.homeojob-nav)) .prx-stat__icon,
+html body:not(:has(.homeojob-nav)) .erx-inbox__icon,
+html body:not(:has(.homeojob-nav)) .drp-kpi__icon {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}

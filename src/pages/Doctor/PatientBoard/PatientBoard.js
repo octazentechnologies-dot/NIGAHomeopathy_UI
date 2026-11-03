@@ -585,7 +585,7 @@ const AdverseEffectColumn = ({
   const handleLoadMore = useCallback(() => {
     if (!hasMore || loading || inFlightRef.current) return;
     inFlightRef.current = true;
-    onLoadMore();
+      onLoadMore();
   }, [hasMore, loading, onLoadMore]);
 
   return (
@@ -656,9 +656,9 @@ const AdverseEffectColumn = ({
           </div>
         ) : items.length > 0 ? (
           items.map((item) => (
-            <div key={getItemId(item)} className="pb-ae-effect-row">
-              <span className="pb-ae-effect-name">{getItemName(item)}</span>
-            </div>
+              <div key={getItemId(item)} className="pb-ae-effect-row">
+                <span className="pb-ae-effect-name">{getItemName(item)}</span>
+              </div>
           ))
         ) : (
           <div className="pb-ae-column-state">
@@ -2666,7 +2666,7 @@ const PatientBoard = () => {
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            e.stopPropagation();
+          e.stopPropagation();
             handleRemedyInfoToggle(remedy);
           }
         }}
@@ -2688,9 +2688,9 @@ const PatientBoard = () => {
     if (hoveredRemedyInfo == null) return undefined;
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
-        hoveredRemedyInfoIdRef.current = null;
+    hoveredRemedyInfoIdRef.current = null;
         abortRemedyDetailsFetch();
-        setHoveredRemedyInfo(null);
+    setHoveredRemedyInfo(null);
       }
     };
     document.addEventListener("keydown", onKeyDown);
@@ -2698,7 +2698,7 @@ const PatientBoard = () => {
   }, [hoveredRemedyInfo]);
 
   useEffect(() => {
-    // Debug therapeutics font size changes
+  // Debug therapeutics font size changes
   }, []);
 
   useEffect(() => {
@@ -2727,10 +2727,10 @@ const PatientBoard = () => {
     dispatch(getSectionList({ PageNumber: 1, PageSize: SECTION_PAGE_SIZE }))
       .then((response) => {
         if (seq !== sectionRequestSeqRef.current) {
-          return;
-        }
+      return;
+    }
         if (!response) {
-          setAccumulatedSections([]);
+      setAccumulatedSections([]);
           setSectionPageNumber(1);
           sectionHasMoreRef.current = false;
           setSectionHasMore(false);
@@ -3503,11 +3503,11 @@ const PatientBoard = () => {
 
     const validSectionIds = Array.isArray(selectedSubGroupSectionIds) && selectedSubGroupSectionIds.length > 0 ? selectedSubGroupSectionIds : undefined;
     try {
-      await fetchQuestionsRubricsBySubgroup(trimmedKeyword, {
-        pageNumber: questionsRubricPage + 1,
-        append: true,
-        sectionIds: validSectionIds,
-      });
+    await fetchQuestionsRubricsBySubgroup(trimmedKeyword, {
+      pageNumber: questionsRubricPage + 1,
+      append: true,
+      sectionIds: validSectionIds,
+    });
     } catch {
       /* error already surfaced in fetchQuestionsRubricsBySubgroup */
     }
@@ -3757,7 +3757,7 @@ const PatientBoard = () => {
         {showKeynoteOrSmallRubricCount && (
           <div className="mb-2">
             <div className="d-flex flex-wrap gap-2 align-items-center">
-              <span
+                  <span
                 className="badge rounded-pill bg-light text-dark border px-3 py-2"
                 style={{ fontSize: "11px" }}
                 title={
@@ -3769,7 +3769,7 @@ const PatientBoard = () => {
                 {filteredEntries.length} / {accordionTotalRubricCount}{" "}
                 {accordionTotalRubricCount === 1 ? "rubric" : "rubrics"}
                 {hasMoreEntries ? " · loading…" : ""}
-              </span>
+                  </span>
             </div>
           </div>
         )}
@@ -3791,12 +3791,12 @@ const PatientBoard = () => {
                 {isLoadingMore || hasMoreEntries
                   ? "Loading rubrics…"
                   : isAccordionEmpty
-                    ? accordionState?.searchTerm
-                      ? "No rubrics match your search"
-                      : hasGlobalSectionGradeFilter
-                        ? "No rubrics match selected section/grade"
-                        : "No data available for selected sections"
-                    : "No data available"}
+                  ? accordionState?.searchTerm
+                    ? "No rubrics match your search"
+                    : hasGlobalSectionGradeFilter
+                      ? "No rubrics match selected section/grade"
+                      : "No data available for selected sections"
+                  : "No data available"}
               </p>
             </div>
           )}
@@ -3849,12 +3849,12 @@ const PatientBoard = () => {
       if (!result.isConfirmed) {
         return;
       }
-      const isEliminationRubric = filledPyramidIcons.has(rubricId);
-      setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
-      if (isEliminationRubric) {
-        setFilledPyramidIcons(new Set());
-        dispatch(setEliminationDataList(null));
-      }
+    const isEliminationRubric = filledPyramidIcons.has(rubricId);
+    setRepertorizationRubrics(prev => prev.filter(r => r.rubricId !== rubricId));
+    if (isEliminationRubric) {
+      setFilledPyramidIcons(new Set());
+      dispatch(setEliminationDataList(null));
+    }
     });
   };
 
@@ -4301,24 +4301,24 @@ const PatientBoard = () => {
   const handleRemedyAccordionToggle = useCallback(
     (remedy, isCommon) => {
       if (!isKeynoteMethodActive && !isSmallRubricsActive) {
-        return;
+      return;
+    }
+
+    const remedyId = normalizeAccordionRemedyId(remedy.remedyId);
+    const setExpandedItems = isCommon ? setExpandedCommonItems : setExpandedUncommonItems;
+    const expandedItems = isCommon ? expandedCommonItems : expandedUncommonItems;
+
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(remedyId)) {
+      newExpanded.delete(remedyId);
+    } else {
+      newExpanded.add(remedyId);
+
+      if (!accordionDataMap.has(remedyId)) {
+        fetchAccordionData(remedyId, { pageNumber: 1, append: false, searchTerm: "" });
       }
-
-      const remedyId = normalizeAccordionRemedyId(remedy.remedyId);
-      const setExpandedItems = isCommon ? setExpandedCommonItems : setExpandedUncommonItems;
-      const expandedItems = isCommon ? expandedCommonItems : expandedUncommonItems;
-
-      const newExpanded = new Set(expandedItems);
-      if (newExpanded.has(remedyId)) {
-        newExpanded.delete(remedyId);
-      } else {
-        newExpanded.add(remedyId);
-
-        if (!accordionDataMap.has(remedyId)) {
-          fetchAccordionData(remedyId, { pageNumber: 1, append: false, searchTerm: "" });
-        }
-      }
-      setExpandedItems(newExpanded);
+    }
+    setExpandedItems(newExpanded);
     },
     [
       accordionDataMap,
@@ -4887,13 +4887,13 @@ const PatientBoard = () => {
     const timer = setTimeout(async () => {
       setGlobalSubSectionSearchLoading(true);
       const suggestionsPromise = searchSubSectionsGlobal({
-        query: term,
-        top: SUBSECTION_SEARCH_TOP,
+            query: term,
+            top: SUBSECTION_SEARCH_TOP,
       });
       const treePromise = searchSubSectionsGlobalPaged({
-        query: term,
-        pageNumber: 1,
-        pageSize: SUBSECTION_TREE_PAGE_SIZE,
+            query: term,
+            pageNumber: 1,
+            pageSize: SUBSECTION_TREE_PAGE_SIZE,
       });
 
       try {
@@ -4982,15 +4982,15 @@ const PatientBoard = () => {
     const timer = setTimeout(async () => {
       setSubSectionSearchTreeLoading(true);
       const suggestionsPromise = searchSubSectionsBySection({
-        sectionId: selectedSection.sectionId,
-        query: term,
-        top: SUBSECTION_SEARCH_TOP,
+            sectionId: selectedSection.sectionId,
+            query: term,
+            top: SUBSECTION_SEARCH_TOP,
       });
       const treePromise = searchSubSectionsBySectionPaged({
-        sectionId: selectedSection.sectionId,
-        query: term,
-        pageNumber: 1,
-        pageSize: SUBSECTION_TREE_PAGE_SIZE,
+            sectionId: selectedSection.sectionId,
+            query: term,
+            pageNumber: 1,
+            pageSize: SUBSECTION_TREE_PAGE_SIZE,
       });
 
       try {
@@ -5116,7 +5116,7 @@ const PatientBoard = () => {
     } finally {
       // Always clear this request's load-more spinner (even if a newer search superseded it).
       globalSubSectionSearchInFlightRef.current = false;
-      setGlobalSubSectionSearchTreeLoadingMore(false);
+        setGlobalSubSectionSearchTreeLoadingMore(false);
     }
   }, [
     globalSubSectionSearch,
@@ -5187,7 +5187,7 @@ const PatientBoard = () => {
     } finally {
       // Always clear this request's load-more spinner (even if a newer search superseded it).
       subSectionSearchInFlightRef.current = false;
-      setSubSectionSearchTreeLoadingMore(false);
+        setSubSectionSearchTreeLoadingMore(false);
     }
   }, [
     subSectionSearch,
@@ -6722,8 +6722,8 @@ const PatientBoard = () => {
     .pb-tab--deep.active,
     .pb-tab--deep.active:hover {
       color:#0c4a6e !important;
-      background:linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
-      background-image:linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+      background:#e8f5ff !important;
+      background-image:none !important;
       border-color:#7dd3fc !important;
       box-shadow:0 2px 8px rgba(14, 165, 233, 0.14);
       text-decoration:none !important;
@@ -6825,8 +6825,8 @@ const PatientBoard = () => {
       height:28px;
       padding:4px 12px 4px 10px !important;
       border-radius:5px !important;
-      background:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
-      background-image:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+      background:#dcfce7 !important;
+      background-image:none !important;
       border:1px solid #86efac !important;
       color:#15803d !important;
       font-weight:700 !important;
@@ -10936,8 +10936,8 @@ const PatientBoard = () => {
       box-shadow:0 2px 8px rgba(99, 102, 241, 0.2);
     }
     .pb-repertorize-toolbar__small {
-      background:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
-      background-image:linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 55%, #d1fae5 100%) !important;
+      background:#dcfce7 !important;
+      background-image:none !important;
       border:1px solid #a7f3d0 !important;
       color:#047857 !important;
       box-shadow:0 1px 2px rgba(16, 185, 129, 0.1);
@@ -12292,8 +12292,8 @@ const PatientBoard = () => {
       }
       .pb-tab-main-view {
         overflow:visible;
-        flex:1 1 auto;
-        min-height:0;
+      flex:1 1 auto;
+      min-height:0;
         height:auto;
       }
       /* Repertorize: page-scroll stacked cards */
@@ -12526,7 +12526,7 @@ const PatientBoard = () => {
       .pb-info__actions {
         margin-left:0 !important;
         align-self:flex-start;
-        flex-shrink:0;
+      flex-shrink:0;
         gap:6px;
         padding-top:0;
       }
@@ -13917,7 +13917,7 @@ const PatientBoard = () => {
             />
             <div className="pb-info__aside">
               <span className={`pb-info__chip pb-appointment-date${formattedAppointmentDate ? '' : ' pb-info__chip--placeholder'}`}>
-                <i className="ri-calendar-event-line" aria-hidden="true" />
+                  <i className="ri-calendar-event-line" aria-hidden="true" />
                 <span className="pb-info__chip-label">Appointment</span>
                 <span className="pb-info__chip-value">{formattedAppointmentDate || 'No upcoming'}</span>
               </span>
@@ -13930,12 +13930,12 @@ const PatientBoard = () => {
                 <i className={/tele|video|online/i.test(headerConsultMode || '') ? 'ri-vidicon-line' : 'ri-stethoscope-line'} aria-hidden="true" />
                 <span className="pb-info__chip-label">Consult</span>
                 <span className="pb-info__chip-value">{humanizeHeaderValue(headerConsultMode)}</span>
-              </span>
-              <span className="pb-info__chip pb-info__chip--due">
-                <i className="ri-wallet-3-line" aria-hidden="true" />
+                </span>
+                <span className="pb-info__chip pb-info__chip--due">
+                  <i className="ri-wallet-3-line" aria-hidden="true" />
                 <span className="pb-info__chip-label">Due</span>
                 <span className="pb-info__chip-value">₹ 0.00</span>
-              </span>
+                </span>
             </div>
           </div>
 
@@ -14077,42 +14077,42 @@ const PatientBoard = () => {
               <div className="p-0 pb-tab-panel pb-tab-panel--clinical d-flex flex-column h-100 min-h-0">
                 <div className="pb-ae-header-bar pb-clinical-header-bar flex-shrink-0">
                   <div className="pb-clinical-header-bar__select-row">
-                    <div className="pb-ae-header-bar__icon" aria-hidden="true">
-                      <i className="ri-stethoscope-line" />
-                    </div>
-                    <div className="pb-ae-header-bar__select-wrap">
-                      <Select
-                        inputId="cp-select-pattern"
-                        aria-label="Clinical Pattern"
-                        isClearable={true}
-                        isSearchable={true}
-                        value={selectedClinicalPattern}
-                        onChange={handleClinicalPatternSelect}
-                        options={clinicalPatternOptions}
-                        placeholder="Search pattern..."
-                        classNamePrefix="pb-ae-select"
-                        styles={patientBoardSelectStyles}
-                        noOptionsMessage={() => 'No patterns found'}
-                      />
-                    </div>
+                  <div className="pb-ae-header-bar__icon" aria-hidden="true">
+                    <i className="ri-stethoscope-line" />
+                  </div>
+                  <div className="pb-ae-header-bar__select-wrap">
+                    <Select
+                      inputId="cp-select-pattern"
+                      aria-label="Clinical Pattern"
+                      isClearable={true}
+                      isSearchable={true}
+                      value={selectedClinicalPattern}
+                      onChange={handleClinicalPatternSelect}
+                      options={clinicalPatternOptions}
+                      placeholder="Search pattern..."
+                      classNamePrefix="pb-ae-select"
+                      styles={patientBoardSelectStyles}
+                      noOptionsMessage={() => 'No patterns found'}
+                    />
+                  </div>
                   </div>
                   <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
                   <div className="pb-clinical-header-bar__meta">
-                    <div className="pb-ae-header-bar__info">
-                      {selectedClinicalPattern ? (
-                        <>
-                          <span className="ae-name">{selectedClinicalPattern.label}</span>
-                          {diagnosisData?.diagnosisNameAlias && (
-                            <span className="pb-clinical-header-desc"> — {diagnosisData.diagnosisNameAlias}</span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-muted small">Choose a clinical pattern to begin</span>
-                      )}
-                    </div>
+                  <div className="pb-ae-header-bar__info">
+                    {selectedClinicalPattern ? (
+                      <>
+                        <span className="ae-name">{selectedClinicalPattern.label}</span>
+                        {diagnosisData?.diagnosisNameAlias && (
+                          <span className="pb-clinical-header-desc"> — {diagnosisData.diagnosisNameAlias}</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted small">Choose a clinical pattern to begin</span>
+                    )}
+                  </div>
                     <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
-                    <div className="pb-ae-header-bar__category cp-category">
-                      {diagnosisData?.miasm || selectedClinicalPattern?.category || 'General'}
+                  <div className="pb-ae-header-bar__category cp-category">
+                    {diagnosisData?.miasm || selectedClinicalPattern?.category || 'General'}
                     </div>
                   </div>
                 </div>
@@ -14319,7 +14319,7 @@ const PatientBoard = () => {
                                   ? 'Loading page...'
                                   : `Page ${clinicalPatternRubricPage} of ${clinicalRubricTotalPages}`}
                               </span>
-                            </div>
+                          </div>
                           )}
                         </div>
                       </div>
@@ -14348,47 +14348,47 @@ const PatientBoard = () => {
                               )}
                             </div>
                             <div className="d-inline-flex gap-2 align-items-center pb-clinical-zoom-tools flex-shrink-0">
-                              <Button
-                                id="therapeutics-zoom-in"
-                                type="button"
-                                size="sm"
-                                className="btn btn-icon waves-effect waves-light"
-                                style={{
+                            <Button
+                              id="therapeutics-zoom-in"
+                              type="button"
+                              size="sm"
+                              className="btn btn-icon waves-effect waves-light"
+                              style={{
                                   width: '28px',
                                   height: '28px',
-                                  padding: 0,
-                                  backgroundColor: '#e8f7f1',
-                                  border: '1px solid #0ab39c',
-                                  color: '#0ab39c',
-                                }}
-                                onClick={() => {
-                                  setTherapeuticsFontSize((s) => Math.min(s + 1, 20));
-                                }}
-                              >
+                                padding: 0,
+                                backgroundColor: '#e8f7f1',
+                                border: '1px solid #0ab39c',
+                                color: '#0ab39c',
+                              }}
+                              onClick={() => {
+                                setTherapeuticsFontSize((s) => Math.min(s + 1, 20));
+                              }}
+                            >
                                 <i className="ri-zoom-in-line" style={{ fontSize: '14px' }} />
-                              </Button>
-                              <UncontrolledTooltip placement="top" target="therapeutics-zoom-in">Zoom In</UncontrolledTooltip>
+                            </Button>
+                            <UncontrolledTooltip placement="top" target="therapeutics-zoom-in">Zoom In</UncontrolledTooltip>
                               <span className="text-muted" style={{ fontSize: '11px', minWidth: '30px', textAlign: 'center' }}>{therapeuticsFontSize}px</span>
-                              <Button
-                                id="therapeutics-zoom-out"
-                                type="button"
-                                size="sm"
-                                className="btn btn-icon waves-effect waves-light"
-                                style={{
+                            <Button
+                              id="therapeutics-zoom-out"
+                              type="button"
+                              size="sm"
+                              className="btn btn-icon waves-effect waves-light"
+                              style={{
                                   width: '28px',
                                   height: '28px',
-                                  padding: 0,
-                                  backgroundColor: '#fff4e8',
-                                  border: '1px solid #f7b84b',
-                                  color: '#f7b84b',
-                                }}
-                                onClick={() => {
-                                  setTherapeuticsFontSize((s) => Math.max(s - 1, 10));
-                                }}
-                              >
+                                padding: 0,
+                                backgroundColor: '#fff4e8',
+                                border: '1px solid #f7b84b',
+                                color: '#f7b84b',
+                              }}
+                              onClick={() => {
+                                setTherapeuticsFontSize((s) => Math.max(s - 1, 10));
+                              }}
+                            >
                                 <i className="ri-zoom-out-line" style={{ fontSize: '14px' }} />
-                              </Button>
-                              <UncontrolledTooltip placement="top" target="therapeutics-zoom-out">Zoom Out</UncontrolledTooltip>
+                            </Button>
+                            <UncontrolledTooltip placement="top" target="therapeutics-zoom-out">Zoom Out</UncontrolledTooltip>
                             </div>
                           </div>
                         </div>
@@ -14403,9 +14403,9 @@ const PatientBoard = () => {
                         >
                           {threpoticByDiagnosisId?.diagnosisTherapeutics ? (
                             filteredTherapeuticsHtml ? (
-                              <div style={{ fontSize: `${therapeuticsFontSize}px`, color: '#000' }}>
+                            <div style={{ fontSize: `${therapeuticsFontSize}px`, color: '#000' }}>
                                 {ReactHtmlParser(filteredTherapeuticsHtml)}
-                              </div>
+                            </div>
                             ) : (
                               <p className="mb-0" style={{ color: '#000' }}>No remedy matches your search</p>
                             )
@@ -14424,25 +14424,25 @@ const PatientBoard = () => {
                         <div className="pb-clinical-bottom-col">
                           <div className="pb-clinical-th pb-clinical-th--investigation">INVESTIGATION</div>
                           <div className="pb-clinical-td">
-                            {diagnosisData?.investigations || 'No data available'}
+                              {diagnosisData?.investigations || 'No data available'}
                           </div>
                         </div>
                         <div className="pb-clinical-bottom-col">
                           <div className="pb-clinical-th pb-clinical-th--allopathic">ALLOPATHIC RX</div>
                           <div className="pb-clinical-td">
-                            {diagnosisData?.allopathicMedicines || 'No data available'}
+                              {diagnosisData?.allopathicMedicines || 'No data available'}
                           </div>
                         </div>
                         <div className="pb-clinical-bottom-col">
                           <div className="pb-clinical-th pb-clinical-th--examination">EXAMINATION</div>
                           <div className="pb-clinical-td">
-                            {diagnosisData?.examiniations || 'No data available'}
+                              {diagnosisData?.examiniations || 'No data available'}
                           </div>
                         </div>
                         <div className="pb-clinical-bottom-col">
                           <div className="pb-clinical-th pb-clinical-th--systems">SYSTEMS</div>
                           <div className="pb-clinical-td">
-                            {diagnosisData?.diagnosisSystemList?.map(system => system.diagnosisSystemName).join(', ') || 'No data available'}
+                              {diagnosisData?.diagnosisSystemList?.map(system => system.diagnosisSystemName).join(', ') || 'No data available'}
                           </div>
                         </div>
                       </div>
@@ -14684,7 +14684,7 @@ const PatientBoard = () => {
                                 )}
                                 {(globalSubSectionSearchTreeLoadingMore || subSectionSearchTreeLoadingMore) && (
                                   <div className="text-center p-2">
-                                    <Spinner size="sm" color="primary" />
+                                      <Spinner size="sm" color="primary" />
                                   </div>
                                 )}
                               </div>
@@ -14851,51 +14851,51 @@ const PatientBoard = () => {
               <div className="p-0 pb-tab-panel pb-tab-panel--adverse d-flex flex-column">
                 <div className="pb-ae-header-bar pb-clinical-header-bar">
                   <div className="pb-clinical-header-bar__select-row">
-                    <div className="pb-ae-header-bar__icon" aria-hidden="true">
-                      <i className="ri-capsule-line" />
-                    </div>
-                    <div className="pb-ae-header-bar__select-wrap">
-                      <Select
-                        inputId="ae-select-type"
-                        name="ae-select-type"
-                        aria-label="Select drug"
-                        value={selectedAdverseType}
-                        onChange={handleDrugSelection}
-                        options={adverseTypeOptions}
-                        placeholder="Search drug..."
-                        isSearchable={true}
-                        isClearable={true}
-                        isLoading={allopathicDrugForDropdownLoading}
-                        classNamePrefix="pb-ae-select"
-                        styles={patientBoardSelectStyles}
-                        noOptionsMessage={() => 'No drugs found'}
-                        loadingMessage={() => 'Loading drugs...'}
-                      />
-                    </div>
+                  <div className="pb-ae-header-bar__icon" aria-hidden="true">
+                    <i className="ri-capsule-line" />
+                  </div>
+                  <div className="pb-ae-header-bar__select-wrap">
+                    <Select
+                      inputId="ae-select-type"
+                      name="ae-select-type"
+                      aria-label="Select drug"
+                      value={selectedAdverseType}
+                      onChange={handleDrugSelection}
+                      options={adverseTypeOptions}
+                      placeholder="Search drug..."
+                      isSearchable={true}
+                      isClearable={true}
+                      isLoading={allopathicDrugForDropdownLoading}
+                      classNamePrefix="pb-ae-select"
+                      styles={patientBoardSelectStyles}
+                      noOptionsMessage={() => 'No drugs found'}
+                      loadingMessage={() => 'Loading drugs...'}
+                    />
+                  </div>
                   </div>
                   <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
                   <div className="pb-clinical-header-bar__meta">
-                    <div className="pb-ae-header-bar__info">
-                      {drugDetailsLoading && selectedAdverseType ? (
-                        <span className="text-muted small d-inline-flex align-items-center gap-2">
-                          <Spinner size="sm" />
-                          Loading drug details...
-                        </span>
-                      ) : adverseDrugDetails ? (
-                        <>
-                          <span className="ae-name">{adverseDrugDetails.allopathicDrugName}</span>
-                          {' '}
-                          <span className="ae-system">[{adverseDrugDetails.drugSystemName}]</span>
-                        </>
-                      ) : selectedAdverseType ? (
-                        <span className="ae-name">{selectedAdverseType.label}</span>
-                      ) : (
-                        <span className="text-muted small">Choose a drug to view adverse effects</span>
-                      )}
-                    </div>
+                  <div className="pb-ae-header-bar__info">
+                    {drugDetailsLoading && selectedAdverseType ? (
+                      <span className="text-muted small d-inline-flex align-items-center gap-2">
+                        <Spinner size="sm" />
+                        Loading drug details...
+                      </span>
+                    ) : adverseDrugDetails ? (
+                      <>
+                        <span className="ae-name">{adverseDrugDetails.allopathicDrugName}</span>
+                        {' '}
+                        <span className="ae-system">[{adverseDrugDetails.drugSystemName}]</span>
+                      </>
+                    ) : selectedAdverseType ? (
+                      <span className="ae-name">{selectedAdverseType.label}</span>
+                    ) : (
+                      <span className="text-muted small">Choose a drug to view adverse effects</span>
+                    )}
+                  </div>
                     <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
-                    <div className="pb-ae-header-bar__category ae-category">
-                      {adverseDrugDetails?.drugGroupName || selectedAdverseType?.category || '—'}
+                  <div className="pb-ae-header-bar__category ae-category">
+                    {adverseDrugDetails?.drugGroupName || selectedAdverseType?.category || '—'}
                     </div>
                   </div>
                 </div>
@@ -15414,8 +15414,8 @@ const PatientBoard = () => {
                                 </span>
                                 <div className="pb-repertorization-rubric-actions d-flex align-items-center flex-shrink-0">
                                   <div className="pb-repertorization-grade-chips" aria-hidden="true">
-                                    {renderIntensityChips(rubric, handleIntensityChipClick, { intensityNo: rubric.intensityNo })}
-                                  </div>
+                                      {renderIntensityChips(rubric, handleIntensityChipClick, { intensityNo: rubric.intensityNo })}
+                                    </div>
                                   <span className="pb-repertorization-intensity-badge">
                                     {rubric.intensityNo}
                                   </span>
@@ -15715,11 +15715,11 @@ const PatientBoard = () => {
                             </p>
                           </div>
                         )}
-                      </div>
-                    </div>
                   </div>
+                </div>
+                </div>
 
-                {/* Differential Materia Medica */}
+                  {/* Differential Materia Medica */}
                 <div className="pb-repertorize-layout__dmm">
                     <div className="border rounded-2 pb-tab-card pb-tab-card--580 pb-repertorize-dmm-card">
                       <div className="d-flex align-items-center justify-content-between flex-nowrap gap-2 pb-repertorize-panel-header pb-repertorize-side-header">
@@ -15824,9 +15824,9 @@ const PatientBoard = () => {
                               </p>
                             </div>
                           )}
-                        </div>
-                      </div>
                     </div>
+                  </div>
+                </div>
                 </div>
 
                   {/* SECTION — same height as Rubrics / Common / Uncommon */}
@@ -16498,11 +16498,11 @@ const PatientBoard = () => {
             </h6>
           </div>
           {!!String(rubricDetailsList?.description || '').trim() && (
-            <div className="pb-rubric-remedy-modal__meta">
+          <div className="pb-rubric-remedy-modal__meta">
               <div className="pb-rubric-remedy-modal__description">
                 {rubricDetailsList.description}
-              </div>
             </div>
+          </div>
           )}
           <div className="pb-rubric-remedy-modal__data-header">
             <div className="fw-semibold pb-repertory-subheading">Rubric Data To Display</div>
@@ -16514,23 +16514,23 @@ const PatientBoard = () => {
                 <span>Loading remedies...</span>
               </div>
             ) : (
-              <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
+            <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
                 {rubricDetailsList?.remediesList?.length > 0 ? (
-                  rubricDetailsList.remediesList.map((remedy, index) => (
-                    <span
-                      key={remedy?.remedyId ?? index}
-                      className="remedy-item"
+                rubricDetailsList.remediesList.map((remedy, index) => (
+                  <span
+                    key={remedy?.remedyId ?? index}
+                    className="remedy-item"
                       style={getRemedyAliasStyle(remedy, { boostGrade2Weight: true, boostGrade4Font: true })}
-                      onClick={() => handleRemedyAliasClick(remedy)}
-                    >
-                      {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
-                      {renderRemedyInfoIcon(remedy)}
-                    </span>
-                  ))
-                ) : (
+                    onClick={() => handleRemedyAliasClick(remedy)}
+                  >
+                    {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
+                    {renderRemedyInfoIcon(remedy)}
+                  </span>
+                ))
+              ) : (
                   <span className="text-muted">No data</span>
-                )}
-              </div>
+              )}
+            </div>
             )}
           </div>
         </ModalBody>
@@ -16610,11 +16610,11 @@ const PatientBoard = () => {
             </h6>
           </div>
           {!!String(rubricDetailsList?.description || '').trim() && (
-            <div className="pb-rubric-remedy-modal__meta">
+          <div className="pb-rubric-remedy-modal__meta">
               <div className="pb-rubric-remedy-modal__description">
                 {rubricDetailsList.description}
-              </div>
             </div>
+          </div>
           )}
           <div className="pb-rubric-remedy-modal__data-header">
             <div className="fw-semibold pb-repertory-subheading">Rubric Data To Display</div>
@@ -16626,23 +16626,23 @@ const PatientBoard = () => {
                 <span>Loading remedies...</span>
               </div>
             ) : (
-              <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
+            <div className={`pb-rubric-remedy-modal__remedy-wrap${showRemedyAuthors ? ' pb-rubric-remedy-modal__remedy-wrap--authors' : ''}`}>
                 {rubricDetailsList?.remediesList?.length > 0 ? (
-                  rubricDetailsList.remediesList.map((remedy, index) => (
-                    <span
-                      key={remedy?.remedyId ?? index}
-                      className="remedy-item"
+                rubricDetailsList.remediesList.map((remedy, index) => (
+                  <span
+                    key={remedy?.remedyId ?? index}
+                    className="remedy-item"
                       style={getRemedyAliasStyle(remedy, { boostGrade2Weight: true, boostGrade4Font: true })}
-                      onClick={() => handleRemedyAliasClick(remedy)}
-                    >
-                      {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
-                      {renderRemedyInfoIcon(remedy)}
-                    </span>
-                  ))
-                ) : (
+                    onClick={() => handleRemedyAliasClick(remedy)}
+                  >
+                    {renderRemedyAliasWithAuthorSubscript(remedy, showRemedyAuthors, { wrapAuthors: showRemedyAuthors })}
+                    {renderRemedyInfoIcon(remedy)}
+                  </span>
+                ))
+              ) : (
                   <span className="text-muted">No data</span>
-                )}
-              </div>
+              )}
+            </div>
             )}
           </div>
         </ModalBody>
@@ -16801,16 +16801,19 @@ const PatientBoard = () => {
             </ul>
           )}
           <Label for="pb-case-symptom">Symptom</Label>
-          <Input
-            id="pb-case-symptom"
-            value={selectedCaseSymptom ? (selectedCaseSymptom.subSectionName || selectedCaseSymptom.SubSectionName || '') : caseSymptomQuery}
-            placeholder="Search a symptom"
-            onChange={(e) => {
-              setSelectedCaseSymptom(null);
-              setCaseSymptomQuery(e.target.value);
-              setCaseDetailsNotice('');
-            }}
-          />
+          <div className="search-box">
+            <Input
+              id="pb-case-symptom"
+              value={selectedCaseSymptom ? (selectedCaseSymptom.subSectionName || selectedCaseSymptom.SubSectionName || '') : caseSymptomQuery}
+              placeholder="Search a symptom"
+              onChange={(e) => {
+                setSelectedCaseSymptom(null);
+                setCaseSymptomQuery(e.target.value);
+                setCaseDetailsNotice('');
+              }}
+            />
+            <i className="ri-search-line search-icon" aria-hidden="true" />
+          </div>
           {selectedCaseSymptom ? (
             <button type="button" className="btn btn-link btn-sm px-0" onClick={() => { setSelectedCaseSymptom(null); setCaseSymptomQuery(''); }}>
               Choose a different symptom

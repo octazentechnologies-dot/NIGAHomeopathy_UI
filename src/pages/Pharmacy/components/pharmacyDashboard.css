@@ -19,9 +19,9 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border: 1px solid #cfe6f8;
-  border-radius: 5px;
-  background: #eaf5fd;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #25a0e2;
   text-decoration: none;
 }
@@ -32,7 +32,7 @@
 }
 
 .pharmacy-dashboard-page .pharmacy-kpi-view:hover {
-  border-color: #25a0e2;
+  background: transparent;
   color: #0b5cab;
 }
 
@@ -265,8 +265,9 @@
 .pcs-status--warn,
 .pcs-status--info,
 .pcs-status--error {
-  border-color: #d4e4fb;
-  background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%);
+  border-color: #e3e8ee;
+  background: #ffffff;
+  box-shadow: none;
 }
 
 .pcs-status--ok > i {

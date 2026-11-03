@@ -169,7 +169,7 @@ const BookAppointmentModal = ({
           </div>
         </div>
 
-        <div className="row g-2 new-patient-modal__fields">
+        <div className="row g-3 new-patient-modal__fields">
           <div className="col-12 new-patient-modal__field">
             <Label className="form-label new-patient-modal__label">
               <i className="ri-heart-pulse-line" aria-hidden="true" />

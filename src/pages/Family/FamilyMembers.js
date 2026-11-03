@@ -416,7 +416,7 @@ const FamilyMembers = () => {
                   </p>
                 ) : null}
                 <Form onSubmit={onSave} className="family-member-form">
-                  <Row className="g-2">
+                  <Row className="g-3">
                   <Col xs={12}>
                   <FormGroup className="mb-0">
                     <Label htmlFor="family-relation">Relation <span className="text-danger">*</span></Label>
