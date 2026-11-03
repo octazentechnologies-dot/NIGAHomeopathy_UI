@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button } from "reactstrap";
 import { acceptInstantConsult, listInstantConsultOffers } from "../../../helpers/realbackend_helper";
+import {
+  INSTANT_OFFER_REFRESH_EVENT,
+  ensureClinicRealtime,
+  subscribeInstantOfferChanged,
+} from "../../../helpers/clinicRealtime";
 
 /** Doctor dashboard instant-consult offers. Public home "Start Instant Consultation" is separate. */
 const SHOW_INSTANT_OFFERS = true;
@@ -12,7 +17,7 @@ const InstantOfferBanner = () => {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const response = await listInstantConsultOffers();
       const body = response?.data ?? response;
@@ -22,14 +27,27 @@ const InstantOfferBanner = () => {
     } catch {
       setOffers([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!SHOW_INSTANT_OFFERS) return undefined;
     load();
-    const timer = setInterval(load, 30000);
-    return () => clearInterval(timer);
-  }, []);
+    ensureClinicRealtime();
+    const unsub = subscribeInstantOfferChanged(() => {
+      load();
+    });
+    const onRefresh = () => load();
+    window.addEventListener(INSTANT_OFFER_REFRESH_EVENT, onRefresh);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      unsub();
+      window.removeEventListener(INSTANT_OFFER_REFRESH_EVENT, onRefresh);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load]);
 
   const visible = offers.filter((row) =>
     row.instantConsultRequestId ||

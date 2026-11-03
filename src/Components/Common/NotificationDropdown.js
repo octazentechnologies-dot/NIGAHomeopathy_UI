@@ -22,6 +22,7 @@ import {
     isReminderAlertDismissed,
     REMINDER_DASHBOARD_PATH,
 } from '../../helpers/doctorReminderFire';
+import { REMINDER_DUE_EVENT_NAME } from '../../helpers/clinicRealtime';
 import {
     resolveNotificationOpenPath,
     isAdminPortalRole,
@@ -34,7 +35,6 @@ const noteRead = (row) => Boolean(row.isRead ?? row.IsRead);
 const noteDeepLink = (row) => row.deepLink || row.DeepLink || "";
 const noteType = (row) => row.type || row.Type || "";
 const INBOX_REFRESH_EVENT = "homeocentrum-inbox-refresh";
-const INBOX_POLL_MS = 30000;
 const DISMISSED_ALERTS_KEY = "homeocentrum-notif-alert-dismissed";
 
 const unwrapList = (payload) => {
@@ -376,40 +376,137 @@ const NotificationDropdown = () => {
 
     useEffect(() => {
         loadData();
-        const timer = window.setInterval(loadData, INBOX_POLL_MS);
         const onRefresh = () => loadData();
         window.addEventListener(INBOX_REFRESH_EVENT, onRefresh);
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') loadData();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+
+        // Instant badge bump from SignalR reminderDue payload (no wait for GET).
+        const onReminderDue = (evt) => {
+            const raw = evt?.detail && typeof evt.detail === 'object' ? evt.detail : evt;
+            if (!raw || raw.notified === false) return;
+            const id = raw.doctorReminderId ?? raw.DoctorReminderId;
+            if (id == null) return;
+            const title = raw.title || raw.Title || 'Reminder due';
+            const description = raw.description || raw.Description || '';
+            const reminderDate = raw.reminderDate || raw.ReminderDate;
+            const reminderTime = raw.reminderTime || raw.ReminderTime;
+            const deepLink =
+                raw.deepLink ||
+                raw.DeepLink ||
+                `/doctordashboard?reminderDate=${encodeURIComponent(
+                    reminderDate ? moment(reminderDate).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
+                )}&reminderId=${id}`;
+            const timeLabel = formatReminderTimeDisplay(reminderTime);
+            const body = timeLabel
+                ? `Due ${timeLabel}${description ? ` · ${description}` : ''}`
+                : description || 'Due now';
+
+            setNotes((current) => {
+                const exists = current.some(
+                    (row) =>
+                        String(noteDeepLink(row)).includes(`reminderId=${id}`) &&
+                        String(row.title || row.Title || '').toLowerCase().includes('reminder')
+                );
+                if (exists) return current;
+                return [
+                    {
+                        appNotificationId: `local-reminder-${id}-${Date.now()}`,
+                        title: `Reminder: ${title}`,
+                        body,
+                        isRead: false,
+                        createdAt: new Date().toISOString(),
+                        type: 'SYSTEM',
+                        deepLink,
+                    },
+                    ...current,
+                ];
+            });
+
+            if (!isReminderAlertDismissed(id)) {
+                setAlerts((current) => {
+                    const alertId = `doctor-reminder-${id}`;
+                    if (current.some((a) => String(a.id) === alertId)) return current;
+                    return [
+                        {
+                            id: alertId,
+                            title: title || 'Reminder due',
+                            message: timeLabel
+                                ? `Due at ${timeLabel}${description ? ` — ${description}` : ''}`
+                                : description || 'Due now',
+                            icon: 'ri-alarm-warning-line',
+                            iconClass: 'bg-info-subtle text-info',
+                            active: true,
+                            to: deepLink,
+                            linkText: 'Open reminder',
+                        },
+                        ...current,
+                    ];
+                });
+            }
+        };
+        window.addEventListener(REMINDER_DUE_EVENT_NAME, onReminderDue);
+
         return () => {
-            window.clearInterval(timer);
             window.removeEventListener(INBOX_REFRESH_EVENT, onRefresh);
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener(REMINDER_DUE_EVENT_NAME, onReminderDue);
         };
     }, [loadData]);
 
-    // Keep hub alive while header is mounted so bell refreshes without waiting for poll.
+    // Live inbox / follow-ups / reminders via SignalR — no continuous polling.
     useEffect(() => {
         const { role } = resolveSessionRole();
-        let unsub = () => {};
-        let timer = null;
+        const unsubs = [];
+        let loading = false;
+        let pending = false;
+
         const softReload = () => {
-            if (timer) window.clearTimeout(timer);
-            timer = window.setTimeout(() => loadData(), 350);
+            if (loading) {
+                pending = true;
+                return;
+            }
+            loading = true;
+            Promise.resolve(loadData())
+                .catch(() => {})
+                .finally(() => {
+                    loading = false;
+                    if (pending) {
+                        pending = false;
+                        softReload();
+                    }
+                });
         };
+
         (async () => {
             try {
                 if (role === UserRole.PATIENT) {
                     const { subscribePatientInboxChanged } = await import('../../helpers/patientRealtime');
-                    unsub = subscribePatientInboxChanged(softReload);
+                    unsubs.push(subscribePatientInboxChanged(softReload));
                 } else if (role === UserRole.DOCTOR || role === UserRole.RECEPTION) {
-                    const { ensureClinicRealtime } = await import('../../helpers/clinicRealtime');
-                    await ensureClinicRealtime();
+                    const {
+                        subscribeInboxChanged,
+                        subscribeReminderChanged,
+                        subscribeReminderDue,
+                        subscribeFollowUpChanged,
+                        subscribeAppointmentChanged,
+                    } = await import('../../helpers/clinicRealtime');
+                    unsubs.push(subscribeInboxChanged(softReload));
+                    unsubs.push(subscribeReminderChanged(softReload));
+                    unsubs.push(subscribeReminderDue(softReload));
+                    unsubs.push(subscribeFollowUpChanged(softReload));
+                    unsubs.push(subscribeAppointmentChanged(softReload));
                 }
             } catch {
-                /* SignalR optional */
+                /* SignalR optional — visibility catch-up still refreshes */
             }
         })();
         return () => {
-            if (timer) window.clearTimeout(timer);
-            unsub();
+            unsubs.forEach((fn) => {
+                try { fn(); } catch { /* ignore */ }
+            });
         };
     }, [loadData, resolveSessionRole]);
 

@@ -59,6 +59,23 @@ const Layout = (props) => {
         navigate('/doctor/lock', { replace: true });
     }, [userRole, location.pathname, navigate]);
 
+    // Keep clinic SignalR alive for doctor/reception so reminderDue / inboxChanged hit the bell instantly.
+    useEffect(() => {
+        if (userRole !== UserRole.DOCTOR && userRole !== UserRole.RECEPTION) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const { ensureClinicRealtime } = await import('../helpers/clinicRealtime');
+                if (!cancelled) await ensureClinicRealtime();
+            } catch {
+                /* SignalR optional at layout boot */
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [userRole]);
+
     // Immediate role-based layout on mount (before profile hook resolves)
     useEffect(() => {
         const sessionUser = JSON.parse(sessionStorage.getItem('authUser') || 'null');

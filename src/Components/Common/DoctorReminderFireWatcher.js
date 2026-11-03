@@ -7,24 +7,23 @@ import 'react-toastify/dist/ReactToastify.css';
 import './doctorReminderFire.css';
 
 import { UserRole } from '../constants/roles';
+import { actOnDoctorReminder } from '../../helpers/s5Week5Api';
 import {
-  actOnDoctorReminder,
-  listDoctorReminders,
-} from '../../helpers/s5Week5Api';
-import {
-  REMINDER_FIRE_POLL_MS,
   REMINDER_SNOOZE_MINUTES,
   dispatchReminderDashboardRefresh,
   dispatchReminderInboxRefresh,
   formatReminderTimeDisplay,
-  isReminderDueNow,
   mapDoctorReminder,
   clearReminderAlertDismiss,
   openDoctorReminder,
   playReminderChime,
 } from '../../helpers/doctorReminderFire';
+import {
+  REMINDER_DUE_EVENT_NAME,
+  ensureClinicRealtime,
+  subscribeReminderDue,
+} from '../../helpers/clinicRealtime';
 
-const API_DATE = 'YYYY-MM-DD';
 const TOAST_ID_PREFIX = 'doctor-reminder-fire-';
 const TOAST_SESSION_KEY = 'hc_doctor_reminder_toasts';
 
@@ -93,9 +92,27 @@ const ReminderToastContent = ({ reminder, onDone, onSnooze, onView }) => {
   );
 };
 
+const mapDuePayload = (payload) => {
+  const raw = payload?.detail && typeof payload.detail === 'object' ? payload.detail : payload;
+  if (!raw || typeof raw !== 'object') return null;
+  if (raw.notified === false) return null;
+  const id = raw.doctorReminderId ?? raw.DoctorReminderId;
+  if (id == null) return null;
+  return mapDoctorReminder({
+    doctorReminderId: id,
+    reminderDate: raw.reminderDate ?? raw.ReminderDate ?? moment().format('YYYY-MM-DD'),
+    reminderTime: raw.reminderTime ?? raw.ReminderTime ?? null,
+    title: raw.title ?? raw.Title ?? 'Reminder due',
+    description: raw.description ?? raw.Description ?? '',
+    contactNumber: raw.contactNumber ?? raw.ContactNumber ?? '',
+    isDone: false,
+    lastNotifiedAt: raw.lastNotifiedAt ?? raw.LastNotifiedAt ?? moment().toISOString(),
+  });
+};
+
 /**
- * Global doctor-web watcher: when a reminder's time is reached, soft-toast
- * anywhere in the app, write bell inbox via API, support Done / Snooze / View.
+ * Global doctor-web watcher: server fires due reminders and pushes SignalR reminderDue.
+ * No polling — toast appears as soon as the hub event arrives.
  */
 const DoctorReminderFireWatcher = () => {
   const navigate = useNavigate();
@@ -103,9 +120,7 @@ const DoctorReminderFireWatcher = () => {
   const role = readSessionRole(loginUser);
   const isDoctor = role === UserRole.DOCTOR;
 
-  const inFlightRef = useRef(new Set());
   const toastShownRef = useRef(new Set());
-  const scanningRef = useRef(false);
 
   const closeToast = useCallback((id) => {
     toast.dismiss(`${TOAST_ID_PREFIX}${id}`);
@@ -176,68 +191,32 @@ const DoctorReminderFireWatcher = () => {
     [closeToast, navigate]
   );
 
-  const scanDueReminders = useCallback(async () => {
-    if (!isDoctor || scanningRef.current) return;
-    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-
-    scanningRef.current = true;
-    try {
-      const today = moment().format(API_DATE);
-      const res = await listDoctorReminders({ from: today, to: today });
-      const rows = Array.isArray(res?.data) ? res.data.map(mapDoctorReminder) : [];
-      const now = moment();
-      const due = rows.filter((r) => isReminderDueNow(r, now));
-
-      for (const reminder of due) {
-        if (inFlightRef.current.has(reminder.id)) continue;
-        inFlightRef.current.add(reminder.id);
-        try {
-          const result = await actOnDoctorReminder(reminder.id, { action: 'fire' });
-          const payload = result?.data && typeof result.data === 'object' ? result.data : result;
-          const notified = Boolean(payload?.notified);
-          const cycleKey =
-            payload?.lastNotifiedAt ||
-            reminder.lastNotifiedAt ||
-            moment().toISOString();
-          if (notified) {
-            clearReminderAlertDismiss(reminder.id);
-            showFireToast(reminder, cycleKey);
-            dispatchReminderInboxRefresh();
-            dispatchReminderDashboardRefresh();
-          }
-        } catch {
-          /* next poll retries */
-        } finally {
-          inFlightRef.current.delete(reminder.id);
-        }
-      }
-    } catch {
-      /* silent — dashboard list remains source of truth */
-    } finally {
-      scanningRef.current = false;
-    }
-  }, [isDoctor, showFireToast]);
+  const handleDuePayload = useCallback(
+    (payload) => {
+      const reminder = mapDuePayload(payload);
+      if (!reminder) return;
+      clearReminderAlertDismiss(reminder.id);
+      const cycleKey = reminder.lastNotifiedAt || moment().toISOString();
+      showFireToast(reminder, cycleKey);
+      dispatchReminderInboxRefresh();
+      dispatchReminderDashboardRefresh();
+    },
+    [showFireToast]
+  );
 
   useEffect(() => {
     if (!isDoctor) return undefined;
 
-    scanDueReminders();
-    const timer = window.setInterval(scanDueReminders, REMINDER_FIRE_POLL_MS);
-
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') scanDueReminders();
-    };
-    const onFocus = () => scanDueReminders();
-
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onFocus);
+    ensureClinicRealtime();
+    const unsub = subscribeReminderDue(handleDuePayload);
+    const onWindowDue = (evt) => handleDuePayload(evt?.detail || evt);
+    window.addEventListener(REMINDER_DUE_EVENT_NAME, onWindowDue);
 
     return () => {
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onFocus);
+      unsub();
+      window.removeEventListener(REMINDER_DUE_EVENT_NAME, onWindowDue);
     };
-  }, [isDoctor, scanDueReminders]);
+  }, [isDoctor, handleDuePayload]);
 
   if (!isDoctor) return null;
 
