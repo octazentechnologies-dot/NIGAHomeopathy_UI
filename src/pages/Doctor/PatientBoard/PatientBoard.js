@@ -144,6 +144,8 @@ import {
   setThrepoticByDiagnosisIdList,
   setCommanUnCommanRubricsDetailsList,
   setDifferentialMateriaMedicaList,
+  setDifferentialMateriaMedicaLoading,
+  setMateriaMedicaHeadingByAuthorIdLoading,
   setEliminationDataList,
   setRepertorizarionRemedyForAccordionList,
   setRubricDetailsList,
@@ -1916,8 +1918,14 @@ const PatientBoard = () => {
       return;
     }
 
+    if (headingId === selectedDifferentialHeadingId) {
+      return;
+    }
+
+    dispatch(setDifferentialMateriaMedicaLoading(true));
+    dispatch(setDifferentialMateriaMedicaList(null));
     setSelectedDifferentialHeadingId(headingId);
-  }, []);
+  }, [dispatch, selectedDifferentialHeadingId]);
 
   // Sort intensities in descending order by intensityNo and render chips
   const renderIntensityChips = (rubricData, onChipClick, currentIntensity) => {
@@ -3140,23 +3148,81 @@ const PatientBoard = () => {
     return materiaMedicaAuthors.find((author) => author?.authorId === selectedDifferentialAuthorId) || null;
   }, [materiaMedicaAuthors, selectedDifferentialAuthorId]);
 
+  // Headings arrived but selected heading not synced yet — treat as loading (prevents empty flash).
+  const differentialHeadingSelectionPending = useMemo(() => {
+    if (materiaMedicaHeadingByAuthorIdLoading) {
+      return true;
+    }
+    if (!Array.isArray(filteredMateriaMedicaHeadingItems) || filteredMateriaMedicaHeadingItems.length === 0) {
+      return false;
+    }
+    const selectedId = Number(selectedDifferentialHeadingId);
+    if (!Number.isFinite(selectedId)) {
+      return true;
+    }
+    return !filteredMateriaMedicaHeadingItems.some((heading) => {
+      const headingId = Number(heading?.materiaMedicaHeadId ?? heading?.materiaMedicaHeadID);
+      return Number.isFinite(headingId) && headingId === selectedId;
+    });
+  }, [
+    materiaMedicaHeadingByAuthorIdLoading,
+    filteredMateriaMedicaHeadingItems,
+    selectedDifferentialHeadingId,
+  ]);
+
+  const showDifferentialMmLoading =
+    Boolean(selectedDifferentialAuthorId) &&
+    (materiaMedicaHeadingByAuthorIdLoading ||
+      differentialMateriaMedicaLoading ||
+      differentialHeadingSelectionPending);
+
+  const differentialMmLoadingRef = useRef(differentialMateriaMedicaLoading);
+  differentialMmLoadingRef.current = differentialMateriaMedicaLoading;
+
+  const handleDifferentialAuthorSelect = useCallback((authorId) => {
+    if (authorId == null || authorId === selectedDifferentialAuthorId) {
+      return;
+    }
+    // Sync loading flags before author state changes so the empty-state never flashes.
+    dispatch(setMateriaMedicaHeadingByAuthorIdLoading(true));
+    dispatch(setDifferentialMateriaMedicaLoading(true));
+    dispatch(setDifferentialMateriaMedicaList(null));
+    setSelectedDifferentialHeadingId(null);
+    setSelectedDifferentialAuthorId(authorId);
+  }, [dispatch, selectedDifferentialAuthorId]);
+
   useEffect(() => {
     if (!selectedDifferentialAuthorId) {
       dispatch(setDifferentialMateriaMedicaList(null));
+      dispatch(setDifferentialMateriaMedicaLoading(false));
       return;
     }
 
-    if (materiaMedicaHeadingByAuthorIdLoading) {
+    // Headings loading or heading not synced yet — keep spinner only (never empty message).
+    if (materiaMedicaHeadingByAuthorIdLoading || differentialHeadingSelectionPending) {
+      if (!differentialMmLoadingRef.current) {
+        dispatch(setDifferentialMateriaMedicaLoading(true));
+      }
+      return;
+    }
+
+    // Author has no headings at all — genuine empty.
+    if (!Array.isArray(filteredMateriaMedicaHeadingItems) || filteredMateriaMedicaHeadingItems.length === 0) {
+      dispatch(setDifferentialMateriaMedicaList(null));
+      dispatch(setDifferentialMateriaMedicaLoading(false));
       return;
     }
 
     if (!Array.isArray(differentialMateriaMedicaHeadIds) || differentialMateriaMedicaHeadIds.length === 0) {
-      dispatch(setDifferentialMateriaMedicaList(null));
+      if (!differentialMmLoadingRef.current) {
+        dispatch(setDifferentialMateriaMedicaLoading(true));
+      }
       return;
     }
 
     if (!Array.isArray(activeDifferentialRemedies) || activeDifferentialRemedies.length === 0) {
       dispatch(setDifferentialMateriaMedicaList(null));
+      dispatch(setDifferentialMateriaMedicaLoading(false));
       return;
     }
 
@@ -3164,6 +3230,7 @@ const PatientBoard = () => {
 
     if (remedyIndexModelList.length === 0) {
       dispatch(setDifferentialMateriaMedicaList(null));
+      dispatch(setDifferentialMateriaMedicaLoading(false));
       return;
     }
 
@@ -3177,7 +3244,9 @@ const PatientBoard = () => {
     selectedDifferentialAuthorId,
     differentialMateriaMedicaHeadIds,
     activeDifferentialRemedies,
-    materiaMedicaHeadingByAuthorIdLoading
+    materiaMedicaHeadingByAuthorIdLoading,
+    differentialHeadingSelectionPending,
+    filteredMateriaMedicaHeadingItems,
   ]);
 
   const tooltipTimeoutRef = useRef(null);
@@ -15765,8 +15834,16 @@ const PatientBoard = () => {
                             <span
                               key={author.authorId}
                               className={`pb-dmm-author-tab ${selectedDifferentialAuthorId === author.authorId ? 'active' : ''}`}
-                              onClick={() => setSelectedDifferentialAuthorId(author.authorId)}
+                              onClick={() => handleDifferentialAuthorSelect(author.authorId)}
                               title={author.authorName?.trim() || 'N/A'}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  handleDifferentialAuthorSelect(author.authorId);
+                                }
+                              }}
                             >
                               {author.authorName?.trim() || 'N/A'}
                             </span>
@@ -15777,9 +15854,10 @@ const PatientBoard = () => {
                       </div>
                       <div className="flex-grow-1 pb-tab-card-scroll custom-scrollbar">
                         <div className="p-1">
-                          {materiaMedicaHeadingByAuthorIdLoading || differentialMateriaMedicaLoading ? (
-                            <div className="text-center p-4">
-                              <p className="text-muted">Loading differential materia medica...</p>
+                          {showDifferentialMmLoading ? (
+                            <div className="text-center p-4 d-flex flex-column align-items-center justify-content-center gap-2">
+                              <Spinner size="sm" color="primary" />
+                              <p className="text-muted mb-0">Loading differential materia medica...</p>
                             </div>
                           ) : filteredDifferentialMateriaMedica && filteredDifferentialMateriaMedica.length > 0 ? (
                             filteredDifferentialMateriaMedica.map((remedy, index) => {
@@ -16011,8 +16089,9 @@ const PatientBoard = () => {
                       <div className="pb-section-divider"></div>
                       <div className="flex-grow-1 pb-tab-card-scroll custom-scrollbar">
                         {materiaMedicaHeadingByAuthorIdLoading ? (
-                          <div className="text-center p-4">
-                            <p className="text-muted">Loading headings...</p>
+                          <div className="text-center p-4 d-flex flex-column align-items-center justify-content-center gap-2">
+                            <Spinner size="sm" color="primary" />
+                            <p className="text-muted mb-0">Loading headings...</p>
                           </div>
                         ) : filteredMateriaMedicaHeadingItems && filteredMateriaMedicaHeadingItems.length > 0 ? (
                           filteredMateriaMedicaHeadingItems.map((heading) => {
