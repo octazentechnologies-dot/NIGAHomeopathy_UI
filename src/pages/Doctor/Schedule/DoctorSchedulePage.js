@@ -61,7 +61,7 @@ const DoctorSchedulePage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Clinic schedule</h2>
+            <h2 className="clinic-page-title"><i className="ri-calendar-2-line" aria-hidden="true" />Clinic schedule</h2>
             <p className="clinic-page-subtitle mb-0">
               Same daily hours as dashboard schedule setup, profile Hours, and booking slots.
             </p>
@@ -90,7 +90,7 @@ const DoctorSchedulePage = () => {
                     <div className="fw-medium">{d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</div>
                     <button
                       type="button"
-                      className="btn btn-sm clinic-primary-btn mt-2"
+                      className="btn btn-sm btn-soft-primary mt-2"
                       disabled={!doctorId}
                       onClick={() => setOpenDate(d)}
                     >

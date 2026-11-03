@@ -100,7 +100,7 @@ const EditPackage = () => {
                 >
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Package</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Package</h5>
                     </div>
                   </CardHeader>
 

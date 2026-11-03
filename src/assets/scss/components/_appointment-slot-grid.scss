@@ -217,16 +217,82 @@ $slot-color-current: #ffbc0a; // E-CONSULT
 }
 
 .new-appointment-modal .appointment-slot-panel {
-  border: 1px solid #d7e3ef;
-  border-radius: 10px;
-  padding: 12px 14px;
-  background: #fff;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
   width: 100%;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: none;
 }
 
 .new-appointment-modal .modal-dialog {
-  max-width: 960px;
+  max-width: 720px;
+}
+
+.new-appointment-modal .appointment-slot-grid,
+.new-appointment-modal .appointment-slot-grid--compact {
+  gap: 0.35rem;
+}
+
+.new-appointment-modal .appointment-slot-summary {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.new-appointment-modal .appointment-slot-summary-bar {
+  flex: 1 1 auto;
+  height: 6px;
+}
+
+.new-appointment-modal .appointment-slot-legend {
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  font-size: 0.65rem;
+}
+
+.new-appointment-modal .appointment-slot-legend-item {
+  gap: 0.28rem;
+}
+
+.new-appointment-modal .appointment-slot-legend-swatch {
+  width: 8px;
+  height: 8px;
+}
+
+.new-appointment-modal .appointment-slot-grid-body {
+  max-height: 6.6rem;
+  overflow-y: auto;
+  gap: 3px;
+  padding-right: 0.15rem;
+}
+
+.new-appointment-modal .appointment-slot-hour-row {
+  grid-template-columns: 2.55rem minmax(0, 1fr);
+  gap: 0.35rem;
+}
+
+.new-appointment-modal .appointment-slot-hour-label {
+  font-size: 0.65rem;
+  padding-right: 0;
+}
+
+.new-appointment-modal .appointment-slot-row {
+  grid-template-columns: repeat(auto-fit, minmax(4.35rem, 1fr));
+  gap: 3px;
+}
+
+.new-appointment-modal .appointment-slot-chip {
+  min-height: 1.28rem;
+  padding: 0.04rem 0.15rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  line-height: 1.1;
+}
+
+.new-appointment-modal .appointment-slot-chip.available:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 767.98px) {
@@ -254,7 +320,15 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   }
 
   .new-appointment-modal .appointment-slot-panel {
-    padding: 10px;
+    padding: 0;
+  }
+
+  .new-appointment-modal .appointment-slot-summary {
+    align-items: flex-start;
+  }
+
+  .new-appointment-modal .appointment-slot-grid-body {
+    max-height: 8.5rem;
   }
 }
 

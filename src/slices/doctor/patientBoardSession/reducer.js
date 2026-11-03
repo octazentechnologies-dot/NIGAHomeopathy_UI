@@ -1,8 +1,22 @@
 import { createSlice } from '@reduxjs/toolkit';
+import {
+  clearPersistedPatientBoardSessions,
+  loadPersistedPatientBoardSessions,
+  persistPatientBoardSessions,
+} from '../../../helpers/patientBoardSessionPersist';
+
+const persisted = loadPersistedPatientBoardSessions();
 
 export const initialState = {
-  sessions: [],
-  activePatientKey: null,
+  sessions: persisted?.sessions ?? [],
+  activePatientKey: persisted?.activePatientKey ?? null,
+};
+
+const syncPersist = (state) => {
+  persistPatientBoardSessions({
+    sessions: state.sessions,
+    activePatientKey: state.activePatientKey,
+  });
 };
 
 const PatientBoardSessionSlice = createSlice({
@@ -42,6 +56,7 @@ const PatientBoardSessionSlice = createSlice({
       }
 
       state.activePatientKey = patientKey;
+      syncPersist(state);
     },
     completePatientBoardSession(state, action) {
       const patientKey = action.payload;
@@ -53,13 +68,16 @@ const PatientBoardSessionSlice = createSlice({
       if (state.activePatientKey === patientKey) {
         state.activePatientKey = state.sessions[0]?.patientKey ?? null;
       }
+      syncPersist(state);
     },
     setActivePatientBoardSession(state, action) {
       state.activePatientKey = action.payload ?? null;
+      syncPersist(state);
     },
     clearPatientBoardSession(state) {
       state.sessions = [];
       state.activePatientKey = null;
+      clearPersistedPatientBoardSessions();
     },
   },
 });

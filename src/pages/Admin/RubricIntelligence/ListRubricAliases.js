@@ -278,7 +278,10 @@ const ListRubricAliases = () => {
       </Container>
 
       <Modal isOpen={modalOpen} toggle={() => setModalOpen(false)}>
-        <ModalHeader toggle={() => setModalOpen(false)}>{editId ? 'Edit alias' : 'Add alias'}</ModalHeader>
+        <ModalHeader toggle={() => setModalOpen(false)}>
+          <i className={editId ? "ri-edit-line" : "ri-add-circle-line"} aria-hidden="true" />
+          {editId ? "Edit alias" : "Add alias"}
+        </ModalHeader>
         <ModalBody>
           <div className="mb-3">
             <Label>SubSection</Label>

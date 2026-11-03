@@ -7,37 +7,32 @@ const KPI_CARDS = [
   {
     id: "today",
     label: "Today's Appointments",
-    icon: "mdi mdi-calendar-clock",
+    icon: "ri-calendar-check-line",
     linkPath: "#patient-appointments",
-    linkLabel: "View All",
   },
   {
     id: "upcoming",
     label: "Upcoming Visits",
-    icon: "mdi mdi-calendar-month",
+    icon: "ri-calendar-line",
     linkPath: "#patient-appointments",
-    linkLabel: "View All",
   },
   {
     id: "payments",
     label: "Pending Payments",
-    icon: "mdi mdi-cash-multiple",
+    icon: "ri-wallet-3-line",
     linkPath: "/patient/medicine-orders",
-    linkLabel: "View All",
   },
   {
     id: "prescriptions",
     label: "Prescriptions",
-    icon: "mdi mdi-file-document-outline",
+    icon: "ri-file-list-3-line",
     linkPath: "/patient/prescriptions",
-    linkLabel: "View All",
   },
   {
     id: "medicines",
     label: "Medicine Orders",
-    icon: "mdi mdi-capsule",
+    icon: "ri-capsule-line",
     linkPath: "/patient/medicine-orders",
-    linkLabel: "View All",
   },
 ];
 
@@ -66,25 +61,23 @@ const SummaryWidgets = ({ values = {}, onTodayClick }) => (
                   {isHash ? (
                     <button
                       type="button"
-                      className="btn btn-link p-0 patient-kpi-link"
+                      className="patient-kpi-view"
+                      title="View all"
+                      aria-label={`View all ${item.label}`}
                       onClick={() => {
                         onTodayClick?.();
                         document.getElementById("patient-appointments")?.scrollIntoView({ behavior: "smooth" });
                       }}
                     >
-                      {item.linkLabel}
+                      <i className="ri-eye-line" aria-hidden="true" />
                     </button>
                   ) : (
-                    <Link to={item.linkPath} className="patient-kpi-link">
-                      {item.linkLabel}
+                    <Link to={item.linkPath} className="patient-kpi-view" title="View all" aria-label={`View all ${item.label}`}>
+                      <i className="ri-eye-line" aria-hidden="true" />
                     </Link>
                   )}
                 </div>
-                <div className="avatar-sm flex-shrink-0">
-                  <span className="avatar-title rounded fs-3 bg-info-subtle border border-info border-opacity-25">
-                    <i className={`text-info ${item.icon}`} />
-                  </span>
-                </div>
+                <i className={`${item.icon} patient-kpi-icon`} aria-hidden="true" />
               </div>
             </CardBody>
           </Card>

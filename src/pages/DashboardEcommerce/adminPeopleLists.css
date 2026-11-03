@@ -59,7 +59,7 @@
   flex-direction: column;
   gap: 0.5rem;
   min-width: 0;
-  padding: 0.6rem 0.75rem !important;
+  padding: 0.4rem !important;
 }
 
 /* Toolbar */

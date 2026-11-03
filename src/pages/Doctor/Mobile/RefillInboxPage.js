@@ -74,7 +74,7 @@ const RefillInboxPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Refill inbox</h2>
+            <h2 className="clinic-page-title"><i className="ri-medicine-bottle-line" aria-hidden="true" />Refill inbox</h2>
             <p className="clinic-page-subtitle mb-0">
               Approve or reject repeat prescription requests. The signed prescription stays read-only.
             </p>
@@ -96,7 +96,7 @@ const RefillInboxPage = () => {
             <button
               key={value}
               type="button"
-              className={`btn btn-sm clinic-action-btn ${status === value ? "clinic-primary-btn" : "btn-soft-secondary"}`}
+              className={`btn btn-sm ${status === value ? "btn-soft-primary" : "btn-soft-secondary"}`}
               onClick={() => setStatus(value)}
               disabled={loading}
             >

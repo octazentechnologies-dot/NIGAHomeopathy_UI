@@ -116,8 +116,8 @@ export default function WhatsAppMessageEditor({
           borderRadius: 2,
           border: "1px solid #e9ecef",
           backgroundColor: "#ffffff",
-          minHeight: 180,
-          height: 180,
+          minHeight: 108,
+          height: 108,
           padding: "8px 12px",
         }}
       />

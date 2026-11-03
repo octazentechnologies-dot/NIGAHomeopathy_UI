@@ -10,7 +10,7 @@ const AccountPlaceholder = ({ title = "Account" }) => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">{title}</h2>
+            <h2 className="clinic-page-title"><i className="ri-bank-card-line" aria-hidden="true" />{title}</h2>
             <p className="clinic-page-subtitle mb-0">
               Account module screens will be built in M08. Do not add tables yet.
             </p>

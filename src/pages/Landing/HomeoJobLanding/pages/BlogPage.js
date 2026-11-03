@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Card, CardBody, Col, Container, Row, Spinner } from "reactstrap";
+import { Col, Container, Row, Spinner } from "reactstrap";
 
-import PageBanner from "../../Minimaltheme/components/PageBanner";
 import { SITE } from "../../Minimaltheme/constants/siteContent";
 import { getAllBlogs } from "../../Minimaltheme/helpers/marketingApi";
 import { landingPath } from "../../../../constants/landingRoutes";
+import LandingPageHero from "../components/LandingPageHero";
+import StoryCard from "../components/StoryCard";
 
 import img8 from "../../../../assets/images/small/img-8.jpg";
+import img6 from "../../../../assets/images/small/img-6.jpg";
+
+const FALLBACK_IMAGES = [img8, img6];
 
 const BlogPage = () => {
     const [blogs, setBlogs] = useState([]);
@@ -16,64 +19,47 @@ const BlogPage = () => {
     useEffect(() => {
         document.title = `${SITE.name} | Blog`;
         getAllBlogs()
-            .then((list) => setBlogs(list))
+            .then((list) => setBlogs(Array.isArray(list) ? list : []))
             .catch(() => setBlogs([]))
             .finally(() => setLoading(false));
     }, []);
 
     return (
-        <>
-            <PageBanner title="Our Blogs" breadcrumb="Blogs" />
-            <section className="section">
-                <Container>
-                    {loading ? (
-                        <div className="text-center py-5">
-                            <Spinner color="primary" />
-                        </div>
-                    ) : blogs.length === 0 ? (
-                        <div className="text-center text-muted py-5">No blog posts found.</div>
-                    ) : (
-                        <Row className="g-4">
-                            {blogs.map((blog) => (
-                                <Col lg={4} md={6} key={blog.blogId}>
-                                    <Card className="h-100 border-0 shadow-sm">
-                                        <CardBody>
-                                            <img
-                                                src={blog.blogImage1 || img8}
-                                                alt={blog.blogHead}
-                                                className="img-fluid rounded"
-                                                style={{ height: 220, width: "100%", objectFit: "cover" }}
-                                            />
-                                        </CardBody>
-                                        <CardBody>
-                                            {blog.blogDate && (
-                                                <ul className="list-inline fs-14 text-muted mb-2">
-                                                    <li className="list-inline-item">
-                                                        <i className="ri-calendar-line align-bottom me-1"></i>
-                                                        {blog.blogDate}
-                                                    </li>
-                                                </ul>
-                                            )}
-                                            <h5>
-                                                <Link to={landingPath(`blog/${blog.blogId}`)} className="text-body">
-                                                    {blog.blogHead}
-                                                </Link>
-                                            </h5>
-                                            <p className="text-muted fs-14 ff-secondary">
-                                                {blog.blogSubHead || blog.blogDescription || ""}
-                                            </p>
-                                            <Link to={landingPath(`blog/${blog.blogId}`)} className="link-success">
-                                                Learn More <i className="ri-arrow-right-line align-bottom ms-1"></i>
-                                            </Link>
-                                        </CardBody>
-                                    </Card>
-                                </Col>
-                            ))}
-                        </Row>
-                    )}
-                </Container>
-            </section>
-        </>
+        <section className="homeojob-page">
+            <Container>
+                <LandingPageHero
+                    breadcrumb="Blog"
+                    eyebrow="Blog & Updates"
+                    title="Our Latest"
+                    highlight="News"
+                    subtitle={`Practice notes, clinic updates, and homeopathy insights from ${SITE.name}.`}
+                />
+
+                {loading ? (
+                    <div className="text-center py-5">
+                        <Spinner color="primary" />
+                    </div>
+                ) : blogs.length === 0 ? (
+                    <p className="homeojob-page__empty">No blog posts yet.</p>
+                ) : (
+                    <Row className="g-4">
+                        {blogs.map((blog, index) => (
+                            <Col lg={6} md={6} key={blog.blogId || index}>
+                                <StoryCard
+                                    index={index}
+                                    image={blog.blogImage1 || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]}
+                                    imageAlt={blog.blogHead}
+                                    date={blog.blogDate}
+                                    title={blog.blogHead}
+                                    excerpt={blog.blogSubHead || blog.blogDescription || ""}
+                                    href={landingPath(`blog/${blog.blogId}`)}
+                                />
+                            </Col>
+                        ))}
+                    </Row>
+                )}
+            </Container>
+        </section>
     );
 };
 

@@ -110,7 +110,7 @@ const RefillDetailPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Refill {id ? `#${id}` : "—"}</h2>
+            <h2 className="clinic-page-title"><i className="ri-medicine-bottle-line" aria-hidden="true" />Refill {id ? `#${id}` : "—"}</h2>
             <p className="clinic-page-subtitle mb-0">
               Review the signed prescription, then approve or reject. The prescription is not editable here.
             </p>
@@ -201,7 +201,7 @@ const RefillDetailPage = () => {
                   <div className="clinic-table-actions mb-3">
                     <button
                       type="button"
-                      className="btn btn-sm clinic-primary-btn"
+                      className="btn btn-sm btn-soft-primary"
                       disabled={busy}
                       onClick={handleApprove}
                       aria-label="Approve refill"

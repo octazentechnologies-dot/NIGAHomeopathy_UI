@@ -337,7 +337,10 @@ const ListRubricMetaphors = () => {
       </Container>
 
       <Modal isOpen={modalOpen} toggle={() => setModalOpen(false)} size="lg">
-        <ModalHeader toggle={() => setModalOpen(false)}>{editId ? 'Edit metaphor' : 'Add metaphor'}</ModalHeader>
+        <ModalHeader toggle={() => setModalOpen(false)}>
+          <i className={editId ? "ri-edit-line" : "ri-add-circle-line"} aria-hidden="true" />
+          {editId ? "Edit metaphor" : "Add metaphor"}
+        </ModalHeader>
         <ModalBody>
           <Row className="g-3">
             <Col md={12}>

@@ -115,7 +115,7 @@ const EditLabsImaging = () => {
                 <Form onSubmit={formik.handleSubmit}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Labs & Imaging</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Labs & Imaging</h5>
                     </div>
                   </CardHeader>
 

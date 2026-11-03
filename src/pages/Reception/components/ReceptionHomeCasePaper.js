@@ -179,7 +179,7 @@ const ReceptionHomeCasePaper = ({ queue = [], prefillPatientId, prefillLabel, on
         onChange={(e) => setChiefComplaint(e.target.value)}
         placeholder="Short reason for visit"
       />
-      <Button className="reception-primary-btn mt-2" type="button" disabled={saving || !patientId} onClick={save}>
+      <Button className="btn btn-sm btn-soft-primary mt-2" type="button" disabled={saving || !patientId} onClick={save}>
         {saving ? <Spinner size="sm" /> : "Save case paper"}
       </Button>
       {history.length > 0 ? (

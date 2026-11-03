@@ -89,6 +89,7 @@ const MENU_LINK_OVERRIDES = {
   "/admin/consult-payments": { icon: "ri-secure-payment-line" },
   "/admin/reports": { icon: "ri-bar-chart-line" },
   "/admin/pharmacy-partners": { label: "Pharmacy configuration", icon: "ri-store-3-line" },
+  "/pharmacydashboard": { label: "Home", icon: "ri-home-4-line" },
 };
 
 export const mapMenuMasterToNavItems = (rows) => {
@@ -474,19 +475,41 @@ const PATIENT_PRIMARY_LINKS = new Set([
   "/patient/prescriptions",
 ]);
 
-/** Drop Profile (header avatar) and Support (Help icon); keep Dashboard first. */
+/** Drop Profile (header avatar), Support (Help icon), and Notifications (top-bar bell); keep Dashboard first. */
 export const normalizePatientHorizontalMenu = (items) => {
   const isDashboard = (link) => {
     const normalized = normalizePatientMenuLink(link);
     return normalized === "/patientdashboard" || normalized === "/patient/home";
   };
-  const isHidden = (link) => {
-    const normalized = normalizePatientMenuLink(link);
+  const isHidden = (item) => {
+    const normalized = normalizePatientMenuLink(item?.link);
+    const label = String(item?.label || "").trim().toLowerCase();
+    if (label === "notifications" || label === "notification") return true;
+    if (normalized.includes("notification")) return true;
     if (normalized === "/profile" || normalized.startsWith("/profile")) return true;
     if (normalized === "/patient/support" || normalized.startsWith("/patient/support")) return true;
     return false;
   };
-  const cleaned = (items || []).filter((item) => !isHidden(item.link));
+  const stripHidden = (list) =>
+    (list || [])
+      .filter((item) => !isHidden(item))
+      .map((item) => {
+        const subItems = stripHidden(item.subItems);
+        const childItems = stripHidden(item.childItems);
+        if (!subItems.length && !childItems.length) {
+          if (!item.subItems && !item.childItems) return item;
+          const next = { ...item };
+          delete next.subItems;
+          delete next.childItems;
+          return next;
+        }
+        return {
+          ...item,
+          ...(item.subItems ? { subItems } : {}),
+          ...(item.childItems ? { childItems } : {}),
+        };
+      });
+  const cleaned = stripHidden(items);
   const dash = cleaned.find((item) => isDashboard(item.link));
   const rest = cleaned.filter((item) => !isDashboard(item.link));
   const home =

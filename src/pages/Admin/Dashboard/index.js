@@ -45,14 +45,14 @@ const AdminDashboard = () => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Clinic dashboard</h2>
+        <h2 className="clinic-page-title"><i className="ri-dashboard-2-line" aria-hidden="true" />Clinic dashboard</h2>
         <p className="clinic-page-subtitle">Appointments, medicine orders, and open follow-ups from the clinic database.</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {loading ? <Spinner size="sm" /> : (
           <Row className="g-3 mb-3">
             {cards.map(([label, value]) => (
               <Col md={4} key={label}>
-                <Card className="admin-dash-card">
+                <Card className="admin-dash-card admin-kpi-card">
                   <CardBody>
                     <div className="text-muted small">{label}</div>
                     <div className="fs-4">{value ?? 0}</div>

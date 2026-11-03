@@ -5,6 +5,7 @@ import { Alert, Button, Card, CardBody, Col, Container, Input, Label, ListGroup,
 import { getPatientList, getReceptionCasePapers, saveReceptionCasePaper } from "../../helpers/realbackend_helper";
 import { getAuthUserId } from "../../helpers/menuByRole";
 import { apiMessage, unwrap } from "./receptionSession";
+import "./ReceptionNew/components/receptionDashboard.css";
 
 const patientIdOf = (row) => row?.patientID ?? row?.patientId ?? row?.PatientID ?? row?.PatientId ?? null;
 const caseIdOf = (row) => row?.caseId ?? row?.CaseId ?? null;
@@ -171,11 +172,11 @@ const ReceptionCasePaper = () => {
   return (
     <div className="page-content admin-dashboard-page reception-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Case paper</h2>
+        <h2 className="clinic-page-title"><i className="ri-file-text-line" aria-hidden="true" />Case paper</h2>
         <p className="clinic-page-subtitle">
           Log the reason for visit before consultation. Search by patient name or mobile.
         </p>
-        <Row className="g-3">
+        <Row className="g-2">
           <Col lg={6}>
             <Card className="admin-dash-card">
               <CardBody>
@@ -196,7 +197,7 @@ const ReceptionCasePaper = () => {
                     {patientsLoading ? "Loading clinic patients…" : `${patients.length} patients for this doctor`}
                   </small>
                   <Button color="link" size="sm" className="p-0" type="button" onClick={loadPatients} disabled={patientsLoading}>
-                    Refresh
+                    <i className="ri-refresh-line" aria-hidden="true" /> Refresh
                   </Button>
                 </div>
                 {patientsLoading ? <Spinner size="sm" /> : null}
@@ -245,7 +246,7 @@ const ReceptionCasePaper = () => {
                   onChange={(event) => setChiefComplaint(event.target.value)}
                   placeholder="Short reason for visit"
                 />
-                <Button className="mt-3 reception-primary-btn" disabled={saving || !patientId} onClick={save}>
+                <Button className="btn btn-sm btn-soft-primary mt-3" disabled={saving || !patientId} onClick={save}>
                   {saving ? "Saving…" : "Save"}
                 </Button>
                 <div className="mt-3">

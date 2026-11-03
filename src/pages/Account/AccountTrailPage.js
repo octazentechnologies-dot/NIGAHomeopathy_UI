@@ -41,7 +41,7 @@ const AccountTrailPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Account trail</h2>
+            <h2 className="clinic-page-title"><i className="ri-route-line" aria-hidden="true" />Account trail</h2>
             <p className="clinic-page-subtitle mb-0">
               Payment orders and exceptions for one appointment, payment, or doctor.
             </p>
@@ -76,7 +76,7 @@ const AccountTrailPage = () => {
               </Col>
               <Col md={3}>
                 <Button color="primary" disabled={loading} onClick={load}>
-                  Show trail
+                  <i className="ri-route-line" aria-hidden="true" /> Show trail
                 </Button>
               </Col>
             </Row>

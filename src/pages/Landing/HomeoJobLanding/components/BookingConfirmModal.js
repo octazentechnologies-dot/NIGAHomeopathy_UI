@@ -749,11 +749,11 @@ const BookingConfirmModal = ({
                                         I have reviewed and agree to{" "}
                                         <strong>{policyTitle}</strong>
                                         {policyVersion ? ` (v${policyVersion})` : ""}, the{" "}
-                                        <Link to={landingPath("terms")} target="_blank">
+                                        <Link to={`${landingPath("terms")}?audience=patient`} target="_blank">
                                             Terms &amp; Conditions
                                         </Link>{" "}
                                         and{" "}
-                                        <Link to={landingPath("privacy")} target="_blank">
+                                        <Link to={`${landingPath("privacy")}?audience=patient`} target="_blank">
                                             Privacy Policy
                                         </Link>
                                         .
@@ -948,11 +948,11 @@ const BookingConfirmModal = ({
                                     <strong>{policyTitle}</strong>
                                     {policyVersion ? ` (v${policyVersion})` : ""}{" "}
                                     and the{" "}
-                                    <Link to={landingPath("terms")} target="_blank">
+                                    <Link to={`${landingPath("terms")}?audience=patient`} target="_blank">
                                         Terms &amp; Conditions
                                     </Link>{" "}
                                     /{" "}
-                                    <Link to={landingPath("privacy")} target="_blank">
+                                    <Link to={`${landingPath("privacy")}?audience=patient`} target="_blank">
                                         Privacy Policy
                                     </Link>
                                     .

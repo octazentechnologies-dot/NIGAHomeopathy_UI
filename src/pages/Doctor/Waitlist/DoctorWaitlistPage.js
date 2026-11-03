@@ -35,7 +35,7 @@ const DoctorWaitlistPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Waitlist</h2>
+            <h2 className="clinic-page-title"><i className="ri-time-line" aria-hidden="true" />Waitlist</h2>
             <p className="clinic-page-subtitle mb-0">Patients waiting for an offered slot. Joining does not reserve time.</p>
           </div>
         </div>

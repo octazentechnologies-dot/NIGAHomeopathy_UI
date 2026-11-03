@@ -29,6 +29,10 @@ import {
 } from "../../../../helpers/realbackend_helper";
 import { getPublicFee, unwrapS4 } from "../../../../helpers/s4Week4Api";
 import { paymentStatusMeta } from "../../../../helpers/paymentStatusBadge";
+import {
+  COMPLETED_STATUS_LOCKED_MESSAGE,
+  isAppointmentCompleted,
+} from "../../../../helpers/appointmentStatus";
 import { apiMessage, readReceptionDoctorId, unwrap } from "../../receptionSession";
 import AppointmentPatientViewModal from "./AppointmentPatientViewModal";
 
@@ -184,6 +188,13 @@ const AppointmentActionButtons = ({ row, onView, onEdit, onDelete }) => (
 const AppStatusCell = ({ row, onStatusChange }) => {
   const current = row.appointmentStatus || "";
   if (!current) return <span className="text-muted">-</span>;
+  if (isAppointmentCompleted(current)) {
+    return (
+      <span className="text-nowrap" style={{ fontSize: "0.75rem" }} title={COMPLETED_STATUS_LOCKED_MESSAGE}>
+        {current}
+      </span>
+    );
+  }
   return (
     <UncontrolledDropdown>
       <DropdownToggle
@@ -426,6 +437,10 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
   const handleStatusChange = async (row, newStatus) => {
     const appId = Number(row.patientAppId || row.id);
     if (!appId || !newStatus || newStatus === row.appointmentStatus) return;
+    if (isAppointmentCompleted(row.appointmentStatus)) {
+      Swal.fire({ icon: "info", text: COMPLETED_STATUS_LOCKED_MESSAGE });
+      return;
+    }
     try {
       await updateAppointmentStatus({ patientAppId: appId, status: newStatus });
       onChanged?.();
@@ -464,7 +479,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
   };
 
   return (
-    <Row className="mt-3">
+    <Row className="reception-appointments-row">
       <Col xs={12}>
         <Card className="doctor-appointments-card reception-appointments-card mb-0">
           <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header doctor-patient-nav-tabs doctor-appointments-toolbar">
@@ -476,7 +491,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
                     className={classnames({ active: activeTab === "1" })}
                     onClick={() => setActiveTab("1")}
                   >
-                    <span className="doctor-patient-tab-label">Today</span>
+                    <span className="doctor-patient-tab-label">Today ({todaySource.length})</span>
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -485,7 +500,7 @@ const TodaysAppointments = ({ onEditAppointment, refreshKey = 0, onChanged }) =>
                     className={classnames({ active: activeTab === "2" })}
                     onClick={() => setActiveTab("2")}
                   >
-                    <span className="doctor-patient-tab-label">All</span>
+                    <span className="doctor-patient-tab-label">All ({allSource.length})</span>
                   </NavLink>
                 </NavItem>
               </Nav>

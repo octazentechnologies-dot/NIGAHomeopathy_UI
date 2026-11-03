@@ -19,7 +19,7 @@ const PatientStatsEmptyState = ({ filter, icon = 'ri-pie-chart-2-line', onRetry,
                     : `No appointments were found for ${periodLabel}. Patient stats will appear here once appointments are recorded.`}
             </p>
             {onRetry ? (
-                <button type="button" className="btn btn-sm btn-soft-primary mt-3" onClick={onRetry}>
+                <button type="button" className="btn btn-sm btn-soft-secondary mt-3" onClick={onRetry}>
                     Refresh
                 </button>
             ) : null}

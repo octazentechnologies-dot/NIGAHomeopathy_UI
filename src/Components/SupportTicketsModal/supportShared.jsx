@@ -1,4 +1,4 @@
-import React from "react";
+import { pageWindow } from "../../helpers/pageWindow";
 import { PaginationItem, PaginationLink } from "reactstrap";
 
 export const PAGE_SIZE = 5;
@@ -30,19 +30,7 @@ export const formatFileSize = (bytes) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const getVisiblePageItems = (currentPage, totalPages) => {
-  if (totalPages <= 5) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-  const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
-  const sorted = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
-  const result = [];
-  sorted.forEach((page, idx) => {
-    if (idx > 0 && page - sorted[idx - 1] > 1) result.push("ellipsis");
-    result.push(page);
-  });
-  return result;
-};
+const getVisiblePageItems = (currentPage, totalPages) => pageWindow(currentPage, totalPages, "ellipsis");
 
 export const CompactPaginationPages = ({ currentPage, totalPages, onPageChange }) => {
   const items = getVisiblePageItems(currentPage, totalPages);

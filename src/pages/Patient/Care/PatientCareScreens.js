@@ -46,12 +46,18 @@ const visitLabel = (visit) =>
 const isLiveSession = (visit) =>
   !visit.isExpired && /^(active|waiting|started|live)$/i.test(visit.sessionStatus);
 
+const SHELL_ICONS = {
+  "Visit chat": "ri-chat-1-line",
+  "Rejoin call": "ri-vidicon-line",
+  "Consultation summary": "ri-file-text-line",
+};
+
 const Shell = ({ title, subtitle, children }) => (
   <div className="page-content admin-dashboard-page clinic-workspace-page prx-page">
     <Container fluid>
       <div className="prx-page__header">
         <div>
-          <h2 className="clinic-page-title">{title}</h2>
+          <h2 className="clinic-page-title"><i className={SHELL_ICONS[title] || "ri-file-text-line"} aria-hidden="true" />{title}</h2>
           <p className="clinic-page-subtitle">{subtitle}</p>
         </div>
       </div>
@@ -228,12 +234,11 @@ export const PatientChatPage = () => {
                           className={`mb-2 d-flex ${mine ? "justify-content-end" : "justify-content-start"}`}
                         >
                           <div
-                            className={`rounded px-3 py-2 ${mine ? "bg-primary text-white" : "bg-light"}`}
-                            style={{ maxWidth: "75%" }}
+                            className={`patient-chat-bubble${mine ? " patient-chat-bubble--mine" : ""}`}
                           >
                             <div className="small fw-semibold">{mine ? "You" : selected.doctorName}</div>
                             <div>{field(row, "body") || field(row, "text")}</div>
-                            <div className={`small ${mine ? "text-white-50" : "text-muted"}`}>
+                            <div className={`small ${mine ? "patient-chat-bubble__time" : "text-muted"}`}>
                               {field(row, "at") ? moment(field(row, "at")).format("DD MMM, hh:mm A") : ""}
                             </div>
                           </div>
@@ -253,7 +258,7 @@ export const PatientChatPage = () => {
                 disabled={sending}
               />
               <div className="d-flex gap-2 mt-2">
-                <button type="button" className="btn btn-primary" onClick={send} disabled={!body.trim() || sending}>
+                <button type="button" className="btn btn-sm btn-soft-primary" onClick={send} disabled={!body.trim() || sending}>
                   {sending ? <Spinner size="sm" /> : "Send"}
                 </button>
                 <button
@@ -262,7 +267,7 @@ export const PatientChatPage = () => {
                   onClick={() => load(selected.sessionId)}
                   disabled={loading}
                 >
-                  Refresh
+                  <i className="ri-refresh-line" aria-hidden="true" /> Refresh
                 </button>
               </div>
             </>
@@ -335,12 +340,12 @@ export const PatientRejoinPage = () => {
           )}
           <div className="d-flex gap-2 mt-3">
             {selected ? (
-              <button type="button" className="btn btn-primary" onClick={rejoin} disabled={loading || offline}>
+              <button type="button" className="btn btn-sm btn-soft-primary" onClick={rejoin} disabled={loading || offline}>
                 {loading ? <Spinner size="sm" /> : "Rejoin"}
               </button>
             ) : null}
             <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={reload} disabled={visitsLoading}>
-              Refresh
+              <i className="ri-refresh-line" aria-hidden="true" /> Refresh
             </button>
           </div>
           {result ? (
@@ -355,7 +360,7 @@ export const PatientRejoinPage = () => {
               <p className="mb-2">{fallback.message || "Could not join the call."}</p>
               <div className="d-flex flex-wrap gap-2">
                 {fallback.retry ? (
-                  <button type="button" className="btn btn-sm btn-primary" onClick={rejoin} disabled={loading || offline}>
+                  <button type="button" className="btn btn-sm btn-soft-primary" onClick={rejoin} disabled={loading || offline}>
                     Try again
                   </button>
                 ) : null}

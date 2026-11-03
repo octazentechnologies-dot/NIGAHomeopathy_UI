@@ -114,7 +114,7 @@ const ReceptionNewPatientForm = ({ onCreated }) => {
           onChange={(dateOfBirth) => setForm({ ...form, dateOfBirth })}
         />
       </FormGroup>
-      <Button className="reception-primary-btn" type="button" disabled={saving} onClick={save}>
+      <Button className="btn btn-sm btn-soft-primary" type="button" disabled={saving} onClick={save}>
         {saving ? <Spinner size="sm" /> : "Save patient"}
       </Button>
     </div>

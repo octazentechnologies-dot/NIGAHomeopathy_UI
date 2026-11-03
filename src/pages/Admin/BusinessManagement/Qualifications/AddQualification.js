@@ -90,7 +90,7 @@ const AddQualification = () => {
                 >
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">New Qualification</h5>
+                      <h5 className="admin-form-title"><i className="ri-add-circle-line" aria-hidden="true" />New Qualification</h5>
                     </div>
                   </CardHeader>
 

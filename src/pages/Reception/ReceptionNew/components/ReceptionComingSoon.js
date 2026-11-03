@@ -10,6 +10,14 @@ const TITLE_BY_PATH = {
   "/reception/schedule": "Schedule",
 };
 
+const ICON_BY_TITLE = {
+  Appointments: "ri-calendar-check-line",
+  Patients: "ri-user-heart-line",
+  Payments: "ri-money-dollar-circle-line",
+  Schedule: "ri-calendar-2-line",
+  Reception: "ri-customer-service-2-line",
+};
+
 const ReceptionComingSoon = ({ title }) => {
   const { pathname } = useLocation();
   const pageTitle = title || TITLE_BY_PATH[pathname] || "Reception";
@@ -22,11 +30,11 @@ const ReceptionComingSoon = ({ title }) => {
           <Col lg={7} xl={6}>
             <Card className="admin-dash-card reception-notice-card mb-0">
               <CardBody className="text-center py-5">
-                <h2 className="reception-page-title mb-2">{pageTitle}</h2>
+                <h2 className="reception-page-title mb-2"><i className={ICON_BY_TITLE[pageTitle] || "ri-customer-service-2-line"} aria-hidden="true" />{pageTitle}</h2>
                 <p className="reception-page-subtitle mb-4">
                   This screen is ready for reception workflows. Content will be added next.
                 </p>
-                <Link to="/receptiondashboard" className="btn btn-sm reception-primary-btn">
+                <Link to="/receptiondashboard" className="btn btn-sm btn-soft-primary">
                   Back to Dashboard
                 </Link>
               </CardBody>

@@ -79,7 +79,7 @@ const EditIntensity = () => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Intensity</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Intensity</h5>
                     </div>
                   </CardHeader>
 

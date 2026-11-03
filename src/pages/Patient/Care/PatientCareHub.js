@@ -85,8 +85,6 @@ const PatientCareHub = ({ tab = "addresses" }) => {
   const [districts, setDistricts] = useState([]);
   const [cities, setCities] = useState([]);
   const [pins, setPins] = useState([]);
-  const [mobile, setMobile] = useState("");
-  const [patientId, setPatientId] = useState(null);
 
   document.title = "Patient care | Niga Homeocentrum";
 
@@ -108,8 +106,6 @@ const PatientCareHub = ({ tab = "addresses" }) => {
         const profile = unwrapClinic(await getPatientProfileMe());
         const id = profile?.patientId || profile?.PatientId;
         const phone = profile?.mobileNo || profile?.MobileNo || "";
-        setPatientId(id || null);
-        setMobile(phone);
         const data = unwrapClinic(await listWaitlistOffers(id ? { patientId: id } : { contactMobile: phone }));
         const list = Array.isArray(data) ? data : data?.data || [];
         setRows(Array.isArray(list) ? list : []);
@@ -310,18 +306,18 @@ const PatientCareHub = ({ tab = "addresses" }) => {
   });
 
   const titles = {
-    addresses: ["Delivery addresses", "Save, edit, and delete addresses used for medicine delivery."],
-    reminders: ["Reminders", "Create and edit reminders for this account."],
-    requests: ["Appointment requests", "Ask a doctor for a time, and answer a proposed time."],
-    waitlist: ["Waitlist offers", "When a slot opens, accept the offer here."],
-    checkin: ["Visit check-in", "Check in for today's clinic visit."],
+    addresses: ["Delivery addresses", "Save, edit, and delete addresses used for medicine delivery.", "ri-map-pin-line"],
+    reminders: ["Reminders", "Create and edit reminders for this account.", "ri-alarm-line"],
+    requests: ["Appointment requests", "Ask a doctor for a time, and answer a proposed time.", "ri-mail-send-line"],
+    waitlist: ["Waitlist offers", "When a slot opens, accept the offer here.", "ri-time-line"],
+    checkin: ["Visit check-in", "Check in for today's clinic visit.", "ri-checkbox-circle-line"],
   };
-  const [title, subtitle] = titles[tab] || titles.addresses;
+  const [title, subtitle, icon] = titles[tab] || titles.addresses;
 
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page patient-care-page">
       <Container fluid>
-        <h2 className="clinic-page-title">{title}</h2>
+        <h2 className="clinic-page-title"><i className={icon} aria-hidden="true" />{title}</h2>
         <p className="clinic-page-subtitle">{subtitle}</p>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}
@@ -369,7 +365,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
                   <Label check><Input type="checkbox" checked={address.isDefault} onChange={(e) => setAddress({ ...address, isDefault: e.target.checked })} /> Default</Label>
                 </Col>
                 <Col md={3} className="d-flex align-items-end">
-                  <Button color="primary" disabled={busy} onClick={saveAddress}>{editId ? "Update address" : "Save address"}</Button>
+                  <Button color="primary" disabled={busy} onClick={saveAddress}><i className="ri-save-line" aria-hidden="true" /> {editId ? "Update address" : "Save address"}</Button>
                 </Col>
               </Row>
             </CardBody></Card>
@@ -384,8 +380,8 @@ const PatientCareHub = ({ tab = "addresses" }) => {
                       <td>{[row.line1, row.line2, row.city, row.state, row.pincode].filter(Boolean).join(", ")}</td>
                       <td>{row.phone || "—"}</td>
                       <td className="text-end">
-                        <Button size="sm" color="light" className="me-2" onClick={() => { setEditId(id); setAddress({ ...emptyAddress, ...row, isDefault: Boolean(row.isDefault) }); }}>Edit</Button>
-                        <Button size="sm" color="danger" outline disabled={busy} onClick={() => run(() => deleteDeliveryAddress(id))}>Delete</Button>
+                        <Button size="sm" color="light" className="me-2" onClick={() => { setEditId(id); setAddress({ ...emptyAddress, ...row, isDefault: Boolean(row.isDefault) }); }}><i className="ri-edit-line" aria-hidden="true" /> Edit</Button>
+                        <Button size="sm" color="danger" outline disabled={busy} onClick={() => run(() => deleteDeliveryAddress(id))}><i className="ri-delete-bin-line" aria-hidden="true" /> Delete</Button>
                       </td>
                     </tr>
                   );
@@ -402,7 +398,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
                 <Col md={4}><Label>Title</Label><Input value={reminder.title} onChange={(e) => setReminder({ ...reminder, title: e.target.value })} /></Col>
                 <Col md={3}><Label>Due</Label><Input type="datetime-local" value={reminder.dueAt} onChange={(e) => setReminder({ ...reminder, dueAt: e.target.value })} /></Col>
                 <Col md={2}><Label>Kind</Label><Input value={reminder.kind} onChange={(e) => setReminder({ ...reminder, kind: e.target.value })} /></Col>
-                <Col md={3}><Button color="primary" disabled={busy} onClick={saveReminder}>{reminderId ? "Update" : "Save"}</Button></Col>
+                <Col md={3}><Button color="primary" disabled={busy} onClick={saveReminder}><i className="ri-save-line" aria-hidden="true" /> {reminderId ? "Update" : "Save"}</Button></Col>
               </Row>
             </CardBody></Card>
             <Table responsive>
@@ -418,8 +414,8 @@ const PatientCareHub = ({ tab = "addresses" }) => {
                       <Button size="sm" color="light" className="me-2" onClick={() => {
                         setReminderId(row.patientReminderId);
                         setReminder({ title: row.title || "", dueAt: row.dueAt ? String(row.dueAt).slice(0, 16) : "", kind: row.kind || "", isDone: Boolean(row.isDone) });
-                      }}>Edit</Button>
-                      <Button size="sm" color="danger" outline disabled={busy} onClick={() => run(() => deletePatientReminder(row.patientReminderId))}>Delete</Button>
+                      }}><i className="ri-edit-line" aria-hidden="true" /> Edit</Button>
+                      <Button size="sm" color="danger" outline disabled={busy} onClick={() => run(() => deletePatientReminder(row.patientReminderId))}><i className="ri-delete-bin-line" aria-hidden="true" /> Delete</Button>
                     </td>
                   </tr>
                 ))}
@@ -566,7 +562,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
 
                     <div className="pc-field pc-field--action">
                       <Button
-                        className="pc-send-btn"
+                        className="btn btn-sm btn-soft-primary"
                         disabled={busy || !Number(request.doctorId) || !request.requestedDate || !request.requestedTime}
                         onClick={() =>
                           run(async () => {
@@ -629,8 +625,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
                                 <>
                                   <Button
                                     size="sm"
-                                    color="success"
-                                    className="pc-action-btn"
+                                    className="btn-soft-success"
                                     disabled={busy}
                                     onClick={() => run(() => respondPatientAppointmentRequest(row.appointmentRequestId, "ACCEPT"))}
                                   >
@@ -638,9 +633,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
                                   </Button>
                                   <Button
                                     size="sm"
-                                    color="danger"
-                                    outline
-                                    className="pc-action-btn"
+                                    className="btn-soft-danger"
                                     disabled={busy}
                                     onClick={() => run(() => respondPatientAppointmentRequest(row.appointmentRequestId, "DECLINE"))}
                                   >
@@ -650,7 +643,7 @@ const PatientCareHub = ({ tab = "addresses" }) => {
                               ) : (
                                 <Button
                                   size="sm"
-                                  className="pc-action-btn pc-action-btn--cancel"
+                                  className="btn-soft-secondary"
                                   disabled={busy}
                                   onClick={() => run(() => cancelPatientAppointmentRequest(row.appointmentRequestId))}
                                 >
@@ -671,7 +664,6 @@ const PatientCareHub = ({ tab = "addresses" }) => {
 
         {tab === "waitlist" ? (
           <>
-            <p className="text-muted">Offers for {patientId ? `patient ${patientId}` : mobile || "this account"}.</p>
             <Table responsive>
               <thead><tr><th>Doctor</th><th>Date</th><th>Mode</th><th>Status</th><th /></tr></thead>
               <tbody>

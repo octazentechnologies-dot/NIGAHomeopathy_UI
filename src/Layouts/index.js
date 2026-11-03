@@ -33,6 +33,8 @@ import { useProfile } from '../Components/Hooks/UserHooks';
 import { resolveUserRole, usesDoctorDashboardLayout, usesAdminDashboardLayout, usesPatientDashboardLayout, UserRole } from '../Components/constants/roles';
 import { layoutTypes, sidebarVisibilitytypes } from '../Components/constants/layout';
 import useDoctorLayout from '../Components/Hooks/DoctorLayoutHook';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { isDoctorScreenLocked } from '../helpers/doctorScreenLockHelper';
 
 const Layout = (props) => {
     const [headerClass, setHeaderClass] = useState("");
@@ -44,13 +46,41 @@ const Layout = (props) => {
 
     const userRole = resolveUserRole(userProfile);
     const noSidebarLayout = usesDoctorDashboardLayout(userRole);
+    const location = useLocation();
+    const navigate = useNavigate();
     // Reception keeps a slim top bar elsewhere; Account uses its own slim horizontal finance menus.
     const hideReceptionHorizontalMenu = userRole === UserRole.RECEPTION;
+
+    useEffect(() => {
+        if (!usesDoctorDashboardLayout(userRole)) return;
+        if (!isDoctorScreenLocked()) return;
+        const normalized = String(location.pathname || '').replace(/^\//, '').toLowerCase();
+        if (normalized === 'doctor/lock' || normalized === 'logout' || normalized === 'login') return;
+        navigate('/doctor/lock', { replace: true });
+    }, [userRole, location.pathname, navigate]);
+
+    // Keep clinic SignalR alive for doctor/reception so reminderDue / inboxChanged hit the bell instantly.
+    useEffect(() => {
+        if (userRole !== UserRole.DOCTOR && userRole !== UserRole.RECEPTION) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const { ensureClinicRealtime } = await import('../helpers/clinicRealtime');
+                if (!cancelled) await ensureClinicRealtime();
+            } catch {
+                /* SignalR optional at layout boot */
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [userRole]);
 
     // Immediate role-based layout on mount (before profile hook resolves)
     useEffect(() => {
         const sessionUser = JSON.parse(sessionStorage.getItem('authUser') || 'null');
         const role = sessionUser?.role || sessionUser?.data?.role;
+        document.body.classList.toggle('account-layout', role === UserRole.ACCOUNT);
         if (usesDoctorDashboardLayout(role)) {
             document.body.classList.add('doctor-layout');
             document.body.classList.remove('admin-layout');
@@ -194,6 +224,7 @@ const Layout = (props) => {
 
         document.body.classList.toggle('patient-layout', usesPatientDashboardLayout(role));
         document.body.classList.toggle('reception-layout', role === UserRole.RECEPTION);
+        document.body.classList.toggle('account-layout', role === UserRole.ACCOUNT);
 
         if (hideSidebarLayout) {
             document.body.classList.remove('admin-layout');
@@ -260,6 +291,7 @@ const Layout = (props) => {
             document.body.classList.remove('admin-layout');
             document.body.classList.remove('patient-layout');
             document.body.classList.remove('reception-layout');
+            document.body.classList.remove('account-layout');
         };
     }, [userProfile?.role, dispatch]);
 

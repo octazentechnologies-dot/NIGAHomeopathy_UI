@@ -61,6 +61,7 @@ import {
   savePrescriptionDetail,
   getPatientDetails
 } from '../../../slices/thunks';
+import { updateAppointmentStatus } from '../../../slices/doctor/dashboard/thunk';
 import { erxPotencies, unwrapS4 } from '../../../helpers/s4Week4Api';
 import { DURATION_OPTIONS, FREQUENCY_OPTIONS, INSTRUCTION_OPTIONS, formatDosage } from '../Erx/erxOptions';
 import PatientContinuityModal from './PatientContinuityModal';
@@ -3521,22 +3522,38 @@ const PatientBoard = () => {
   ]);
 
   // Handle question rubric click to fetch rubric details
-  const handleQuestionRubricClick = async (rubric) => {
-    try {
-      setSelectedQuestionRubric(rubric);
-      setShowRemedyInfo(false);
-      // Call API to get rubric details with remedies
-      await dispatch(getRubricDetails({ subSectionId: rubric.subsectionId }));
-      // Open the modal
-      setQuestionRubricModalOpen(true);
-    } catch (error) {
-      console.error('Error fetching rubric details:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch rubric details'
-      });
+  const handleQuestionRubricClick = (rubric) => {
+    const subSectionId = rubric?.subsectionId ?? rubric?.subSectionId ?? rubric?.rubricId;
+    setSelectedQuestionRubric(rubric);
+    setShowRemedyInfo(false);
+    // Open immediately; paint cache if present, then refresh in background
+    setQuestionRubricModalOpen(true);
+
+    if (!subSectionId) {
+      return;
     }
+
+    const cached = getCachedRubricDetails(subSectionId);
+    if (cached) {
+      dispatch(setRubricDetailsList(cached));
+      dispatch(setRubricDetailsError(null));
+      dispatch(setRubricDetailsLoading(false));
+    } else {
+      // Avoid flashing the previous rubric's remedies while the new one loads
+      dispatch(setRubricDetailsList(null));
+      dispatch(setRubricDetailsLoading(true));
+    }
+
+    dispatch(getRubricDetails({ subSectionId })).catch((error) => {
+      console.error('Error fetching rubric details:', error);
+      if (!getCachedRubricDetails(subSectionId)) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to fetch rubric details',
+        });
+      }
+    });
   };
 
   // Handle intensity chip click to add rubric to repertorization
@@ -4036,6 +4053,11 @@ const PatientBoard = () => {
         return;
       }
 
+      // Keynote Method only allows grades 3 and 4
+      if (isKeynoteMethodActive && (nextIntensity === 1 || nextIntensity === 2)) {
+        return;
+      }
+
       setSelectedRepertorizeIntensity((prev) =>
         normalizeRepertorizeIntensityNo(prev) === nextIntensity ? null : nextIntensity
       );
@@ -4043,24 +4065,25 @@ const PatientBoard = () => {
     [isKeynoteMethodActive, isSmallRubricsActive]
   );
 
-  // Handle Keynote Method button click
+  // Handle Keynote Method button click (can combine with Small Rubric)
   const handleKeynoteMethodClick = () => {
     const newState = !isKeynoteMethodActive;
     setIsKeynoteMethodActive(newState);
     if (newState) {
-      setIsSmallRubricsActive(false);
+      // Drop grade 1/2 if previously selected under Small Rubrics only
+      setSelectedRepertorizeIntensity((prev) => {
+        const n = normalizeRepertorizeIntensityNo(prev);
+        return n === 1 || n === 2 ? null : prev;
+      });
     }
     clearRepertorizeSectionFilters();
     resetRepertorizeAccordionExpansion();
   };
 
-  // Handle Small Rubrics button click
+  // Handle Small Rubrics button click (can combine with Keynote Method)
   const handleSmallRubricClick = () => {
     const newState = !isSmallRubricsActive;
     setIsSmallRubricsActive(newState);
-    if (newState) {
-      setIsKeynoteMethodActive(false);
-    }
     clearRepertorizeSectionFilters();
     resetRepertorizeAccordionExpansion();
   };
@@ -4216,8 +4239,61 @@ const PatientBoard = () => {
   );
 
   // ###### Dj UI Code Start - Handle Accordion Item Click ######
-  /** Highlight related rubrics in REPERTORIZATION — remedy name only (not chevron). */
+  const resolveBoerickeAuthorOption = useCallback(() => {
+    const options = authorOptions || [];
+    const normalized = (label) => String(label || '').replace(/\s+/g, ' ').trim().toUpperCase();
+    const exact = options.find((o) => normalized(o.label) === 'BOERICKE W. G.');
+    if (exact) return exact;
+    const withWG = options.find((o) => {
+      const l = normalized(o.label);
+      return l.includes('BOERICKE') && (l.includes('W. G') || l.includes('W G') || l.includes('WG'));
+    });
+    if (withWG) return withWG;
+    return options.find((o) => normalized(o.label).includes('BOERICKE')) || null;
+  }, [authorOptions]);
+
+  /** Remedy name → Materia Medica tab with Boericke W. G. (no related-rubric highlight). */
   const handleRemedyNameSelect = useCallback((remedy) => {
+    if (!remedy) return;
+
+    let matchedOption = null;
+    if (remedy?.remedyId && Array.isArray(remedyOptions)) {
+      matchedOption = remedyOptions.find((o) => o.value === remedy.remedyId) || null;
+    }
+    if (!matchedOption) {
+      const name = String(remedy?.remedyName || '').trim();
+      if (name && Array.isArray(remedyOptions)) {
+        matchedOption =
+          remedyOptions.find((o) => String(o.label || '').toLowerCase() === name.toLowerCase()) || null;
+      }
+    }
+    const alias = String(remedy?.remedyAlies || remedy?.remedyAlias || '').trim();
+    if (!matchedOption && alias && Array.isArray(remedyOptions)) {
+      const aliasCore = alias.replace(/^\[|\]$/g, '').trim();
+      matchedOption =
+        remedyOptions.find((o) => String(o.label || '').toLowerCase().includes(aliasCore.toLowerCase())) ||
+        null;
+    }
+
+    const optionToSet =
+      matchedOption ||
+      (remedy?.remedyName
+        ? { value: remedy.remedyId || 0, label: remedy.remedyName }
+        : null);
+
+    if (!optionToSet) return;
+
+    setSelectedRemedyFromCommonUncommon(null);
+    setSelectedRemedy(optionToSet);
+    setSelectedAuthor(resolveBoerickeAuthorOption());
+    setActiveTab('Materia Medica');
+    setRubricRemedyModalOpen(false);
+    setQuestionRubricModalOpen(false);
+    setShowRemedyInfo(false);
+  }, [authorOptions, remedyOptions, resolveBoerickeAuthorOption]);
+
+  /** [n/n] score ratio → highlight related rubrics in REPERTORIZATION list. */
+  const handleRemedyRatioSelect = useCallback((remedy) => {
     setSelectedRemedyFromCommonUncommon(remedy);
   }, []);
 
@@ -6114,6 +6190,13 @@ const PatientBoard = () => {
       font-size:11px;
       font-weight:700;
       letter-spacing:-0.01em;
+      cursor:pointer;
+      border-radius:3px;
+      padding:0 2px;
+    }
+    .pb-remedy-list-row__ratio:hover {
+      background:#e8f3fc;
+      text-decoration:underline;
     }
     .pb-remedy-list-row__chevron {
       flex-shrink:0;
@@ -11492,6 +11575,13 @@ const PatientBoard = () => {
       border-bottom:1px solid #eef2f6 !important;
       transition:background-color .12s ease;
     }
+    .pb-repertorize-section-row--disabled {
+      opacity:0.55;
+      cursor:default !important;
+    }
+    .pb-repertorize-section-row--disabled:hover {
+      background:transparent !important;
+    }
     .pb-repertorize-section-row__label {
       display:inline-flex;
       align-items:center;
@@ -13396,7 +13486,7 @@ const PatientBoard = () => {
     const optionToSet = matchedOption || (remedyItem?.remedyAlias ? { value: remedyItem.remedyId || 0, label: remedyItem.remedyAlias } : null);
     if (optionToSet) {
       setSelectedRemedy(optionToSet);
-      setSelectedAuthor(null);
+      setSelectedAuthor(resolveBoerickeAuthorOption());
       setActiveTab('Materia Medica');
       // Close modals if open
       setRubricRemedyModalOpen(false);
@@ -15442,7 +15532,23 @@ const PatientBoard = () => {
                                       </span>
                                     ) : null}
                                     {remedyDisplay.score != null && remedyDisplay.score !== '' ? (
-                                      <span className="pb-remedy-list-row__ratio">
+                                      <span
+                                        className="pb-remedy-list-row__ratio"
+                                        role="button"
+                                        tabIndex={0}
+                                        title="Highlight matching rubrics"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemedyRatioSelect(remedy);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleRemedyRatioSelect(remedy);
+                                          }
+                                        }}
+                                      >
                                         [{remedyDisplay.score}]
                                       </span>
                                     ) : null}
@@ -15566,7 +15672,23 @@ const PatientBoard = () => {
                                       </span>
                                     ) : null}
                                     {remedyDisplay.score != null && remedyDisplay.score !== '' ? (
-                                      <span className="pb-remedy-list-row__ratio">
+                                      <span
+                                        className="pb-remedy-list-row__ratio"
+                                        role="button"
+                                        tabIndex={0}
+                                        title="Highlight matching rubrics"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemedyRatioSelect(remedy);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleRemedyRatioSelect(remedy);
+                                          }
+                                        }}
+                                      >
                                         [{remedyDisplay.score}]
                                       </span>
                                     ) : null}
@@ -15733,13 +15855,16 @@ const PatientBoard = () => {
                               const isSectionSelected = selectedRepertorizeSectionIds.includes(
                                 Number(section.sectionId)
                               );
+                              // Enable when Keynote and/or Small Rubric is active
+                              const sectionsSelectable =
+                                isKeynoteMethodActive || isSmallRubricsActive;
                               return (
                                 <div
                                   key={section.sectionId}
-                                  className={`pb-repertorize-section-row${isSectionSelected ? ' pb-repertorize-section-row--active' : ''}`}
-                                  style={{ cursor: isKeynoteMethodActive || isSmallRubricsActive ? "pointer" : "default" }}
+                                  className={`pb-repertorize-section-row${isSectionSelected ? ' pb-repertorize-section-row--active' : ''}${!sectionsSelectable ? ' pb-repertorize-section-row--disabled' : ''}`}
+                                  style={{ cursor: sectionsSelectable ? "pointer" : "default" }}
                                   onClick={() => {
-                                    if (!isKeynoteMethodActive && !isSmallRubricsActive) {
+                                    if (!sectionsSelectable) {
                                       return;
                                     }
                                     handleRepertorizeSectionCheckboxChange(
@@ -15758,7 +15883,7 @@ const PatientBoard = () => {
                                     type="checkbox"
                                     className="form-check-input"
                                     checked={isSectionSelected}
-                                    disabled={!isKeynoteMethodActive && !isSmallRubricsActive}
+                                    disabled={!sectionsSelectable}
                                     onChange={(e) => {
                                       e.stopPropagation();
                                       handleRepertorizeSectionCheckboxChange(
@@ -15822,12 +15947,16 @@ const PatientBoard = () => {
                         <div className="d-flex justify-content-center gap-1 flex-wrap">
                           {intensitiesForPatientList && Array.isArray(intensitiesForPatientList) && intensitiesForPatientList.length > 0 ? (
                             [...intensitiesForPatientList].sort((a, b) => b.intensityNo - a.intensityNo).map((intensity) => {
+                              const intensityNo = normalizeRepertorizeIntensityNo(intensity.intensityNo);
                               const isActive =
                                 normalizeRepertorizeIntensityNo(selectedRepertorizeIntensity) ===
-                                normalizeRepertorizeIntensityNo(intensity.intensityNo);
-                              // Same enable rule as SECTION checkboxes: Keynote / Small Rubrics on
-                              const canUseGradeFilters =
+                                intensityNo;
+                              // Keynote: only grades 3–4. Small Rubrics alone: 1–4.
+                              const modeAllowsGrades =
                                 isKeynoteMethodActive || isSmallRubricsActive;
+                              const keynoteBlocksLowGrade =
+                                isKeynoteMethodActive && (intensityNo === 1 || intensityNo === 2);
+                              const canUseGradeFilters = modeAllowsGrades && !keynoteBlocksLowGrade;
                               return (
                                 <button
                                   key={intensity.intensityId ?? intensity.intensityNo}
@@ -15844,8 +15973,11 @@ const PatientBoard = () => {
                             [4, 3, 2, 1].map(num => {
                               const isActive =
                                 normalizeRepertorizeIntensityNo(selectedRepertorizeIntensity) === num;
-                              const canUseGradeFilters =
+                              const modeAllowsGrades =
                                 isKeynoteMethodActive || isSmallRubricsActive;
+                              const keynoteBlocksLowGrade =
+                                isKeynoteMethodActive && (num === 1 || num === 2);
+                              const canUseGradeFilters = modeAllowsGrades && !keynoteBlocksLowGrade;
                               return (
                                 <button
                                   key={num}
@@ -16961,10 +17093,10 @@ const PatientBoard = () => {
                   <thead>
                     <tr>
                       <th style={{ width: '50px', textAlign: 'center' }}>No.</th>
-                      <th><i className="ri-medicine-bottle-line" aria-hidden="true" />Remedy Name</th>
+                      <th>Remedy Name</th>
                       <th style={{ width: '90px' }}>Potency</th>
-                      <th><i className="ri-time-line" aria-hidden="true" />Dosage</th>
-                      <th><i className="ri-file-text-line" aria-hidden="true" />Remedy Description</th>
+                      <th>Dosage</th>
+                      <th>Remedy Description</th>
                       <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
@@ -17631,10 +17763,18 @@ const PatientBoard = () => {
               // Wait for all API calls to complete
               await Promise.all(promises);
 
+              // Prescription saved → mark appointment Completed (App.Status locked afterward)
+              await dispatch(
+                updateAppointmentStatus({
+                  patientAppId: parseInt(patientAppId, 10),
+                  status: 'COMPLETED',
+                })
+              );
+
               Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Data saved successfully!',
+                text: 'Prescription saved. Appointment marked Completed.',
                 confirmButtonColor: '#000000',
                 timer: 2000,
                 showConfirmButton: false

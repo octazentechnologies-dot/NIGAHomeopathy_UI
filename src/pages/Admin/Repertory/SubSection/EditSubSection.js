@@ -401,7 +401,7 @@ const EditSubSection = () => {
               <div className="text-center">
                 <h4>No subsection selected for editing</h4>
                 <Link to="/admin/listsubsection">
-                  <Button color="primary" className="mt-3">Back to List</Button>
+                  <Button color="primary" className="mt-3"><i className="ri-arrow-left-line" aria-hidden="true" /> Back to List</Button>
                 </Link>
               </div>
             </Col>
@@ -420,7 +420,7 @@ const EditSubSection = () => {
               <Card className="patient-list-modal admin-existance-list admin-form-card">
                 <CardHeader className="border-0">
                   <div className="admin-form-toolbar">
-                    <h5 className="admin-form-title">Edit Sub Section</h5>
+                    <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Sub Section</h5>
                   </div>
                 </CardHeader>
 

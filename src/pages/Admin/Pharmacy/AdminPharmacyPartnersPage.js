@@ -144,17 +144,17 @@ const AdminPharmacyPartnersPage = () => {
         <div className="phc-page">
           <div className="phc-page__head">
             <div>
-              <h2 className="clinic-page-title mb-1">Pharmacy partners &amp; configuration</h2>
+              <h2 className="clinic-page-title mb-1"><i className="ri-store-3-line" aria-hidden="true" />Pharmacy partners &amp; configuration</h2>
               <p className="clinic-page-subtitle mb-0">
                 Activate HomeoMeds partners and review their operating hours, service areas and delivery charges.
               </p>
             </div>
             <div className="phc-page__actions">
-              <button type="button" className="phc-btn phc-btn--warn" onClick={sweep} disabled={busyId === "sweep"}>
+              <button type="button" className="btn btn-sm btn-soft-warning" onClick={sweep} disabled={busyId === "sweep"}>
                 <i className={busyId === "sweep" ? "ri-loader-4-line phc-spin" : "ri-shield-flash-line"} aria-hidden="true" />
                 Sweep licences
               </button>
-              <button type="button" className="phc-btn phc-btn--soft" onClick={load} disabled={loading}>
+              <button type="button" className="btn btn-sm btn-soft-secondary" onClick={load} disabled={loading}>
                 <i className={loading ? "ri-loader-4-line phc-spin" : "ri-refresh-line"} aria-hidden="true" />
                 Refresh
               </button>

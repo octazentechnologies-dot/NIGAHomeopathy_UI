@@ -262,55 +262,46 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-hashtag" aria-hidden="true" />
                       Ticket ID
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-user-line" aria-hidden="true" />
                       Name
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-mail-line" aria-hidden="true" />
                       Email
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-file-text-line" aria-hidden="true" />
                       Subject
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-folder-line" aria-hidden="true" />
                       Category
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-flag-line" aria-hidden="true" />
                       Priority
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-time-line" aria-hidden="true" />
                       Received
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-timer-line" aria-hidden="true" />
                       SLA
                     </span>
                   </th>
                   <th scope="col">
                     <span className="patient-list-modal__th">
-                      <i className="ri-checkbox-circle-line" aria-hidden="true" />
                       Status
                     </span>
                   </th>

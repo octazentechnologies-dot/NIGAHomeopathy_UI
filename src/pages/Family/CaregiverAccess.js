@@ -239,7 +239,7 @@ const CaregiverAccess = () => {
                     <td className="text-end">
                       {active ? (
                         <Button color="link" size="sm" className="text-danger" onClick={() => onRevoke(row)}>
-                          Revoke
+                          <i className="ri-close-circle-line" aria-hidden="true" /> Revoke
                         </Button>
                       ) : null}
                     </td>
@@ -256,11 +256,11 @@ const CaregiverAccess = () => {
   return (
     <div className="page-content admin-dashboard-page clinic-workspace-page">
       <Container fluid>
-        <h2 className="clinic-page-title">Caregiver</h2>
+        <h2 className="clinic-page-title"><i className="ri-user-heart-line" aria-hidden="true" />Caregiver</h2>
         <p className="clinic-page-subtitle">Let a trusted person book and manage visits for you, verified by OTP.</p>
-        <Row>
-          <Col lg={5}>
-            <Card>
+        <Row className="caregiver-card-row">
+          <Col lg={5} className="d-flex">
+            <Card className="w-100 mb-0">
               <CardHeader>
                 <h5 className="mb-0">Grant caregiver (OTP)</h5>
               </CardHeader>
@@ -298,7 +298,7 @@ const CaregiverAccess = () => {
                     <p className="text-muted small">OTP will be sent to your contact: {otpDestination}</p>
                   ) : null}
                   <Button color="secondary" type="submit" disabled={saving}>
-                    Request OTP
+                    <i className="ri-shield-keyhole-line" aria-hidden="true" /> Request OTP
                   </Button>
                 </Form>
                 <Form onSubmit={onGrant}>
@@ -307,7 +307,7 @@ const CaregiverAccess = () => {
                     <Input name="otpCode" value={form.otpCode} onChange={onChange} />
                   </FormGroup>
                   <Button color="primary" type="submit" disabled={saving || !otpChallengeId}>
-                    Grant
+                    <i className="ri-check-line" aria-hidden="true" /> Grant
                   </Button>
                 </Form>
                 <p className="text-muted mt-3 mb-0 small">
@@ -316,19 +316,19 @@ const CaregiverAccess = () => {
               </CardBody>
             </Card>
           </Col>
-          <Col lg={7}>
-            <Card className="mb-3">
+          <Col lg={7} className="d-flex flex-column">
+            <Card className="mb-0">
               <CardHeader className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Caregivers I granted</h5>
-                <Button color="light" size="sm" onClick={load} disabled={loading}>
-                  Refresh
+                <Button size="sm" className="btn-soft-secondary" onClick={load} disabled={loading}>
+                  <i className="ri-refresh-line" aria-hidden="true" /> Refresh
                 </Button>
               </CardHeader>
               <CardBody>
                 {loading ? <Spinner size="sm" /> : renderGrantTable(mine, true, "mine")}
               </CardBody>
             </Card>
-            <Card>
+            <Card className="mb-0">
               <CardHeader>
                 <h5 className="mb-0">Patients I may act for</h5>
               </CardHeader>

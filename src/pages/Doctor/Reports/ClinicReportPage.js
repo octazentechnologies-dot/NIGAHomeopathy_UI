@@ -11,9 +11,9 @@ import {
 } from "../../../helpers/s5Week5Api";
 
 const titles = {
-  followup: ["Follow-ups due", "Open follow-ups that are due or overdue. Missed follow-up appointments notify the doctor."],
-  performance: ["Clinic performance", "Visits by mode and paid collections for the last 30 days."],
-  medicine: ["Medicine orders", "Order counts, quote totals, patients, and recent order detail."],
+  followup: ["Follow-ups due", "Open follow-ups that are due or overdue. Missed follow-up appointments notify the doctor.", "ri-calendar-todo-line"],
+  performance: ["Clinic performance", "Visits by mode and paid collections for the last 30 days.", "ri-bar-chart-grouped-line"],
+  medicine: ["Medicine orders", "Order counts, quote totals, patients, and recent order detail.", "ri-capsule-line"],
 };
 
 const money = (value) => {
@@ -47,7 +47,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
-  const [title, subtitle] = titles[mode] || titles.followup;
+  const [title, subtitle, icon] = titles[mode] || titles.followup;
   const isMedicineAdmin = mode === "medicine";
 
   document.title = `${title} | Niga Homeocentrum`;
@@ -152,7 +152,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">{title}</h2>
+            <h2 className="clinic-page-title"><i className={icon} aria-hidden="true" />{title}</h2>
             <p className="clinic-page-subtitle mb-0">{subtitle}</p>
           </div>
           {isMedicineAdmin ? (
@@ -167,7 +167,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
               </Link>
               <button
                 type="button"
-                className="btn btn-sm clinic-primary-btn"
+                className="btn btn-sm btn-soft-secondary clinic-action-btn"
                 onClick={load}
                 disabled={loading}
               >
@@ -190,7 +190,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
         {mode === "followup" && !loading ? (
           <Row className="g-3">
             <Col md={4}>
-              <Card className="admin-dash-card">
+              <Card className="admin-dash-card admin-kpi-card">
                 <CardBody>
                   <div className="text-muted small mb-2">By status</div>
                   {(summary || []).map((row) => (
@@ -241,7 +241,7 @@ const ClinicReportPage = ({ mode = "followup" }) => {
         {mode === "performance" && !loading && data ? (
           <Row className="g-3">
             <Col md={4}>
-              <Card className="admin-dash-card">
+              <Card className="admin-dash-card admin-kpi-card">
                 <CardBody>
                   <div className="text-muted small">Paid orders</div>
                   <div className="fs-4">{paid?.cnt ?? paid?.Cnt ?? 0}</div>
@@ -270,45 +270,65 @@ const ClinicReportPage = ({ mode = "followup" }) => {
           <>
             <Row className="g-3 mb-3">
               <Col md={3}>
-                <Card className="admin-dash-card">
+                <Card className="admin-dash-card admin-kpi-card">
                   <CardBody>
-                    <div className="text-muted small">Total orders</div>
-                    <div className="fs-4">
-                      {medicinePayload.totals?.orders ??
-                        medicinePayload.byStatus.reduce((n, r) => n + Number(r.orders || 0), 0)}
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Total orders</div>
+                        <div className="fs-4">
+                          {medicinePayload.totals?.orders ??
+                            medicinePayload.byStatus.reduce((n, r) => n + Number(r.orders || 0), 0)}
+                        </div>
+                      </div>
+                      <i className="ri-file-list-3-line kpi-tile-icon" aria-hidden="true" />
                     </div>
                   </CardBody>
                 </Card>
               </Col>
               <Col md={3}>
-                <Card className="admin-dash-card">
+                <Card className="admin-dash-card admin-kpi-card">
                   <CardBody>
-                    <div className="text-muted small">Patients</div>
-                    <div className="fs-4">
-                      {medicinePayload.totals?.patients ?? "—"}
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Patients</div>
+                        <div className="fs-4">
+                          {medicinePayload.totals?.patients ?? "—"}
+                        </div>
+                      </div>
+                      <i className="ri-group-line kpi-tile-icon" aria-hidden="true" />
                     </div>
                   </CardBody>
                 </Card>
               </Col>
               <Col md={3}>
-                <Card className="admin-dash-card">
+                <Card className="admin-dash-card admin-kpi-card">
                   <CardBody>
-                    <div className="text-muted small">Pharmacies</div>
-                    <div className="fs-4">
-                      {medicinePayload.totals?.pharmacies ?? "—"}
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Pharmacies</div>
+                        <div className="fs-4">
+                          {medicinePayload.totals?.pharmacies ?? "—"}
+                        </div>
+                      </div>
+                      <i className="ri-store-2-line kpi-tile-icon" aria-hidden="true" />
                     </div>
                   </CardBody>
                 </Card>
               </Col>
               <Col md={3}>
-                <Card className="admin-dash-card">
+                <Card className="admin-dash-card admin-kpi-card">
                   <CardBody>
-                    <div className="text-muted small">Quote total</div>
-                    <div className="fs-4">
-                      {money(
-                        medicinePayload.totals?.quoteTotal ??
-                          medicinePayload.byStatus.reduce((n, r) => n + Number(r.quoteTotal || 0), 0)
-                      )}
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Quote total</div>
+                        <div className="fs-4">
+                          {money(
+                            medicinePayload.totals?.quoteTotal ??
+                              medicinePayload.byStatus.reduce((n, r) => n + Number(r.quoteTotal || 0), 0)
+                          )}
+                        </div>
+                      </div>
+                      <i className="ri-wallet-3-line kpi-tile-icon" aria-hidden="true" />
                     </div>
                   </CardBody>
                 </Card>

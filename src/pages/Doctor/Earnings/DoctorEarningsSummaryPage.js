@@ -54,7 +54,7 @@ const DoctorEarningsSummaryPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Earnings summary</h2>
+            <h2 className="clinic-page-title"><i className="ri-wallet-3-line" aria-hidden="true" />Earnings summary</h2>
             <p className="clinic-page-subtitle mb-0">Consult captures and clinic collections for this doctor (API).</p>
           </div>
         </div>
@@ -64,15 +64,60 @@ const DoctorEarningsSummaryPage = () => {
           <div className="py-4"><Spinner size="sm" /> Loading…</div>
         ) : data ? (
           <Row className="g-3">
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Visits</div><div className="fs-4">{data.visitCount ?? 0}</div></CardBody></Card></Col>
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Total</div><div className="fs-4">{money(data.totalCaptured)}</div></CardBody></Card></Col>
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">Online</div><div className="fs-4">{money(data.onlineCaptured)}</div></CardBody></Card></Col>
-            <Col md={3}><Card className="admin-dash-card"><CardBody><div className="text-muted small">At clinic</div><div className="fs-4">{money(data.clinicCollected)}</div></CardBody></Card></Col>
+            <Col md={3}>
+              <Card className="admin-dash-card admin-kpi-card"><CardBody>
+                <div className="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <div className="text-muted small">Visits</div>
+                    <div className="fs-4">{data.visitCount ?? 0}</div>
+                  </div>
+                  <i className="ri-stethoscope-line kpi-tile-icon" aria-hidden="true" />
+                </div>
+              </CardBody></Card>
+            </Col>
+            <Col md={3}>
+              <Card className="admin-dash-card admin-kpi-card"><CardBody>
+                <div className="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <div className="text-muted small">Total</div>
+                    <div className="fs-4">{money(data.totalCaptured)}</div>
+                  </div>
+                  <i className="ri-wallet-3-line kpi-tile-icon" aria-hidden="true" />
+                </div>
+              </CardBody></Card>
+            </Col>
+            <Col md={3}>
+              <Card className="admin-dash-card admin-kpi-card"><CardBody>
+                <div className="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <div className="text-muted small">Online</div>
+                    <div className="fs-4">{money(data.onlineCaptured)}</div>
+                  </div>
+                  <i className="ri-bank-card-line kpi-tile-icon" aria-hidden="true" />
+                </div>
+              </CardBody></Card>
+            </Col>
+            <Col md={3}>
+              <Card className="admin-dash-card admin-kpi-card"><CardBody>
+                <div className="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <div className="text-muted small">At clinic</div>
+                    <div className="fs-4">{money(data.clinicCollected)}</div>
+                  </div>
+                  <i className="ri-hospital-line kpi-tile-icon" aria-hidden="true" />
+                </div>
+              </CardBody></Card>
+            </Col>
             <Col md={12}>
-              <Card className="admin-dash-card">
+              <Card className="admin-dash-card admin-kpi-card">
                 <CardBody>
-                  <div className="text-muted small mb-1">Pending payout</div>
-                  <div className="fs-5">{money(data.pendingPayoutAmount)}</div>
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <div className="text-muted small mb-1">Pending payout</div>
+                      <div className="fs-5">{money(data.pendingPayoutAmount)}</div>
+                    </div>
+                    <i className="ri-exchange-dollar-line kpi-tile-icon" aria-hidden="true" />
+                  </div>
                 </CardBody>
               </Card>
             </Col>

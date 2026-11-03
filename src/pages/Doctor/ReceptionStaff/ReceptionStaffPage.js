@@ -113,7 +113,7 @@ const ReceptionStaffPage = () => {
     return (
       <div className="page-content doctor-dashboard-page admin-dashboard-page clinic-workspace-page">
         <Container fluid>
-          <h2 className="clinic-page-title">Reception staff</h2>
+          <h2 className="clinic-page-title"><i className="ri-team-line" aria-hidden="true" />Reception staff</h2>
           <p className="clinic-page-subtitle mb-0">Only the treating doctor can manage reception staff.</p>
         </Container>
       </div>
@@ -269,13 +269,13 @@ const ReceptionStaffPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Reception staff</h2>
+            <h2 className="clinic-page-title"><i className="ri-team-line" aria-hidden="true" />Reception staff</h2>
             <p className="clinic-page-subtitle mb-0">
               Add, edit, and disable clinic reception logins. Disabled staff stay listed so you can
               enable them again.
             </p>
           </div>
-          <button type="button" className="btn btn-sm clinic-primary-btn" onClick={openAdd}>
+          <button type="button" className="btn btn-sm btn-soft-primary" onClick={openAdd}>
             <i className="ri-user-add-line me-1" aria-hidden="true" />
             Add staff
           </button>

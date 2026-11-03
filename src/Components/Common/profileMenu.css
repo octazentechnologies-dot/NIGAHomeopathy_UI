@@ -1,0 +1,111 @@
+.navbar-header .topbar-user .profile-menu.dropdown-menu {
+  width: 12.6rem !important;
+  min-width: 0 !important;
+  max-width: 12.6rem !important;
+  padding: 0.3rem 0 0.25rem;
+  border: 1px solid #e6edf5;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.profile-menu__intro {
+  margin: 0 0.3rem 0.2rem;
+  padding: 0.5rem 0.55rem 0.45rem;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.profile-menu__welcome {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.profile-menu__name {
+  margin: 0.12rem 0 0;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.profile-menu__role {
+  display: inline-flex;
+  margin-top: 0.28rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: #e8f5ff;
+  color: #0b5cab;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.profile-menu .dropdown-divider {
+  margin: 0.15rem 0.55rem;
+  border-top-color: #eef2f6;
+}
+
+.profile-menu .doctor-online-toggle {
+  margin: 0 0.3rem;
+  padding: 0.32rem 0.45rem !important;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.navbar-header .profile-menu .profile-menu__link {
+  display: flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  width: auto;
+  margin: 0.02rem 0.3rem;
+  padding: 0.32rem 0.4rem !important;
+  border-radius: 5px;
+  color: #1e293b !important;
+  font-size: 0.72rem !important;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.navbar-header .profile-menu .profile-menu__link i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0 !important;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.8rem !important;
+  line-height: 1 !important;
+}
+
+.navbar-header .profile-menu .profile-menu__link:hover,
+.navbar-header .profile-menu .profile-menu__link:focus {
+  background: #f4f9fd;
+  color: #0b5cab !important;
+}
+
+.navbar-header .profile-menu .profile-menu__link:hover i,
+.navbar-header .profile-menu .profile-menu__link:focus i {
+  background: #e8f5ff;
+  color: #25a0e2;
+}
+
+.navbar-header .profile-menu .profile-menu__link--logout:hover,
+.navbar-header .profile-menu .profile-menu__link--logout:focus {
+  background: #fff5f5;
+  color: #b91c1c !important;
+}
+
+.navbar-header .profile-menu .profile-menu__link--logout:hover i,
+.navbar-header .profile-menu .profile-menu__link--logout:focus i {
+  background: #fee2e2;
+  color: #dc2626;
+}

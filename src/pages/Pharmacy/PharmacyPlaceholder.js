@@ -10,7 +10,7 @@ const PharmacyPlaceholder = ({ title = "Pharmacy" }) => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">{title}</h2>
+            <h2 className="clinic-page-title"><i className="ri-store-2-line" aria-hidden="true" />{title}</h2>
             <p className="clinic-page-subtitle mb-0">
               Pharmacy / HomeoMeds screens will be built later. Stub only.
             </p>

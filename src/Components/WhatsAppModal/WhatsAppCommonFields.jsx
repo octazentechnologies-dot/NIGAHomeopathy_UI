@@ -7,7 +7,7 @@ export default function WhatsAppCommonFields({ compose, onChange, showMessageDat
   const twoFieldCol = showMessageDate ? 4 : 6;
 
   return (
-    <Row className="g-3">
+    <Row className="g-2">
       <Col md={twoFieldCol}>
         <WhatsAppFormLabel icon="ri-stethoscope-line">Doctor Name</WhatsAppFormLabel>
         <Input

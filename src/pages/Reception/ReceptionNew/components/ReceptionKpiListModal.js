@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { pageWindow } from "../../../../helpers/pageWindow";
 import {
   Input,
   Modal,
@@ -167,7 +168,12 @@ const ReceptionKpiListModal = ({
                 }}
               />
             </PaginationItem>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            {pageWindow(safePage, totalPages).map((page, index) => (
+              page === "…" ? (
+                <PaginationItem key={`gap-${index}`} disabled>
+                  <PaginationLink href="#" onClick={(e) => e.preventDefault()}>…</PaginationLink>
+                </PaginationItem>
+              ) : (
               <PaginationItem key={page} active={page === safePage}>
                 <PaginationLink
                   href="#"
@@ -179,6 +185,7 @@ const ReceptionKpiListModal = ({
                   {page}
                 </PaginationLink>
               </PaginationItem>
+              )
             ))}
             <PaginationItem disabled={safePage === totalPages}>
               <PaginationLink

@@ -11,6 +11,15 @@ const TITLE_BY_PATH = {
   "/account/reports": "Reports",
 };
 
+const ICON_BY_TITLE = {
+  Ledger: "ri-book-2-line",
+  "Doctor Earnings": "ri-money-dollar-circle-line",
+  Payouts: "ri-hand-coin-line",
+  Invoices: "ri-bill-line",
+  Reports: "ri-bar-chart-box-line",
+  Account: "ri-bank-card-line",
+};
+
 const AccountComingSoon = ({ title }) => {
   const { pathname } = useLocation();
   const pageTitle = title || TITLE_BY_PATH[pathname] || "Account";
@@ -23,11 +32,11 @@ const AccountComingSoon = ({ title }) => {
           <Col lg={7} xl={6}>
             <Card className="admin-dash-card account-notice-card mb-0">
               <CardBody className="text-center py-5">
-                <h2 className="clinic-page-title account-page-title mb-2">{pageTitle}</h2>
+                <h2 className="clinic-page-title account-page-title mb-2"><i className={ICON_BY_TITLE[pageTitle] || "ri-bank-card-line"} aria-hidden="true" />{pageTitle}</h2>
                 <p className="account-page-subtitle mb-4">
                   This screen will be built in M08. Do not add tables yet.
                 </p>
-                <Link to="/accountdashboard" className="btn btn-sm account-primary-btn">
+                <Link to="/accountdashboard" className="btn btn-sm btn-soft-primary">
                   Back to Account Home
                 </Link>
               </CardBody>

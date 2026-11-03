@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { UncontrolledTooltip } from 'reactstrap';
 
 //import images
 import logoSm from "../assets/images/logo-sm.png";
@@ -28,6 +27,7 @@ import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeade
 import DoctorScheduleCalendarHeaderButton from '../Components/Common/DoctorScheduleCalendarHeaderButton';
 import DoctorMobileHeaderButtons from '../Components/Common/DoctorMobileHeaderButtons';
 import DoctorMobileNavMenu from '../Components/Common/DoctorMobileNavMenu';
+import PortalMobileNavMenu from '../Components/Common/PortalMobileNavMenu';
 import WebHandoffReturnButton from '../Components/Common/WebHandoffReturnButton';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
 
@@ -88,6 +88,13 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 userRole={userRole}
                                 onOpenHelp={() => setSupportTicketsModalOpen(true)}
                                 onOpenWhatsApp={() => setWhatsAppModalOpen(true)}
+                            />
+                        ) : null}
+
+                        {adminChromeLayout ? (
+                            <PortalMobileNavMenu
+                                userRole={userRole}
+                                onOpenHelp={() => setSupportTicketsModalOpen(true)}
                             />
                         ) : null}
 
@@ -160,6 +167,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                         type="button"
                                         id="header-help-support-btn"
                                         className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle position-relative"
+                                        title="Help & Support"
                                         aria-label="Help & Support"
                                         onClick={() => setSupportTicketsModalOpen(true)}
                                     >
@@ -171,13 +179,6 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                             </span>
                                         ) : null}
                                     </button>
-                                    <UncontrolledTooltip
-                                        placement="bottom"
-                                        target="header-help-support-btn"
-                                        popperClassName="header-help-tooltip"
-                                    >
-                                        Help &amp; Support
-                                    </UncontrolledTooltip>
                                 </div>
                                 {userRole !== UserRole.ADMIN &&
                                 userRole !== UserRole.MANAGEMENT &&

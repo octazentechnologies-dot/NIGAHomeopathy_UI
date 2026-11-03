@@ -7,6 +7,7 @@ import {
   Spinner,
   UncontrolledDropdown,
 } from "reactstrap";
+import { pageWindow } from "../../../helpers/pageWindow";
 import moment from "moment";
 import { getWhatsAppCampaignHistory, sendWhatsAppBulkMessage } from "../../../helpers/realbackend_helper";
 import { recordMatchesQuery } from "../../../helpers/recordSearch";
@@ -41,17 +42,7 @@ const campaignMeta = (c) =>
 
 const errorText = (err, fallback) => (typeof err === "string" ? err : err?.message || fallback);
 
-const pageNumbers = (page, total) => {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages = [1];
-  const start = Math.max(2, page - 1);
-  const end = Math.min(total - 1, page + 1);
-  if (start > 2) pages.push("…");
-  for (let p = start; p <= end; p += 1) pages.push(p);
-  if (end < total - 1) pages.push("…");
-  pages.push(total);
-  return pages;
-};
+const pageNumbers = (page, total) => pageWindow(page, total);
 
 /** Admin → WhatsApp campaigns: send bulk template messages to a doctor's opted-in patients and track delivery. */
 const WhatsAppCampaignsPage = () => {
@@ -217,17 +208,17 @@ const WhatsAppCampaignsPage = () => {
         <div className="wac-page">
           <div className="wac-page__head">
             <div>
-              <h2 className="clinic-page-title mb-1">WhatsApp Campaigns</h2>
+              <h2 className="clinic-page-title mb-1"><i className="ri-whatsapp-line" aria-hidden="true" />WhatsApp Campaigns</h2>
               <p className="clinic-page-subtitle mb-0">Send WhatsApp campaigns to opted-in patients and track delivery</p>
             </div>
             <div className="wac-page__actions">
-              <button type="button" className="wac-btn wac-btn--soft" onClick={load} disabled={loading}>
+              <button type="button" className="btn btn-sm btn-soft-secondary" onClick={load} disabled={loading}>
                 <i className="ri-refresh-line" aria-hidden="true" /> Refresh
               </button>
-              <button type="button" className="wac-btn wac-btn--soft" onClick={exportList} disabled={!filtered.length}>
+              <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--export" onClick={exportList} disabled={!filtered.length}>
                 <i className="ri-download-2-line" aria-hidden="true" /> Export CSV
               </button>
-              <button type="button" className="wac-btn wac-btn--primary" onClick={() => openForm("new")} disabled={loading}>
+              <button type="button" className="btn btn-sm admin-list-btn admin-list-btn--new" onClick={() => openForm("new")} disabled={loading}>
                 <i className="ri-add-line" aria-hidden="true" /> New Campaign
               </button>
             </div>
@@ -285,7 +276,8 @@ const WhatsAppCampaignsPage = () => {
               <div className="wac-search">
                 <i className="ri-search-line" aria-hidden="true" />
                 <input
-                  type="search"
+                  type="text"
+                  className="form-control"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search campaigns..."

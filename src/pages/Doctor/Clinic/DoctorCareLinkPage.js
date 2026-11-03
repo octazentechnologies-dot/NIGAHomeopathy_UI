@@ -184,10 +184,10 @@ const DoctorCareLinkPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">CareLink</h2>
+            <h2 className="clinic-page-title"><i className="ri-share-forward-line" aria-hidden="true" />CareLink</h2>
             <p className="clinic-page-subtitle mb-0">Refer a case, accept offers, open the package, ask for info.</p>
           </div>
-          <button type="button" className="btn btn-sm clinic-primary-btn" onClick={openCreate}>
+          <button type="button" className="btn btn-sm btn-soft-primary" onClick={openCreate}>
             <i className="ri-add-line" aria-hidden="true" />
             New CareLink
           </button>
@@ -302,7 +302,7 @@ const DoctorCareLinkPage = () => {
         </Card>
 
         <Modal isOpen={createOpen} toggle={() => setCreateOpen(false)} size="lg">
-          <ModalHeader toggle={() => setCreateOpen(false)}>Create CareLink</ModalHeader>
+          <ModalHeader toggle={() => setCreateOpen(false)}><i className="ri-add-circle-line" aria-hidden="true" />Create CareLink</ModalHeader>
           <ModalBody>
             <Row className="g-3">
               <Col md={8}>
@@ -310,7 +310,7 @@ const DoctorCareLinkPage = () => {
                 <div className="d-flex gap-2">
                   <Input value={doctorSearch} onChange={(e) => setDoctorSearch(e.target.value)} placeholder="Name or city" />
                   <Button color="light" onClick={searchDoctors}>
-                    Search
+                    <i className="ri-search-line" aria-hidden="true" /> Search
                   </Button>
                 </div>
                 <Input
@@ -352,8 +352,8 @@ const DoctorCareLinkPage = () => {
             </Row>
           </ModalBody>
           <ModalFooter>
-            <Button color="light" onClick={() => setCreateOpen(false)}>
-              Cancel
+            <Button color="light" className="app-cancel-btn" onClick={() => setCreateOpen(false)}>
+              <i className="ri-close-line" aria-hidden="true" /> Cancel
             </Button>
             <ModalActionButton action="submit" loading={busyId === "create"} onClick={submitCreate}>
               Create
@@ -394,8 +394,8 @@ const DoctorCareLinkPage = () => {
             <div className="text-muted small mt-2">Sends options: photos, reports, modalities.</div>
           </ModalBody>
           <ModalFooter>
-            <Button color="light" onClick={() => setInfoOpen(false)}>
-              Cancel
+            <Button color="light" className="app-cancel-btn" onClick={() => setInfoOpen(false)}>
+              <i className="ri-close-line" aria-hidden="true" /> Cancel
             </Button>
             <ModalActionButton action="send" loading={busyId === `info-${infoId}`} onClick={submitInfo}>
               Send
@@ -409,8 +409,8 @@ const DoctorCareLinkPage = () => {
             <Input type="textarea" rows={5} value={opinionText} onChange={(e) => setOpinionText(e.target.value)} />
           </ModalBody>
           <ModalFooter>
-            <Button color="light" onClick={() => setOpinionOpen(false)}>
-              Cancel
+            <Button color="light" className="app-cancel-btn" onClick={() => setOpinionOpen(false)}>
+              <i className="ri-close-line" aria-hidden="true" /> Cancel
             </Button>
             <ModalActionButton action="save" loading={busyId === `op-${opinionId}`} onClick={submitOpinion}>
               Save

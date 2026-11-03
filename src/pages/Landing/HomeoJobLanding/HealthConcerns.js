@@ -45,9 +45,6 @@ const HealthConcerns = () => (
                         Gentle, natural and personalized care for you and your family.
                     </p>
                 </div>
-                <Link to={landingPath("features")} className="homeojob-health-concerns__view-all">
-                    View All Health Concerns <i className="ri-arrow-right-line" aria-hidden="true" />
-                </Link>
             </div>
 
             <Row className="g-4 g-xl-4 homeojob-health-concerns__grid">

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Col, Container, Row, Spinner } from "reactstrap";
 import { getPackages } from "../Minimaltheme/helpers/marketingApi";
+import { SITE } from "../Minimaltheme/constants/siteContent";
+import { landingPath } from "../../../constants/landingRoutes";
 
 const PLAN_META = [
     {
@@ -79,49 +81,67 @@ const formatPrice = (value) => {
     return `₹${num.toLocaleString("en-IN")}`;
 };
 
-const Pricing = () => {
+const planFromPackage = (pkg, index) => {
+    const meta = PLAN_META[index % PLAN_META.length];
+    return {
+        ...meta,
+        popular: index === 1,
+        id: pkg?.packageId || `${meta.fallbackName}-${index}`,
+        name: pkg?.packageName || pkg?.packageTitle || meta.fallbackName,
+        price: formatPrice(pkg?.packageAmount ?? pkg?.amount) || meta.fallbackPrice,
+        description: pkg?.packageDescription || pkg?.description || meta.fallbackDesc,
+    };
+};
+
+const Pricing = ({ asPage = false }) => {
     const [packages, setPackages] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (asPage) document.title = `${SITE.name} | Pricing`;
+    }, [asPage]);
+
+    useEffect(() => {
         getPackages()
-            .then((list) => setPackages(Array.isArray(list) ? list.slice(0, 4) : []))
+            .then((list) => {
+                const rows = Array.isArray(list) ? list : [];
+                setPackages(asPage ? rows : rows.slice(0, 4));
+            })
             .catch(() => setPackages([]))
             .finally(() => setLoading(false));
-    }, []);
+    }, [asPage]);
 
-    const plans = useMemo(
-        () =>
-            PLAN_META.map((meta, index) => {
-                const pkg = packages[index];
-                return {
-                    ...meta,
-                    id: pkg?.packageId || meta.fallbackName,
-                    name: pkg?.packageName || pkg?.packageTitle || meta.fallbackName,
-                    price:
-                        formatPrice(pkg?.packageAmount ?? pkg?.amount) || meta.fallbackPrice,
-                    description:
-                        pkg?.packageDescription ||
-                        pkg?.description ||
-                        meta.fallbackDesc,
-                };
-            }),
-        [packages]
-    );
+    const plans = useMemo(() => {
+        if (!asPage) {
+            return PLAN_META.map((_, index) => planFromPackage(packages[index], index));
+        }
+        if (!packages.length) {
+            return PLAN_META.map((_, index) => planFromPackage(null, index));
+        }
+        return packages.map((pkg, index) => planFromPackage(pkg, index));
+    }, [packages, asPage]);
+
+    const TitleTag = asPage ? "h1" : "h2";
 
     return (
-        <section className="section homeojob-pricing" id="findJob">
+        <section className={`section homeojob-pricing${asPage ? " homeojob-pricing--page" : ""}`} id={asPage ? undefined : "findJob"}>
             <div className="homeojob-pricing__dots" aria-hidden="true" />
 
             <Container className="position-relative">
                 <div className="homeojob-pricing__header">
                     <p className="homeojob-pricing__eyebrow">Simple &amp; Flexible Pricing</p>
-                    <h2 className="homeojob-pricing__title">
+                    <TitleTag className="homeojob-pricing__title">
                         Find Your <span className="text-primary">Plan</span> You Deserve It
-                    </h2>
+                    </TitleTag>
                     <p className="homeojob-pricing__subtitle">
-                        Flexible pricing for individual practitioners and clinics. Choose the plan
-                        that fits your practice.
+                        {asPage ? (
+                            <>
+                                Practitioner software plans, priced in INR. Consultation fees appear on each doctor when you{" "}
+                                <Link to={landingPath("book")}>book a visit</Link>.
+                            </>
+                        ) : (
+                            "Flexible pricing for individual practitioners and clinics. Choose the plan that fits your practice."
+                        )}
                     </p>
                 </div>
 

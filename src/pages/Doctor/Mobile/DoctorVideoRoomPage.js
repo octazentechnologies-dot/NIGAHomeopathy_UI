@@ -36,7 +36,7 @@ const DoctorVideoRoomPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Video room</h2>
+            <h2 className="clinic-page-title"><i className="ri-vidicon-line" aria-hidden="true" />Video room</h2>
             <p className="clinic-page-subtitle mb-0">
               Join consultation using API tele session tokens. Stub vendor — do not invent in-call or paid state.
             </p>

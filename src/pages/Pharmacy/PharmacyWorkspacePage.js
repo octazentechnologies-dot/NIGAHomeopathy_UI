@@ -81,6 +81,16 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           : mode === "prescriptions"
             ? "Prescriptions"
             : "Medicine orders";
+  const pageIcon =
+    mode === "onboarding"
+      ? "ri-store-3-line"
+      : mode === "quotes"
+        ? "ri-price-tag-3-line"
+        : mode === "stock"
+          ? "ri-checkbox-circle-line"
+          : mode === "prescriptions"
+            ? "ri-file-list-3-line"
+            : "ri-capsule-line";
   document.title = `${pageTitle} | Niga Homeocentrum`;
 
   const loadOrders = async () => {
@@ -286,18 +296,18 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     return (
       <div className="page-content admin-dashboard-page pharmacy-dashboard-page clinic-workspace-page">
         <Container fluid>
-          <h2 className="pharmacy-page-title">Pharmacy onboarding</h2>
-          <p className="pharmacy-page-subtitle">Submit once. Pending stays here until an admin activates it on Pharmacy partners.</p>
+          <h2 className="pharmacy-page-title"><i className="ri-store-3-line" aria-hidden="true" />Pharmacy onboarding</h2>
           {error ? <Alert color="danger">{error}</Alert> : null}
+          <div className="pharmacy-stack">
           {submitted ? (
             <>
-              <Alert color="success" className="mb-3">
+              <Alert color="success">
                 {submitted.message || "Pharmacy stored as pending until admin activation."}
               </Alert>
-              <Card className="admin-dash-card">
+              <Card className="admin-dash-card mb-0">
                 <CardBody>
-                  <h5 className="mb-3">Submitted for activation</h5>
-                  <Row className="g-3">
+                  <h5 className="pharmacy-section-title">Submitted for activation</h5>
+                  <Row className="g-2 pharmacy-form">
                     <Col md={4}>
                       <FormGroup>
                         <Label>Pharmacy name</Label>
@@ -340,22 +350,22 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     {submitted.pharmacyPartnerId ? ` Id ${submitted.pharmacyPartnerId}.` : ""}
                   </p>
                   <Button
-                    color="soft-secondary"
+                    className="btn btn-sm btn-soft-secondary"
                     onClick={() => {
                       setSubmitted(null);
                       setNote("");
                       setError("");
                     }}
                   >
-                    Submit another pharmacy
+                    <i className="ri-store-2-line" aria-hidden="true" /> Submit another pharmacy
                   </Button>
                 </CardBody>
               </Card>
             </>
           ) : (
-            <Card className="admin-dash-card">
+            <Card className="admin-dash-card mb-0">
               <CardBody>
-                <Row className="g-3">
+                <Row className="g-2 pharmacy-form">
                   <Col md={4}>
                     <FormGroup>
                       <Label>Pharmacy name</Label>
@@ -392,22 +402,25 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     </FormGroup>
                   </Col>
                 </Row>
-                <Button className="pharmacy-primary-btn mt-2" disabled={busyId === "onboard"} onClick={saveOnboard}>
-                  {busyId === "onboard" ? "Submitting…" : "Submit for activation"}
-                </Button>
+                <div className="pharmacy-form-actions">
+                  <Button className="btn btn-sm btn-soft-primary" disabled={busyId === "onboard"} onClick={saveOnboard}>
+                    <i className="ri-checkbox-circle-line" aria-hidden="true" />
+                    {busyId === "onboard" ? "Submitting…" : "Submit for activation"}
+                  </Button>
+                </div>
               </CardBody>
             </Card>
           )}
-          <Card className="admin-dash-card mt-3">
+          <Card className="admin-dash-card mb-0">
+            <div className="pharmacy-card-head">
+              <h5 className="mb-0">Submitted pharmacies</h5>
+              <button type="button" className="btn btn-sm btn-soft-secondary" onClick={loadMine}>
+                <i className="ri-refresh-line" aria-hidden="true" />
+                Refresh
+              </button>
+            </div>
             <CardBody>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h5 className="mb-0">Submitted pharmacies</h5>
-                <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={loadMine}>
-                  <i className="ri-refresh-line" aria-hidden="true" />
-                  Refresh
-                </button>
-              </div>
-              <p className="text-muted small">Pending means submitted and waiting for admin. Active means activated.</p>
+              <p className="pharmacy-hint">Pending means submitted and waiting for admin. Active means activated.</p>
               {mine.length === 0 ? (
                 <p className="text-muted mb-0">Nothing submitted on this login yet.</p>
               ) : (
@@ -438,6 +451,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               )}
             </CardBody>
           </Card>
+          </div>
         </Container>
       </div>
     );
@@ -498,11 +512,11 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
             disabled={busy || !(Number(quoteById[id]) > 0)}
             onClick={() => saveQuote(id)}
           >
-            Send quote
+            <i className="ri-send-plane-line" aria-hidden="true" /> Send quote
           </button>
           {!isQuotes ? (
             <button type="button" className="btn btn-sm btn-soft-danger clinic-action-btn" disabled={busy} onClick={() => rejectOrder(id)}>
-              Reject
+              <i className="ri-close-circle-line" aria-hidden="true" /> Reject
             </button>
           ) : null}
         </div>
@@ -517,7 +531,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           disabled={busy}
           onClick={() => runAction(id, () => markMedicineReady(id), `Order ${id} marked ready.`)}
         >
-          Mark ready
+          <i className="ri-checkbox-circle-line" aria-hidden="true" /> Mark ready
         </Button>
       );
     }
@@ -530,7 +544,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           disabled={busy}
           onClick={() => runAction(id, () => dispatchMedicine(id), `Order ${id} dispatched.`)}
         >
-          Dispatch
+          <i className="ri-truck-line" aria-hidden="true" /> Dispatch
         </Button>
       );
     }
@@ -543,7 +557,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           disabled={busy}
           onClick={() => runAction(id, () => deliverMedicine(id), `Order ${id} delivered.`)}
         >
-          Mark delivered
+          <i className="ri-checkbox-circle-line" aria-hidden="true" /> Mark delivered
         </Button>
       );
     }
@@ -603,7 +617,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title pharmacy-page-title">{pageTitle}</h2>
+            <h2 className="clinic-page-title pharmacy-page-title"><i className={pageIcon} aria-hidden="true" />{pageTitle}</h2>
             <p className="clinic-page-subtitle pharmacy-page-subtitle mb-0">
               {isQuotes
                 ? "Accepted orders waiting for a price, and quotes waiting for the patient."
@@ -626,7 +640,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
         </div>
         {error ? <Alert color="danger" className="py-2 small" toggle={() => setError("")}>{error}</Alert> : null}
         {note ? <Alert color="success" className="py-2 small" toggle={() => setNote("")}>{note}</Alert> : null}
-        <Card className="admin-dash-card">
+        <Card className="admin-dash-card pharmacy-list-card mb-0">
           <CardBody>
             {loading ? (
               <div className="text-center py-4"><Spinner size="sm" /> Loading…</div>
@@ -697,10 +711,16 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                             <td>{formatAmount(quoteAmountOf(row))}</td>
                             <td className="small">{formatDateTime(field(row, "createdAt"))}</td>
                             <td>{renderActions(row)}</td>
-                            <td>
-                              <Button size="sm" color="link" className="p-0" onClick={() => toggleDetail(id)}>
-                                {openId === id ? "Hide" : "Details"}
-                              </Button>
+                            <td className="text-end">
+                              <button
+                                type="button"
+                                className="pharmacy-row-view"
+                                title={openId === id ? "Hide details" : "View details"}
+                                aria-label={openId === id ? "Hide details" : "View details"}
+                                onClick={() => toggleDetail(id)}
+                              >
+                                <i className={openId === id ? "ri-eye-off-line" : "ri-eye-line"} aria-hidden="true" />
+                              </button>
                             </td>
                           </tr>
                           {openId === id ? (

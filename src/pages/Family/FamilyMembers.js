@@ -228,7 +228,7 @@ const FamilyMembers = () => {
     if (isMinor) {
       return (
         <Button color="warning" size="sm" outline onClick={() => openGuardianConsent(row)}>
-          Give guardian consent
+          <i className="ri-shield-user-line" aria-hidden="true" /> Give guardian consent
         </Button>
       );
     }
@@ -382,27 +382,28 @@ const FamilyMembers = () => {
         <Row>
           <Col xs={12}>
             <h2 className="clinic-page-title">
+              <i className="ri-group-line" aria-hidden="true" />
               {actingAsCaregiver ? "Family you manage" : "Family"}
               {ownerName ? ` · ${ownerName}` : ""}
             </h2>
             <p className="clinic-page-subtitle">Add family members and book appointments on their behalf.</p>
             {actingAsCaregiver ? (
-              <Alert color="info" className="mb-3">
+              <Alert color="info" className="family-caregiver-note mb-0">
                 Signed in as caregiver for <strong>{ownerName || "this patient"}</strong>.
                 This is their family list, the same one they see after patient login.
               </Alert>
             ) : null}
           </Col>
         </Row>
-        <Row>
+        <Row className="family-card-row">
           <Col xs={12}>
             {/* SUP-07.03 — patient CTA for assisted booking */}
             <PatientAssistedBookingCta patientId={ownerPatientId} contactMobile={ownerMobile} />
           </Col>
         </Row>
-        <Row>
-          <Col lg={5}>
-            <Card>
+        <Row className="family-card-row">
+          <Col lg={5} className="d-flex">
+            <Card className="w-100 mb-0">
               <CardHeader>
                 <h5 className="mb-0">{editingId ? "Edit family member" : "Add family member"}</h5>
               </CardHeader>
@@ -414,8 +415,10 @@ const FamilyMembers = () => {
                     Managing family for {ownerName} as caregiver.
                   </p>
                 ) : null}
-                <Form onSubmit={onSave}>
-                  <FormGroup>
+                <Form onSubmit={onSave} className="family-member-form">
+                  <Row className="g-2">
+                  <Col xs={12}>
+                  <FormGroup className="mb-0">
                     <Label htmlFor="family-relation">Relation <span className="text-danger">*</span></Label>
                     <Select
                       classNamePrefix="react-select"
@@ -441,8 +444,10 @@ const FamilyMembers = () => {
                       onChange={onRelationChange}
                     />
                   </FormGroup>
+                  </Col>
                   {showNewRelation ? (
-                    <FormGroup>
+                    <Col xs={12}>
+                    <FormGroup className="mb-0">
                       <Label>New relation name</Label>
                       <div className="d-flex gap-2">
                         <Input
@@ -451,24 +456,32 @@ const FamilyMembers = () => {
                           placeholder="e.g. Guardian"
                         />
                         <Button color="secondary" type="button" onClick={onSaveNewRelation} disabled={saving}>
-                          Save
+                          <i className="ri-save-line" aria-hidden="true" /> Save
                         </Button>
                       </div>
                     </FormGroup>
+                    </Col>
                   ) : null}
-                  <FormGroup>
+                  <Col sm={6}>
+                  <FormGroup className="mb-0">
                     <Label>Name <span className="text-danger">*</span></Label>
                     <Input name="patientName" value={form.patientName} onChange={onChange} required />
                   </FormGroup>
-                  <FormGroup>
+                  </Col>
+                  <Col sm={6}>
+                  <FormGroup className="mb-0">
                     <Label>Mobile</Label>
                     <Input name="mobileNo" value={form.mobileNo} onChange={onChange} />
                   </FormGroup>
-                  <FormGroup>
+                  </Col>
+                  <Col sm={6}>
+                  <FormGroup className="mb-0">
                     <Label>Email</Label>
                     <Input type="email" name="email" value={form.email} onChange={onChange} />
                   </FormGroup>
-                  <FormGroup>
+                  </Col>
+                  <Col sm={6}>
+                  <FormGroup className="mb-0">
                     <Label htmlFor="family-dob">Date of birth</Label>
                     <Input
                       id="family-dob"
@@ -480,7 +493,9 @@ const FamilyMembers = () => {
                     />
                     <small className="text-muted">Needed so a parent or guardian can consent for children under 18.</small>
                   </FormGroup>
-                  <FormGroup>
+                  </Col>
+                  <Col sm={6}>
+                  <FormGroup className="mb-0">
                     <Label htmlFor="family-gender">Gender</Label>
                     <Input id="family-gender" type="select" name="gender" value={form.gender} onChange={onChange}>
                       <option value="">Select</option>
@@ -489,6 +504,8 @@ const FamilyMembers = () => {
                       <option value="2">Other</option>
                     </Input>
                   </FormGroup>
+                  </Col>
+                  <Col xs={12} className="d-flex flex-wrap gap-2">
                   <Button
                     color="primary"
                     type="submit"
@@ -499,23 +516,25 @@ const FamilyMembers = () => {
                       || showNewRelation
                     }
                   >
-                    {editingId ? "Update" : "Add"}
+                    <i className={editingId ? "ri-save-line" : "ri-add-line"} aria-hidden="true" /> {editingId ? "Update" : "Add"}
                   </Button>{" "}
                   {editingId ? (
-                    <Button color="light" type="button" onClick={resetForm}>
-                      Cancel
+                    <Button color="light" className="app-cancel-btn" type="button" onClick={resetForm}>
+                      <i className="ri-close-line" aria-hidden="true" /> Cancel
                     </Button>
                   ) : null}
+                  </Col>
+                  </Row>
                 </Form>
               </CardBody>
             </Card>
           </Col>
-          <Col lg={7}>
-            <Card>
+          <Col lg={7} className="d-flex">
+            <Card className="w-100 mb-0">
               <CardHeader className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Family members</h5>
-                <Button color="light" size="sm" onClick={load} disabled={loading}>
-                  Refresh
+                <Button size="sm" className="btn-soft-secondary" onClick={load} disabled={loading}>
+                  <i className="ri-refresh-line" aria-hidden="true" /> Refresh
                 </Button>
               </CardHeader>
               <CardBody>
@@ -549,10 +568,10 @@ const FamilyMembers = () => {
                                 <td>{consentCell(row)}</td>
                                 <td className="text-end">
                                   <Button color="link" size="sm" onClick={() => onEdit(row)}>
-                                    Edit
+                                    <i className="ri-edit-line" aria-hidden="true" /> Edit
                                   </Button>
                                   <Button color="link" size="sm" className="text-danger" onClick={() => onDelete(row)}>
-                                    Delete
+                                    <i className="ri-delete-bin-line" aria-hidden="true" /> Delete
                                   </Button>
                                 </td>
                               </tr>
@@ -603,11 +622,11 @@ const FamilyMembers = () => {
           </FormGroup>
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={closeGuardianConsent} disabled={consentBusy}>
-            Cancel
+          <Button color="light" className="app-cancel-btn" onClick={closeGuardianConsent} disabled={consentBusy}>
+            <i className="ri-close-line" aria-hidden="true" /> Cancel
           </Button>
           <Button color="primary" onClick={submitGuardianConsent} disabled={consentBusy || !guardianDeclared || !privacyNotice}>
-            {consentBusy ? "Saving…" : "Give consent"}
+            <i className="ri-checkbox-circle-line" aria-hidden="true" /> {consentBusy ? "Saving…" : "Give consent"}
           </Button>
         </ModalFooter>
       </Modal>

@@ -26,7 +26,7 @@ const DoctorMobileContextPage = () => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">Patient context</h2>
+            <h2 className="clinic-page-title"><i className="ri-user-heart-line" aria-hidden="true" />Patient context</h2>
             <p className="clinic-page-subtitle mb-0">
               Name, age, chief complaint, last visit, payment, and tele status from the Context API.
             </p>

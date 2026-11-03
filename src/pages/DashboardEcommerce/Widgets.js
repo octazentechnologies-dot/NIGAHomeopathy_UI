@@ -78,7 +78,7 @@ const Widgets = ({ summary, loading }) => {
     <React.Fragment>
       {buildCards(kpis).map((item) => (
         <Col xl={3} md={6} key={item.label}>
-          <Card className="card-animate admin-dash-card">
+          <Card className="card-animate admin-dash-card admin-kpi-card">
             <CardBody>
               <div className="d-flex align-items-center">
                 <div className="flex-grow-1 overflow-hidden">

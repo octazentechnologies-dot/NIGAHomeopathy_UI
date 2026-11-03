@@ -268,7 +268,7 @@ const EditAllopathicDrug = () => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">Edit Allopathic Drug</h5>
+                      <h5 className="admin-form-title"><i className="ri-edit-line" aria-hidden="true" />Edit Allopathic Drug</h5>
                     </div>
                   </CardHeader>
 

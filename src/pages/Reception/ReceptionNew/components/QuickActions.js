@@ -5,32 +5,32 @@ const ACTIONS = [
   {
     id: "patient-details",
     label: "Patient Details",
-    icon: "mdi mdi-account-details",
+    icon: "ri-user-heart-line",
   },
   {
     id: "doctor-schedule",
     label: "Doctor Schedule",
-    icon: "mdi mdi-calendar-month",
+    icon: "ri-calendar-event-line",
   },
   {
     id: "new-appointment",
     label: "Book Appointment",
-    icon: "mdi mdi-calendar-plus",
+    icon: "ri-calendar-check-line",
   },
   {
     id: "collect-vitals",
     label: "Collect Vitals",
-    icon: "mdi mdi-heart-pulse",
+    icon: "ri-heart-pulse-line",
   },
   {
     id: "collect-payment",
     label: "Collect Payment",
-    icon: "mdi mdi-cash-check",
+    icon: "ri-wallet-3-line",
   },
   {
     id: "case-paper",
     label: "Case Paper",
-    icon: "mdi mdi-file-document-outline",
+    icon: "ri-file-list-3-line",
   },
 ];
 
@@ -45,11 +45,10 @@ const QuickActions = ({
   paymentDetails = null,
   casePaperDetails = null,
 }) => (
-  <Row className="g-2 mt-1 reception-quick-actions">
-    <Col xs={12}>
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-        <h5 className="reception-section-title mb-0">Quick Actions</h5>
-        <div className="d-flex align-items-center flex-wrap gap-2">
+  <>
+  <div className="reception-quick-actions-head">
+    <h5 className="reception-section-title">Quick Actions</h5>
+    <div className="d-flex align-items-center flex-wrap gap-2">
           {selectedPatient?.fullName ? (
             <div className="reception-selected-patient-chip">
               <i className="ri-user-heart-line" aria-hidden="true" />
@@ -103,30 +102,31 @@ const QuickActions = ({
               <span>{casePaperDetails.casePaperNo}</span>
             </div>
           ) : null}
-        </div>
-      </div>
-    </Col>
+    </div>
+  </div>
+  <Row className="reception-quick-actions">
     {ACTIONS.map((action) => {
       const isCompleted = completedActionIds.includes(action.id);
       const isActive = activeActionId === action.id;
       return (
         <Col xs={6} sm={4} lg key={action.id} className="reception-action-col">
           <Card
-            className={`card-animate admin-dash-card doctor-action-card mb-0 h-100 reception-quick-action-card${
+            className={`card-animate admin-dash-card admin-kpi-card mb-0 h-100 reception-quick-action-card${
               isCompleted ? " is-completed" : ""
             }${isActive ? " is-active-step" : ""}`}
           >
-            <CardBody className="text-center py-3">
+            {isCompleted ? (
+              <span className="reception-step-done" aria-label="Completed">
+                <i className="ri-checkbox-circle-fill" aria-hidden="true" />
+              </span>
+            ) : null}
+            <CardBody className="text-center">
               <button
                 type="button"
                 className="reception-quick-action-btn text-decoration-none d-block w-100 border-0 bg-transparent p-0"
                 onClick={() => onActionClick?.(action.id)}
               >
-                <div className="avatar-sm mx-auto mb-2">
-                  <span className="avatar-title rounded fs-3 doctor-action-icon">
-                    <i className={action.icon} aria-hidden="true" />
-                  </span>
-                </div>
+                <i className={`${action.icon} kpi-tile-icon`} aria-hidden="true" />
                 <p className="mb-0 fw-semibold reception-action-label">{action.label}</p>
               </button>
             </CardBody>
@@ -135,6 +135,7 @@ const QuickActions = ({
       );
     })}
   </Row>
+  </>
 );
 
 export default QuickActions;

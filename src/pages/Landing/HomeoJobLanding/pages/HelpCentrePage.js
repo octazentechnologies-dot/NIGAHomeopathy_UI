@@ -134,15 +134,12 @@ const HelpCentrePage = () => {
     return (
         <section className="homeojob-help">
             <Container>
-                <nav className="homeojob-help__breadcrumb" aria-label="Breadcrumb">
-                    <Link to={landingPath()}>Home</Link>
-                    <span>/</span>
-                    <span>Help Centre</span>
-                </nav>
-
                 <Row className="align-items-center g-4 homeojob-help__hero">
                     <Col lg={8}>
-                        <h1 className="homeojob-help__title">Help Centre</h1>
+                        <p className="homeojob-help__eyebrow">Support</p>
+                        <h1 className="homeojob-help__title">
+                            How can we <span className="text-primary">help</span>?
+                        </h1>
                         <p className="homeojob-help__subtitle">
                             Published articles from {SITE.name}. Search updates as you type.
                         </p>

@@ -237,6 +237,14 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
     });
   };
 
+  const goToNextPeriod = () => {
+    setWeekAnchor((prev) => {
+      const nextWeekStart = getWeekStart(prev).add(1, 'month').startOf('isoWeek');
+      setSelectedDate(nextWeekStart.clone());
+      return nextWeekStart;
+    });
+  };
+
   const handleRefresh = () => {
     if (loading) return;
     refreshAll({ silent: false });
@@ -294,16 +302,17 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
               <div className="doctor-schedule-calendar__range">
                 <span>{weekRangeLabel}</span>
-                <button
-                  type="button"
-                  className="doctor-schedule-calendar__range-next"
-                  onClick={() => shiftDay(1)}
-                  aria-label="Next day"
-                  title="Next day"
-                >
-                  <i className="ri-arrow-right-s-line" aria-hidden="true" />
-                </button>
               </div>
+
+              <button
+                type="button"
+                className="doctor-schedule-calendar__nav-btn"
+                onClick={goToNextPeriod}
+                aria-label="Next month"
+                title="Next month"
+              >
+                <i className="ri-arrow-right-s-line" />
+              </button>
 
               <div className="doctor-schedule-calendar__week-nav">
                 <button
@@ -342,9 +351,10 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
                     onClick={() => selectDay(day)}
                     title={hasHours ? 'Hours set in profile / daily schedule' : 'No hours saved for this day'}
                   >
-                    <span>
-                      {WEEKDAY_LABELS[day.isoWeekday() - 1]} {day.format('D')}
+                    <span className="doctor-schedule-calendar__day-name">
+                      {WEEKDAY_LABELS[day.isoWeekday() - 1]}
                     </span>
+                    <span className="doctor-schedule-calendar__day-num">{day.format('D')}</span>
                   </button>
                 );
               })}
@@ -370,10 +380,10 @@ const DoctorScheduleCalendarHeaderButton = ({ userRole }) => {
 
             {daySchedule?.hasSchedule ? (
               <div className="doctor-schedule-calendar__summary">
-                <span>{slotSummary.total} slots</span>
-                <span>{slotSummary.available} available</span>
-                <span>{slotSummary.booked + slotSummary.current} booked</span>
-                <span>{slotSummary.break} break</span>
+                <span className="is-total"><strong>{slotSummary.total}</strong> slots</span>
+                <span className="is-available"><strong>{slotSummary.available}</strong> available</span>
+                <span className="is-booked"><strong>{slotSummary.booked + slotSummary.current}</strong> booked</span>
+                <span className="is-break"><strong>{slotSummary.break}</strong> break</span>
               </div>
             ) : null}
 

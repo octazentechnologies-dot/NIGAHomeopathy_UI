@@ -6,13 +6,21 @@ import ModalActionButton from "../../../Components/Common/ModalActionButton";
 import { formatCount } from "./reportData";
 import "./doctorReports.css";
 
+const TITLE_ICONS = {
+  "Follow-up Analysis": "ri-line-chart-line",
+  "Doctor Earnings": "ri-wallet-3-line",
+  "Practice Statistics": "ri-pulse-line",
+  "Clinic Performance": "ri-bar-chart-grouped-line",
+};
+
 export const ReportShell = ({ title, subtitle, range, onRangeChange, onExport, sample = false, loading = false, error = "", onRetry, children }) => (
   <div className="page-content clinic-workspace-page">
     <Container fluid>
       <div className="drp-page">
         <div className="drp-page__head">
           <div>
-            <h2 className="clinic-page-title mb-1">
+            <h2 className="clinic-page-title mb-0">
+              <i className={TITLE_ICONS[title] || "ri-bar-chart-line"} aria-hidden="true" />
               {title}
               {sample ? <span className="drp-sample">Sample data</span> : null}
             </h2>
@@ -40,7 +48,7 @@ export const ReportShell = ({ title, subtitle, range, onRangeChange, onExport, s
             <span>{error}</span>
             {onRetry ? (
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={onRetry}>
-                Retry
+                <i className="ri-refresh-line" aria-hidden="true" /> Retry
               </button>
             ) : null}
           </div>
@@ -55,7 +63,6 @@ export const KpiGrid = ({ items }) => (
   <div className="drp-kpis" style={{ "--drp-kpi-cols": items.length }}>
     {items.map((k) => (
       <div key={k.label} className={`drp-kpi drp-kpi--${k.tone}${k.emphasis ? " is-emphasis" : ""}`}>
-        <span className="drp-kpi__icon"><i className={k.icon} aria-hidden="true" /></span>
         <div className="drp-kpi__body">
           <span className="drp-kpi__label">{k.label}</span>
           <span className="drp-kpi__value">
@@ -69,6 +76,7 @@ export const KpiGrid = ({ items }) => (
             ) : null}
           </span>
         </div>
+        <span className="drp-kpi__icon"><i className={k.icon} aria-hidden="true" /></span>
       </div>
     ))}
   </div>

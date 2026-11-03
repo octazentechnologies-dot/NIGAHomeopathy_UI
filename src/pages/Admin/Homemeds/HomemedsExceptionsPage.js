@@ -39,10 +39,10 @@ const HomemedsExceptionsPage = () => {
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h2 className="clinic-page-title mb-1">HomeoMeds exceptions</h2>
+            <h2 className="clinic-page-title mb-1"><i className="ri-capsule-line" aria-hidden="true" />HomeoMeds exceptions</h2>
             <p className="clinic-page-subtitle mb-0">Failed or stuck medicine orders — re-route to another pharmacy partner.</p>
           </div>
-          <Button size="sm" color="soft-secondary" onClick={load} disabled={loading}>Refresh</Button>
+          <Button size="sm" color="soft-secondary" onClick={load} disabled={loading}><i className="ri-refresh-line" aria-hidden="true" /> Refresh</Button>
         </div>
         {error ? <Alert color="danger">{error}</Alert> : null}
         {note ? <Alert color="success">{note}</Alert> : null}

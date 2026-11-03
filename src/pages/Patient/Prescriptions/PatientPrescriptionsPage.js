@@ -339,7 +339,7 @@ const PatientPrescriptionsPage = () => {
       <Container fluid>
         <div className="prx-page__header">
           <div>
-            <h2 className="clinic-page-title">Digital Prescription</h2>
+            <h2 className="clinic-page-title"><i className="ri-file-list-3-line" aria-hidden="true" />Digital Prescription</h2>
             <p className="clinic-page-subtitle">All prescriptions from your doctors, with dosage details and download.</p>
           </div>
           <div className="prx-page__filters">
@@ -472,7 +472,7 @@ const PatientPrescriptionsPage = () => {
                     <StatusChip signed={selected.signed} />
                     <button
                       type="button"
-                      className="prx-btn prx-btn--soft"
+                      className="btn btn-sm btn-soft-secondary"
                       disabled={!selected.signed}
                       title={selected.signed ? "Order these medicines" : "Available after the doctor signs"}
                       onClick={() => setOrderFor(selected)}
@@ -482,7 +482,7 @@ const PatientPrescriptionsPage = () => {
                     </button>
                     <button
                       type="button"
-                      className="prx-btn"
+                      className="btn btn-sm btn-soft-secondary"
                       disabled={!selected.signed || refillBusyId === selected.id}
                       title={selected.signed ? "Ask the doctor to approve a refill" : "Available after the doctor signs"}
                       onClick={() => onRequestRefill(selected)}
@@ -492,7 +492,7 @@ const PatientPrescriptionsPage = () => {
                     </button>
                     <button
                       type="button"
-                      className="prx-btn prx-btn--primary"
+                      className="btn btn-sm btn-soft-primary"
                       disabled={!selected.signed || downloadingId === selected.id}
                       title={
                         selected.signed

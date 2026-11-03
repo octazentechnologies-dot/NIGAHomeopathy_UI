@@ -8,6 +8,7 @@ import AppointmentSlotGrid from '../../../Components/Common/AppointmentSlotGrid'
 import ModalActionButton from '../../../Components/Common/ModalActionButton';
 import DailyScheduleSetupModal from '../../../Components/Common/DailyScheduleSetupModal';
 import Select, { components as ReactSelectComponents } from "react-select";
+import { pageWindow } from '../../../helpers/pageWindow';
 import moment from 'moment';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -35,6 +36,7 @@ import { getLoggedinUserInfo } from "../../../helpers/api_helper";
 import { getDoctorProfileMe } from "../../../helpers/realbackend_helper";
 import {
     buildPatientApiPayload,
+    CALENDAR_DATE_API_FORMATS_IN,
     formatCalendarDateForApi,
     formatDateOfBirthForApi,
     getPatientAuthContext,
@@ -60,7 +62,15 @@ import {
     getAuthDoctorId,
     getAuthUserId,
     normalizeAppointmentSlotsResponse,
+    applyClientPastSlotGuard,
 } from '../../../helpers/appointmentSlotHelper';
+import {
+    getSubscriptionCaseLimitInfo,
+    isAtOrOverCaseLimit,
+} from '../../../helpers/subscriptionCaseLimitHelper';
+import { isEligibleForFollowUpConsultation } from '../../../helpers/followUpConsultHelper';
+
+const SUBSCRIPTION_JUST_ACTIVATED_KEY = 'homeocentrum:subscription-just-activated';
 import {
     getAppointmentList as fetchAppointmentListByDateApi,
     getAppointmentSlots,
@@ -68,6 +78,8 @@ import {
     updateAvailabilityMe,
 } from '../../../helpers/realbackend_helper';
 import { subscribeAppointmentChanged } from '../../../helpers/clinicRealtime';
+import { earningsSummary, unwrapS4 } from '../../../helpers/s4Week4Api';
+import { loadMyTickets } from '../../../Components/SupportTicketsModal/supportTicketApi';
 import { } from "../../../slices/doctor/dashboard/reducer";
 import {
     setAppointmentLoading, setAppointmentError, setAppointmentSuccess,
@@ -190,7 +202,11 @@ const dashboardQueryDateIso = (d = new Date()) =>
     formatCalendarDateForApi(moment(d).format('YYYY-MM-DD'));
 
 const toAppointmentListDateIso = (displayDateStr) => {
-    const parsed = moment(displayDateStr, [DOB_DISPLAY_FORMAT, 'MM/DD/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD'], true);
+    const parsed = moment(
+        displayDateStr,
+        [APPOINTMENT_INDIAN_DISPLAY_FORMAT, 'D/M/YYYY', 'DD-MM-YYYY', 'D-M-YYYY', 'YYYY-MM-DD', DOB_DISPLAY_FORMAT, 'MM/DD/YYYY'],
+        true
+    );
     if (!parsed.isValid()) return '';
     return formatCalendarDateForApi(parsed.format('YYYY-MM-DD'));
 };
@@ -200,19 +216,19 @@ const PatientListTableHead = () => (
         <tr>
             <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-user-heart-line" aria-hidden="true" />Patient Name</span>
+                <span className="patient-list-modal__th">Patient Name</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-cake-2-line" aria-hidden="true" />Age/Sex</span>
+                <span className="patient-list-modal__th">Age/Sex</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-map-pin-line" aria-hidden="true" />Place</span>
+                <span className="patient-list-modal__th">Place</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-calendar-event-line" aria-hidden="true" />Appointment Time</span>
+                <span className="patient-list-modal__th">Appointment Time</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-flag-line" aria-hidden="true" />Status</span>
+                <span className="patient-list-modal__th">Status</span>
             </th>
         </tr>
     </thead>
@@ -319,19 +335,19 @@ const AppointmentListTableHead = () => (
         <tr>
             <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-user-heart-line" aria-hidden="true" />Patient Name</span>
+                <span className="patient-list-modal__th">Patient Name</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-phone-line" aria-hidden="true" />Mobile Number</span>
+                <span className="patient-list-modal__th">Mobile Number</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Date</span>
+                <span className="patient-list-modal__th">Date</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-time-line" aria-hidden="true" />Time</span>
+                <span className="patient-list-modal__th">Time</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-flag-line" aria-hidden="true" />Status</span>
+                <span className="patient-list-modal__th">Status</span>
             </th>
         </tr>
     </thead>
@@ -363,25 +379,25 @@ const PatientViewAllTableHead = () => (
         <tr>
             <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-user-heart-line" aria-hidden="true" />Patient Name</span>
+                <span className="patient-list-modal__th">Patient Name</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-phone-line" aria-hidden="true" />Mobile Number</span>
+                <span className="patient-list-modal__th">Mobile Number</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-map-pin-line" aria-hidden="true" />Address</span>
+                <span className="patient-list-modal__th">Address</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-user-line" aria-hidden="true" />Gender</span>
+                <span className="patient-list-modal__th">Gender</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-calendar-check-line" aria-hidden="true" />Last Visit</span>
+                <span className="patient-list-modal__th">Last Visit</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-cake-2-line" aria-hidden="true" />Date of Birth</span>
+                <span className="patient-list-modal__th">Date of Birth</span>
             </th>
             <th scope="col" className="text-center">
-                <span className="patient-list-modal__th"><i className="ri-settings-3-line" aria-hidden="true" />Action</span>
+                <span className="patient-list-modal__th">Action</span>
             </th>
         </tr>
     </thead>
@@ -427,25 +443,25 @@ const UnpaidConsultationTableHead = () => (
         <tr>
             <th scope="col" className="text-center patient-list-modal__th-index" style={{ width: '5%' }}>#</th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-user-heart-line" aria-hidden="true" />Patient Name</span>
+                <span className="patient-list-modal__th">Patient Name</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-phone-line" aria-hidden="true" />Mobile Number</span>
+                <span className="patient-list-modal__th">Mobile Number</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-map-pin-line" aria-hidden="true" />Address</span>
+                <span className="patient-list-modal__th">Address</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-user-line" aria-hidden="true" />Gender</span>
+                <span className="patient-list-modal__th">Gender</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-calendar-line" aria-hidden="true" />Last App. Dt.</span>
+                <span className="patient-list-modal__th">Last App. Dt.</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="mdi mdi-currency-rupee" aria-hidden="true" />Amount</span>
+                <span className="patient-list-modal__th">Amount</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th"><i className="ri-flag-line" aria-hidden="true" />Status</span>
+                <span className="patient-list-modal__th">Status</span>
             </th>
         </tr>
     </thead>
@@ -579,27 +595,7 @@ const PatientSelectMenuList = (props) => (
 );
 
 // Compact modal pagination: ← 1 2 … [current] … last →
-const getModalVisiblePageItems = (currentPage, totalPages) => {
-    const total = Math.max(0, Number(totalPages) || 0);
-    const current = Math.min(Math.max(1, Number(currentPage) || 1), Math.max(total, 1));
-    if (total <= 0) return [];
-    if (total <= 3) {
-        return Array.from({ length: total }, (_, i) => i + 1);
-    }
-
-    const pages = new Set([1, 2, total, current]);
-    const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
-    const items = [];
-    let prev = 0;
-    sorted.forEach((page) => {
-        if (prev && page - prev > 1) {
-            items.push('ellipsis');
-        }
-        items.push(page);
-        prev = page;
-    });
-    return items;
-};
+const getModalVisiblePageItems = (currentPage, totalPages) => pageWindow(currentPage, totalPages, 'ellipsis');
 
 const CompactModalPaginationPages = ({ currentPage, totalPages, onPageChange }) => {
     const items = getModalVisiblePageItems(currentPage, totalPages);
@@ -1654,8 +1650,8 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
   .subscription-plan-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-    padding: 0.75rem 0.5rem 1.25rem;
+    gap: 0.3rem;
+    padding: 0 0 0.15rem;
   }
   @media (max-width: 767px) {
     .subscription-plan-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1665,61 +1661,104 @@ const SUBSCRIPTION_PLAN_MODAL_STYLES = `
   }
   .subscription-plan-card {
     width: 100%;
-    min-height: 280px;
+    min-height: 0;
     display: flex;
     flex-direction: column;
+    border: 1px solid #dbe7f3;
     border-radius: 5px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
-    transition: transform 0.3s ease;
-    animation: subscriptionPlanCardIn 0.5s ease backwards;
+    background: #fff;
+    box-shadow: none;
+    overflow: hidden;
+    transition: border-color 0.18s ease;
   }
   .subscription-plan-card:hover {
-    transform: translateY(-8px) scale(1.02);
-  }
-  .subscription-plan-card:nth-child(1) { animation-delay: 0.05s; }
-  .subscription-plan-card:nth-child(2) { animation-delay: 0.1s; }
-  .subscription-plan-card:nth-child(3) { animation-delay: 0.15s; }
-  .subscription-plan-card:nth-child(4) { animation-delay: 0.2s; }
-  .subscription-plan-card:nth-child(5) { animation-delay: 0.25s; }
-  .subscription-plan-card:nth-child(6) { animation-delay: 0.3s; }
-  @keyframes subscriptionPlanCardIn {
-    from { opacity: 0; transform: translateY(20px) scale(0.94); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    transform: none;
+    border-color: #b9d7f2;
   }
   .subscription-plan-card__body {
     flex: 1 1 auto;
-    padding: 1.25rem 1rem;
-    min-height: 200px;
-    border-radius: 5px 5px 0 0;
-  }
-  .subscription-plan-card__icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.22);
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
+    justify-content: space-between;
+    gap: 0.45rem;
+    min-height: 0;
+    padding: 0.45rem 0.65rem 0.35rem;
+    border-radius: 0;
+    background: transparent !important;
+    color: #0f172a;
+  }
+  .subscription-plan-card--1,
+  .subscription-plan-card--2,
+  .subscription-plan-card--3,
+  .subscription-plan-card--4,
+  .subscription-plan-card--5,
+  .subscription-plan-card--6 {
+    background: linear-gradient(180deg, #e4efff 0%, #f4f9ff 52%, #ffffff 100%) !important;
+    border-color: #d4e4fb;
+  }
+  .subscription-plan-card__copy { min-width: 0; }
+  .subscription-plan-card__name {
+    margin: 0;
+    color: #0f172a;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .subscription-plan-card__price {
+    margin: 0.2rem 0 0.35rem;
+    color: #0f172a;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .subscription-plan-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.65rem;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .subscription-plan-card__meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .subscription-plan-card__meta i { color: #25a0e2; font-size: 0.85rem; line-height: 1; }
+  .subscription-plan-card__glyph {
     flex-shrink: 0;
+    align-self: center;
+    margin-left: auto;
+    color: #25a0e2;
+    font-size: 1.35rem;
+    line-height: 1;
+    background: transparent;
   }
   .subscription-plan-card__footer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
     flex-shrink: 0;
-    margin: 0;
-    padding: 0;
-    border: none;
-    border-radius: 0 0 5px 5px;
-    min-height: 52px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    transition: filter 0.2s ease, background-color 0.2s ease;
+    margin: 0 0.65rem 0.65rem;
+    height: 1.75rem;
+    padding: 0 0.65rem;
+    border: 1px solid #7dd3fc;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%) !important;
+    color: #0369a1;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    box-shadow: none;
   }
+  .subscription-plan-card__footer i { font-size: 0.85rem; line-height: 1; color: #0369a1; }
   .subscription-plan-card__footer:hover {
-    filter: brightness(1.08);
+    filter: none;
+    background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 100%) !important;
+    color: #075985;
   }
-  .subscription-plan-card__footer:active {
-    filter: brightness(0.95);
-  }
+  .subscription-plan-card__footer:hover i { color: #075985; }
 `;
 
 const formatPlanAmount = (amount) => {
@@ -1742,7 +1781,7 @@ const getPlanIcon = (pkg, index) => {
 };
 
 // Subscription (Purchase Plan) modal — 2-row card grid (3 per row)
-const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseable = false }) => {
+const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseable = false, purchaseDisabled = false }) => {
     const packages = useSelector((state) => state?.DoctorDashboard?.packages) || [];
     const packagesLoading = useSelector((state) => state?.DoctorDashboard?.packagesLoading);
     const [searchTerm, setSearchTerm] = useState('');
@@ -1810,6 +1849,7 @@ const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseabl
                     <PatientListModalHeaderActions
                         value={searchTerm}
                         onChange={handleSearch}
+                        placeholder="Search plans.."
                     />
                 )}
             </ModalHeader>
@@ -1839,35 +1879,30 @@ const SubscriptionListModal = ({ isOpen, toggle, handleOnBuyClick, isNonCloseabl
                     ) : (
                         <div className="subscription-plan-row">
                             {filteredPackages.map((pkg, index) => {
-                                const theme = PLAN_CARD_THEMES[index % PLAN_CARD_THEMES.length];
                                 const planIcon = getPlanIcon(pkg, index);
                                 return (
-                                    <div key={pkg.packageId} className="subscription-plan-card">
-                                        <div
-                                            className="subscription-plan-card__body text-white d-flex flex-column"
-                                            style={{ backgroundColor: theme.top }}
-                                        >
-                                            <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-                                                <h5 className="text-white fw-bold mb-0 flex-grow-1">{pkg.packageName}</h5>
-                                                <span className="subscription-plan-card__icon" aria-hidden="true">
-                                                    <i className={planIcon} />
-                                                </span>
+                                    <div key={pkg.packageId} className={`subscription-plan-card subscription-plan-card--${(index % 6) + 1}`}>
+                                        <div className="subscription-plan-card__body">
+                                            <div className="subscription-plan-card__copy">
+                                                <h5 className="subscription-plan-card__name">{pkg.packageName}</h5>
+                                                <p className="subscription-plan-card__price">{formatPlanAmount(pkg.amount)}</p>
+                                                <div className="subscription-plan-card__meta">
+                                                    <span><i className="ri-briefcase-line" aria-hidden="true" />{pkg.caseCount} Cases</span>
+                                                    <span><i className="ri-time-line" aria-hidden="true" />{pkg.validityInDays} Days</span>
+                                                </div>
                                             </div>
-                                            <p className="mb-2 fs-4 fw-semibold">{formatPlanAmount(pkg.amount)}</p>
-                                            <p className="mb-1 opacity-90 d-flex align-items-center gap-1">
-                                                <i className="ri-briefcase-line" /> {pkg.caseCount} Cases
-                                            </p>
-                                            <p className="mb-0 opacity-90 d-flex align-items-center gap-1">
-                                                <i className="ri-time-line" /> {pkg.validityInDays} Days
-                                            </p>
+                                            <i className={`${planIcon} subscription-plan-card__glyph`} aria-hidden="true" />
                                         </div>
                                         <button
                                             type="button"
-                                            className="subscription-plan-card__footer btn text-white w-100"
-                                            style={{ backgroundColor: theme.bottom }}
-                                            onClick={() => handleOnBuyClick(pkg)}
+                                            className="subscription-plan-card__footer"
+                                            disabled={purchaseDisabled}
+                                            onClick={() => {
+                                                if (!purchaseDisabled) handleOnBuyClick(pkg);
+                                            }}
                                         >
-                                            Buy Now {'>'}
+                                            <i className="ri-shopping-bag-3-line" aria-hidden="true" />
+                                            {purchaseDisabled ? 'Processing…' : 'Buy Now'}
                                         </button>
                                     </div>
                                 );
@@ -1940,10 +1975,16 @@ const Widgets = () => {
     const [todaySlotCount, setTodaySlotCount] = useState(null);
     const razorpayInstanceRef = useRef(null);
     const selectedPackageRef = useRef(null);
+    const [subscriptionCheckoutActive, setSubscriptionCheckoutActive] = useState(false);
 
     const patientTotalCount = useMemo(
         () => getDoctorPatientTotalCount(patientList, counts),
         [patientList, counts]
+    );
+
+    const subscriptionCaseLimit = useMemo(
+        () => getSubscriptionCaseLimitInfo(counts, doctorList?.[0]),
+        [counts, doctorList]
     );
 
     const loadTodaySlotCount = () => {
@@ -1989,33 +2030,68 @@ const Widgets = () => {
         loadTodaySlotCount();
     }, [dispatch]);
 
+    const [earningsTotal, setEarningsTotal] = useState(0);
+    const [supportOpenCount, setSupportOpenCount] = useState(0);
+
+    useEffect(() => {
+        let cancelled = false;
+        earningsSummary({})
+            .then((response) => {
+                const data = unwrapS4(response) || {};
+                const total = Number(data.totalCaptured ?? data.TotalCaptured ?? 0) || 0;
+                if (!cancelled) setEarningsTotal(Math.round(total));
+            })
+            .catch(() => {
+                if (!cancelled) setEarningsTotal(0);
+            });
+        loadMyTickets()
+            .then((tickets) => {
+                const open = (tickets || []).filter((ticket) => ticket.status !== 'Resolved' && ticket.status !== 'Closed').length;
+                if (!cancelled) setSupportOpenCount(open);
+            })
+            .catch(() => {
+                if (!cancelled) setSupportOpenCount(0);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     // Check subscription status and show appropriate modals
     useEffect(() => {
+        if (subscriptionCheckoutActive) return;
         try {
             const auth = JSON.parse(sessionStorage.getItem('authUser'));
-            // Handle both response.data structure and direct data structure
-            const subscriptionData = auth?.data || auth;
+            const subscriptionData = {
+                ...(auth?.data || auth || {}),
+                ...(loginUser && typeof loginUser === 'object' ? loginUser : {}),
+            };
 
             if (!subscriptionData) return;
+
+            const justActivated = sessionStorage.getItem(SUBSCRIPTION_JUST_ACTIVATED_KEY) === '1';
+            if (justActivated) {
+                sessionStorage.removeItem(SUBSCRIPTION_JUST_ACTIVATED_KEY);
+            }
 
             const isPlanActive = readPlanActive(subscriptionData);
             const islastFiveDays = subscriptionData.islastFiveDays === true || subscriptionData.IslastFiveDays === true;
             const daysRemaining = subscriptionData.daysRemaining || subscriptionData.DaysRemaining || 0;
 
-            // If plan is not active, show Purchase Plan list (non-closeable)
-            if (!isPlanActive) {
+            if (!isPlanActive && !justActivated) {
                 setModalSubscriptionList(true);
                 return;
             }
 
-            // If in last 5 days and days remaining > 0, show expiration warning (daily)
+            if (isPlanActive) {
+                setModalSubscriptionList(false);
+            }
+
             if (islastFiveDays === true && daysRemaining > 0) {
-                // Check if we've shown the popup today using localStorage
                 const today = new Date().toDateString();
                 const lastShownDate = localStorage.getItem('subscriptionExpirationWarningDate');
                 const lastDaysRemaining = localStorage.getItem('subscriptionDaysRemaining');
 
-                // Show popup if not shown today or if days remaining changed
                 if (lastShownDate !== today || lastDaysRemaining !== daysRemaining.toString()) {
                     setSubscriptionDaysRemaining(daysRemaining);
                     setModalSubscriptionExpiration(true);
@@ -2026,7 +2102,7 @@ const Widgets = () => {
         } catch (error) {
             console.error('Error checking subscription status:', error);
         }
-    }, []);
+    }, [loginUser, subscriptionCheckoutActive]);
 
     // Modal states for dashboard KPI cards
     const [modal_waiting, setmodal_waiting] = useState(false);
@@ -2132,6 +2208,10 @@ const Widgets = () => {
     const [requireDailyScheduleSave, setRequireDailyScheduleSave] = useState(false);
     const [scheduleModalContext, setScheduleModalContext] = useState(null);
     const [teleConsultationEnabled, setTeleConsultationEnabled] = useState(true);
+    const [doctorFeeConfig, setDoctorFeeConfig] = useState({
+        freeFollowUpDaysInClinic: null,
+        followUpFeeInClinic: null,
+    });
     const availabilityEvaluatedRef = useRef('');
     const appointmentSlotsRequestRef = useRef(0);
     const appointmentResetFormRef = useRef(null);
@@ -2144,6 +2224,10 @@ const Widgets = () => {
                 const me = response?.data || response?.Data || response;
                 if (me) {
                     setTeleConsultationEnabled(Boolean(me.teleconsultation));
+                    setDoctorFeeConfig({
+                        freeFollowUpDaysInClinic: me.freeFollowUpDaysInClinic ?? me.FreeFollowUpDaysInClinic ?? null,
+                        followUpFeeInClinic: me.followUpFeeInClinic ?? me.FollowUpFeeInClinic ?? null,
+                    });
                 }
             } catch {
                 // Silently fail - if we can't fetch, allow teleconsultation by default
@@ -2211,7 +2295,7 @@ const Widgets = () => {
                 return;
             }
             const normalized = normalizeAppointmentSlotsResponse(response);
-            setAppointmentSlots(normalized.slots);
+            setAppointmentSlots(applyClientPastSlotGuard(normalized.slots, apiDate));
             setHasAppointmentSchedule(Boolean(normalized.hasSchedule));
             setAppointmentSlotInterval(normalized.intervalMinutes ?? null);
         } catch (error) {
@@ -2501,7 +2585,7 @@ const Widgets = () => {
     const appointmentFormInitialValues = useMemo(() => ({
         patient: prefilledAppointmentPatient,
         doctor: defaultAppointmentDoctor,
-        appointmentDate: prefilledAppointmentPatient ? moment().format(DOB_DISPLAY_FORMAT) : '',
+        appointmentDate: prefilledAppointmentPatient ? moment().format(APPOINTMENT_INDIAN_DISPLAY_FORMAT) : '',
         consultMode: 'InClinic',
     }), [prefilledAppointmentPatient, defaultAppointmentDoctor]);
 
@@ -2544,6 +2628,20 @@ const Widgets = () => {
             return;
         }
 
+        const appointmentDateKey = formatCalendarDateForSchedule(values.appointmentDate) || formatCalendarDateForApi(values.appointmentDate);
+        const guardedSlots = applyClientPastSlotGuard([{ time: selectedSlotTime, status: 'available' }], appointmentDateKey);
+        if (guardedSlots[0]?.status === 'past') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Past time slot',
+                text: 'This time has already passed. Please choose a current or future slot.',
+                timer: 2400,
+                showConfirmButton: false,
+            });
+            setSubmitting(false);
+            return;
+        }
+
         if (values.consultMode === 'Tele' && !teleConsultationEnabled) {
             Swal.fire({
                 icon: 'error',
@@ -2556,10 +2654,22 @@ const Widgets = () => {
             return;
         }
 
+        // Picker stores DD/MM/YYYY — must not use US-first parse (01/11/2026 → 11 Jan).
         let formattedDate = values.appointmentDate;
         if (values.appointmentDate) {
-            formattedDate = formatCalendarDateForApi(values.appointmentDate) || values.appointmentDate;
+            formattedDate =
+                formatCalendarDateForApi(values.appointmentDate, CALENDAR_DATE_API_FORMATS_IN) ||
+                values.appointmentDate;
         }
+
+        const followUpEligible =
+            values.consultMode !== 'Tele' &&
+            isEligibleForFollowUpConsultation(
+                values.patient.value,
+                formattedDate,
+                appointmentList,
+                doctorFeeConfig
+            );
 
         const appointmentData = {
             patientAppId: 0,
@@ -2571,8 +2681,9 @@ const Widgets = () => {
             status: "WAITING",
             deleteStatus: false,
             userId: userId,
-            visitType: values.consultMode || 'InClinic',
+            visitType: followUpEligible ? 'FollowUp' : (values.consultMode || 'InClinic'),
             consultMode: values.consultMode || 'InClinic',
+            isFollowUpConsultation: followUpEligible,
         };
 
         console.log("Appointment data: ", appointmentData);
@@ -2625,6 +2736,46 @@ const Widgets = () => {
     // Handle patient form submission
     const handlePatientSubmit = async (values, { setSubmitting, resetForm, setFieldError, setFieldTouched }) => {
         console.log("handlePatientSubmit called with values:", values);
+
+        if (isAtOrOverCaseLimit(patientTotalCount, subscriptionCaseLimit)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Patient limit reached',
+                text: 'Your subscription case limit has been reached. Purchase or upgrade a plan to register more patients.',
+                confirmButtonText: 'View plans',
+                showCancelButton: true,
+                cancelButtonText: 'Close',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    setModalSubscriptionList(true);
+                }
+            });
+            setSubmitting(false);
+            return;
+        }
+
+        const normalizedMobile = String(values.mobileNo || '').replace(/\D/g, '');
+        const duplicatePatient = (patientList || []).some((row) => {
+            const existing = String(row?.mobileNo ?? row?.MobileNo ?? '').replace(/\D/g, '');
+            return existing.length >= 10 && existing === normalizedMobile;
+        });
+        if (duplicatePatient) {
+            const message = 'This mobile number is already registered for a patient.';
+            if (setFieldError && setFieldTouched) {
+                setFieldError('mobileNo', message);
+                setFieldTouched('mobileNo', true, false);
+            }
+            Swal.fire({
+                icon: 'warning',
+                title: 'Duplicate mobile number',
+                text: message,
+                timer: 2600,
+                showConfirmButton: false,
+            });
+            setSubmitting(false);
+            return;
+        }
+
         const auth = JSON.parse(sessionStorage.getItem('authUser'));
         const userId = auth?.userId || auth?.user?.userId || auth?.user?.id;
         const clinicDoctorId = auth?.doctorId || auth?.DoctorId || 0;
@@ -2712,9 +2863,11 @@ const Widgets = () => {
 
     // Handle Buy button click - Payment flow
     const handleOnBuyClick = async (variant) => {
+        if (subscriptionCheckoutActive) return;
         console.log(variant);
         setSelectedPackage(variant);
         selectedPackageRef.current = variant;
+        setSubscriptionCheckoutActive(true);
 
         try {
             // Generate order ID
@@ -2745,6 +2898,11 @@ const Widgets = () => {
                         description: `Doctor subscription: ${variant.packageName || 'package'}`,
                         order_id: result?.orderId,
                         handler: handlePaymentSuccess,
+                        modal: {
+                            ondismiss: () => {
+                                setSubscriptionCheckoutActive(false);
+                            },
+                        },
                         prefill: {
                             name: doctor.doctorName || authFullName || authInfo.userName || authInfo.UserName || '',
                             email: doctor.emailId || doctor.email || authInfo.email || authInfo.emailId || authInfo.EmailId || '',
@@ -2761,14 +2919,18 @@ const Widgets = () => {
                     razorpay.open();
                 };
                 document.body.appendChild(script);
+            } else {
+                setSubscriptionCheckoutActive(false);
             }
         } catch (error) {
             console.error('Error generating order:', error);
+            setSubscriptionCheckoutActive(false);
         }
     };
 
     // Handle payment success
     const handlePaymentSuccess = async (paymentResponse) => {
+        setSubscriptionCheckoutActive(true);
         const pkg = selectedPackageRef.current;
         console.log('obj == ', {
             packageDetailId: 0,
@@ -2795,9 +2957,20 @@ const Widgets = () => {
 
             await dispatch(refreshAuthSubscriptionStatus());
             console.log("result payment==", result);
-            setModalSubscriptionList(false);
+            try {
+                const auth = JSON.parse(sessionStorage.getItem('authUser'));
+                const subscriptionData = auth?.data || auth;
+                if (readPlanActive(subscriptionData)) {
+                    sessionStorage.setItem(SUBSCRIPTION_JUST_ACTIVATED_KEY, '1');
+                    setModalSubscriptionList(false);
+                }
+            } catch {
+                setModalSubscriptionList(false);
+            }
         } catch (error) {
             console.error('Error saving subscription:', error);
+        } finally {
+            setSubscriptionCheckoutActive(false);
         }
 
         console.log('handlePaymentSuccess == ', paymentResponse);
@@ -2836,10 +3009,13 @@ const Widgets = () => {
 
     // Check if subscription modal should be non-closeable
     const isSubscriptionModalNonCloseable = (() => {
+        if (subscriptionCheckoutActive) return true;
         try {
             const auth = JSON.parse(sessionStorage.getItem('authUser'));
-            // Handle both response.data structure and direct data structure
-            const subscriptionData = auth?.data || auth;
+            const subscriptionData = {
+                ...(auth?.data || auth || {}),
+                ...(loginUser && typeof loginUser === 'object' ? loginUser : {}),
+            };
             return !readPlanActive(subscriptionData);
         } catch {
             return false;
@@ -3006,194 +3182,59 @@ const Widgets = () => {
 
         <>
             <div className="row doctor-dashboard-kpi-row">
-                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_waiting()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_waiting(); } }}>
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-traffic-light-line fs-24"></i>
+                {[
+                    { key: 'waiting', label: 'Waiting', value: counts?.patientAppWaiting ?? 0, icon: 'ri-time-line', onOpen: tog_waiting },
+                    { key: 'walkin', label: 'Walk-in', value: counts?.patientAppWalkIn ?? 0, icon: 'ri-run-fill', onOpen: tog_walkin },
+                    { key: 'notarrived', label: 'Not Arrived', value: counts?.patientAppNotArrived ?? 0, icon: 'ri-user-unfollow-line', onOpen: tog_notarrived },
+                    { key: 'remaining', label: 'Remaining', value: counts?.patientAppRemaining ?? 0, icon: 'ri-group-line', onOpen: tog_remaining },
+                    { key: 'completed', label: 'Completed', value: counts?.patientAppComplated ?? 0, icon: 'ri-checkbox-circle-line', onOpen: tog_completed },
+                    { key: 'cancelled', label: 'Cancelled', value: cancelledCount, icon: 'ri-close-circle-line', onOpen: tog_cancelled },
+                    { key: 'slots', label: 'App. Slots', value: todaySlotCount == null ? '\u2026' : todaySlotCount, icon: 'ri-grid-line', onOpen: openTodaySlotsSetup },
+                    { key: 'telequeue', label: 'Tele Queue', value: counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0, icon: 'ri-vidicon-line', onOpen: tog_econsult },
+                    { key: 'unpaid', label: 'Unpaid', value: counts?.unpaidCount ?? counts?.UnpaidCount ?? 0, icon: 'ri-wallet-3-line', onOpen: tog_billingList },
+                    { key: 'tele', label: 'Tele Consult', value: counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0, icon: 'ri-customer-service-2-line', onOpen: () => navigate('/doctor/tele-consultation') },
+                    { key: 'earnings', label: 'Earnings', value: formatIndianRupeeAmount(earningsTotal), icon: 'ri-hand-coin-line', onOpen: () => navigate('/doctor/earnings') },
+                    { key: 'support', label: 'Help Support', value: supportOpenCount, icon: 'ri-question-answer-line', onOpen: () => navigate('/doctor/support') },
+                ].map((item) => (
+                    <div
+                        className="col-6 col-md-4 col-lg-2"
+                        key={item.key}
+                        role="button"
+                        tabIndex={0}
+                        title={item.label}
+                        onClick={() => item.onOpen()}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                item.onOpen();
+                            }
+                        }}
+                    >
+                        <div className="card-animate card mb-0 h-100 admin-kpi-card doctor-kpi-card">
+                            <div className="card-body d-flex align-items-center justify-content-between">
+                                <div className="min-w-0">
+                                    <p className="text-uppercase fw-bold text-truncate mb-0 doctor-kpi-label">{item.label}</p>
+                                    <div className="d-flex align-items-center gap-2 doctor-kpi-card__foot">
+                                        <h4 className="doctor-kpi-count mb-0">{item.value}</h4>
+                                        <button
+                                            type="button"
+                                            className="doctor-kpi-view"
+                                            title="View"
+                                            aria-label={`View ${item.label}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                item.onOpen();
+                                            }}
+                                        >
+                                            <i className="ri-eye-line" aria-hidden="true" />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppWaiting ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">WAITING</p>
+                                <i className={`${item.icon} kpi-tile-icon`} aria-hidden="true" />
                             </div>
                         </div>
                     </div>
-                </div>
-                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_walkin()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_walkin(); } }}>
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-run-fill fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppWalkIn ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">WALK-IN</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_notarrived()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_notarrived(); } }}>
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="mdi mdi-account-remove fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppNotArrived ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">NOT ARRIVED</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_remaining()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_remaining(); } }}>
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="mdi mdi-account-group fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppRemaining ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">REMAINING</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_completed()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_completed(); } }}>
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-checkbox-circle-line icon-dual-info fs-20" />
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.patientAppComplated ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">COMPLETED</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-4 col-lg-2" onClick={() => tog_cancelled()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_cancelled(); } }}>
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-danger-subtle border-danger border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-close-circle-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{cancelledCount}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">CANCELLED</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="row mb-2 doctor-dashboard-chrome-row">
-                <div
-                    className="col-6 col-md-4 col-lg-2"
-                    role="button"
-                    tabIndex={0}
-                    title="Open today's appointment slots"
-                    onClick={() => openTodaySlotsSetup()}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            openTodaySlotsSetup();
-                        }
-                    }}
-                >
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-grid-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{todaySlotCount == null ? '…' : todaySlotCount}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">App. Slots</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="col-6 col-md-4 col-lg-2"
-                    onClick={() => tog_econsult()}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_econsult(); } }}
-                >
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-vidicon-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">TELE QUEUE</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="col-6 col-md-4 col-lg-2"
-                    onClick={() => tog_billingList()}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog_billingList(); } }}
-                >
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-warning-subtle border-warning border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-wallet-3-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.unpaidCount ?? counts?.UnpaidCount ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">UNPAID</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="col-6 col-md-4 col-lg-2"
-                    onClick={() => navigate('/doctor/tele-consultation')}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            navigate('/doctor/tele-consultation');
-                        }
-                    }}
-                >
-                    <div className="card-animate card mb-2 doctor-kpi-card">
-                        <div className="card-body d-flex gap-3 align-items-center">
-                            <div className="avatar-sm">
-                                <div className="avatar-title border bg-info-subtle border-info border-opacity-25 rounded-2 fs-17 doctor-kpi-icon">
-                                    <i className="ri-customer-service-2-line fs-24"></i>
-                                </div>
-                            </div>
-                            <div className="flex-grow-1">
-                                <h5 className="fs-15 doctor-kpi-count">{counts?.teleQueueCount ?? counts?.TeleQueueCount ?? counts?.patientAppEConsult ?? 0}</h5>
-                                <p className="mb-0 text-muted doctor-kpi-label">Tele Consult</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                ))}
             </div>
 
             <div className="row mb-2 doctor-dashboard-action-row">
@@ -3225,22 +3266,22 @@ const Widgets = () => {
                             </div>
                             <div className="d-flex align-items-end justify-content-between doctor-action-card__bottom">
                                 <div className="doctor-action-card__copy">
-                                    <h4 className="fs-20 fw-semibold ff-secondary mb-4 doctor-action-title">
+                                    <h4 className="fs-20 fw-semibold ff-secondary mb-2 doctor-action-title">
                                         <span className="counter-value" data-target="559.25"><span>Appointment</span></span>
                                     </h4>
-                                    <a className="doctor-dashboard-action-link text-decoration-none" href="#" onClick={(e) => { e.preventDefault(); setModalAppointmentList(true); }}>View All</a>
-                                </div>
-                                <div className="avatar-sm flex-shrink-0">
-                                    <button
-                                        type="button"
-                                        className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon doctor-action-icon--clickable border-0"
-                                        title="Doctor Schedule Calendar"
-                                        aria-label="Open doctor schedule calendar"
-                                        onClick={dispatchOpenDoctorScheduleCalendar}
-                                    >
-                                        <i className="ri-calendar-event-line" aria-hidden="true" />
+                                    <button type="button" className="doctor-kpi-view" title="View" aria-label="View appointments" onClick={() => setModalAppointmentList(true)}>
+                                        <i className="ri-eye-line" aria-hidden="true" />
                                     </button>
                                 </div>
+                                <button
+                                    type="button"
+                                    className="doctor-action-icon-btn"
+                                    title="Doctor Schedule Calendar"
+                                    aria-label="Open doctor schedule calendar"
+                                    onClick={dispatchOpenDoctorScheduleCalendar}
+                                >
+                                    <i className="ri-calendar-event-line kpi-tile-icon" aria-hidden="true" />
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -3261,7 +3302,7 @@ const Widgets = () => {
                                             e.currentTarget.blur();
                                         }}
                                     >
-                                        <i className="mdi mdi-account-plus me-1 align-middle" />
+                                        <i className="ri-user-add-line me-1 align-middle" />
                                         Create New Patient
                                     </Button>
                                 </div>
@@ -3273,25 +3314,25 @@ const Widgets = () => {
                             </div>
                             <div className="d-flex align-items-end justify-content-between doctor-action-card__bottom">
                                 <div className="doctor-action-card__copy">
-                                    <h4 className="fs-20 fw-semibold ff-secondary mb-4 doctor-action-title">
+                                    <h4 className="fs-20 fw-semibold ff-secondary mb-2 doctor-action-title">
                                         <span className="counter-value" data-target="559.25"><span>Patient</span></span>
                                     </h4>
-                                    <a className="doctor-dashboard-action-link text-decoration-none me-3" href="#" onClick={(e) => { e.preventDefault(); setModalPatientList(true); }}>View All</a>
-                                </div>
-                                <div className="avatar-sm flex-shrink-0">
-                                    <button
-                                        type="button"
-                                        className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon doctor-action-icon--clickable border-0"
-                                        title="Create New Patient"
-                                        aria-label="Create new patient"
-                                        onClick={(e) => {
-                                            tog_newPatient();
-                                            e.currentTarget.blur();
-                                        }}
-                                    >
-                                        <i className="mdi mdi-account-plus" aria-hidden="true" />
+                                    <button type="button" className="doctor-kpi-view" title="View" aria-label="View patients" onClick={() => setModalPatientList(true)}>
+                                        <i className="ri-eye-line" aria-hidden="true" />
                                     </button>
                                 </div>
+                                <button
+                                    type="button"
+                                    className="doctor-action-icon-btn"
+                                    title="Create New Patient"
+                                    aria-label="Create new patient"
+                                    onClick={(e) => {
+                                        tog_newPatient();
+                                        e.currentTarget.blur();
+                                    }}
+                                >
+                                    <i className="ri-user-add-line kpi-tile-icon" aria-hidden="true" />
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -3313,25 +3354,14 @@ const Widgets = () => {
                             </div>
                             <div className="d-flex align-items-end justify-content-between doctor-action-card__bottom">
                                 <div className="doctor-action-card__copy">
-                                    <h4 className="fs-20 fw-semibold ff-secondary mb-4 doctor-action-title">
+                                    <h4 className="fs-20 fw-semibold ff-secondary mb-2 doctor-action-title">
                                         <span className="counter-value" data-target="559.25"><span>Consultations</span></span>
                                     </h4>
-                                    <a
-                                        className="doctor-dashboard-action-link text-decoration-none"
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            setModalBillingList(true);
-                                        }}
-                                    >
-                                        View All
-                                    </a>
+                                    <button type="button" className="doctor-kpi-view" title="View" aria-label="View consultations" onClick={() => setModalBillingList(true)}>
+                                        <i className="ri-eye-line" aria-hidden="true" />
+                                    </button>
                                 </div>
-                                <div className="avatar-sm flex-shrink-0">
-                                    <span className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon">
-                                        <i className="mdi mdi-currency-rupee text-info" />
-                                    </span>
-                                </div>
+                                <i className="ri-wallet-3-line kpi-tile-icon" aria-hidden="true" />
                             </div>
                         </div>
                     </div>
@@ -3341,7 +3371,20 @@ const Widgets = () => {
                         <div className="card-body doctor-action-card__body">
                             <div className="d-flex align-items-center doctor-action-card__top">
                                 <div className="flex-grow-1 overflow-hidden doctor-action-card__top-start">
-                                    <p className="text-uppercase fw-semibold text-muted text-truncate mb-0 doctor-action-eyebrow">My Plan</p>
+                                    <Button
+                                        type="button"
+                                        color="primary"
+                                        outline
+                                        size="sm"
+                                        className="doctor-dashboard-create-new-btn text-truncate mb-0"
+                                        onClick={(e) => {
+                                            setModalSubscriptionList(true);
+                                            e.currentTarget.blur();
+                                        }}
+                                    >
+                                        <i className="ri-vip-crown-line me-1 align-middle" />
+                                        Purchase Plan
+                                    </Button>
                                 </div>
                                 <div className="flex-shrink-0 doctor-action-card__top-end">
                                     <h5 className={`fs-14 mb-0 doctor-action-status-pill ${getPlanDaysRemainingToneClass(planDaysRemaining)}`}>
@@ -3351,14 +3394,11 @@ const Widgets = () => {
                             </div>
                             <div className="d-flex align-items-end justify-content-between doctor-action-card__bottom">
                                 <div className="doctor-action-card__copy">
-                                    <h4 className="fs-20 fw-semibold ff-secondary mb-4 doctor-action-title">
+                                    <h4 className="fs-20 fw-semibold ff-secondary mb-2 doctor-action-title">
                                         <span className="counter-value" data-target="559.25"><span>Subscription</span></span>
                                     </h4>
-                                    <a className="doctor-dashboard-action-link text-decoration-none" href="#" onClick={(e) => { e.preventDefault(); setModalSubscriptionList(true); }}>Purchase Plan</a>
                                 </div>
-                                <div className="avatar-sm flex-shrink-0">
-                                    <span className="avatar-title rounded fs-3 bg-info-subtle doctor-action-icon"><i className="text-info bx bx-wallet"></i></span>
-                                </div>
+                                <i className="ri-vip-crown-line kpi-tile-icon" aria-hidden="true" />
                             </div>
                         </div>
                     </div>
@@ -3387,6 +3427,7 @@ const Widgets = () => {
                 toggle={tog_subscriptionList}
                 handleOnBuyClick={handleOnBuyClick}
                 isNonCloseable={isSubscriptionModalNonCloseable}
+                purchaseDisabled={subscriptionCheckoutActive}
             />
 
             <Modal size="xl" id="myModal" isOpen={modal_walkin} toggle={() => { tog_walkin(); }} className="patient-list-modal">
@@ -3478,11 +3519,12 @@ const Widgets = () => {
 
             {/* New Patient Modal */}
             <Modal
-                size="xl"
+                size="lg"
+                centered
                 isOpen={modal_newPatient}
                 toggle={closeNewPatientModal}
                 onClosed={handleNewPatientModalClosed}
-                className="patient-list-modal new-patient-modal"
+                className="patient-list-modal new-patient-modal doctor-new-patient-modal"
             >
                 <ModalHeader className="patient-list-modal__header" toggle={closeNewPatientModal}>
                     <PatientListModalTitle
@@ -3780,7 +3822,8 @@ const Widgets = () => {
 
             {/* New Appointment Modal */}
             <Modal
-                size="xl"
+                size="lg"
+                centered
                 isOpen={modal_newAppointment}
                 toggle={closeNewAppointmentModal}
                 onClosed={handleNewAppointmentModalClosed}
@@ -3795,20 +3838,22 @@ const Widgets = () => {
                     />
                 </ModalHeader>
                 <ModalBody>
-                    <div className="p-2">
-                        {appointmentSuccess ? (
-                            <UncontrolledAlert color="success" className="alert-label-icon label-arrow " style={{ marginTop: "13px" }}>
-                                <i className="ri-notification-off-line label-icon"></i>
-                                {appointmentSuccess}
-                            </UncontrolledAlert>
-                        ) : null}
-                        {appointmentError ? (
-                            <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-xl-0" style={{ marginTop: "13px" }}>
-                                <i className="ri-error-warning-line label-icon"></i>
-                                {appointmentError}
-                            </UncontrolledAlert>
-                        ) : null}
-                    </div>
+                    {appointmentSuccess || appointmentError ? (
+                        <div className="new-appointment-modal__alerts">
+                            {appointmentSuccess ? (
+                                <UncontrolledAlert color="success" className="alert-label-icon label-arrow mb-0">
+                                    <i className="ri-notification-off-line label-icon"></i>
+                                    {appointmentSuccess}
+                                </UncontrolledAlert>
+                            ) : null}
+                            {appointmentError ? (
+                                <UncontrolledAlert color="danger" className="alert-label-icon label-arrow mb-0">
+                                    <i className="ri-error-warning-line label-icon"></i>
+                                    {appointmentError}
+                                </UncontrolledAlert>
+                            ) : null}
+                        </div>
+                    ) : null}
                     <Formik
                         initialValues={appointmentFormInitialValues}
                         onSubmit={(values, formikHelpers) => {
@@ -3825,7 +3870,7 @@ const Widgets = () => {
                             return (
                             <>
                             <Form>
-                                <div className="row g-3 new-appointment-form-fields">
+                                <div className="row g-2 new-appointment-form-fields">
                                     <div className="col-md-6">
                                         <Label className="form-label new-appointment-modal__label">
                                             <i className="ri-user-heart-line" aria-hidden="true" />

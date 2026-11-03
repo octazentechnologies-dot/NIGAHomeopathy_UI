@@ -69,15 +69,6 @@ const BookConfirmPage = () => {
 
     return (
         <section className="homeojob-doctor-detail">
-            <Container className="py-3">
-                <nav className="homeojob-doctor-detail__breadcrumb" aria-label="Breadcrumb">
-                    <Link to={landingPath("book")}>Book</Link>
-                    <span aria-hidden="true">&gt;</span>
-                    <Link to={landingPath(`book/${doctor.id}/slots`)}>Slots</Link>
-                    <span aria-hidden="true">&gt;</span>
-                    <span>Confirm</span>
-                </nav>
-            </Container>
             <BookingConfirmModal
                 isOpen
                 asPage

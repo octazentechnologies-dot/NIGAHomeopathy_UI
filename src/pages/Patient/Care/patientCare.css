@@ -10,12 +10,12 @@
   --pc-border: #e2ebf3;
   --pc-card-border: #eff3f7;
   --pc-danger: #b42318;
-  --pc-control-h: 36px;
+  --pc-control-h: 1.75rem;
 }
 
 .patient-care-page .clinic-page-title {
   color: #000;
-  font-size: 1.35rem;
+  font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
@@ -142,21 +142,26 @@
 }
 
 .pc-send-btn {
-  height: var(--pc-control-h);
-  min-width: 7rem;
-  margin-top: 1.15rem;
-  border: none !important;
-  border-radius: 6px !important;
-  background: var(--pc-blue) !important;
-  color: #fff !important;
-  font-size: 0.8125rem !important;
+  align-self: flex-end;
+  height: var(--pc-control-h) !important;
+  min-height: 0 !important;
+  min-width: 0;
+  margin: 0 !important;
+  border: 1px solid #cfe9ff !important;
+  border-radius: 4px !important;
+  background: #e8f5ff !important;
+  color: #25a0e2 !important;
+  font-size: 0.6875rem !important;
   font-weight: 600 !important;
-  padding: 0 1rem !important;
+  line-height: 1.2 !important;
+  padding: 0 0.65rem !important;
   white-space: nowrap;
 }
 
 .pc-send-btn:hover:not(:disabled) {
-  background: var(--pc-blue-hover) !important;
+  background: #d6eeff !important;
+  border-color: #b3dbff !important;
+  color: #1a8bc9 !important;
 }
 
 .pc-send-btn:disabled {

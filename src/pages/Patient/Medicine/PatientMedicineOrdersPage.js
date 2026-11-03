@@ -256,10 +256,10 @@ const PatientMedicineOrdersPage = () => {
       <Container fluid>
         <div className="prx-page__header">
           <div>
-            <h2 className="clinic-page-title">My Orders</h2>
+            <h2 className="clinic-page-title"><i className="ri-capsule-line" aria-hidden="true" />My Orders</h2>
             <p className="clinic-page-subtitle">Medicines ordered from your signed prescriptions. You pay only after you accept a quote.</p>
           </div>
-          <button type="button" className="prx-btn prx-btn--primary med-header-btn" onClick={() => navigate("/patient/prescriptions")}>
+          <button type="button" className="btn btn-sm btn-soft-primary" onClick={() => navigate("/patient/prescriptions")}>
             <i className="ri-add-line" aria-hidden="true" />
             Order from prescription
           </button>
@@ -313,7 +313,7 @@ const PatientMedicineOrdersPage = () => {
                     </div>
                     <button
                       type="button"
-                      className="prx-btn prx-btn--primary med-refill-banner__btn"
+                      className="btn btn-sm btn-soft-primary"
                       disabled={busy}
                       onClick={() => onStartRefill(row)}
                     >
@@ -430,7 +430,7 @@ const PatientMedicineOrdersPage = () => {
                           <td className="text-end">
                             <button
                               type="button"
-                              className={`prx-btn ${stage.action ? "prx-btn--primary" : "med-soft-btn"}`}
+                              className={`btn btn-sm ${stage.action ? "btn-soft-primary" : "btn-soft-secondary"}`}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 setActiveId(order.id);

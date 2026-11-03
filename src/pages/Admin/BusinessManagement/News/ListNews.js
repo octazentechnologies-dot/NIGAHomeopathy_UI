@@ -65,7 +65,7 @@ const ListNews = () => {
         icon: 'success',
         title: 'Success',
         text: newsDetailsSuccess,
-        confirmButtonColor: '#800020',
+        confirmButtonColor: '#25a0e2',
         timer: 2000,
         showConfirmButton: false,
       });
@@ -81,7 +81,7 @@ const ListNews = () => {
         icon: 'error',
         title: 'Error',
         text: newsDetailsError,
-        confirmButtonColor: '#800020',
+        confirmButtonColor: '#25a0e2',
       });
       setTimeout(() => {
         dispatch(setNewsDetailsError(null));

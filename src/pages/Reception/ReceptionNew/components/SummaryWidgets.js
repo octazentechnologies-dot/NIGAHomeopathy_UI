@@ -10,25 +10,25 @@ const KPI_CARDS = [
   {
     id: "today-appointments",
     label: "Today's Appointments",
-    icon: "mdi mdi-calendar-clock",
+    icon: "ri-calendar-event-line",
     linkLabel: "View All",
   },
   {
     id: "waiting-patients",
     label: "Waiting Patients",
-    icon: "mdi mdi-account-clock",
+    icon: "ri-time-line",
     linkLabel: "View All",
   },
   {
     id: "pending-payments",
     label: "Pending Payments",
-    icon: "mdi mdi-cash-multiple",
+    icon: "ri-wallet-3-line",
     linkLabel: "View All",
   },
   {
     id: "today-patients",
     label: "Total Patients",
-    icon: "mdi mdi-account-group",
+    icon: "ri-group-line",
     linkLabel: "View All",
   },
 ];
@@ -95,7 +95,7 @@ const SummaryWidgets = ({ refreshKey = 0 }) => {
       <Row className="g-2 reception-dashboard-widgets">
         {KPI_CARDS.map((item) => (
           <Col xs={12} sm={6} xl={3} className="reception-kpi-col" key={item.id}>
-            <Card className="card-animate admin-dash-card doctor-action-card">
+            <Card className="card-animate admin-dash-card admin-kpi-card reception-kpi-card mb-0 h-100">
               <CardBody>
                 <div className="d-flex align-items-center">
                   <div className="flex-grow-1 overflow-hidden">
@@ -103,30 +103,25 @@ const SummaryWidgets = ({ refreshKey = 0 }) => {
                       {item.label}
                     </p>
                   </div>
-                  <div className="flex-shrink-0">
-                    <h5 className="fs-14 mb-0 text-muted">—</h5>
-                  </div>
                 </div>
-                <div className="d-flex align-items-end justify-content-between mt-4">
-                  <div>
-                    <h4 className="fs-20 fw-semibold ff-secondary mb-4">
+                <div className="d-flex align-items-end justify-content-between mt-3">
+                  <div className="overflow-hidden pe-2">
+                    <h4 className="fs-20 fw-semibold ff-secondary mb-2 reception-kpi-count">
                       <span className="counter-value">
                         <CountUp start={0} end={lists[item.id]?.length || 0} duration={1} />
                       </span>
                     </h4>
                     <button
                       type="button"
-                      className="reception-kpi-link doctor-dashboard-action-link border-0 bg-transparent p-0"
+                      className="reception-kpi-view"
+                      title="View"
+                      aria-label={`View ${item.label}`}
                       onClick={() => setActiveModalId(item.id)}
                     >
-                      {item.linkLabel}
+                      <i className="ri-eye-line" aria-hidden="true" />
                     </button>
                   </div>
-                  <div className="avatar-sm flex-shrink-0">
-                    <span className="avatar-title rounded fs-3 doctor-action-icon">
-                      <i className={item.icon} aria-hidden="true" />
-                    </span>
-                  </div>
+                  <i className={`${item.icon} kpi-tile-icon`} aria-hidden="true" />
                 </div>
               </CardBody>
             </Card>

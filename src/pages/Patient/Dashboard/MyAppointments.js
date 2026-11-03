@@ -167,7 +167,7 @@ const MyAppointments = ({ visits = [], loading = false }) => {
                     className={classnames({ active: activeTab === "1" })}
                     onClick={() => setActiveTab("1")}
                   >
-                    <span className="doctor-patient-tab-label">Today</span>
+                    <span className="doctor-patient-tab-label">Today({todayRows.length})</span>
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -176,7 +176,7 @@ const MyAppointments = ({ visits = [], loading = false }) => {
                     className={classnames({ active: activeTab === "2" })}
                     onClick={() => setActiveTab("2")}
                   >
-                    <span className="doctor-patient-tab-label">All</span>
+                    <span className="doctor-patient-tab-label">All({mapped.length})</span>
                   </NavLink>
                 </NavItem>
               </Nav>

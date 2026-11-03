@@ -23,6 +23,7 @@ import {
 } from "../../helpers/webHandoffSession";
 import { savePatientBoardBackupFromSessions } from "../../slices/doctor/patientBoardBackup/thunk";
 import { sessionsHaveBackupWork } from "../../helpers/patientBoardBackupHelper";
+import { completePatientBoardSession } from "../../slices/doctor/patientBoardSession/reducer";
 
 const withoutEnquiries = (items) =>
   (items || [])
@@ -163,11 +164,6 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
         strategy="fixed"
         className="dropdown-menu-lg doctor-mobile-nav-panel"
       >
-        <div className="dropdown-header d-flex align-items-center gap-2">
-          <i className="ri-menu-line" />
-          <span>Menu</span>
-        </div>
-
         <div className="doctor-mobile-nav-body">
           {showReturn ? (
             <>
@@ -227,21 +223,39 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
                 const name = String(session.patientName || "Patient").trim();
                 const active = session.patientKey === activePatientKey;
                 return (
-                  <HiddenLink
+                  <div
                     key={session.patientKey}
-                    to={session.resumePath || "/doctor/patientboard"}
-                    className={`dropdown-item d-flex align-items-center gap-2${active ? " active" : ""}`}
-                    onClick={close}
+                    className={`dropdown-item d-flex align-items-center gap-2 doctor-mobile-nav__session${active ? " active" : ""}`}
                   >
-                    <span
-                      className="doctor-mobile-nav__avatar"
-                      style={{ backgroundColor: getPatientAvatarColor(name) }}
-                      aria-hidden="true"
+                    <HiddenLink
+                      to={session.resumePath || "/doctor/patientboard"}
+                      className="d-flex align-items-center gap-2 flex-grow-1 text-decoration-none text-body min-w-0"
+                      onClick={close}
                     >
-                      {getPatientInitials(name)}
-                    </span>
-                    <span>{name}</span>
-                  </HiddenLink>
+                      <span
+                        className="doctor-mobile-nav__avatar"
+                        style={{ backgroundColor: getPatientAvatarColor(name) }}
+                        aria-hidden="true"
+                      >
+                        {getPatientInitials(name)}
+                      </span>
+                      <span className="text-truncate">{name}</span>
+                    </HiddenLink>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-link text-danger p-0 doctor-mobile-nav__session-remove"
+                      title={`Remove ${name} from open cases`}
+                      aria-label={`Remove ${name} from open cases`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        dispatch(completePatientBoardSession(session.patientKey));
+                        close();
+                      }}
+                    >
+                      <i className="ri-close-circle-line fs-16" aria-hidden="true" />
+                    </button>
+                  </div>
                 );
               })}
             </>

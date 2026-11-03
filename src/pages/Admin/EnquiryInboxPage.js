@@ -299,55 +299,46 @@ const EnquiryInboxPage = () => {
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-hashtag" aria-hidden="true" />
                         Id
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-user-line" aria-hidden="true" />
                         Name
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-mail-line" aria-hidden="true" />
                         Email
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-phone-line" aria-hidden="true" />
                         Mobile
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-file-text-line" aria-hidden="true" />
                         Details
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-time-line" aria-hidden="true" />
                         Received
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-timer-line" aria-hidden="true" />
                         SLA
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-user-follow-line" aria-hidden="true" />
                         Assigned
                       </span>
                     </th>
                     <th scope="col">
                       <span className="patient-list-modal__th">
-                        <i className="ri-checkbox-circle-line" aria-hidden="true" />
                         Status
                       </span>
                     </th>
@@ -561,16 +552,16 @@ const EnquiryInboxPage = () => {
             </Button>
             {active?.assignedTo ? (
               <Button color="soft-secondary" disabled={saving} onClick={() => saveDetail({ clearAssignee: true })}>
-                Unassign
+                <i className="ri-user-unfollow-line" aria-hidden="true" /> Unassign
               </Button>
             ) : null}
           </div>
           <div className="d-flex flex-wrap gap-2">
             <Button color="light" onClick={closeDetail} disabled={saving}>
-              Close
+              <i className="ri-close-line" aria-hidden="true" /> Close
             </Button>
-            <Button className="clinic-primary-btn" disabled={saving} onClick={() => saveDetail()}>
-              {saving ? <Spinner size="sm" /> : null}
+            <Button className="btn btn-sm btn-soft-primary" disabled={saving} onClick={() => saveDetail()}>
+              {saving ? <Spinner size="sm" /> : <i className="ri-save-line" aria-hidden="true" />}
               {saving ? " Saving…" : "Save status"}
             </Button>
           </div>

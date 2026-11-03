@@ -88,7 +88,7 @@ const AddDrugGroup = () => {
                 }}>
                   <CardHeader className="border-0">
                     <div className="admin-form-toolbar">
-                      <h5 className="admin-form-title">New Drug Group</h5>
+                      <h5 className="admin-form-title"><i className="ri-add-circle-line" aria-hidden="true" />New Drug Group</h5>
                     </div>
                   </CardHeader>
 

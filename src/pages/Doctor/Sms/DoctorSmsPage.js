@@ -213,7 +213,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title">{isAdmin ? "SMS templates" : "SMS events"}</h2>
+            <h2 className="clinic-page-title"><i className="ri-message-2-line" aria-hidden="true" />{isAdmin ? "SMS templates" : "SMS events"}</h2>
             <p className="clinic-page-subtitle mb-0">
               {isAdmin
                 ? "Clinic message text. Provider keys stay in server configuration."
@@ -222,7 +222,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
           </div>
           {isAdmin ? (
             <div className="clinic-table-actions">
-              <button type="button" className="btn btn-sm clinic-primary-btn" onClick={openCreate}>
+              <button type="button" className="btn btn-sm btn-soft-primary" onClick={openCreate}>
                 <i className="ri-add-line me-1" aria-hidden="true" />
                 New template
               </button>
@@ -305,7 +305,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                                 <button
                                   id={viewId}
                                   type="button"
-                                  className="btn btn-sm btn-soft-info"
+                                  className="btn btn-sm btn-icon btn-soft-info sms-action-btn"
                                   aria-label="View"
                                   onClick={() => openView(row)}
                                 >
@@ -317,7 +317,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                                 <button
                                   id={editId}
                                   type="button"
-                                  className="btn btn-sm btn-soft-success"
+                                  className="btn btn-sm btn-icon btn-soft-success sms-action-btn"
                                   aria-label="Edit"
                                   onClick={() => openEdit(row)}
                                 >
@@ -329,7 +329,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                                 <button
                                   id={toggleId}
                                   type="button"
-                                  className={`btn btn-sm ${active ? "btn-soft-warning" : "btn-soft-primary"}`}
+                                  className={`btn btn-sm btn-icon sms-action-btn ${active ? "btn-soft-warning" : "btn-soft-primary"}`}
                                   aria-label={active ? "Deactivate" : "Activate"}
                                   disabled={busy === `active-${id}`}
                                   onClick={() => toggleActive(row)}
@@ -342,7 +342,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                                 <button
                                   id={delId}
                                   type="button"
-                                  className="btn btn-sm btn-soft-danger"
+                                  className="btn btn-sm btn-icon btn-soft-danger sms-action-btn"
                                   aria-label="Delete"
                                   disabled={busy === `del-${id}`}
                                   onClick={() => removeTemplate(row)}
@@ -366,12 +366,18 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
         )}
 
         {isAdmin ? (
-          <Modal isOpen={formOpen} toggle={closeForm} centered size="lg">
-            <ModalHeader toggle={closeForm}>{formTitle}</ModalHeader>
+          <Modal isOpen={formOpen} toggle={closeForm} centered size="lg" className="sms-template-modal">
+            <ModalHeader toggle={closeForm}>
+              <i
+                className={formMode === "view" ? "ri-eye-line" : formMode === "edit" ? "ri-edit-line" : "ri-add-circle-line"}
+                aria-hidden="true"
+              />
+              {formTitle}
+            </ModalHeader>
             <ModalBody>
-              <Row className="g-3">
+              <Row className="g-2">
                 <Col md={4}>
-                  <FormGroup>
+                  <FormGroup className="mb-0">
                     <Label htmlFor="sms-code">Code</Label>
                     <Input
                       id="sms-code"
@@ -387,7 +393,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                   </FormGroup>
                 </Col>
                 <Col md={8}>
-                  <FormGroup>
+                  <FormGroup className="mb-0">
                     <Label htmlFor="sms-active">Active</Label>
                     <Input
                       id="sms-active"
@@ -407,7 +413,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                     <Input
                       id="sms-body"
                       type="textarea"
-                      rows={5}
+                      rows={3}
                       value={draft.body}
                       maxLength={500}
                       disabled={readOnly}
@@ -423,7 +429,7 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
               {formMode === "view" ? (
                 <>
                   <Button color="soft-secondary" onClick={closeForm}>
-                    Close
+                    <i className="ri-close-line" aria-hidden="true" /> Close
                   </Button>
                   <Button
                     color="primary"
@@ -431,16 +437,16 @@ const DoctorSmsPage = ({ mode = "doctor" }) => {
                       setFormMode("edit");
                     }}
                   >
-                    Edit
+                    <i className="ri-edit-line" aria-hidden="true" /> Edit
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button color="soft-secondary" onClick={closeForm} disabled={busy === "save"}>
-                    Cancel
+                  <Button color="soft-secondary" className="app-cancel-btn" onClick={closeForm} disabled={busy === "save"}>
+                    <i className="ri-close-line" aria-hidden="true" /> Cancel
                   </Button>
                   <Button color="primary" disabled={busy === "save"} onClick={saveTemplate}>
-                    {busy === "save" ? "Saving…" : formMode === "edit" ? "Update template" : "Create template"}
+                    <i className="ri-save-line" aria-hidden="true" /> {busy === "save" ? "Saving…" : formMode === "edit" ? "Update template" : "Create template"}
                   </Button>
                 </>
               )}

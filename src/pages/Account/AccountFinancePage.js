@@ -39,19 +39,19 @@ import ExportFormatButton from "../../Components/Common/ExportFormatButton";
 import "./components/accountDashboard.css";
 
 const SECTIONS = {
-  ledger: { title: "Ledger", subtitle: "Every rupee that moves through the platform." },
-  "doctor-earnings": { title: "Doctor earnings", subtitle: "Consultation reconciliation by visit." },
-  payouts: { title: "Payouts", subtitle: "OTP-approved releases to doctors and pharmacies." },
-  invoices: { title: "Refunds", subtitle: "Refunds against original payment orders." },
-  reports: { title: "Reports", subtitle: "Tax, collections, medicine ledger, settlements, exceptions, payees." },
-  "clinic-collections": { title: "Clinic collections", subtitle: "Cash and UPI collected at reception." },
-  settlements: { title: "Settlements", subtitle: "Group collected rupees into a run, then create PENDING payouts for doctors or pharmacies." },
-  exceptions: { title: "Payment exceptions", subtitle: "Failed or disputed payments to resolve." },
-  tax: { title: "GST & tax", subtitle: "Invoice tax report for the selected dates." },
-  payees: { title: "Payees", subtitle: "Bank and KYC records for doctors and pharmacies." },
-  "medicine-ledger": { title: "Medicine ledger", subtitle: "Medicine money tracked separately from consultations." },
-  "consult-recon": { title: "Consultation reconciliation", subtitle: "Online and reception collections matched to visits." },
-  refunds: { title: "Refunds", subtitle: "Refunds against original payment orders." },
+  ledger: { title: "Ledger", icon: "ri-book-2-line", subtitle: "Every rupee that moves through the platform." },
+  "doctor-earnings": { title: "Doctor earnings", icon: "ri-money-dollar-circle-line", subtitle: "Consultation reconciliation by visit." },
+  payouts: { title: "Payouts", icon: "ri-hand-coin-line", subtitle: "OTP-approved releases to doctors and pharmacies." },
+  invoices: { title: "Refunds", icon: "ri-refund-2-line", subtitle: "Refunds against original payment orders." },
+  reports: { title: "Reports", icon: "ri-bar-chart-box-line", subtitle: "Tax, collections, medicine ledger, settlements, exceptions, payees." },
+  "clinic-collections": { title: "Clinic collections", icon: "ri-store-2-line", subtitle: "Cash and UPI collected at reception." },
+  settlements: { title: "Settlements", icon: "ri-shake-hands-line", subtitle: "Group collected rupees into a run, then create PENDING payouts for doctors or pharmacies." },
+  exceptions: { title: "Payment exceptions", icon: "ri-error-warning-line", subtitle: "Failed or disputed payments to resolve." },
+  tax: { title: "GST & tax", icon: "ri-percent-line", subtitle: "Invoice tax report for the selected dates." },
+  payees: { title: "Payees", icon: "ri-bank-line", subtitle: "Bank and KYC records for doctors and pharmacies." },
+  "medicine-ledger": { title: "Medicine ledger", icon: "ri-capsule-line", subtitle: "Medicine money tracked separately from consultations." },
+  "consult-recon": { title: "Consultation reconciliation", icon: "ri-exchange-line", subtitle: "Online and reception collections matched to visits." },
+  refunds: { title: "Refunds", icon: "ri-refund-2-line", subtitle: "Refunds against original payment orders." },
 };
 
 const ACCOUNT_REPORT_LINKS = [
@@ -312,7 +312,6 @@ const AccountFinancePage = ({ section = "ledger" }) => {
   const location = useLocation();
   const adminReportsBase = location.pathname.startsWith("/admin");
   const reportsHome = adminReportsBase ? "/admin/reports" : "/account/reports";
-  const dashboardHome = adminReportsBase ? "/dashboard" : "/accountdashboard";
   /** Opened from Reports hub card (/admin/reports/…) vs standalone More menu (/admin/payment-exceptions). */
   const fromReportsHub =
     /^\/admin\/reports\//i.test(location.pathname) ||
@@ -879,7 +878,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
       <Container fluid>
         <div className="clinic-page-header">
           <div>
-            <h2 className="clinic-page-title account-page-title">{meta.title}</h2>
+            <h2 className="clinic-page-title account-page-title"><i className={meta.icon} aria-hidden="true" />{meta.title}</h2>
             <p className="clinic-page-subtitle account-page-subtitle mb-0">{meta.subtitle}</p>
           </div>
           <div className="clinic-table-actions">
@@ -888,19 +887,14 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 <i className="ri-arrow-left-line" aria-hidden="true" />
                 Back to reports
               </Link>
-            ) : (
-              <Link to={dashboardHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
-                <i className="ri-home-4-line" aria-hidden="true" />
-                {adminReportsBase ? "Admin home" : "Account home"}
-              </Link>
-            )}
+            ) : null}
             {standaloneAdminFinance ? (
               <Link to={reportsHome} className="btn btn-sm btn-soft-secondary clinic-action-btn">
                 <i className="ri-bar-chart-line" aria-hidden="true" />
                 Reports
               </Link>
             ) : null}
-            <button type="button" className="btn btn-sm clinic-primary-btn" onClick={load} disabled={loading}>
+            <button type="button" className="btn btn-sm btn-soft-secondary clinic-action-btn" onClick={load} disabled={loading}>
               <i className="ri-refresh-line" aria-hidden="true" />
               Refresh
             </button>
@@ -982,10 +976,8 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <Label>To</Label>
                   <Input type="date" value={taxTo} onChange={(e) => setTaxTo(e.target.value)} />
                 </Col>
-                <Col md={3}>
-                  <Button className="account-primary-btn" onClick={load} disabled={loading}>Load report</Button>
-                </Col>
-                <Col md={3}>
+                <Col xs="auto" className="account-filter-actions">
+                  <Button className="btn btn-sm btn-soft-primary" onClick={load} disabled={loading}><i className="ri-file-chart-line" aria-hidden="true" /> Load report</Button>
                   <ExportFormatButton
                     label="Download"
                     disabled={!detail?.csv && !rows.length}
@@ -1016,8 +1008,8 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   <Label>To</Label>
                   <Input type="date" value={ledgerTo} onChange={(e) => setLedgerTo(e.target.value)} />
                 </Col>
-                <Col md={3}>
-                  <Button className="account-primary-btn" onClick={load} disabled={loading}>Apply dates</Button>
+                <Col xs="auto" className="account-filter-actions">
+                  <Button className="btn btn-sm btn-soft-primary" onClick={load} disabled={loading}><i className="ri-calendar-check-line" aria-hidden="true" /> Apply dates</Button>
                 </Col>
               </Row>
             </CardBody>
@@ -1027,11 +1019,71 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         {section === "doctor-earnings" && detail && !loading ? (
           <>
             <Row className="g-3 mb-3">
-              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Visits</div><div className="fs-4">{detail.visitCount ?? 0}</div></CardBody></Card></Col>
-              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Total</div><div className="fs-4">{money(detail.totalCaptured)}</div></CardBody></Card></Col>
-              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Online</div><div className="fs-4">{money(detail.onlineCaptured)}</div></CardBody></Card></Col>
-              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">At clinic</div><div className="fs-4">{money(detail.clinicCollected)}</div></CardBody></Card></Col>
-              <Col md><Card className="admin-dash-card"><CardBody><div className="text-muted small">Pending payouts</div><div className="fs-4">{money(detail.pendingPayoutAmount)}</div></CardBody></Card></Col>
+              <Col md>
+                <Card className="admin-dash-card admin-kpi-card">
+                  <CardBody>
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Visits</div>
+                        <div className="fs-4">{detail.visitCount ?? 0}</div>
+                      </div>
+                      <i className="ri-stethoscope-line kpi-tile-icon" aria-hidden="true" />
+                    </div>
+                  </CardBody>
+                </Card>
+              </Col>
+              <Col md>
+                <Card className="admin-dash-card admin-kpi-card">
+                  <CardBody>
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Total</div>
+                        <div className="fs-4">{money(detail.totalCaptured)}</div>
+                      </div>
+                      <i className="ri-wallet-3-line kpi-tile-icon" aria-hidden="true" />
+                    </div>
+                  </CardBody>
+                </Card>
+              </Col>
+              <Col md>
+                <Card className="admin-dash-card admin-kpi-card">
+                  <CardBody>
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Online</div>
+                        <div className="fs-4">{money(detail.onlineCaptured)}</div>
+                      </div>
+                      <i className="ri-bank-card-line kpi-tile-icon" aria-hidden="true" />
+                    </div>
+                  </CardBody>
+                </Card>
+              </Col>
+              <Col md>
+                <Card className="admin-dash-card admin-kpi-card">
+                  <CardBody>
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">At clinic</div>
+                        <div className="fs-4">{money(detail.clinicCollected)}</div>
+                      </div>
+                      <i className="ri-hospital-line kpi-tile-icon" aria-hidden="true" />
+                    </div>
+                  </CardBody>
+                </Card>
+              </Col>
+              <Col md>
+                <Card className="admin-dash-card admin-kpi-card">
+                  <CardBody>
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        <div className="text-muted small">Pending payouts</div>
+                        <div className="fs-4">{money(detail.pendingPayoutAmount)}</div>
+                      </div>
+                      <i className="ri-exchange-dollar-line kpi-tile-icon" aria-hidden="true" />
+                    </div>
+                  </CardBody>
+                </Card>
+              </Col>
             </Row>
             {Array.isArray(detail.byDoctor) && detail.byDoctor.length > 0 ? (
               <Card className="admin-dash-card mb-3">
@@ -1088,8 +1140,8 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                     <option value="SUBSCRIPTION">Subscription</option>
                   </Input>
                 </Col>
-                <Col md={3} className="d-flex gap-2">
-                  <Button className="account-primary-btn" onClick={load} disabled={loading}>Apply</Button>
+                <Col xs="auto" className="account-filter-actions">
+                  <Button className="btn btn-sm btn-soft-primary" onClick={load} disabled={loading}><i className="ri-check-line" aria-hidden="true" /> Apply</Button>
                   <ExportFormatButton
                     label="Download"
                     disabled={busyId === "ledger-export"}
@@ -1104,24 +1156,39 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         {section === "consult-recon" && !loading ? (
           <Row className="g-3 mb-3">
             <Col md={4}>
-              <Card className="admin-dash-card"><CardBody>
-                <div className="text-muted small">All consult orders</div>
-                <div className="fs-4">{rows.length}</div>
-                <div className="small">{money(sumAmount(rows))}</div>
+              <Card className="admin-dash-card admin-kpi-card"><CardBody>
+                <div className="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <div className="text-muted small">All consult orders</div>
+                    <div className="fs-4">{rows.length}</div>
+                    <div className="small">{money(sumAmount(rows))}</div>
+                  </div>
+                  <i className="ri-file-list-3-line kpi-tile-icon" aria-hidden="true" />
+                </div>
               </CardBody></Card>
             </Col>
             <Col md={4}>
-              <Card className="admin-dash-card"><CardBody>
-                <div className="text-muted small">Online collections</div>
-                <div className="fs-4">{onlineOrders.length}</div>
-                <div className="small">{money(sumAmount(onlineOrders))}</div>
+              <Card className="admin-dash-card admin-kpi-card"><CardBody>
+                <div className="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <div className="text-muted small">Online collections</div>
+                    <div className="fs-4">{onlineOrders.length}</div>
+                    <div className="small">{money(sumAmount(onlineOrders))}</div>
+                  </div>
+                  <i className="ri-bank-card-line kpi-tile-icon" aria-hidden="true" />
+                </div>
               </CardBody></Card>
             </Col>
             <Col md={4}>
-              <Card className="admin-dash-card"><CardBody>
-                <div className="text-muted small">Clinic collections</div>
-                <div className="fs-4">{clinicOrders.length}</div>
-                <div className="small">{money(sumAmount(clinicOrders))}</div>
+              <Card className="admin-dash-card admin-kpi-card"><CardBody>
+                <div className="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <div className="text-muted small">Clinic collections</div>
+                    <div className="fs-4">{clinicOrders.length}</div>
+                    <div className="small">{money(sumAmount(clinicOrders))}</div>
+                  </div>
+                  <i className="ri-hospital-line kpi-tile-icon" aria-hidden="true" />
+                </div>
               </CardBody></Card>
             </Col>
           </Row>
@@ -1134,18 +1201,16 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 Reception cash, offline UPI, card POS, and pay-link collections — not Razorpay online captures.
               </p>
               <Row className="g-2 align-items-end">
-                <Col md={3}>
+                <Col sm={6} md={3} xl={2}>
                   <Label>From</Label>
                   <Input type="date" value={clinicFrom} onChange={(e) => setClinicFrom(e.target.value)} />
                 </Col>
-                <Col md={3}>
+                <Col sm={6} md={3} xl={2}>
                   <Label>To</Label>
                   <Input type="date" value={clinicTo} onChange={(e) => setClinicTo(e.target.value)} />
                 </Col>
-                <Col md={3}>
-                  <Button className="account-primary-btn" onClick={load} disabled={loading}>Apply dates</Button>
-                </Col>
-                <Col md={3}>
+                <Col xs="auto" className="account-filter-actions">
+                  <Button className="btn btn-sm btn-soft-primary" onClick={load} disabled={loading}><i className="ri-calendar-check-line" aria-hidden="true" /> Apply dates</Button>
                   <ExportFormatButton
                     label="Download"
                     disabled={!rows.length}
@@ -1153,18 +1218,91 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                   />
                 </Col>
               </Row>
-              {detail && !loading ? (
-                <Row className="g-3 mt-2">
-                  <Col md={2}><div className="text-muted small">Rows</div><div className="fs-5">{detail.count ?? rows.length}</div></Col>
-                  <Col md={2}><div className="text-muted small">Total</div><div className="fs-5">{money(detail.total ?? sumAmount(rows))}</div></Col>
-                  <Col md={2}><div className="text-muted small">Cash</div><div className="fs-5">{money(detail.cash)}</div></Col>
-                  <Col md={2}><div className="text-muted small">UPI</div><div className="fs-5">{money(detail.upi)}</div></Col>
-                  <Col md={2}><div className="text-muted small">Card POS</div><div className="fs-5">{money(detail.card)}</div></Col>
-                  <Col md={2}><div className="text-muted small">Pay link</div><div className="fs-5">{money(detail.payLink)}</div></Col>
-                </Row>
-              ) : null}
             </CardBody>
           </Card>
+        ) : null}
+
+        {section === "clinic-collections" && detail && !loading ? (
+          <Row className="g-3 mb-3">
+            <Col md>
+              <Card className="admin-dash-card admin-kpi-card">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <div className="text-muted small">Rows</div>
+                      <div className="fs-4">{detail.count ?? rows.length}</div>
+                    </div>
+                    <i className="ri-file-list-3-line kpi-tile-icon" aria-hidden="true" />
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col md>
+              <Card className="admin-dash-card admin-kpi-card">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <div className="text-muted small">Total</div>
+                      <div className="fs-4">{money(detail.total ?? sumAmount(rows))}</div>
+                    </div>
+                    <i className="ri-wallet-3-line kpi-tile-icon" aria-hidden="true" />
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col md>
+              <Card className="admin-dash-card admin-kpi-card">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <div className="text-muted small">Cash</div>
+                      <div className="fs-4">{money(detail.cash)}</div>
+                    </div>
+                    <i className="ri-cash-line kpi-tile-icon" aria-hidden="true" />
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col md>
+              <Card className="admin-dash-card admin-kpi-card">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <div className="text-muted small">UPI</div>
+                      <div className="fs-4">{money(detail.upi)}</div>
+                    </div>
+                    <i className="ri-qr-code-line kpi-tile-icon" aria-hidden="true" />
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col md>
+              <Card className="admin-dash-card admin-kpi-card">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <div className="text-muted small">Card POS</div>
+                      <div className="fs-4">{money(detail.card)}</div>
+                    </div>
+                    <i className="ri-bank-card-2-line kpi-tile-icon" aria-hidden="true" />
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col md>
+              <Card className="admin-dash-card admin-kpi-card">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <div className="text-muted small">Pay link</div>
+                      <div className="fs-4">{money(detail.payLink)}</div>
+                    </div>
+                    <i className="ri-links-line kpi-tile-icon" aria-hidden="true" />
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
         ) : null}
 
         {section === "payees" ? (
@@ -1218,10 +1356,10 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               </Row>
               <div className="d-flex flex-wrap gap-2 mt-3">
                 <Button size="sm" color="soft-secondary" disabled={busyId === "payee-otp" || !payeeEdit.payeeId} onClick={runPayeeOtp}>
-                  OTP for bank change
+                  <i className="ri-shield-keyhole-line" aria-hidden="true" /> OTP for bank change
                 </Button>
-                <Button size="sm" className="account-primary-btn" disabled={busyId === "payee-save" || !payeeEdit.payeeId} onClick={savePayee}>
-                  Save payee
+                <Button size="sm" className="btn btn-sm btn-soft-primary" disabled={busyId === "payee-save" || !payeeEdit.payeeId} onClick={savePayee}>
+                  <i className="ri-save-line" aria-hidden="true" /> Save payee
                 </Button>
               </div>
             </CardBody>
@@ -1232,14 +1370,25 @@ const AccountFinancePage = ({ section = "ledger" }) => {
           <Row className="g-2 mb-2 account-reports-grid">
             {reportLinks.map((item) => (
               <Col xs={12} sm={6} lg={3} key={item.to}>
-                <Card className="admin-dash-card account-report-card h-100 mb-0">
+                <Card className="admin-dash-card admin-kpi-card account-report-card h-100 mb-0">
                   <CardBody className="py-2 px-3">
-                    <div className="d-flex align-items-center gap-2 mb-1">
-                      <i className={`${item.icon} text-info fs-5`} aria-hidden="true" />
-                      <h6 className="mb-0">{item.label}</h6>
+                    <div className="account-report-card__row">
+                      <span className="account-report-card__icon" aria-hidden="true">
+                        <i className={item.icon} />
+                      </span>
+                      <div className="min-w-0 flex-grow-1">
+                        <h6 className="mb-1">{item.label}</h6>
+                        <p className="text-muted small mb-0">{item.hint}</p>
+                      </div>
+                      <Link
+                        to={item.to}
+                        className="account-report-card__view"
+                        title="Open report"
+                        aria-label={`Open ${item.label}`}
+                      >
+                        <i className="ri-eye-line" aria-hidden="true" />
+                      </Link>
                     </div>
-                    <p className="text-muted small mb-1">{item.hint}</p>
-                    <Link to={item.to} className="account-kpi-link">Open report</Link>
                   </CardBody>
                 </Card>
               </Col>
@@ -1248,7 +1397,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         ) : null}
 
         {section === "reports" ? (
-          <h5 className="mb-2 mt-1">Clinic collections (last 30 days)</h5>
+          <h5 className="account-reports-section">Clinic collections (last 30 days)</h5>
         ) : null}
 
         {section === "settlements" ? (
@@ -1275,15 +1424,15 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                 disabled={busyId === "settle"}
                 onClick={() => runSettlement(false)}
               >
-                Dry-run settlement
+                <i className="ri-play-circle-line" aria-hidden="true" /> Dry-run settlement
               </Button>
               <Button
                 size="sm"
-                className="account-primary-btn"
+                className="btn btn-sm btn-soft-primary"
                 disabled={busyId === "settle"}
                 onClick={() => runSettlement(true)}
               >
-                Commit settlement
+                <i className="ri-check-double-line" aria-hidden="true" /> Commit settlement
               </Button>
               </div>
             </CardBody>
@@ -1293,11 +1442,12 @@ const AccountFinancePage = ({ section = "ledger" }) => {
         {(section === "refunds" || section === "invoices") ? (
           <Card className="admin-dash-card mb-3">
             <CardBody>
-              <h5 className="mb-3">Create refund</h5>
-              <Row className="g-2 align-items-end">
-                <Col md={2}>
-                  <Label>Payment order id</Label>
+              <h5 className="admin-form-title mb-2"><i className="ri-add-circle-line" aria-hidden="true" />Create refund</h5>
+              <Row className="g-2 align-items-end account-refund-form">
+                <Col xs="auto">
+                  <Label className="mb-1">Payment order id</Label>
                   <Input
+                    className="account-refund-field"
                     value={refundForm.paymentOrderId}
                     onChange={(e) => {
                       setRefundForm({ ...refundForm, paymentOrderId: e.target.value });
@@ -1305,40 +1455,40 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                     }}
                   />
                 </Col>
-                <Col md={2}>
+                <Col xs="auto" className="account-refund-form__action">
                   <Button
-                    color="secondary"
-                    outline
-                    className="w-100"
+                    className="btn btn-sm btn-soft-warning"
                     disabled={busyId === "refund-policy" || !refundForm.paymentOrderId}
                     onClick={checkRefundPolicy}
                   >
-                    {busyId === "refund-policy" ? "Checking…" : "Check policy"}
+                    <i className="ri-shield-check-line" aria-hidden="true" /> {busyId === "refund-policy" ? "Checking…" : "Check policy"}
                   </Button>
                 </Col>
-                <Col md={2}>
-                  <Label>Amount</Label>
+                <Col xs="auto">
+                  <Label className="mb-1">Amount</Label>
                   <Input
+                    className="account-refund-field account-refund-field--amount"
                     type="number"
                     value={refundForm.amount}
                     max={refundPolicy && refundPolicy.amount > 0 ? refundPolicy.amount : undefined}
                     onChange={(e) => setRefundForm({ ...refundForm, amount: e.target.value })}
                   />
                 </Col>
-                <Col md={4}>
-                  <Label>Reason</Label>
+                <Col xs="auto">
+                  <Label className="mb-1">Reason</Label>
                   <Input
+                    className="account-refund-field account-refund-field--reason"
                     value={refundForm.reason}
                     onChange={(e) => setRefundForm({ ...refundForm, reason: e.target.value })}
                   />
                 </Col>
-                <Col md={2}>
+                <Col xs="auto" className="account-refund-form__action">
                   <Button
-                    className="account-primary-btn w-100"
+                    className="btn btn-sm btn-soft-primary"
                     disabled={busyId === "refund" || refundPolicy?.policy === "NONE"}
                     onClick={runRefund}
                   >
-                    Save refund
+                    <i className="ri-refund-2-line" aria-hidden="true" /> Save refund
                   </Button>
                 </Col>
               </Row>
@@ -1399,7 +1549,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                           <td>{formatWhen(pick(row, "createdAt", "CreatedAt"))}</td>
                           <td>
                             <Button size="sm" color="soft-info" disabled={busyId === id} onClick={() => openSettlement(id)}>
-                              Detail
+                              <i className="ri-eye-line" aria-hidden="true" /> Detail
                             </Button>
                           </td>
                         </tr>
@@ -1465,7 +1615,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                                         setReconPatientId(null);
                                       }}
                                     >
-                                      Patients
+                                      <i className="ri-group-line" aria-hidden="true" /> Patients
                                     </Button>
                                   </td>
                                 </tr>
@@ -1499,7 +1649,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                           setReconPatientId(null);
                         }}
                       >
-                        Back to doctors
+                        <i className="ri-arrow-left-line" aria-hidden="true" /> Back to doctors
                       </Button>
                     </div>
                     {reconPatients.length === 0 ? (
@@ -1539,7 +1689,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                                         setReconPatientId(key);
                                       }}
                                     >
-                                      Orders
+                                      <i className="ri-file-list-3-line" aria-hidden="true" /> Orders
                                     </Button>
                                   </td>
                                 </tr>
@@ -1567,7 +1717,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                       </div>
                       <div className="d-flex gap-2">
                         <Button size="sm" color="soft-secondary" onClick={() => setReconPatientId(null)}>
-                          Back to patients
+                          <i className="ri-arrow-left-line" aria-hidden="true" /> Back to patients
                         </Button>
                         <Button
                           size="sm"
@@ -1577,7 +1727,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                             setReconPatientId(null);
                           }}
                         >
-                          All doctors
+                          <i className="ri-stethoscope-line" aria-hidden="true" /> All doctors
                         </Button>
                       </div>
                     </div>
@@ -1654,7 +1804,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                                   disabled={busy || resendIn > 0}
                                   onClick={() => runPayoutOtp(id)}
                                 >
-                                  {busy && !otpLive ? "Sending…" : resendIn > 0 ? `Resend in ${resendIn}s` : otpMeta ? "Resend OTP" : "Send OTP"}
+                                  <i className="ri-shield-keyhole-line" aria-hidden="true" /> {busy && !otpLive ? "Sending…" : resendIn > 0 ? `Resend in ${resendIn}s` : otpMeta ? "Resend OTP" : "Send OTP"}
                                 </Button>
                                 <Input
                                   bsSize="sm"
@@ -1669,10 +1819,10 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                                   }
                                 />
                                 <Button size="sm" color="soft-success" disabled={!canApprove} onClick={() => runApprove(id)}>
-                                  Approve
+                                  <i className="ri-check-line" aria-hidden="true" /> Approve
                                 </Button>
                                 <Button size="sm" color="soft-danger" disabled={busy} onClick={() => runReject(id)}>
-                                  Reject
+                                  <i className="ri-close-circle-line" aria-hidden="true" /> Reject
                                 </Button>
                                 {otpMeta && !otpLive ? (
                                   <span className="small text-danger w-100">OTP expired. Send a new one.</span>
@@ -1692,10 +1842,10 @@ const AccountFinancePage = ({ section = "ledger" }) => {
               <div>
                 <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
                   {[
-                    { id: "OPEN", label: "Open" },
-                    { id: "RETRIED", label: "Retried" },
-                    { id: "RESOLVED", label: "Resolved" },
-                    { id: "ALL", label: "All" },
+                    { id: "OPEN", label: "Open", icon: "ri-folder-open-line" },
+                    { id: "RETRIED", label: "Retried", icon: "ri-refresh-line" },
+                    { id: "RESOLVED", label: "Resolved", icon: "ri-checkbox-circle-line" },
+                    { id: "ALL", label: "All", icon: "ri-list-check" },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1704,7 +1854,7 @@ const AccountFinancePage = ({ section = "ledger" }) => {
                       onClick={() => setExceptionStatus(tab.id)}
                       disabled={loading}
                     >
-                      {tab.label}
+                      <i className={tab.icon} aria-hidden="true" /> {tab.label}
                     </button>
                   ))}
                 </div>

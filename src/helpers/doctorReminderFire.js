@@ -5,7 +5,8 @@ export const REMINDER_INBOX_REFRESH_EVENT = 'homeocentrum-inbox-refresh';
 export const REMINDER_DASHBOARD_REFRESH_EVENT = 'homeocentrum-doctor-reminders-refresh';
 /** Fired when user opens a reminder from toast / bell (works even if already on dashboard). */
 export const REMINDER_OPEN_EVENT = 'homeocentrum-open-doctor-reminder';
-export const REMINDER_FIRE_POLL_MS = 30000;
+/** @deprecated Client no longer polls; server fires + SignalR reminderDue. Kept for import safety. */
+export const REMINDER_FIRE_POLL_MS = 0;
 export const REMINDER_SNOOZE_MINUTES = 10;
 export const REMINDER_DASHBOARD_PATH = '/doctordashboard';
 const REMINDER_ALERT_DISMISSED_KEY = 'hc_doctor_reminder_alert_dismissed';
