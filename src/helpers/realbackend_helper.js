@@ -682,8 +682,8 @@ export const getRubricDetails = data => api.get(url.GET_RUBRIC_DETAILS + "/" + d
 export const getRubricByKeywordId = data => api.post(url.GET_RUBRIC_BY_KEYWORD_ID + "?keywordID=" + data.keywordID + "&tabType=" + data.tabType, null);
 export const searchRubricsByKeyword = (params) => nigahomeoAPI.get(url.SEARCH_RUBRICS_BY_KEYWORD, params);
 export const getRemedyCounts = data => api.get(url.GET_REMEDY_COUNTS + "/" + data.subSectionId, null);
-export const getCommanUnCommanRubricsDetails = data => api.post(url.GET_COMMAN_UNCOMMAN_RUBRICS_DETAILS, data);
-export const getDifferentialMateriaMedica = data => api.post(url.GET_DIFFERENTIAL_MATERIA_MEDICA, data);
+export const getCommanUnCommanRubricsDetails = (data, config) => api.post(url.GET_COMMAN_UNCOMMAN_RUBRICS_DETAILS, data, config);
+export const getDifferentialMateriaMedica = (data, config) => api.post(url.GET_DIFFERENTIAL_MATERIA_MEDICA, data, config);
 export const generateOrderId = data => api.post(url.GENERATE_ORDER_ID, data);
 export const saveUpdateSubscription = data => nigahomeoAPI.post(url.SAVE_UPDATE_SUBSCRIPTION, data);
 export const getRepertorizarionRemedyForAccordion = data => api.get(url.GET_REPERTORIZARION_REMEDY_FOR_ACCORDION, data);

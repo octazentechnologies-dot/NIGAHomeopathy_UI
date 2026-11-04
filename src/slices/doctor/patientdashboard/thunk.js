@@ -74,6 +74,15 @@ import {
 } from '../../../utils/rubricDetailsFetchQueue';
 
 let rubricDetailsRequestSeq = 0;
+let commanUncommanRequestSeq = 0;
+let commanUncommanAbortController = null;
+let differentialMmRequestSeq = 0;
+let differentialMmAbortController = null;
+
+const isRequestAborted = (error) =>
+    error?.code === 'ERR_CANCELED' ||
+    error?.name === 'CanceledError' ||
+    error?.name === 'AbortError';
 
 export const getAllopathicDrugForDropdown = (data) => async (dispatch) => {
     try {
@@ -395,30 +404,74 @@ export const getRemedyCounts = (data) => async (dispatch) => {
 }
 
 export const getCommanUnCommanRubricsDetails = (data) => async (dispatch) => {
+    const requestId = ++commanUncommanRequestSeq;
+    if (commanUncommanAbortController) {
+        try {
+            commanUncommanAbortController.abort();
+        } catch (_) {
+            /* ignore */
+        }
+    }
+    const controller = new AbortController();
+    commanUncommanAbortController = controller;
+
     try {
         dispatch(setCommanUnCommanRubricsDetailsLoading(true));
-        const response = await getCommanUnCommanRubricsDetailsApi(data);
+        const response = await getCommanUnCommanRubricsDetailsApi(data, { signal: controller.signal });
+        if (requestId !== commanUncommanRequestSeq) {
+            return null;
+        }
         dispatch(setCommanUnCommanRubricsDetailsList(response));
-    }
-    catch (error) {
+        return response;
+    } catch (error) {
+        if (isRequestAborted(error) || requestId !== commanUncommanRequestSeq) {
+            return null;
+        }
         dispatch(setCommanUnCommanRubricsDetailsError(error));
-    }
-    finally {
-        dispatch(setCommanUnCommanRubricsDetailsLoading(false));
+        throw error;
+    } finally {
+        if (requestId === commanUncommanRequestSeq) {
+            dispatch(setCommanUnCommanRubricsDetailsLoading(false));
+            if (commanUncommanAbortController === controller) {
+                commanUncommanAbortController = null;
+            }
+        }
     }
 }
 
 export const getDifferentialMateriaMedica = (data) => async (dispatch) => {
+    const requestId = ++differentialMmRequestSeq;
+    if (differentialMmAbortController) {
+        try {
+            differentialMmAbortController.abort();
+        } catch (_) {
+            /* ignore */
+        }
+    }
+    const controller = new AbortController();
+    differentialMmAbortController = controller;
+
     try {
         dispatch(setDifferentialMateriaMedicaLoading(true));
-        const response = await getDifferentialMateriaMedicaApi(data);
+        const response = await getDifferentialMateriaMedicaApi(data, { signal: controller.signal });
+        if (requestId !== differentialMmRequestSeq) {
+            return null;
+        }
         dispatch(setDifferentialMateriaMedicaList(response));
-    }
-    catch (error) {
+        return response;
+    } catch (error) {
+        if (isRequestAborted(error) || requestId !== differentialMmRequestSeq) {
+            return null;
+        }
         dispatch(setDifferentialMateriaMedicaError(error));
-    }
-    finally {
-        dispatch(setDifferentialMateriaMedicaLoading(false));
+        throw error;
+    } finally {
+        if (requestId === differentialMmRequestSeq) {
+            dispatch(setDifferentialMateriaMedicaLoading(false));
+            if (differentialMmAbortController === controller) {
+                differentialMmAbortController = null;
+            }
+        }
     }
 }
 
