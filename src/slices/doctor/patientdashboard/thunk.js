@@ -393,10 +393,32 @@ export const getRemedyCounts = (data) => async (dispatch) => {
     try {
         dispatch(setRemedyCountsLoading(true));
         const response = await getRemedyCountsApi(data);
-        dispatch(setRemedyCountsList(response));
+        // Normalize casing / nested payloads so callers can apply counts reliably.
+        const payload = response?.data && typeof response.data === 'object' && !Array.isArray(response.data)
+            ? response.data
+            : response;
+        const normalized = payload
+            ? {
+                ...payload,
+                subSectionId:
+                    payload.subSectionId ??
+                    payload.SubSectionId ??
+                    payload.subsectionId ??
+                    data?.subSectionId ??
+                    null,
+                remedyCount:
+                    payload.remedyCount ??
+                    payload.RemedyCount ??
+                    payload.remedyCountForSort ??
+                    0,
+            }
+            : null;
+        dispatch(setRemedyCountsList(normalized));
+        return normalized;
     }
     catch (error) {
         dispatch(setRemedyCountsError(error));
+        return null;
     }
     finally {
         dispatch(setRemedyCountsLoading(false));

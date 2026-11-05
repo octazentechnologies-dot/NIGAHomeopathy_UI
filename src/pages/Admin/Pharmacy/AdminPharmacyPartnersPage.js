@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import { Container, Spinner } from "reactstrap";
 
 import {
   activatePharmacy,
+  approvePharmacyClose,
   listPharmacyPartners,
+  rejectPharmacy,
   s4Message,
   suspendPharmacy,
   sweepPharmacyLicences,
@@ -17,6 +20,7 @@ const STATUS_TABS = [
   { id: "all", label: "All" },
   { id: "active", label: "Active" },
   { id: "pending", label: "Pending" },
+  { id: "close", label: "Close requests" },
 ];
 
 const normalizePartner = (row) => {
@@ -24,7 +28,12 @@ const normalizePartner = (row) => {
   return {
     id: id == null || id === "" ? "" : String(id),
     name: row?.name || row?.Name || "Pharmacy",
+    ownerName: row?.ownerName || row?.OwnerName || "",
     area: row?.area || row?.Area || "",
+    addressLine1: row?.addressLine1 || row?.AddressLine1 || "",
+    postalCode: row?.postalCode || row?.PostalCode || "",
+    documentCount: row?.documentCount ?? row?.DocumentCount ?? 0,
+    decisionReason: row?.decisionReason || row?.DecisionReason || "",
     status: String(row?.status || row?.Status || "PENDING").toUpperCase(),
   };
 };
@@ -82,7 +91,8 @@ const AdminPharmacyPartnersPage = () => {
     () => ({
       all: partners.length,
       active: partners.filter((row) => row.status === "ACTIVE").length,
-      pending: partners.filter((row) => row.status !== "ACTIVE").length,
+      pending: partners.filter((row) => row.status === "PENDING" || row.status === "REJECTED").length,
+      close: partners.filter((row) => row.status === "CLOSE_REQUESTED").length,
     }),
     [partners]
   );
@@ -91,7 +101,8 @@ const AdminPharmacyPartnersPage = () => {
     const query = search.trim().toLowerCase();
     return partners.filter((row) => {
       if (tab === "active" && row.status !== "ACTIVE") return false;
-      if (tab === "pending" && row.status === "ACTIVE") return false;
+      if (tab === "pending" && row.status !== "PENDING" && row.status !== "REJECTED") return false;
+      if (tab === "close" && row.status !== "CLOSE_REQUESTED") return false;
       return recordMatchesQuery(row, query);
     });
   }, [partners, search, tab]);
@@ -131,6 +142,63 @@ const AdminPharmacyPartnersPage = () => {
       await suspendPharmacy(partner.id);
       setPartners((prev) => prev.map((row) => (row.id === partner.id ? { ...row, status: "SUSPENDED" } : row)));
       setNotice(`${partner.name} suspended.`);
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reject = async (partner) => {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Reject pharmacy?",
+      text: `${partner.name} will be marked rejected. Pharmacy is notified.`,
+      input: "text",
+      inputPlaceholder: "Reason (required)",
+      inputValidator: (value) => (!String(value || "").trim() ? "Reason is required" : undefined),
+      showCancelButton: true,
+      confirmButtonText: "Reject",
+      confirmButtonColor: "#dc3545",
+    });
+    if (!result.isConfirmed) return;
+    setBusyId(`rej-${partner.id}`);
+    setError("");
+    try {
+      await rejectPharmacy(partner.id, result.value);
+      setPartners((prev) =>
+        prev.map((row) =>
+          row.id === partner.id ? { ...row, status: "REJECTED", decisionReason: result.value } : row
+        )
+      );
+      setNotice(`${partner.name} rejected.`);
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const approveClose = async (partner) => {
+    const result = await Swal.fire({
+      icon: "question",
+      title: "Approve close?",
+      text: `${partner.name} will be closed and excluded from seller routing.`,
+      input: "text",
+      inputPlaceholder: "Reason (optional)",
+      showCancelButton: true,
+      confirmButtonText: "Approve close",
+      confirmButtonColor: "#000000",
+    });
+    if (!result.isConfirmed) return;
+    setBusyId(`aclose-${partner.id}`);
+    setError("");
+    try {
+      await approvePharmacyClose(partner.id, result.value || undefined);
+      setPartners((prev) =>
+        prev.map((row) => (row.id === partner.id ? { ...row, status: "CLOSED" } : row))
+      );
+      setNotice(`${partner.name} closed.`);
     } catch (err) {
       setError(s4Message(err));
     } finally {
@@ -227,7 +295,7 @@ const AdminPharmacyPartnersPage = () => {
                   <thead>
                     <tr>
                       <th>Pharmacy</th>
-                      <th>Area</th>
+                      <th>Owner / Area</th>
                       <th>Status</th>
                       <th className="text-end">Actions</th>
                     </tr>
@@ -248,6 +316,8 @@ const AdminPharmacyPartnersPage = () => {
                     ) : (
                       filtered.map((partner) => {
                         const active = partner.status === "ACTIVE";
+                        const pending = partner.status === "PENDING";
+                        const closeRequested = partner.status === "CLOSE_REQUESTED";
                         return (
                           <tr
                             key={partner.id}
@@ -259,36 +329,64 @@ const AdminPharmacyPartnersPage = () => {
                                 <span className="phc-avatar">{initialsOf(partner.name)}</span>
                                 <span className="phc-person__name" title={partner.name}>
                                   {partner.name}
+                                  {partner.documentCount ? (
+                                    <small className="d-block text-muted">{partner.documentCount} doc(s)</small>
+                                  ) : null}
                                 </span>
                               </div>
                             </td>
-                            <td title={partner.area}>{partner.area || "—"}</td>
+                            <td title={partner.addressLine1 || partner.area}>
+                              {partner.ownerName || "—"}
+                              <small className="d-block text-muted">
+                                {partner.area || partner.postalCode || partner.addressLine1 || "—"}
+                              </small>
+                            </td>
                             <td>
                               <span className={`phc-chip ${active ? "phc-chip--active" : "phc-chip--pending"}`}>
-                                {active ? "Active" : partner.status.charAt(0) + partner.status.slice(1).toLowerCase()}
+                                {active
+                                  ? "Active"
+                                  : partner.status
+                                      .toLowerCase()
+                                      .replace(/_/g, " ")
+                                      .replace(/^\w/, (c) => c.toUpperCase())}
                               </span>
                             </td>
                             <td>
                               <div className="phc-actions">
-                                {!active ? (
-                                  <button
-                                    type="button"
-                                    className="phc-icon-btn phc-icon-btn--approve"
-                                    title="Activate"
-                                    disabled={busyId === `act-${partner.id}` || busyId === `sus-${partner.id}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      activate(partner);
-                                    }}
-                                  >
-                                    <i className="ri-check-line" aria-hidden="true" />
-                                  </button>
-                                ) : (
+                                {pending ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="phc-icon-btn phc-icon-btn--approve"
+                                      title="Activate"
+                                      disabled={Boolean(busyId)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        activate(partner);
+                                      }}
+                                    >
+                                      <i className="ri-check-line" aria-hidden="true" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="phc-icon-btn phc-icon-btn--suspend"
+                                      title="Reject"
+                                      disabled={Boolean(busyId)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        reject(partner);
+                                      }}
+                                    >
+                                      <i className="ri-close-line" aria-hidden="true" />
+                                    </button>
+                                  </>
+                                ) : null}
+                                {active ? (
                                   <button
                                     type="button"
                                     className="phc-icon-btn phc-icon-btn--suspend"
                                     title="Suspend"
-                                    disabled={busyId === `act-${partner.id}` || busyId === `sus-${partner.id}`}
+                                    disabled={Boolean(busyId)}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       suspend(partner);
@@ -296,7 +394,21 @@ const AdminPharmacyPartnersPage = () => {
                                   >
                                     <i className="ri-pause-circle-line" aria-hidden="true" />
                                   </button>
-                                )}
+                                ) : null}
+                                {closeRequested ? (
+                                  <button
+                                    type="button"
+                                    className="phc-icon-btn phc-icon-btn--approve"
+                                    title="Approve close"
+                                    disabled={Boolean(busyId)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      approveClose(partner);
+                                    }}
+                                  >
+                                    <i className="ri-door-closed-line" aria-hidden="true" />
+                                  </button>
+                                ) : null}
                                 <button
                                   type="button"
                                   className={`phc-icon-btn${partner.id === selectedId ? " is-active" : ""}`}
@@ -349,14 +461,24 @@ const AdminPharmacyPartnersPage = () => {
                       <strong>{selected.name}</strong>
                       <span>
                         {`Partner #${selected.id}`}
+                        {selected.ownerName ? ` · Owner ${selected.ownerName}` : ""}
                         {selected.area ? ` · ${selected.area}` : ""}
+                        {selected.documentCount ? ` · ${selected.documentCount} doc(s)` : ""}
                         {isFillingPharmacy(selected) ? " · Filling pharmacy" : ""}
                       </span>
+                      {selected.addressLine1 ? (
+                        <small className="d-block text-muted">{selected.addressLine1}</small>
+                      ) : null}
+                      {selected.decisionReason ? (
+                        <small className="d-block text-warning">Reason: {selected.decisionReason}</small>
+                      ) : null}
                     </div>
                     <span
                       className={`phc-chip ${selected.status === "ACTIVE" ? "phc-chip--active" : "phc-chip--pending"}`}
                     >
-                      {selected.status === "ACTIVE" ? "Active" : "Pending"}
+                      {selected.status === "ACTIVE"
+                        ? "Active"
+                        : selected.status.toLowerCase().replace(/_/g, " ")}
                     </span>
                   </div>
 

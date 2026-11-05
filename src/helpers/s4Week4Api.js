@@ -80,7 +80,26 @@ export const listPharmacySellers = (area) =>
   nigahomeoAPI.get("/Pharmacy/Sellers", area ? { area } : null);
 export const listPharmacyPartners = () => nigahomeoAPI.get("/Pharmacy/Partners", null);
 export const activatePharmacy = (id) => nigahomeoAPI.post(`/Pharmacy/${id}/Activate`, null);
+export const rejectPharmacy = (id, reason) =>
+  nigahomeoAPI.post(`/Pharmacy/${id}/Reject`, reason ? { reason } : {});
 export const suspendPharmacy = (id) => nigahomeoAPI.post(`/Pharmacy/${id}/Suspend`, null);
+export const requestPharmacyClose = (id, reason) =>
+  nigahomeoAPI.post(`/Pharmacy/${id}/Close`, reason ? { reason } : {});
+export const approvePharmacyClose = (id, reason) =>
+  nigahomeoAPI.post(`/Pharmacy/${id}/ApproveClose`, reason ? { reason } : {});
+export const withdrawPharmacy = (id) => nigahomeoAPI.post(`/Pharmacy/${id}/Withdraw`, null);
+export const uploadPharmacyDocument = (pharmacyId, payload) => {
+  const file = payload instanceof File ? payload : payload?.file;
+  const body = payload instanceof FormData ? payload : new FormData();
+  if (!(payload instanceof FormData)) {
+    body.append("file", file);
+    if (payload?.documentType) body.append("documentType", String(payload.documentType));
+    if (payload?.description) body.append("description", String(payload.description));
+  }
+  return apiHelpers.nigahomeoMultipart.post(`/Pharmacy/${pharmacyId}/Documents`, body);
+};
+export const listPharmacyDocuments = (pharmacyId) =>
+  nigahomeoAPI.get(`/Pharmacy/${pharmacyId}/Documents`, null);
 export const pharmacyQueue = () => nigahomeoAPI.get("/Pharmacy/Orders", null);
 export const markMedicineReady = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Ready`, null);
 export const dispatchMedicine = (id) => nigahomeoAPI.post(`/MedicineOrders/${id}/Dispatch`, null);

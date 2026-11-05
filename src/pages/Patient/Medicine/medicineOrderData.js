@@ -109,7 +109,7 @@ export const normalizeOrder = (row) => {
     orderNo: `HM${String(id).padStart(6, "0")}`,
     date: pick(row, "createdAt", "CreatedAt"),
     deliveredAt: pick(row, "deliveredAt", "DeliveredAt"),
-    pharmacy: pharmacyName ? [pharmacyName, pharmacyArea].filter(Boolean).join(", ") : "Auto-routed pharmacy",
+    pharmacy: pharmacyName ? [pharmacyName, pharmacyArea].filter(Boolean).join(", ") : "Pharmacy",
     pharmacyName: pharmacyName || "",
     pharmacyArea: pharmacyArea || "",
     pharmacyLicenceNumber: licence || "",
@@ -140,8 +140,47 @@ export const normalizeOrder = (row) => {
   };
 };
 
-export const normalizePharmacy = (row) => ({
-  id: pick(row, "pharmacyPartnerId", "PharmacyPartnerId", "id", "Id"),
-  name: pick(row, "name", "Name", "pharmacyName", "PharmacyName") || "Pharmacy",
-  area: pick(row, "area", "Area", "city", "City") || "",
-});
+export const normalizePharmacy = (row) => {
+  const areasRaw = pick(row, "areas", "Areas");
+  const areas = Array.isArray(areasRaw)
+    ? areasRaw.map((a) => String(a || "").trim()).filter(Boolean)
+    : [];
+  const daysRaw = pick(row, "workingDays", "WorkingDays");
+  const workingDays = Array.isArray(daysRaw)
+    ? daysRaw.map((d) => String(d || "").trim()).filter(Boolean)
+    : [];
+  const openNow = pick(row, "openNow", "OpenNow");
+  const serviceable = pick(row, "serviceable", "Serviceable");
+  const deliveryFee = pick(row, "deliveryFee", "DeliveryFee");
+  const freeAbove = pick(row, "freeDeliveryAbove", "FreeDeliveryAbove", "freeAbove", "FreeAbove");
+  return {
+    id: pick(row, "pharmacyPartnerId", "PharmacyPartnerId", "id", "Id"),
+    name: pick(row, "name", "Name", "pharmacyName", "PharmacyName") || "Pharmacy",
+    area: pick(row, "area", "Area", "city", "City") || areas[0] || "",
+    areas,
+    openTime: pick(row, "openTime", "OpenTime") || "",
+    closeTime: pick(row, "closeTime", "CloseTime") || "",
+    workingDays,
+    openNow: openNow == null ? null : Boolean(openNow),
+    serviceable: serviceable == null ? null : Boolean(serviceable),
+    closedReason: pick(row, "closedReason", "ClosedReason") || "",
+    deliveryFee: deliveryFee == null || deliveryFee === "" ? null : Number(deliveryFee),
+    freeDeliveryAbove: freeAbove == null || freeAbove === "" ? null : Number(freeAbove),
+    configured: Boolean(pick(row, "configured", "Configured")),
+  };
+};
+
+export const formatPharmacyHours = (row) => {
+  if (!row?.openTime || !row?.closeTime) return "";
+  return `${row.openTime} – ${row.closeTime}`;
+};
+
+export const formatPharmacyDeliveryFee = (row) => {
+  if (row?.deliveryFee == null || Number.isNaN(row.deliveryFee)) return "";
+  if (Number(row.deliveryFee) === 0) return "Free delivery";
+  const fee = `₹${Number(row.deliveryFee).toLocaleString("en-IN")}`;
+  if (row.freeDeliveryAbove != null && !Number.isNaN(row.freeDeliveryAbove) && row.freeDeliveryAbove > 0) {
+    return `${fee} delivery · free above ₹${Number(row.freeDeliveryAbove).toLocaleString("en-IN")}`;
+  }
+  return `${fee} delivery`;
+};

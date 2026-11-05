@@ -375,6 +375,50 @@
   background: #f3f9fe;
 }
 
+.med-pharmacy.is-unavailable {
+  opacity: 0.72;
+}
+
+.med-pharmacy__main strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: normal;
+}
+
+.med-pharmacy__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.med-pharmacy__badge--open {
+  background: #e7f7ee;
+  color: #15803d;
+}
+
+.med-pharmacy__badge--closed {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.med-pharmacy__meta {
+  color: var(--prx-muted) !important;
+  font-size: 0.66rem !important;
+}
+
+.med-pharmacy__meta--warn {
+  color: #b45309 !important;
+}
+
+.med-area-hint {
+  margin: 0 0 0.65rem;
+}
+
 .med-pharmacy__icon {
   display: inline-flex;
   flex-shrink: 0;

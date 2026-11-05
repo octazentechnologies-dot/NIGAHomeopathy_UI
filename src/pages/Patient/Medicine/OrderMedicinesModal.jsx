@@ -10,46 +10,104 @@ import {
   s4Message,
   unwrapS4,
 } from "../../../helpers/s4Week4Api";
+import { listDeliveryAddresses } from "../../../helpers/patientCareApi";
 import { formatDosage } from "../../Doctor/Erx/erxOptions";
-import { formatDate, normalizePharmacy } from "./medicineOrderData";
+import {
+  formatDate,
+  formatPharmacyDeliveryFee,
+  formatPharmacyHours,
+  normalizePharmacy,
+} from "./medicineOrderData";
 import "./patientMedicine.css";
 
+/* FUTURE: Auto-route (nearest pharmacy with stock) — re-enable when product ships it.
 const AUTO_ROUTE = "auto";
+*/
+
+const unwrapList = (response) => {
+  const data = response?.data?.data ?? response?.data ?? response;
+  return Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+};
+
+const pickDefaultAddress = (addresses) => {
+  if (!Array.isArray(addresses) || !addresses.length) return null;
+  return addresses.find((row) => row.isDefault || row.IsDefault) || addresses[0];
+};
+
+const pickDefaultArea = (addresses) => {
+  const preferred = pickDefaultAddress(addresses);
+  if (!preferred) return "";
+  return String(preferred?.city || preferred?.City || preferred?.area || preferred?.Area || "").trim();
+};
+
+const addressIdOf = (row) =>
+  row?.deliveryAddressId ?? row?.DeliveryAddressId ?? row?.addressId ?? row?.AddressId ?? row?.id ?? null;
 
 /**
  * MED-03.03 — order medicines from a signed eRx: pick a pharmacy, review remedies, place order.
  * Also used for approved refill "Start order" (refillId) — consent + ORDERED handled by API.
  * No payment here; the pharmacy quotes first.
+ * Sellers list shows operating hours / service areas / delivery fee from pharmacy Config.
+ * Auto-route is deferred (patient must select a pharmacy).
  */
 const OrderMedicinesModal = ({ isOpen, toggle, prescription, refillId = null, onPlaced }) => {
   const [pharmacies, setPharmacies] = useState([]);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
-  const [pharmacyId, setPharmacyId] = useState(AUTO_ROUTE);
+  const [pharmacyId, setPharmacyId] = useState("");
+  const [deliveryArea, setDeliveryArea] = useState("");
+  const [deliveryAddressId, setDeliveryAddressId] = useState(null);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
   const isRefill = Number(refillId) > 0;
 
   useEffect(() => {
     if (!isOpen) return undefined;
-    setPharmacyId(AUTO_ROUTE);
+    setPharmacyId("");
+    setDeliveryAddressId(null);
     setError("");
     let cancelled = false;
     setLoadingPharmacies(true);
-    listPharmacySellers()
-      .then((response) => {
+
+    (async () => {
+      let area = "";
+      let addressId = null;
+      try {
+        const addrRes = await listDeliveryAddresses();
+        const list = unwrapList(addrRes);
+        const preferred = pickDefaultAddress(list);
+        area = pickDefaultArea(list);
+        const rawId = addressIdOf(preferred);
+        const n = Number(rawId);
+        addressId = Number.isFinite(n) && n > 0 ? n : null;
+      } catch {
+        area = "";
+        addressId = null;
+      }
+      if (cancelled) return;
+      setDeliveryArea(area);
+      setDeliveryAddressId(addressId);
+
+      try {
+        const response = await listPharmacySellers(area || undefined);
         const data = unwrapS4(response);
-        const rows = (Array.isArray(data) ? data : []).map(normalizePharmacy).filter((row) => row.id != null);
-        if (!cancelled) setPharmacies(rows);
-      })
-      .catch((err) => {
+        const rows = (Array.isArray(data) ? data : [])
+          .map(normalizePharmacy)
+          .filter((row) => row.id != null);
+        if (!cancelled) {
+          setPharmacies(rows);
+          const firstOpen = rows.find((row) => row.serviceable !== false);
+          if (firstOpen) setPharmacyId(String(firstOpen.id));
+        }
+      } catch (err) {
         if (!cancelled) {
           setPharmacies([]);
           setError(s4Message(err));
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoadingPharmacies(false);
-      });
+      }
+    })();
+
     return () => {
       cancelled = true;
     };
@@ -58,14 +116,16 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, refillId = null, on
   const remedies = prescription?.remedies || [];
   const selectedPharmacy = pharmacies.find((row) => String(row.id) === String(pharmacyId)) || null;
   const canOrder = isRefill ? Number(refillId) > 0 : Boolean(prescription?.erxId);
+  const selectedBlocked = selectedPharmacy && selectedPharmacy.serviceable === false;
+  const needsPharmacy = !selectedPharmacy;
 
   const placeOrder = async () => {
-    if (!canOrder) return;
+    if (!canOrder || selectedBlocked || !selectedPharmacy) return;
     setPlacing(true);
     setError("");
     try {
-      const payload = {};
-      if (selectedPharmacy) payload.pharmacyPartnerId = Number(selectedPharmacy.id);
+      const payload = { pharmacyPartnerId: Number(selectedPharmacy.id) };
+      if (deliveryAddressId) payload.addressId = deliveryAddressId;
       let created;
       if (isRefill) {
         created = unwrapS4(await cloneMedicineRefill(Number(refillId), payload));
@@ -117,6 +177,11 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, refillId = null, on
           </div>
         ) : null}
         {error ? <div className="med-alert med-alert--danger">{error}</div> : null}
+        {deliveryArea ? (
+          <p className="med-muted med-area-hint">
+            Matching pharmacies for delivery area <strong>{deliveryArea}</strong>
+          </p>
+        ) : null}
 
         <section className="med-section">
           <h6 className="med-section__title">
@@ -129,37 +194,64 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, refillId = null, on
             </div>
           ) : (
             <div className="med-pharmacies">
-              <button
-                type="button"
-                className={`med-pharmacy${pharmacyId === AUTO_ROUTE ? " is-active" : ""}`}
-                onClick={() => setPharmacyId(AUTO_ROUTE)}
-              >
-                <span className="med-pharmacy__icon med-pharmacy__icon--auto">
-                  <i className="ri-route-line" aria-hidden="true" />
-                </span>
-                <span className="med-pharmacy__main">
-                  <strong>Auto-route</strong>
-                  <span>Nearest pharmacy with stock</span>
-                </span>
-                <i className="med-pharmacy__radio" aria-hidden="true" />
+              {/* FUTURE Auto-route UI — re-enable with AUTO_ROUTE when nearest/stock ships
+              <button type="button" className="med-pharmacy" onClick={() => setPharmacyId(AUTO_ROUTE)}>
+                <strong>Auto-route</strong>
+                <span>Nearest pharmacy with stock</span>
               </button>
-              {pharmacies.map((row) => (
-                <button
-                  key={row.id}
-                  type="button"
-                  className={`med-pharmacy${String(pharmacyId) === String(row.id) ? " is-active" : ""}`}
-                  onClick={() => setPharmacyId(row.id)}
-                >
-                  <span className="med-pharmacy__icon">
-                    <i className="ri-store-2-line" aria-hidden="true" />
-                  </span>
-                  <span className="med-pharmacy__main">
-                    <strong>{row.name}</strong>
-                    <span>{row.area || "Partner pharmacy"}</span>
-                  </span>
-                  <i className="med-pharmacy__radio" aria-hidden="true" />
-                </button>
-              ))}
+              */}
+              {pharmacies.map((row) => {
+                const hours = formatPharmacyHours(row);
+                const fee = formatPharmacyDeliveryFee(row);
+                const areasLabel = (row.areas || []).length
+                  ? row.areas.join(", ")
+                  : row.area || "Partner pharmacy";
+                const unavailable = row.serviceable === false;
+                return (
+                  <button
+                    key={row.id}
+                    type="button"
+                    disabled={unavailable}
+                    className={`med-pharmacy${String(pharmacyId) === String(row.id) ? " is-active" : ""}${
+                      unavailable ? " is-unavailable" : ""
+                    }`}
+                    onClick={() => {
+                      if (unavailable) return;
+                      setPharmacyId(row.id);
+                    }}
+                  >
+                    <span className="med-pharmacy__icon">
+                      <i className="ri-store-2-line" aria-hidden="true" />
+                    </span>
+                    <span className="med-pharmacy__main">
+                      <strong>
+                        {row.name}
+                        {row.openNow === true ? (
+                          <span className="med-pharmacy__badge med-pharmacy__badge--open">Open</span>
+                        ) : row.openNow === false ? (
+                          <span className="med-pharmacy__badge med-pharmacy__badge--closed">Closed</span>
+                        ) : null}
+                      </strong>
+                      <span>{areasLabel}</span>
+                      {hours || row.workingDays?.length ? (
+                        <span className="med-pharmacy__meta">
+                          {hours ? `Hours ${hours}` : null}
+                          {hours && row.workingDays?.length ? " · " : null}
+                          {row.workingDays?.length ? row.workingDays.join(", ") : null}
+                        </span>
+                      ) : null}
+                      {fee ? <span className="med-pharmacy__meta">{fee}</span> : null}
+                      {unavailable && row.closedReason ? (
+                        <span className="med-pharmacy__meta med-pharmacy__meta--warn">{row.closedReason}</span>
+                      ) : null}
+                    </span>
+                    <i className="med-pharmacy__radio" aria-hidden="true" />
+                  </button>
+                );
+              })}
+              {!pharmacies.length ? (
+                <p className="med-muted">No partner pharmacies are available right now.</p>
+              ) : null}
             </div>
           )}
         </section>
@@ -209,7 +301,7 @@ const OrderMedicinesModal = ({ isOpen, toggle, prescription, refillId = null, on
           iconClassName="ri-shopping-bag-3-line"
           loading={placing}
           loadingLabel={isRefill ? "Starting…" : "Placing…"}
-          disabled={!canOrder}
+          disabled={!canOrder || selectedBlocked || needsPharmacy}
           onClick={placeOrder}
         >
           {isRefill ? "Start order" : "Place Order"}

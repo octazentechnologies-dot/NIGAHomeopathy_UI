@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { Alert, Badge, Button, Card, CardBody, Col, Container, FormGroup, Input, Label, Row, Spinner, Table } from "reactstrap";
+import AddressCascadeFields from "../../Components/Common/AddressCascadeFields";
 import {
   acceptMedicineOrder,
   deliverMedicine,
@@ -13,14 +14,47 @@ import {
   pharmacyQueue,
   quoteMedicineOrder,
   rejectMedicineOrder,
+  requestPharmacyClose,
+  uploadPharmacyDocument,
+  withdrawPharmacy,
   s4Message,
   unwrapS4,
 } from "../../helpers/s4Week4Api";
 import "./components/pharmacyDashboard.css";
 
+const emptyOnboard = {
+  name: "",
+  ownerName: "",
+  mobile: "",
+  licenceNumber: "",
+  expiryDate: "",
+  area: "",
+  countryId: "78",
+  stateId: "",
+  districtId: "",
+  cityId: "",
+  pinCodeId: "",
+  addressLine1: "",
+  addressLine2: "",
+  landmark: "",
+  postalCode: "",
+};
+
+const statusLabel = (status) => {
+  const s = String(status || "PENDING").toUpperCase();
+  if (s === "ACTIVE") return "Activated";
+  if (s === "CLOSE_REQUESTED") return "Close requested";
+  if (s === "CLOSED") return "Closed";
+  if (s === "REJECTED") return "Rejected";
+  if (s === "SUSPENDED") return "Suspended";
+  return "Pending";
+};
+
 const orderStatus = (row) => String(row.status || row.Status || "").toUpperCase();
 const orderIdOf = (row) => row.medicineOrderId || row.MedicineOrderId || row.id;
 const quoteAmountOf = (row) => row.quoteAmount ?? row.QuoteAmount ?? "";
+const deliveryFeeOf = (row) => row.deliveryFee ?? row.DeliveryFee ?? "";
+const totalPaidOf = (row) => row.totalPaid ?? row.TotalPaid ?? "";
 const field = (row, camel) => row?.[camel] ?? row?.[camel.charAt(0).toUpperCase() + camel.slice(1)];
 
 const STATUS_META = {
@@ -59,18 +93,18 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const [otpById, setOtpById] = useState({});
   const [otpSentById, setOtpSentById] = useState({});
   const [quoteById, setQuoteById] = useState({});
+  const [medicinesAmountById, setMedicinesAmountById] = useState({});
   const [deliveryFeeById, setDeliveryFeeById] = useState({});
   const [detailById, setDetailById] = useState({});
   const [openId, setOpenId] = useState(null);
-  const [onboard, setOnboard] = useState({
-    name: "",
-    mobile: "",
-    licenceNumber: "",
-    expiryDate: "",
-    area: "",
-  });
+  const [onboard, setOnboard] = useState({ ...emptyOnboard });
+  // Document slots in rows of 3; start with one row. + appears after 3rd when that row is full.
+  const [docSlots, setDocSlots] = useState([null, null, null]);
+  // Bump per-slot key only on clear so the native file input resets without wiping the chosen name on select.
+  const [docInputKeys, setDocInputKeys] = useState({});
   const [submitted, setSubmitted] = useState(null);
   const [mine, setMine] = useState([]);
+  const licenceFiles = docSlots.filter(Boolean);
 
   const pageTitle =
     mode === "onboarding"
@@ -204,33 +238,33 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   };
 
   const saveQuote = (id) => {
-    const amount = Number(quoteById[id] || 0);
-    if (!(amount > 0)) {
-      setError("Enter a quote amount greater than 0 (total payable).");
+    const medicinesAmount = Number(medicinesAmountById[id] || 0);
+    if (!(medicinesAmount > 0)) {
+      setError("Enter medicines amount greater than 0.");
       return;
     }
     const feeRaw = deliveryFeeById[id];
-    const payload = { amount };
+    let deliveryFee = 0;
     if (feeRaw !== "" && feeRaw != null && String(feeRaw).trim() !== "") {
-      const deliveryFee = Number(feeRaw);
+      deliveryFee = Number(feeRaw);
       if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
-        setError("Delivery fee must be 0 or greater, or leave blank if unknown.");
+        setError("Delivery fee must be 0 or greater.");
         return;
       }
-      if (deliveryFee > amount) {
-        setError("Delivery fee cannot exceed the total quote amount.");
-        return;
-      }
-      payload.deliveryFee = deliveryFee;
     }
-    const feeNote =
-      payload.deliveryFee != null ? ` (delivery ${formatAmount(payload.deliveryFee)})` : "";
+    const amount = medicinesAmount + deliveryFee;
+    const payload = {
+      medicinesAmount,
+      deliveryFee,
+      amount,
+    };
     runAction(
       id,
       () => quoteMedicineOrder(id, payload),
-      `Quote of ${formatAmount(amount)}${feeNote} sent for order ${id}.`
+      `Quote sent: medicines ${formatAmount(medicinesAmount)} + delivery ${formatAmount(deliveryFee)} = ${formatAmount(amount)}.`
     ).then((result) => {
       if (result) {
+        setMedicinesAmountById((prev) => ({ ...prev, [id]: "" }));
         setQuoteById((prev) => ({ ...prev, [id]: "" }));
         setDeliveryFeeById((prev) => ({ ...prev, [id]: "" }));
       }
@@ -261,6 +295,11 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       setBusyId(null);
       return;
     }
+    if (!onboard.ownerName.trim() || onboard.ownerName.trim().length < 2) {
+      setError("Owner name is required.");
+      setBusyId(null);
+      return;
+    }
     const mobile = String(onboard.mobile || "").replace(/\D/g, "");
     if (mobile.length < 8) {
       setError("A valid mobile is required.");
@@ -283,31 +322,121 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
       setBusyId(null);
       return;
     }
+    if (!onboard.countryId) {
+      setError("Country is required.");
+      setBusyId(null);
+      return;
+    }
+    if (!onboard.addressLine1.trim() || onboard.addressLine1.trim().length < 3) {
+      setError("Address line 1 is required.");
+      setBusyId(null);
+      return;
+    }
+    if (!licenceFiles.length) {
+      setError("Upload at least one licence document.");
+      setBusyId(null);
+      return;
+    }
     try {
+      const toId = (v) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
       const payload = {
         name: onboard.name.trim(),
+        ownerName: onboard.ownerName.trim(),
         mobile: onboard.mobile.trim(),
         licenceNumber: onboard.licenceNumber.trim(),
         expiryDate: onboard.expiryDate,
-        area: onboard.area.trim(),
+        area: onboard.area.trim() || null,
+        countryId: toId(onboard.countryId),
+        stateId: toId(onboard.stateId),
+        districtId: toId(onboard.districtId),
+        cityId: toId(onboard.cityId),
+        pinCodeId: toId(onboard.pinCodeId),
+        addressLine1: onboard.addressLine1.trim(),
+        addressLine2: onboard.addressLine2.trim() || null,
+        landmark: onboard.landmark.trim() || null,
+        postalCode: onboard.postalCode.trim() || null,
       };
       const response = await onboardPharmacy(payload);
       const inner = unwrapS4(response);
+      const pharmacyPartnerId = inner?.pharmacyPartnerId || inner?.PharmacyPartnerId;
+      if (pharmacyPartnerId && licenceFiles.length) {
+        for (const file of licenceFiles) {
+          await uploadPharmacyDocument(pharmacyPartnerId, { file, documentType: "Licence" });
+        }
+      }
       const message =
         response?.message ||
         inner?.message ||
         "Pharmacy stored as pending until admin activation.";
       setSubmitted({
         ...payload,
-        pharmacyPartnerId: inner?.pharmacyPartnerId || inner?.PharmacyPartnerId,
+        pharmacyPartnerId,
         status: inner?.status || inner?.Status || "PENDING",
+        documentCount: licenceFiles.length,
         message,
       });
       setNote(message);
-      setOnboard({ name: "", mobile: "", licenceNumber: "", expiryDate: "", area: "" });
+      setOnboard({ ...emptyOnboard });
+      setDocSlots([null, null, null]);
+      setDocInputKeys({});
       await loadMine();
     } catch (err) {
       setSubmitted(null);
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const closePharmacy = async (row) => {
+    const id = row.pharmacyPartnerId || row.PharmacyPartnerId || row.id;
+    const name = row.name || row.Name || "Pharmacy";
+    const result = await Swal.fire({
+      icon: "question",
+      title: "Request close?",
+      text: `Admin will verify and approve closing ${name}.`,
+      input: "text",
+      inputPlaceholder: "Reason (optional)",
+      showCancelButton: true,
+      confirmButtonText: "Request close",
+      confirmButtonColor: "#000000",
+    });
+    if (!result.isConfirmed) return;
+    setBusyId(`close-${id}`);
+    setError("");
+    try {
+      await requestPharmacyClose(id, result.value || undefined);
+      setNote(`Close requested for ${name}. Waiting for admin approval.`);
+      await loadMine();
+    } catch (err) {
+      setError(s4Message(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deletePharmacy = async (row) => {
+    const id = row.pharmacyPartnerId || row.PharmacyPartnerId || row.id;
+    const name = row.name || row.Name || "Pharmacy";
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Withdraw / delete?",
+      text: `Remove ${name} from onboarding? Only pending/rejected pharmacies without orders can be deleted.`,
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      confirmButtonColor: "#dc3545",
+    });
+    if (!result.isConfirmed) return;
+    setBusyId(`del-${id}`);
+    setError("");
+    try {
+      await withdrawPharmacy(id);
+      setNote(`${name} withdrawn.`);
+      await loadMine();
+    } catch (err) {
       setError(s4Message(err));
     } finally {
       setBusyId(null);
@@ -321,6 +450,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
           <h2 className="pharmacy-page-title"><i className="ri-store-3-line" aria-hidden="true" />Pharmacy onboarding</h2>
           {error ? <Alert color="danger">{error}</Alert> : null}
           <div className="pharmacy-stack">
+          {note ? <Alert color="success">{note}</Alert> : null}
           {submitted ? (
             <>
               <Alert color="success">
@@ -338,6 +468,12 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     </Col>
                     <Col md={4}>
                       <FormGroup>
+                        <Label>Owner name</Label>
+                        <Input value={submitted.ownerName} disabled />
+                      </FormGroup>
+                    </Col>
+                    <Col md={4}>
+                      <FormGroup>
                         <Label>Mobile</Label>
                         <Input value={submitted.mobile} disabled />
                       </FormGroup>
@@ -350,14 +486,8 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     </Col>
                     <Col md={4}>
                       <FormGroup>
-                        <Label>Licence expiry</Label>
-                        <Input value={submitted.expiryDate} disabled />
-                      </FormGroup>
-                    </Col>
-                    <Col md={4}>
-                      <FormGroup>
-                        <Label>Service area</Label>
-                        <Input value={submitted.area} disabled />
+                        <Label>Documents uploaded</Label>
+                        <Input value={String(submitted.documentCount || 0)} disabled />
                       </FormGroup>
                     </Col>
                     <Col md={4}>
@@ -366,10 +496,20 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                         <Input value={submitted.status || "PENDING"} disabled />
                       </FormGroup>
                     </Col>
+                    <Col md={12}>
+                      <FormGroup>
+                        <Label>Address</Label>
+                        <Input
+                          value={[submitted.addressLine1, submitted.addressLine2, submitted.landmark, submitted.postalCode]
+                            .filter(Boolean)
+                            .join(", ")}
+                          disabled
+                        />
+                      </FormGroup>
+                    </Col>
                   </Row>
                   <p className="text-muted small mb-3">
-                    {submitted.name} is {String(submitted.status || "PENDING").toUpperCase() === "ACTIVE" ? "activated" : "pending"}.
-                    {submitted.pharmacyPartnerId ? ` Id ${submitted.pharmacyPartnerId}.` : ""}
+                    Admin and pharmacy both receive a notification. Id {submitted.pharmacyPartnerId || "—"}.
                   </p>
                   <Button
                     className="btn btn-sm btn-soft-secondary"
@@ -390,25 +530,37 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                 <Row className="g-3 pharmacy-form">
                   <Col md={4}>
                     <FormGroup>
-                      <Label>Pharmacy name</Label>
+                      <Label>Pharmacy name *</Label>
                       <Input value={onboard.name} onChange={(e) => setOnboard({ ...onboard, name: e.target.value })} />
                     </FormGroup>
                   </Col>
                   <Col md={4}>
                     <FormGroup>
-                      <Label>Mobile</Label>
+                      <Label>Owner name *</Label>
+                      <Input
+                        value={onboard.ownerName}
+                        onChange={(e) => setOnboard({ ...onboard, ownerName: e.target.value })}
+                      />
+                    </FormGroup>
+                  </Col>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label>Mobile *</Label>
                       <Input value={onboard.mobile} onChange={(e) => setOnboard({ ...onboard, mobile: e.target.value })} />
                     </FormGroup>
                   </Col>
                   <Col md={4}>
                     <FormGroup>
-                      <Label>Licence number</Label>
-                      <Input value={onboard.licenceNumber} onChange={(e) => setOnboard({ ...onboard, licenceNumber: e.target.value })} />
+                      <Label>Licence number *</Label>
+                      <Input
+                        value={onboard.licenceNumber}
+                        onChange={(e) => setOnboard({ ...onboard, licenceNumber: e.target.value })}
+                      />
                     </FormGroup>
                   </Col>
                   <Col md={4}>
                     <FormGroup>
-                      <Label>Licence expiry</Label>
+                      <Label>Licence expiry *</Label>
                       <Input
                         type="date"
                         min={new Date().toISOString().slice(0, 10)}
@@ -424,7 +576,82 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                     </FormGroup>
                   </Col>
                 </Row>
-                <div className="pharmacy-form-actions">
+                <Label className="mt-2 mb-2 d-block">Licence documents *</Label>
+                {Array.from({ length: Math.ceil(docSlots.length / 3) }, (_, rowIndex) => {
+                  const start = rowIndex * 3;
+                  const rowSlots = docSlots.slice(start, start + 3);
+                  const rowFilled = rowSlots.length === 3 && rowSlots.every(Boolean);
+                  const isLastRow = start + 3 >= docSlots.length;
+                  return (
+                    <Row className="g-3 align-items-end mb-2" key={`doc-row-${rowIndex}`}>
+                      {rowSlots.map((file, colIndex) => {
+                        const slotIndex = start + colIndex;
+                        const isThirdInRow = colIndex === 2;
+                        const showAdd = isThirdInRow && rowFilled && isLastRow;
+                        const inputId = `pharmacy-doc-slot-${slotIndex}`;
+                        return (
+                          <Col md={4} sm={6} xs={12} key={`doc-slot-${slotIndex}`}>
+                            <FormGroup className="mb-0">
+                              <Label className="small text-muted mb-1" htmlFor={inputId}>
+                                Document {slotIndex + 1}
+                              </Label>
+                              <div className="d-flex gap-1 align-items-center">
+                                <Input
+                                  id={inputId}
+                                  key={`doc-input-${slotIndex}-${docInputKeys[slotIndex] || 0}`}
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                  title={file?.name || "Choose file"}
+                                  onChange={(e) => {
+                                    const next = e.target.files?.[0] || null;
+                                    setDocSlots((prev) => {
+                                      const copy = [...prev];
+                                      copy[slotIndex] = next;
+                                      return copy;
+                                    });
+                                  }}
+                                />
+                                {file ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-soft-secondary flex-shrink-0"
+                                    title="Clear"
+                                    onClick={() => {
+                                      setDocSlots((prev) => {
+                                        const copy = [...prev];
+                                        copy[slotIndex] = null;
+                                        return copy;
+                                      });
+                                      setDocInputKeys((prev) => ({
+                                        ...prev,
+                                        [slotIndex]: (prev[slotIndex] || 0) + 1,
+                                      }));
+                                    }}
+                                  >
+                                    <i className="ri-close-line" aria-hidden="true" />
+                                  </button>
+                                ) : null}
+                                {showAdd ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-soft-primary flex-shrink-0"
+                                    title="Add another row of documents"
+                                    onClick={() => setDocSlots((prev) => [...prev, null, null, null])}
+                                  >
+                                    <i className="ri-add-line" aria-hidden="true" />
+                                  </button>
+                                ) : null}
+                              </div>
+                            </FormGroup>
+                          </Col>
+                        );
+                      })}
+                    </Row>
+                  );
+                })}
+                <h6 className="mt-3 mb-2">Registered address</h6>
+                <AddressCascadeFields value={onboard} onChange={setOnboard} />
+                <div className="pharmacy-form-actions mt-3">
                   <Button className="btn btn-sm btn-soft-primary" disabled={busyId === "onboard"} onClick={saveOnboard}>
                     <i className="ri-checkbox-circle-line" aria-hidden="true" />
                     {busyId === "onboard" ? "Submitting…" : "Submit for activation"}
@@ -442,29 +669,62 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               </button>
             </div>
             <CardBody>
-              <p className="pharmacy-hint">Pending means submitted and waiting for admin. Active means activated.</p>
+              <p className="pharmacy-hint">
+                Pending awaits admin. Use Delete to withdraw pending/rejected. Use Close pharmacy when active so admin can approve shutdown.
+              </p>
               {mine.length === 0 ? (
                 <p className="text-muted mb-0">Nothing submitted on this login yet.</p>
               ) : (
-                <Table size="sm" className="mb-0">
+                <Table size="sm" className="mb-0" responsive>
                   <thead>
                     <tr>
                       <th>Id</th>
                       <th>Name</th>
-                      <th>Area</th>
+                      <th>Owner</th>
+                      <th>Area / City</th>
+                      <th>Docs</th>
                       <th>Status</th>
+                      <th className="text-end">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {mine.map((row) => {
                       const id = row.pharmacyPartnerId || row.PharmacyPartnerId || row.id;
-                      const status = String(row.status || row.Status || "PENDING");
+                      const status = String(row.status || row.Status || "PENDING").toUpperCase();
+                      const canDelete = status === "PENDING" || status === "REJECTED";
+                      const canClose = status === "ACTIVE" || status === "SUSPENDED";
                       return (
                         <tr key={id}>
                           <td>{id || "—"}</td>
                           <td>{row.name || row.Name || "—"}</td>
-                          <td>{row.area || row.Area || "—"}</td>
-                          <td>{status.toUpperCase() === "ACTIVE" ? "Activated" : status || "Pending"}</td>
+                          <td>{row.ownerName || row.OwnerName || "—"}</td>
+                          <td>{row.area || row.Area || row.postalCode || row.PostalCode || "—"}</td>
+                          <td>{row.documentCount ?? row.DocumentCount ?? "—"}</td>
+                          <td>{statusLabel(status)}</td>
+                          <td className="text-end">
+                            <div className="d-inline-flex flex-wrap gap-1 justify-content-end">
+                              {canClose ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-soft-warning"
+                                  disabled={busyId === `close-${id}`}
+                                  onClick={() => closePharmacy(row)}
+                                >
+                                  Close
+                                </button>
+                              ) : null}
+                              {canDelete ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-soft-danger"
+                                  disabled={busyId === `del-${id}`}
+                                  onClick={() => deletePharmacy(row)}
+                                >
+                                  Delete
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
@@ -516,34 +776,42 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     }
 
     if (status === "ACCEPTED") {
+      const meds = Number(medicinesAmountById[id] || 0);
+      const fee = Number(deliveryFeeById[id] || 0);
+      const totalPreview = (Number.isFinite(meds) && meds > 0 ? meds : 0) + (Number.isFinite(fee) && fee >= 0 ? fee : 0);
       return (
         <div className="d-flex flex-wrap gap-1 align-items-center">
           <Input
             bsSize="sm"
             type="number"
             min="1"
-            style={{ width: 110 }}
-            placeholder="Total ₹"
-            title="Total payable (medicines + delivery)"
-            value={quoteById[id] || ""}
+            step="0.01"
+            style={{ width: 120 }}
+            placeholder="Medicines ₹"
+            title="Medicines amount (required)"
+            value={medicinesAmountById[id] || ""}
             disabled={busy}
-            onChange={(e) => setQuoteById({ ...quoteById, [id]: e.target.value })}
+            onChange={(e) => setMedicinesAmountById({ ...medicinesAmountById, [id]: e.target.value })}
           />
           <Input
             bsSize="sm"
             type="number"
             min="0"
+            step="0.01"
             style={{ width: 110 }}
             placeholder="Delivery ₹"
-            title="Optional delivery fee (blank = unknown)"
+            title="Delivery fee (0 if free)"
             value={deliveryFeeById[id] ?? ""}
             disabled={busy}
             onChange={(e) => setDeliveryFeeById({ ...deliveryFeeById, [id]: e.target.value })}
           />
+          <span className="small text-muted" title="Quoted total">
+            Total {formatAmount(totalPreview > 0 ? totalPreview : "")}
+          </span>
           <button
             type="button"
             className="btn btn-sm btn-soft-primary clinic-action-btn"
-            disabled={busy || !(Number(quoteById[id]) > 0)}
+            disabled={busy || !(Number(medicinesAmountById[id]) > 0)}
             onClick={() => saveQuote(id)}
           >
             <i className="ri-send-plane-line" aria-hidden="true" /> Send quote
@@ -613,26 +881,38 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     const events = detail.events || detail.Events || [];
     const deliveryFee = field(detail, "deliveryFee");
     const quoteAmount = field(detail, "quoteAmount");
+    const subtotal =
+      field(detail, "subtotalMedicines") ??
+      (quoteAmount != null && deliveryFee != null && quoteAmount !== "" && deliveryFee !== ""
+        ? Number(quoteAmount) - Number(deliveryFee)
+        : null);
+    const deliveryCity = field(detail, "deliveryCity");
     return (
       <Row className="g-2">
         <Col md={6}>
           <h6 className="mb-2">Medicines</h6>
+          {deliveryCity ? (
+            <p className="small mb-2">
+              <strong>Deliver to:</strong> {deliveryCity}
+            </p>
+          ) : null}
           {items.length === 0 ? (
             <p className="small text-muted mb-0">No medicines on this order.</p>
           ) : (
             <ul className="small mb-0 ps-3">
               {items.map((item, index) => (
                 <li key={`${field(item, "remedyCode")}-${index}`}>
-                  {field(item, "remedyName") || `Remedy code ${field(item, "remedyCode") || "—"} (name shown after accept)`}
+                  {field(item, "remedyName") || field(item, "remedyCode") || "—"}
                 </li>
               ))}
             </ul>
           )}
           <p className="small text-muted mt-2 mb-0">
-            Quote {formatAmount(quoteAmount)}
+            Medicines {formatAmount(subtotal)}
             {deliveryFee != null && deliveryFee !== ""
-              ? ` · Delivery ${Number(deliveryFee) === 0 ? "Included" : formatAmount(deliveryFee)}`
+              ? ` · Delivery ${Number(deliveryFee) === 0 ? "Free" : formatAmount(deliveryFee)}`
               : ""}
+            {quoteAmount != null && quoteAmount !== "" ? ` · Total ${formatAmount(quoteAmount)}` : ""}
             {field(detail, "doctorName") ? ` · ${field(detail, "doctorName")}` : ""}
             {field(detail, "rxLabel") ? ` · ${field(detail, "rxLabel")}` : ""}
           </p>
@@ -712,7 +992,9 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                       <th>Patient</th>
                       <th>Status</th>
                       <th>Quote</th>
-                      <th>Received</th>
+                      <th>Delivery</th>
+                      <th>Total received</th>
+                      <th>Ordered at</th>
                       <th>Action</th>
                       <th />
                     </tr>
@@ -725,6 +1007,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                       const patientName = field(row, "patientName");
                       const mobile = field(row, "patientMobile");
                       const address = field(row, "patientAddress");
+                      const deliveryCity = field(row, "deliveryCity");
                       const payMode = field(row, "payMode");
                       return (
                         <React.Fragment key={id}>
@@ -734,6 +1017,9 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                               <div className="small text-muted">
                                 eRx #{field(row, "erxSnapshotId") ?? "—"} · {field(row, "itemCount") ?? 0} item(s)
                               </div>
+                              {deliveryCity ? (
+                                <div className="small text-muted">Deliver to {deliveryCity}</div>
+                              ) : null}
                               {field(row, "pharmacyName") ? (
                                 <div className="small text-muted">{field(row, "pharmacyName")}</div>
                               ) : null}
@@ -743,7 +1029,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                                 <>
                                   <div>{patientName}</div>
                                   <div className="small text-muted">
-                                    {[mobile, address].filter(Boolean).join(" · ") || "—"}
+                                    {[mobile, deliveryCity || address].filter(Boolean).join(" · ") || "—"}
                                   </div>
                                 </>
                               ) : (
@@ -758,6 +1044,8 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                               {payMode ? <div className="small text-muted">Pay: {payMode}</div> : null}
                             </td>
                             <td>{formatAmount(quoteAmountOf(row))}</td>
+                            <td>{formatAmount(deliveryFeeOf(row))}</td>
+                            <td>{formatAmount(totalPaidOf(row))}</td>
                             <td className="small">{formatDateTime(field(row, "createdAt"))}</td>
                             <td>{renderActions(row)}</td>
                             <td className="text-end">
@@ -774,7 +1062,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
                           </tr>
                           {openId === id ? (
                             <tr>
-                              <td colSpan={7} className="bg-light">
+                              <td colSpan={9} className="bg-light">
                                 {renderDetail(id)}
                               </td>
                             </tr>

@@ -1193,13 +1193,16 @@ const mapAccordionEntryToRubricData = (item) => {
     item?.subSectionId ?? item?.subsectionId ?? item?.rubricId ?? item?.id ?? null;
   const rubricName =
     item?.subSectionName || item?.rubricName || item?.subsectionName || item?.name || "";
+  const remedyCountRaw =
+    item?.remedyCount ?? item?.RemedyCount ?? item?.remedyCountForSort ?? 0;
 
   return {
     rubricId,
     rubricName,
     subSectionId: rubricId,
     subSectionName: rubricName,
-    remedyCount: item?.remedyCount ?? item?.remedyCountForSort ?? 0,
+    sectionId: item?.sectionId ?? item?.SectionId ?? null,
+    remedyCount: Number(remedyCountRaw) || 0,
   };
 };
 
@@ -3008,17 +3011,21 @@ const PatientBoard = () => {
     setSelectedRepertorizeIntensity(null);
   }, []);
 
-  // Call getCommanUnCommanRubricsDetails when rubrics or section filters change
+  // Always refresh Common/Uncommon when the selected rubric set changes.
+  // Debounce only — never skip — so Keynote/Small adds still recompute ranking.
   useEffect(() => {
-    if (skipCommanUncommanRefreshRef.current) {
-      skipCommanUncommanRefreshRef.current = false;
-      return;
+    if (commanUncommanDebounceRef.current) {
+      clearTimeout(commanUncommanDebounceRef.current);
+      commanUncommanDebounceRef.current = null;
     }
 
     const requestData = buildCommanUncommonRequestData();
 
     if (requestData.length > 0) {
-      dispatch(getCommanUnCommanRubricsDetails(requestData));
+      commanUncommanDebounceRef.current = setTimeout(() => {
+        dispatch(getCommanUnCommanRubricsDetails(requestData));
+        commanUncommanDebounceRef.current = null;
+      }, 200);
     } else if (repertorizationRubrics?.length > 0) {
       dispatch(setCommanUnCommanRubricsDetailsList({ commonRemedyList: [], unCommonRemedyList: [] }));
       setSelectedRemedyFromCommonUncommon(null);
@@ -3026,6 +3033,13 @@ const PatientBoard = () => {
       dispatch(setCommanUnCommanRubricsDetailsList(null));
       setSelectedRemedyFromCommonUncommon(null);
     }
+
+    return () => {
+      if (commanUncommanDebounceRef.current) {
+        clearTimeout(commanUncommanDebounceRef.current);
+        commanUncommanDebounceRef.current = null;
+      }
+    };
   }, [repertorizationRubrics, buildCommanUncommonRequestData, dispatch]);
 
   useEffect(() => {
@@ -3038,19 +3052,32 @@ const PatientBoard = () => {
     }
   }, [dispatch, filledPyramidIcons, repertorizationRubrics]);
 
-  // Update remedy count in repertorization rubrics when remedyCountsList changes
+  // Fallback: apply remedy count from Redux when a background fetch lands.
+  // Prefer String ID match — API/UI may mix number vs string.
   useEffect(() => {
-    if (remedyCountsList && remedyCountsList.remedyCount !== undefined) {
-      setRepertorizationRubrics(prevRubrics =>
-        prevRubrics.map(rubric => {
-          // Find the rubric that matches the subsectionId from the response
-          if (rubric.rubricId === remedyCountsList.subSectionId) {
-            return { ...rubric, remedyCount: remedyCountsList.remedyCount };
-          }
-          return rubric;
-        })
-      );
+    const count =
+      remedyCountsList?.remedyCount ??
+      remedyCountsList?.RemedyCount;
+    const responseId =
+      remedyCountsList?.subSectionId ??
+      remedyCountsList?.SubSectionId ??
+      remedyCountsList?.subsectionId;
+    if (count === undefined || count === null || responseId == null) {
+      return;
     }
+    const responseKey = String(responseId);
+    remedyCountCacheRef.current.set(responseKey, Number(count) || 0);
+    setRepertorizationRubrics((prevRubrics) =>
+      prevRubrics.map((rubric) => {
+        const rubricKey = String(
+          rubric.rubricId ?? rubric.subsectionId ?? rubric.subSectionId ?? ""
+        );
+        if (rubricKey && rubricKey === responseKey) {
+          return { ...rubric, remedyCount: Number(count) || 0 };
+        }
+        return rubric;
+      })
+    );
   }, [remedyCountsList]);
 
   // Clear selected remedy when API data changes
@@ -3341,7 +3368,8 @@ const PatientBoard = () => {
   const activeSubGroupFetchRef = useRef({ seq: 0, key: null });
   const groupFetchSeqRef = useRef(0);
   const activeGroupFetchRef = useRef({ seq: 0, sectionId: null });
-  const skipCommanUncommanRefreshRef = useRef(false);
+  const commanUncommanDebounceRef = useRef(null);
+  const remedyCountCacheRef = useRef(new Map());
   const [activeQuestionGroupId, setActiveQuestionGroupId] = useState(null);
   const [questionSubGroupsLoadingKey, setQuestionSubGroupsLoadingKey] = useState(null);
   const [questionGroupsLoadingSectionId, setQuestionGroupsLoadingSectionId] = useState(null);
@@ -3698,66 +3726,124 @@ const PatientBoard = () => {
     });
   };
 
-  // Handle intensity chip click to add rubric to repertorization
+  // Handle intensity chip click to add rubric to repertorization.
+  // Always resolve a real remedyCount (payload → cache → API) and never skip Common/Uncommon refresh.
   const handleIntensityChipClick = async (rubricData, intensity, options = {}) => {
     const rubricName = rubricData.rubricName || rubricData.subsectionName || rubricData.subSectionName || rubricData.name;
     const rubricId = rubricData.rubricId || rubricData.subsectionId || rubricData.subSectionId || rubricData.id;
-    const remedyCountForSort = rubricData.remedyCount || rubricData.remedyCountForSort || 0;
+    const rubricKey = rubricId != null ? String(rubricId) : "";
 
-    if (options.skipCommanUncommanRefresh) {
-      skipCommanUncommanRefreshRef.current = true;
+    const payloadCountRaw =
+      rubricData.remedyCount ??
+      rubricData.RemedyCount ??
+      rubricData.remedyCountForSort;
+    const payloadCount =
+      payloadCountRaw !== undefined && payloadCountRaw !== null && payloadCountRaw !== ""
+        ? Number(payloadCountRaw)
+        : null;
+
+    let resolvedCount =
+      Number.isFinite(payloadCount) && payloadCount > 0
+        ? payloadCount
+        : (rubricKey && remedyCountCacheRef.current.has(rubricKey)
+            ? remedyCountCacheRef.current.get(rubricKey)
+            : null);
+
+    if (resolvedCount == null) {
+      resolvedCount = Number.isFinite(payloadCount) ? payloadCount : 0;
     }
 
     // Check if rubric already exists in repertorization list
     const existingIndex = repertorizationRubrics.findIndex(
-      (r) => String(r.rubricId ?? r.subsectionId ?? r.subSectionId) === String(rubricId)
+      (r) => String(r.rubricId ?? r.subsectionId ?? r.subSectionId) === rubricKey
     );
 
+    const applyCountToList = (count) => {
+      const safeCount = Number(count) || 0;
+      if (rubricKey) {
+        remedyCountCacheRef.current.set(rubricKey, safeCount);
+      }
+      setRepertorizationRubrics((prev) =>
+        prev.map((r) =>
+          String(r.rubricId ?? r.subsectionId ?? r.subSectionId) === rubricKey
+            ? { ...r, remedyCount: safeCount }
+            : r
+        )
+      );
+    };
+
     if (existingIndex !== -1) {
-      // Update existing rubric with new intensity
+      // Update intensity; keep prior count if payload/cache has nothing useful (never force 0 over a known count).
+      const previousCount = Number(repertorizationRubrics[existingIndex]?.remedyCount) || 0;
+      const nextCount =
+        Number.isFinite(resolvedCount) && resolvedCount > 0
+          ? resolvedCount
+          : previousCount;
+
       const updatedRubrics = [...repertorizationRubrics];
       updatedRubrics[existingIndex] = {
         ...updatedRubrics[existingIndex],
         intensityNo: intensity.intensityNo,
         intensityId: intensity.intensityId,
-        remedyCount: remedyCountForSort
+        remedyCount: nextCount,
       };
       setRepertorizationRubrics(updatedRubrics);
-    } else {
-      // Check if maximum limit reached (20 items)
-      if (repertorizationRubrics.length >= 20) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Maximum Limit Reached',
-          text: 'You can only add up to 20 rubrics to the repertorization list.',
-          confirmButtonColor: '#000000'
-        });
-        return;
+
+      if (nextCount <= 0 && rubricId && !options.skipRemedyCountFetch) {
+        try {
+          const counts = await dispatch(getRemedyCounts({ subSectionId: rubricId }));
+          if (counts && counts.remedyCount != null) {
+            applyCountToList(counts.remedyCount);
+          }
+        } catch (error) {
+          console.error('Error fetching remedy count:', error);
+        }
       }
+      return;
+    }
 
-      // Add new rubric to repertorization list
-      const sectionIdFromRubric =
-        rubricData.sectionId ??
-        rubricData.SectionId ??
-        rubricData.section?.sectionId ??
-        null;
+    // Check if maximum limit reached (20 items)
+    if (repertorizationRubrics.length >= 20) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Maximum Limit Reached',
+        text: 'You can only add up to 20 rubrics to the repertorization list.',
+        confirmButtonColor: '#000000'
+      });
+      return;
+    }
 
-      setRepertorizationRubrics(prev => [...prev, {
+    const sectionIdFromRubric =
+      rubricData.sectionId ??
+      rubricData.SectionId ??
+      rubricData.section?.sectionId ??
+      null;
+
+    if (rubricKey && Number.isFinite(resolvedCount) && resolvedCount > 0) {
+      remedyCountCacheRef.current.set(rubricKey, resolvedCount);
+    }
+
+    setRepertorizationRubrics((prev) => [
+      ...prev,
+      {
         rubricId,
         rubricName,
         intensityNo: intensity.intensityNo,
         intensityId: intensity.intensityId,
-        remedyCount: remedyCountForSort,
+        remedyCount: Number.isFinite(resolvedCount) ? resolvedCount : 0,
         ...(sectionIdFromRubric != null ? { sectionId: sectionIdFromRubric } : {}),
-      }]);
+      },
+    ]);
 
-      // If remedyCountForSort is 0 or not available, fetch from API (skip when adding from accordion)
-      if (!options.skipCommanUncommanRefresh && !remedyCountForSort && rubricId) {
-        try {
-          await dispatch(getRemedyCounts({ subSectionId: rubricId }));
-        } catch (error) {
-          console.error('Error fetching remedy count:', error);
+    // Resolve missing counts immediately so badges never stick at [0] when remedies exist.
+    if ((!resolvedCount || resolvedCount <= 0) && rubricId && !options.skipRemedyCountFetch) {
+      try {
+        const counts = await dispatch(getRemedyCounts({ subSectionId: rubricId }));
+        if (counts && counts.remedyCount != null) {
+          applyCountToList(counts.remedyCount);
         }
+      } catch (error) {
+        console.error('Error fetching remedy count:', error);
       }
     }
   };
@@ -3786,9 +3872,8 @@ const PatientBoard = () => {
           className={`pb-chip pb-chip--repertory${isSelected ? " pb-chip--repertory-selected" : ""}`}
           onClick={(e) => {
             e.stopPropagation();
-            handleIntensityChipClick(rubricData, intensity, {
-              skipCommanUncommanRefresh: true,
-            });
+            // Always refresh Common/Uncommon; remedyCount comes from accordion payload or GetRemedyCounts.
+            handleIntensityChipClick(rubricData, intensity);
           }}
         >
           {intensity.intensityNo}
