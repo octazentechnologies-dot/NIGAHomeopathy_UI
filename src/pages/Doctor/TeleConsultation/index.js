@@ -103,7 +103,7 @@ const formatAmount = (amount) =>
   amount == null || amount === "" ? "—" : `₹ ${Math.round(Number(amount) || 0).toLocaleString("en-IN")}`;
 
 const paymentStatusBadgeClass = (status) =>
-  status === "Paid" ? "bg-success" : "bg-danger";
+  status === "Paid" ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
 
 const parseSlotMoment = (timeStr) => moment(timeStr, ["hh:mm A", "h:mm A", "HH:mm"]);
 
@@ -589,7 +589,6 @@ const TeleKpiListModal = ({ isOpen, toggle, kpiKey, patients }) => {
                           row.paymentStatus
                         )}`}
                       >
-                        <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                         {row.paymentStatus}
                       </span>
                     </td>
@@ -952,7 +951,6 @@ const TeleConsultationDashboard = () => {
                               <span
                                 className={`badge patient-list-modal__status ${paymentStatusBadgeClass(row.paymentStatus)}`}
                               >
-                                <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                                 {row.paymentStatus}
                               </span>
                             </td>

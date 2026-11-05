@@ -252,6 +252,41 @@ const modalSelectPortalProps = {
   menuPortalTarget: typeof document !== 'undefined' ? document.body : null,
   menuPosition: 'fixed',
 };
+const prescriptionSelectStyles = {
+  control: (base) => ({
+    ...base,
+    minHeight: 'var(--app-form-field-height, 1.75rem)',
+    height: 'var(--app-form-field-height, 1.75rem)',
+    fontSize: 'var(--app-form-field-font-size, 0.6875rem)',
+  }),
+  valueContainer: (base) => ({
+    ...base,
+    padding: '0 6px',
+    flexWrap: 'nowrap',
+  }),
+  placeholder: (base) => ({
+    ...base,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    margin: 0,
+  }),
+  singleValue: (base) => ({
+    ...base,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    margin: 0,
+  }),
+  input: (base) => ({ ...base, margin: 0, padding: 0 }),
+  indicatorsContainer: (base) => ({
+    ...base,
+    height: 'var(--app-form-field-height, 1.75rem)',
+  }),
+  dropdownIndicator: (base) => ({ ...base, padding: '0 6px' }),
+  clearIndicator: (base) => ({ ...base, padding: '0 4px' }),
+  menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
+};
 
 const normalizeAccordionRemedyId = (remedyId) => {
   const normalized = Number(remedyId);
@@ -267,20 +302,20 @@ const MATERIA_MEDICA_HEADING_ICON_BY_ID = {
   86: 'ri-mental-health-line',
   87: 'ri-user-3-line',
   88: 'ri-eye-line',
-  89: 'ri-sound-module-line',
+  89: 'ri-headphone-line',
   90: 'ri-user-smile-line',
   91: 'ri-emotion-line',
   92: 'ri-emotion-happy-line',
   93: 'ri-speak-line',
-  94: 'ri-mic-line',
+  94: 'ri-voiceprint-line',
   95: 'ri-restaurant-line',
   96: 'ri-capsule-line',
   97: 'ri-body-scan-line',
-  98: 'ri-drop-line',
+  98: 'ri-test-tube-line',
   99: 'ri-water-flash-line',
   100: 'ri-men-line',
   101: 'ri-women-line',
-  102: 'ri-windy-line',
+  102: 'ri-lungs-line',
   103: 'ri-heart-2-line',
   104: 'ri-heart-pulse-line',
   105: 'ri-align-vertically',
@@ -293,60 +328,81 @@ const MATERIA_MEDICA_HEADING_ICON_BY_ID = {
   112: 'ri-temp-hot-line',
 };
 
+/** Longer / more specific keywords first — matching uses includes(). */
 const MATERIA_MEDICA_HEADING_ICON_KEYWORDS = [
   ['INTRODUCTION', 'ri-book-open-line'],
-  ['CLINICAL', 'ri-stethoscope-line'],
   ['CHARACTERISTIC', 'ri-shining-2-line'],
   ['CAUSATION', 'ri-git-branch-line'],
-  ['MIND', 'ri-mental-health-line'],
-  ['HEAD', 'ri-user-3-line'],
-  ['SENSORIUM', 'ri-user-3-line'],
-  ['SCALP', 'ri-user-3-line'],
-  ['EYE', 'ri-eye-line'],
-  ['EAR', 'ri-sound-module-line'],
-  ['NOSE', 'ri-user-smile-line'],
-  ['FACE', 'ri-emotion-line'],
-  ['TOOTH', 'ri-emotion-happy-line'],
-  ['TEETH', 'ri-emotion-happy-line'],
-  ['MOUTH', 'ri-speak-line'],
-  ['THROAT', 'ri-mic-line'],
-  ['APPETITE', 'ri-restaurant-line'],
-  ['STOMACH', 'ri-capsule-line'],
-  ['ABDOMEN', 'ri-body-scan-line'],
-  ['STOOL', 'ri-drop-line'],
-  ['ANUS', 'ri-drop-line'],
+  ['CLINICAL', 'ri-stethoscope-line'],
+  ['SENSORIUM', 'ri-mental-health-line'],
+  ['VERTIGO', 'ri-loop-left-line'],
+  ['VISION', 'ri-eye-2-line'],
+  ['HEARING', 'ri-volume-up-line'],
+  ['EXPECTORATION', 'ri-mist-line'],
+  ['RESPIRATION', 'ri-lungs-line'],
+  ['RESPIRATORY', 'ri-lungs-line'],
+  ['LARYNX', 'ri-voiceprint-line'],
+  ['TRACHEA', 'ri-voiceprint-line'],
+  ['PERSPIRATION', 'ri-rainy-line'],
+  ['SEXUAL', 'ri-hearts-line'],
+  ['GENITAL', 'ri-hearts-line'],
+  ['UPPER LIMB', 'ri-hand-heart-line'],
+  ['LOWER LIMB', 'ri-footprint-line'],
+  ['EXTREMIT', 'ri-run-line'],
+  ['GENERALIT', 'ri-global-line'],
   ['URINARY', 'ri-water-flash-line'],
-  ['MALE', 'ri-men-line'],
-  ['FEMALE', 'ri-women-line'],
-  ['RESPIRATORY', 'ri-windy-line'],
+  ['BLADDER', 'ri-water-flash-line'],
+  ['KIDNEY', 'ri-capsule-line'],
+  ['URETHRA', 'ri-contrast-drop-line'],
+  ['URINE', 'ri-drop-line'],
+  ['RECTUM', 'ri-focus-3-line'],
+  ['STOOL', 'ri-test-tube-line'],
+  ['ANUS', 'ri-stop-circle-line'],
+  ['ABDOMEN', 'ri-body-scan-line'],
+  ['STOMACH', 'ri-medicine-bottle-line'],
+  ['APPETITE', 'ri-restaurant-line'],
+  ['EXTERNAL THROAT', 'ri-user-voice-line'],
+  ['THROAT', 'ri-chat-voice-line'],
+  ['MOUTH', 'ri-speak-line'],
+  ['TEETH', 'ri-emotion-happy-line'],
+  ['TOOTH', 'ri-emotion-happy-line'],
+  ['FACE', 'ri-emotion-line'],
+  ['NOSE', 'ri-user-smile-line'],
+  ['EAR', 'ri-headphone-line'],
+  ['EYE', 'ri-eye-line'],
+  ['SCALP', 'ri-user-3-line'],
+  ['HEAD', 'ri-user-3-line'],
+  ['MIND', 'ri-mental-health-line'],
+  ['DREAM', 'ri-moon-cloudy-line'],
+  ['SLEEP', 'ri-moon-clear-line'],
+  ['CHILL', 'ri-temp-cold-line'],
+  ['FEVER', 'ri-temp-hot-line'],
+  ['COUGH', 'ri-windy-line'],
   ['CHEST', 'ri-heart-2-line'],
   ['HEART', 'ri-heart-pulse-line'],
   ['NECK', 'ri-align-vertically'],
-  ['BACK', 'ri-align-vertically'],
-  ['UPPER LIMB', 'ri-hand-heart-line'],
-  ['LOWER LIMB', 'ri-footprint-line'],
+  ['BACK', 'ri-expand-up-down-line'],
+  ['FEMALE', 'ri-women-line'],
+  ['MALE', 'ri-men-line'],
+  ['SKIN', 'ri-contrast-drop-2-line'],
   ['LIMB', 'ri-run-line'],
   ['GENERAL', 'ri-global-line'],
-  ['SKIN', 'ri-contrast-drop-2-line'],
-  ['SLEEP', 'ri-moon-clear-line'],
-  ['FEVER', 'ri-temp-hot-line'],
-  ['VERTIGO', 'ri-loop-left-line'],
-  ['VISION', 'ri-eye-2-line'],
-  ['HEARING', 'ri-sound-module-line'],
-  ['EXTREMIT', 'ri-run-line'],
-  ['COUGH', 'ri-windy-line'],
-  ['EXPECTORATION', 'ri-drop-line'],
-  ['RECTUM', 'ri-drop-line'],
-  ['BLADDER', 'ri-water-flash-line'],
-  ['KIDNEY', 'ri-water-flash-line'],
-  ['URETHRA', 'ri-water-flash-line'],
-  ['URINE', 'ri-water-flash-line'],
-  ['LARYNX', 'ri-mic-line'],
-  ['RESPIRATION', 'ri-windy-line'],
-  ['CHILL', 'ri-temp-hot-line'],
-  ['PERSPIRATION', 'ri-drop-line'],
-  ['GENERALIT', 'ri-global-line'],
 ];
+
+const matchHeadingIconKeyword = (name) => {
+  const normalized = String(name ?? '').trim().toUpperCase();
+  if (!normalized) return null;
+  // Prefer the longest keyword match so FEMALE beats MALE, HEARING beats EAR, etc.
+  let best = null;
+  for (const entry of MATERIA_MEDICA_HEADING_ICON_KEYWORDS) {
+    const [keyword, icon] = entry;
+    if (!normalized.includes(keyword)) continue;
+    if (!best || keyword.length > best.keyword.length) {
+      best = { keyword, icon };
+    }
+  }
+  return best?.icon ?? null;
+};
 
 const getMateriaMedicaHeadingIcon = (heading) => {
   const headingId = Number(heading?.materiaMedicaHeadId ?? heading?.materiaMedicaHeadID);
@@ -362,21 +418,14 @@ const getMateriaMedicaHeadingIcon = (heading) => {
     return 'ri-file-list-3-line';
   }
 
-  const keywordMatch = MATERIA_MEDICA_HEADING_ICON_KEYWORDS.find(([keyword]) => (
-    headingName.includes(keyword)
-  ));
-
-  return keywordMatch?.[1] ?? 'ri-plant-line';
+  return matchHeadingIconKeyword(headingName) ?? 'ri-file-list-3-line';
 };
 
 /** Icons for repertory SECTION names (MIND, HEAD, EYE, …). */
 const getRepertorySectionIcon = (sectionName) => {
   const name = String(sectionName ?? '').trim().toUpperCase();
   if (!name) return 'ri-list-check-2';
-  const keywordMatch = MATERIA_MEDICA_HEADING_ICON_KEYWORDS.find(([keyword]) => (
-    name.includes(keyword)
-  ));
-  return keywordMatch?.[1] ?? 'ri-list-check-2';
+  return matchHeadingIconKeyword(name) ?? 'ri-list-check-2';
 };
 
 /** Icons for Questions tab → QUESTION SECTION names. */
@@ -574,8 +623,6 @@ const AdverseEffectColumn = ({
   getItemName,
   emptySearchMessage,
   emptyMessage,
-  searchOpen,
-  onToggleSearch,
   searchDisabled = false,
 }) => {
   const inFlightRef = useRef(false);
@@ -590,35 +637,29 @@ const AdverseEffectColumn = ({
       onLoadMore();
   }, [hasMore, loading, onLoadMore]);
 
+  const columnIcon =
+    variant === 'serious'
+      ? 'ri-error-warning-line'
+      : variant === 'other'
+        ? 'ri-alert-line'
+        : 'ri-heart-pulse-line';
+
   return (
     <div className={`pb-ae-column pb-ae-column--${variant}`}>
-      <div className="pb-ae-column-header">
-        <div className="pb-ae-column-header-left">
-          <i className={`ri-alert-fill pb-ae-column-icon pb-ae-column-icon--${variant}`} aria-hidden="true" />
+      <div className="pb-ae-column-header pb-questions-panel-header">
+        <div className="fw-semibold pb-section-title mb-0 pb-ae-column-title-wrap">
+          <span className="pb-repertory-section-title-icon pb-ae-column-title-icon" aria-hidden="true">
+            <i className={columnIcon} />
+          </span>
           <span className="pb-ae-column-title">{title}</span>
           <span className="pb-ae-column-badge">{totalItems}</span>
         </div>
-        <button
-          type="button"
-          className={`pb-ae-filter-btn${searchOpen ? ' active' : ''}`}
-          onClick={() => {
-            if (searchDisabled) return;
-            onToggleSearch();
-          }}
-          disabled={searchDisabled}
-          aria-label={`Filter ${title.toLowerCase()}`}
-          title={searchDisabled ? 'Select a drug to search' : 'Search / filter'}
-        >
-          <i className="ri-filter-3-line" aria-hidden="true" />
-        </button>
-      </div>
-      {searchOpen && (
-        <div className={`pb-ae-column-search${searchDisabled ? ' pb-ae-column-search--disabled' : ''}`}>
+        <div className={`pb-ae-column-search pb-questions-search-wrap${searchDisabled ? ' pb-ae-column-search--disabled' : ''}`}>
           <div className={`search-box pb-questions-search-box${search.trim() ? ' pb-questions-search-box--active' : ''}${searchDisabled ? ' pb-questions-search-box--disabled' : ''}`}>
             <Input
               bsSize="sm"
               className="pb-questions-search-input"
-              placeholder={`Search ${title.toLowerCase()}...`}
+              placeholder="Search..."
               value={search}
               disabled={searchDisabled}
               onChange={(e) => {
@@ -642,7 +683,7 @@ const AdverseEffectColumn = ({
             )}
           </div>
         </div>
-      )}
+      </div>
       <InfiniteScrollContainer
         className="pb-ae-column-list custom-scrollbar"
         enabled={!loading && items.length > 0}
@@ -668,18 +709,6 @@ const AdverseEffectColumn = ({
           </div>
         )}
       </InfiniteScrollContainer>
-      <div className="pb-ae-column-footer">
-        <span className="pb-ae-item-count">
-          <i className="ri-information-line" aria-hidden="true" />
-          Showing {items.length} of {totalItems}
-        </span>
-        {hasMore && !loading && (
-          <span className="pb-ae-scroll-indicator">
-            <i className="ri-arrow-down-s-line" aria-hidden="true" />
-            More available
-          </span>
-        )}
-      </div>
     </div>
   );
 };
@@ -2205,6 +2234,9 @@ const PatientBoard = () => {
   const [hoveredRemedyAbbrev, setHoveredRemedyAbbrev] = useState(null);
   const hoveredRemedyAbbrevIdRef = useRef(null);
   const remedyInfoCacheRef = useRef(new Map());
+  const abbrevHoverShowTimeoutRef = useRef(null);
+  const REMEDY_ABBREV_HOVER_SHOW_DELAY_MS = 700;
+  const REMEDY_ABBREV_HOVER_HIDE_DELAY_MS = 300;
   // ###### Dj UI Code End - Remedy Abbreviation Hover Tooltip State ######
   // Prescription Modal State
   const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
@@ -2552,13 +2584,18 @@ const PatientBoard = () => {
       controller ? { signal: controller.signal } : undefined
     );
   };
-  const handleRemedyAbbrevHover = (remedy) => {
-    if (tooltipTimeoutRef.current) {
-      clearTimeout(tooltipTimeoutRef.current);
+  const clearRemedyAbbrevShowTimeout = () => {
+    if (abbrevHoverShowTimeoutRef.current) {
+      clearTimeout(abbrevHoverShowTimeoutRef.current);
+      abbrevHoverShowTimeoutRef.current = null;
     }
+  };
 
+  const showRemedyAbbrevTooltip = (remedy) => {
     const remedyId = remedy?.remedyId ?? remedy?.RemedyId ?? null;
-    hoveredRemedyAbbrevIdRef.current = remedyId;
+    if (hoveredRemedyAbbrevIdRef.current !== remedyId) {
+      return;
+    }
 
     const inline = extractRemedyTooltipData(remedy);
     const base = { ...remedy, ...inline };
@@ -2594,11 +2631,32 @@ const PatientBoard = () => {
       });
   };
 
+  const handleRemedyAbbrevHover = (remedy) => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    clearRemedyAbbrevShowTimeout();
+
+    const remedyId = remedy?.remedyId ?? remedy?.RemedyId ?? null;
+    hoveredRemedyAbbrevIdRef.current = remedyId;
+
+    abbrevHoverShowTimeoutRef.current = setTimeout(() => {
+      abbrevHoverShowTimeoutRef.current = null;
+      showRemedyAbbrevTooltip(remedy);
+    }, REMEDY_ABBREV_HOVER_SHOW_DELAY_MS);
+  };
+
   const handleRemedyAbbrevLeave = () => {
+    clearRemedyAbbrevShowTimeout();
     hoveredRemedyAbbrevIdRef.current = null;
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
     tooltipTimeoutRef.current = setTimeout(() => {
+      tooltipTimeoutRef.current = null;
       setHoveredRemedyAbbrev(null);
-    }, 300);
+    }, REMEDY_ABBREV_HOVER_HIDE_DELAY_MS);
   };
   // ###### Dj UI Code End - Remedy Abbreviation Hover Tooltip Functions ######
 
@@ -5672,9 +5730,6 @@ const PatientBoard = () => {
   const [seriousEffectsPage, setSeriousEffectsPage] = useState(1);
   const [otherEffectsPage, setOtherEffectsPage] = useState(1);
   const [adverseReactionsPage, setAdverseReactionsPage] = useState(1);
-  const [seriousEffectsSearchOpen, setSeriousEffectsSearchOpen] = useState(false);
-  const [otherEffectsSearchOpen, setOtherEffectsSearchOpen] = useState(false);
-  const [adverseReactionsSearchOpen, setAdverseReactionsSearchOpen] = useState(false);
   const [adverseReferenceModalOpen, setAdverseReferenceModalOpen] = useState(false);
   const [keywordSearch, setKeywordSearch] = useState('');
   const [rubricRemedySearch, setRubricRemedySearch] = useState('');
@@ -6712,7 +6767,7 @@ const PatientBoard = () => {
       cursor:pointer;
       text-decoration:none;
       border:1px solid #d7e3ef;
-      background:linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+      background:#f8fafc;
       border-radius:5px;
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.05);
       transition:background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
@@ -6737,7 +6792,7 @@ const PatientBoard = () => {
       box-shadow:0 2px 8px rgba(15, 23, 42, 0.12);
       position:relative;
     }
-    /* Body Parts → Deep Analysis (+ right tools) — lighter blue gradient */
+    /* Body Parts → Deep Analysis (+ right tools) — flat soft blue */
     .pb-tab--body-parts,
     .pb-tab--questions,
     .pb-tab--clinical,
@@ -6747,8 +6802,8 @@ const PatientBoard = () => {
     .pb-tab--deep,
     .pb-tab--tool {
       color:#0369a1 !important;
-      background:linear-gradient(180deg, #fbfdff 0%, #f5fbff 55%, #eef8ff 100%) !important;
-      background-image:linear-gradient(180deg, #fbfdff 0%, #f5fbff 55%, #eef8ff 100%) !important;
+      background:#f5fbff !important;
+      background-image:none !important;
       border-color:#d7eefc !important;
       box-shadow:0 1px 2px rgba(14, 165, 233, 0.06);
     }
@@ -6772,8 +6827,8 @@ const PatientBoard = () => {
     .pb-tab--deep:hover:not(.active),
     .pb-tab--tool:hover:not(:disabled) {
       color:#0c4a6e !important;
-      background:linear-gradient(180deg, #f5fbff 0%, #eef8ff 55%, #e0f2fe 100%) !important;
-      background-image:linear-gradient(180deg, #f5fbff 0%, #eef8ff 55%, #e0f2fe 100%) !important;
+      background:#e8f5ff !important;
+      background-image:none !important;
       border-color:#bae6fd !important;
     }
     .pb-tab--body-parts.active,
@@ -6791,22 +6846,24 @@ const PatientBoard = () => {
     .pb-tab--deep.active,
     .pb-tab--deep.active:hover {
       color:#0c4a6e !important;
-      background:#e8f5ff !important;
+      background:#cfe8fa !important;
       background-image:none !important;
-      border-color:#7dd3fc !important;
-      box-shadow:0 2px 8px rgba(14, 165, 233, 0.14);
+      border-color:#5eb8e8 !important;
+      box-shadow:0 2px 8px rgba(14, 165, 233, 0.18);
       text-decoration:none !important;
     }
     .pb-tab--audio {
       color:#0b5cab !important;
-      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%) !important;
+      background:#f5faff !important;
+      background-image:none !important;
       border:1px solid #7ec2f5 !important;
       box-shadow:0 1px 2px rgba(30, 136, 229, 0.1);
       font-weight:700;
     }
     .pb-tab--audio:hover {
       color:#fff !important;
-      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%) !important;
+      background:#0b5cab !important;
+      background-image:none !important;
       border-color:#0b5cab !important;
       box-shadow:0 2px 8px rgba(30, 136, 229, 0.28);
     }
@@ -6872,14 +6929,14 @@ const PatientBoard = () => {
       font-size:10px;
       font-weight:700;
       line-height:1;
-      border:2px solid #fff;
+      border:1px solid #fff;
       box-sizing:border-box;
       pointer-events:none;
       font-variant-numeric:tabular-nums;
-      box-shadow:0 2px 4px rgba(231, 76, 60, 0.35);
+      box-shadow:0 1px 3px rgba(231, 76, 60, 0.3);
     }
     .pb-repertorize-tab-btn.active .pb-repertorize-count-badge {
-      border-color:#0f172a;
+      border-color:rgba(255, 255, 255, 0.85);
     }
     .pb-prescription-tab-btn,
     .pb-prescription-tab-btn:hover,
@@ -6917,30 +6974,45 @@ const PatientBoard = () => {
       color:#166534 !important;
       box-shadow:0 4px 12px rgba(22, 163, 74, 0.2) !important;
     }
-    /* Prescription modal — premium shell (Prescription / Labs / History) */
-    .pb-prescription-modal .modal-content {
+    /* Prescription modal — compact shell matching other doctor modals */
+    .pb-prescription-modal .modal-dialog {
+      max-width:min(1100px, 96vw);
+    }
+    .pb-prescription-modal .modal-content,
+    .pb-prescription-modal .modal-content.patient-board-page {
       border:1px solid #e2ebf3;
-      border-radius:14px;
-      box-shadow:0 16px 40px rgba(15, 23, 42, 0.14);
+      border-radius:5px;
+      box-shadow:0 12px 28px rgba(15, 23, 42, 0.12);
       overflow:hidden;
+      min-height:0 !important;
+      height:auto !important;
+      max-height:min(70vh, 560px);
+      display:flex !important;
+      flex-direction:column !important;
+      padding:0 !important;
+      width:100% !important;
     }
     .pb-prescription-modal__body {
-      padding:20px !important;
+      padding:0.4rem 0.5rem !important;
       display:flex;
       flex-direction:column;
-      height:80vh;
+      flex:1 1 auto;
+      height:auto !important;
+      min-height:0 !important;
+      max-height:none;
       overflow:hidden;
-      background:linear-gradient(180deg, #fbfdff 0%, #fff 120px);
+      background:#fff;
+      gap:0.3rem;
     }
     .pb-prescription-modal__tabs {
       display:flex;
       width:100%;
-      gap:8px;
+      gap:3px;
       flex-shrink:0;
-      margin-bottom:1rem;
-      padding:6px;
-      border-radius:12px;
-      background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      margin:0;
+      padding:2px;
+      border-radius:5px;
+      background:#f8fafc;
       border:1px solid #e2ebf3;
     }
     .pb-prescription-modal__tab {
@@ -6948,18 +7020,21 @@ const PatientBoard = () => {
       display:inline-flex !important;
       align-items:center;
       justify-content:center;
-      gap:7px;
-      min-height:40px;
-      padding:8px 10px !important;
-      border-radius:10px !important;
+      gap:5px;
+      min-height:24px !important;
+      height:24px !important;
+      max-height:24px !important;
+      padding:0 8px !important;
+      border-radius:3px !important;
       border:1px solid transparent !important;
       background:transparent !important;
       color:#475569 !important;
-      font-size:11px !important;
-      font-weight:700 !important;
+      font-size:10px !important;
+      font-weight:600 !important;
       letter-spacing:0.01em;
+      line-height:1 !important;
       box-shadow:none !important;
-      transition:background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
+      transition:background .12s ease, color .12s ease, border-color .12s ease;
     }
     .pb-prescription-modal__tab i { font-size:11px; line-height:1; }
     .pb-prescription-modal__tab:hover:not(.is-active) {
@@ -6968,10 +7043,10 @@ const PatientBoard = () => {
       color:#0b5cab !important;
     }
     .pb-prescription-modal__tab.is-active {
-      background:linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
-      border-color:#0f172a !important;
-      color:#fff !important;
-      box-shadow:0 4px 12px rgba(15, 23, 42, 0.24) !important;
+      background:#e8f4fc !important;
+      border-color:#b8e2f4 !important;
+      color:#0b5cab !important;
+      box-shadow:none !important;
     }
     .pb-prescription-modal__panel {
       display:flex;
@@ -6979,68 +7054,148 @@ const PatientBoard = () => {
       flex:1;
       overflow:hidden;
       min-height:0;
+      gap:0.4rem;
+    }
+    .pb-prescription-modal__labs-panel {
+      display:flex;
+      flex-direction:column;
+      flex:1;
+      min-height:0;
+      overflow:hidden;
+      gap:0.4rem;
     }
     .pb-prescription-modal__form-row {
       display:flex;
       flex-wrap:wrap;
       align-items:center;
-      gap:10px;
+      gap:6px;
       flex-shrink:0;
-      margin-bottom:1rem;
-      padding:12px;
-      border-radius:12px;
-      background:#fff;
+      margin:0;
+      padding:0.45rem 0.5rem;
+      border-radius:5px;
+      background:#f8fafc;
       border:1px solid #e2ebf3;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      box-shadow:none;
+    }
+    .pb-prescription-modal__field {
+      min-width:0;
+    }
+    .pb-prescription-modal__field--remedy {
+      flex:1 1 200px;
+      min-width:160px;
+      max-width:260px;
+    }
+    .pb-prescription-modal__field--desc {
+      flex:1 1 180px;
+      min-width:140px;
+    }
+    .pb-prescription-modal__field--potency {
+      flex:0 1 120px;
+      min-width:108px;
+      max-width:130px;
+    }
+    .pb-prescription-modal__field--grow {
+      flex:1 1 140px;
+      min-width:120px;
+    }
+    .pb-prescription-modal__field--date {
+      flex:0 1 140px;
+      min-width:120px;
+    }
+    .pb-prescription-modal__field--desc-lab {
+      flex:1 1 auto;
+      min-width:160px;
+    }
+    .pb-prescription-modal__field--dosage {
+      flex:0 1 120px;
+      min-width:110px;
+    }
+    .pb-prescription-modal__field--instructions {
+      flex:1 1 160px;
+      min-width:140px;
     }
     .pb-prescription-modal__form-row .form-control,
-    .pb-prescription-modal__form-row textarea {
-      border-radius:10px !important;
-      border-color:#e2ebf3 !important;
+    .pb-prescription-modal__form-row textarea,
+    .pb-prescription-modal__form-row select.form-select,
+    .pb-prescription-modal__form-row .form-select {
+      height:var(--app-form-field-height, 1.75rem) !important;
+      min-height:var(--app-form-field-height, 1.75rem) !important;
+      max-height:var(--app-form-field-height, 1.75rem) !important;
+      padding:0 0.55rem !important;
+      border-radius:5px !important;
+      border-color:#d7e3ef !important;
+      font-size:var(--app-form-field-font-size, 0.6875rem) !important;
+      line-height:1.25 !important;
+      color:#0f172a;
+      box-shadow:none !important;
+      resize:none !important;
+    }
+    .pb-prescription-modal__form-row .pb-prescription-select__control {
+      min-height:var(--app-form-field-height, 1.75rem) !important;
+      height:var(--app-form-field-height, 1.75rem) !important;
+      border-radius:5px !important;
+      border-color:#d7e3ef !important;
+      box-shadow:none !important;
+      font-size:var(--app-form-field-font-size, 0.6875rem) !important;
+    }
+    .pb-prescription-modal__form-row .pb-prescription-select__value-container {
+      padding:0 6px !important;
+    }
+    .pb-prescription-modal__form-row .pb-prescription-select__indicators {
+      height:var(--app-form-field-height, 1.75rem);
+    }
+    .pb-prescription-modal__form-row .pb-prescription-select__indicator {
+      padding:0 6px !important;
+    }
+    .pb-prescription-modal__form-row .pb-prescription-select__placeholder,
+    .pb-prescription-modal__form-row .pb-prescription-select__single-value,
+    .pb-prescription-modal__form-row .pb-prescription-select__input-container {
+      font-size:var(--app-form-field-font-size, 0.6875rem) !important;
+      margin:0 !important;
+      padding:0 !important;
     }
     .pb-prescription-modal__add-btn {
-      min-width:40px !important;
-      height:38px !important;
+      width:var(--app-form-field-height, 1.75rem) !important;
+      min-width:var(--app-form-field-height, 1.75rem) !important;
+      height:var(--app-form-field-height, 1.75rem) !important;
+      padding:0 !important;
       display:inline-flex !important;
       align-items:center;
       justify-content:center;
-      border-radius:10px !important;
-      background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%) !important;
+      border-radius:5px !important;
+      background:#0b5cab !important;
       border:1px solid #0b5cab !important;
-      box-shadow:0 2px 8px rgba(30, 136, 229, 0.28);
+      box-shadow:none !important;
+      flex-shrink:0;
+      margin-left:auto;
     }
-    .pb-prescription-modal__add-btn i { font-size:18px; color:#fff; }
+    .pb-prescription-modal__add-btn i { font-size:14px; color:#fff; line-height:1; }
     .pb-prescription-modal__dosage-field {
-      flex:1 1 150px;
-      min-width:140px;
-    }
-    .pb-prescription-modal__dosage-field select.form-select {
-      height:38px;
-      font-size:13px;
-      border-radius:10px !important;
-      border-color:#e2ebf3 !important;
+      flex:0 1 120px;
+      min-width:110px;
     }
     .pb-prescription-modal__dosage-text {
-      font-size:12px;
+      font-size:11px;
       color:#475569;
     }
     .pb-prescription-modal__table-wrap {
-      flex:1;
+      flex:1 1 auto;
       overflow:auto;
       border:1px solid #e2ebf3;
-      border-radius:12px;
+      border-radius:5px;
       background:#fff;
-      min-height:0;
+      min-height:100px;
+      max-height:min(28vh, 220px);
     }
     .pb-prescription-modal__table {
       margin-bottom:0 !important;
       font-size:11px;
     }
     .pb-prescription-modal__table thead th {
-      background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+      background:#f8fafc !important;
       border-bottom:1px solid #e2ebf3 !important;
       color:#334155;
-      font-size:11px;
+      font-size:10px;
       font-weight:700;
       letter-spacing:0.04em;
       text-transform:uppercase;
@@ -7049,132 +7204,156 @@ const PatientBoard = () => {
       top:0;
       z-index:10;
       white-space:nowrap;
+      vertical-align:middle;
     }
     .pb-prescription-modal__table thead th i {
       color:#0b5cab;
-      margin-right:5px;
+      margin-right:4px;
       font-size:11px;
       vertical-align:-1px;
     }
     .pb-prescription-modal__table tbody td {
-      padding:6px 8px !important;
+      padding:5px 8px !important;
       border-color:#eef2f6 !important;
       vertical-align:middle;
       color:#0f172a;
+      font-size:11px;
+    }
+    .pb-prescription-modal__table .pb-prescription-modal__row-action {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:22px;
+      height:22px;
+      padding:0 !important;
+      border-radius:4px !important;
+    }
+    .pb-prescription-modal__table .pb-prescription-modal__row-action i {
+      font-size:12px;
+      line-height:1;
     }
     .pb-prescription-modal__empty {
       text-align:center;
-      padding:2.5rem 1rem !important;
+      padding:0.85rem 0.65rem !important;
       color:#64748b !important;
+      border:0 !important;
+      vertical-align:middle !important;
     }
     .pb-prescription-modal__empty-inner {
       display:inline-flex;
       flex-direction:column;
       align-items:center;
-      gap:10px;
+      gap:0.45rem;
+      font-size:0.75rem;
       font-weight:500;
+      line-height:1.35;
     }
     .pb-prescription-modal__empty-icon {
-      width:44px;
-      height:32px;
-      border-radius:12px;
+      width:36px;
+      height:36px;
+      border-radius:5px;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      background:linear-gradient(180deg, #f0f7ff 0%, #e3f0fc 100%);
+      background:#f0f7ff;
       border:1px solid #cfe3f7;
       color:#0b5cab;
-      font-size:1.25rem;
+      font-size:1rem;
     }
     .pb-prescription-modal__subtabs {
       display:flex;
-      gap:6px;
+      gap:4px;
       flex-shrink:0;
-      margin-bottom:1rem;
-      padding:5px;
-      border-radius:12px;
+      margin:0;
+      padding:3px;
+      border-radius:5px;
       background:#f8fafc;
       border:1px solid #e2ebf3;
     }
     .pb-prescription-modal__subtab {
-      flex:1;
+      flex:1 1 0;
+      width:0;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      gap:6px;
-      padding:5px 8px;
-      border-radius:9px;
+      gap:5px;
+      min-height:26px;
+      padding:4px 8px;
+      border-radius:4px;
       cursor:pointer;
       font-size:11px;
       font-weight:600;
       color:#64748b;
       text-align:center;
       margin:0 !important;
-      transition:background .15s ease, color .15s ease, box-shadow .15s ease;
+      white-space:nowrap;
+      transition:background .12s ease, color .12s ease;
     }
     .pb-prescription-modal__subtab:hover:not(.active) {
       color:#0b5cab;
       background:#fff;
     }
     .pb-prescription-modal__subtab.active {
-      background:#fff;
+      background:#e8f4fc;
       color:#0b5cab;
-      box-shadow:0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7;
+      box-shadow:inset 0 0 0 1px #b8e2f4;
       text-decoration:none !important;
     }
     .pb-prescription-modal__history {
-      flex:1;
-      min-height:100px;
+      flex:1 1 auto;
+      min-height:140px;
+      max-height:min(26vh, 200px);
       border:1px solid #e2ebf3;
-      border-radius:12px;
+      border-radius:5px;
       overflow:hidden;
       background:#fff;
-      box-shadow:0 1px 2px rgba(15, 23, 42, 0.04);
+      box-shadow:none;
     }
     .pb-history-note__bar {
       display:flex;
       align-items:center;
       justify-content:space-between;
       flex-wrap:wrap;
-      gap:0.75rem;
+      gap:0.4rem 0.65rem;
       flex-shrink:0;
-      margin-bottom:0.75rem;
-      padding:0.6rem 0.75rem;
+      margin:0;
+      padding:0.35rem 0.45rem;
       border:1px solid #e2ebf3;
-      border-radius:12px;
-      background:#fff;
+      border-radius:5px;
+      background:#f8fafc;
     }
     .pb-history-note__types {
       display:inline-flex;
-      gap:0.25rem;
-      padding:0.2rem;
-      border-radius:10px;
-      background:#f1f5f9;
+      gap:0.2rem;
+      padding:0.15rem;
+      border-radius:5px;
+      background:#eef2f6;
     }
     .pb-history-note__type {
       display:inline-flex;
       align-items:center;
-      gap:0.35rem;
-      padding:0.35rem 0.8rem;
+      gap:0.3rem;
+      min-height:26px;
+      padding:0.2rem 0.55rem;
       border:0;
-      border-radius:8px;
+      border-radius:4px;
       background:transparent;
       color:#64748b;
-      font-size:0.78rem;
+      font-size:11px;
       font-weight:600;
       white-space:nowrap;
     }
-    .pb-history-note__type i { font-size:0.95rem; line-height:1; }
+    .pb-history-note__type i { font-size:12px; line-height:1; }
     .pb-history-note__type:hover { color:#0b5cab; }
     .pb-history-note__type.is-active {
-      background:#fff;
+      background:#e8f4fc;
       color:#0b5cab;
-      box-shadow:0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px #cfe3f7;
+      box-shadow:inset 0 0 0 1px #b8e2f4;
     }
     .pb-history-note__erx.form-switch {
       display:flex;
       align-items:center;
-      gap:0.6rem;
+      gap:0.45rem;
       margin:0;
       padding-left:0;
       min-height:0;
@@ -7182,18 +7361,18 @@ const PatientBoard = () => {
     .pb-history-note__erx.form-switch .form-check-input {
       float:none;
       margin:0;
-      width:2.2rem;
-      height:1.15rem;
+      width:1.9rem;
+      height:1rem;
       cursor:pointer;
     }
     .pb-history-note__erx .form-check-label {
       display:flex;
       flex-direction:column;
-      line-height:1.25;
+      line-height:1.2;
       cursor:pointer;
     }
-    .pb-history-note__erx-title { color:#0f172a; font-size:0.8rem; font-weight:600; }
-    .pb-history-note__erx-hint { color:#94a3b8; font-size:0.7rem; }
+    .pb-history-note__erx-title { color:#0f172a; font-size:11px; font-weight:600; }
+    .pb-history-note__erx-hint { color:#94a3b8; font-size:10px; }
     .pb-history-note__editor {
       display:flex;
       flex-direction:column;
@@ -7234,19 +7413,22 @@ const PatientBoard = () => {
     .pb-history-note__toolbar .rdw-dropdown-wrapper { min-width:96px; background:#fff; border-color:#e2ebf3; }
     .pb-history-note__content {
       flex:1;
-      min-height:240px;
-      max-height:340px;
+      min-height:0;
+      max-height:none;
       overflow-y:auto;
-      padding:0.6rem 0.9rem;
-      font-size:0.875rem;
+      padding:0.45rem 0.65rem;
+      font-size:0.75rem;
       color:#1e293b;
     }
     .pb-history-note__content .public-DraftEditorPlaceholder-root { color:#94a3b8; }
     .pb-prescription-modal__footer {
       border-top:1px solid #eef2f6;
-      padding:0.5rem;
+      margin:0 !important;
+      padding:0.4rem 0.55rem !important;
       background:#fff;
-      gap:0.5rem !important;
+      gap:0.35rem !important;
+      justify-content:flex-end !important;
+      flex-shrink:0 !important;
     }
     .pb-link { text-decoration:underline; }
     .pb-muted { color:#6c757d; }
@@ -7677,17 +7859,21 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       gap:5px;
-      padding:4px 9px;
+      height:24px;
+      margin:0;
+      padding:0 8px;
       border-radius:5px;
-      background:linear-gradient(180deg, #f5faff 0%, #eaf5ff 100%);
+      background:#f8fbff;
       border:1px solid #cfe3f7;
       color:#0f172a;
       font-size:11px;
-      font-weight:500;
-      line-height:1.2;
+      font-weight:600;
+      line-height:1;
+      white-space:nowrap;
+      box-sizing:border-box;
     }
     .pb-info__meta i {
-      font-size:11px;
+      font-size:12px;
       color:#0b5cab;
       line-height:1;
     }
@@ -7699,12 +7885,14 @@ const PatientBoard = () => {
     .pb-info__actions {
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:4px;
       flex-shrink:0;
+      flex-wrap:nowrap;
     }
     .pb-info__actions .btn-icon {
-      width:34px;
-      height:34px;
+      width:24px;
+      height:24px;
+      min-width:24px;
       padding:0;
       border-radius:5px;
       display:inline-flex;
@@ -7713,13 +7901,18 @@ const PatientBoard = () => {
       box-shadow:0 1px 2px rgba(15, 23, 42, 0.06);
       transition:transform .15s ease, box-shadow .15s ease;
     }
-    .pb-info__actions .btn-icon:hover {
+    .pb-info__actions .btn-icon:hover:not(:disabled) {
       transform:translateY(-1px);
       box-shadow:0 3px 8px rgba(15, 23, 42, 0.12);
     }
+    .pb-info__actions .btn-icon:disabled {
+      opacity:0.45;
+      cursor:not-allowed;
+    }
     .pb-info__actions .btn-icon i {
-      font-size:16px;
+      font-size:13px;
       line-height:1;
+      margin:0;
     }
     .pb-info__aside {
       display:flex;
@@ -7734,24 +7927,26 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       gap:5px;
-      height:28px;
+      height:24px;
       margin:0;
-      padding:0 10px;
+      padding:0 8px;
       border-radius:5px;
-      background:linear-gradient(180deg, #f8fbff 0%, #eef6fd 100%);
+      background:#f8fbff;
       border:1px solid #cfe3f7;
       color:#0f172a;
-      font-size:12px;
+      font-size:11px;
       line-height:1;
       white-space:nowrap;
+      box-sizing:border-box;
     }
     .pb-info__chip i {
-      font-size:14px !important;
+      font-size:12px !important;
       line-height:1;
       color:#0b5cab;
     }
     .pb-info__chip-label {
       color:#64748b;
+      font-size:11px;
       font-weight:500;
     }
     .pb-info__chip-label::after {
@@ -7759,6 +7954,7 @@ const PatientBoard = () => {
     }
     .pb-info__chip-value {
       color:#0f172a;
+      font-size:11px;
       font-weight:600;
     }
     .pb-info__chip--placeholder .pb-info__chip-value {
@@ -7766,7 +7962,7 @@ const PatientBoard = () => {
       font-weight:500;
     }
     .pb-info__chip--due {
-      background:linear-gradient(180deg, #f6fdf9 0%, #eaf8f0 100%);
+      background:#f6fdf9;
       border-color:#c9ecd7;
     }
     .pb-info__chip--due i,
@@ -7902,6 +8098,13 @@ const PatientBoard = () => {
     }
     .pb-tab-panel--adverse {
       gap:0.25rem;
+      height:100%;
+      min-height:0;
+      width:100%;
+      max-width:100%;
+      overflow:hidden;
+      padding:0;
+      margin:0;
     }
     .pb-ae-header-bar {
       display:flex;
@@ -8005,59 +8208,114 @@ const PatientBoard = () => {
       margin-top:1px;
     }
     .pb-ae-columns-wrapper {
-      flex:1 1 auto;
+      flex:1 1 0;
       min-height:0;
+      min-width:0;
+      width:100%;
+      max-width:100%;
       overflow:hidden;
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
     }
     .pb-ae-columns-row {
+      display:grid !important;
+      grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+      column-gap:0.25rem;
+      row-gap:0;
+      width:100%;
+      max-width:100%;
       height:100%;
       min-height:0;
-      margin:0;
+      min-width:0;
+      margin:0 !important;
+      --bs-gutter-x:0;
+      --bs-gutter-y:0;
+      box-sizing:border-box;
     }
     .pb-ae-columns-row > [class*="col-"] {
+      width:100% !important;
+      max-width:100% !important;
+      flex:none !important;
       height:100%;
       min-height:0;
+      min-width:0;
       display:flex;
       flex-direction:column;
-      padding-left:0.125rem;
-      padding-right:0.125rem;
+      padding:0 !important;
+      margin:0 !important;
+      box-sizing:border-box;
     }
     .pb-ae-column {
       display:flex;
       flex-direction:column;
       height:100%;
+      width:100%;
+      max-width:100%;
       min-height:0;
+      min-width:0;
       border:1px solid #e3e8ee;
       border-radius:5px;
       background:#fff;
       overflow:hidden;
+      box-sizing:border-box;
       box-shadow:0 1px 2px rgba(16,24,40,0.04);
     }
     .pb-ae-column-header {
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:6px;
+      gap:8px;
       min-height:32px;
       height:32px;
       padding:5px 8px;
       box-sizing:border-box;
       border-bottom:1px solid #eef2f6;
       flex-shrink:0;
+      background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+      border-top-left-radius:5px;
+      border-top-right-radius:5px;
+      flex-wrap:nowrap;
+      overflow:visible;
     }
-    .pb-ae-column-header-left {
-      display:flex;
+    .pb-ae-column--serious .pb-ae-column-header,
+    .pb-ae-column--other .pb-ae-column-header,
+    .pb-ae-column--adverse .pb-ae-column-header {
+      background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    }
+    .pb-ae-column-title-wrap {
+      display:inline-flex !important;
       align-items:center;
       gap:6px;
+      margin:0 !important;
+      padding:0 !important;
+      line-height:1.2 !important;
+      height:28px;
+      letter-spacing:0.06em;
+      font-size:11px;
+      font-weight:700;
+      color:#111827;
+      white-space:nowrap;
+      flex-shrink:0;
       min-width:0;
     }
-    .pb-ae-column--serious .pb-ae-column-header { background:linear-gradient(180deg, #fff8f8 0%, #fff5f5 100%); }
-    .pb-ae-column--other .pb-ae-column-header { background:linear-gradient(180deg, #fffaf5 0%, #fff8f0 100%); }
-    .pb-ae-column--adverse .pb-ae-column-header { background:linear-gradient(180deg, #fff8f8 0%, #fff5f5 100%); }
-    .pb-ae-column-icon { font-size:12px; flex-shrink:0; line-height:1; }
-    .pb-ae-column-icon--serious,
-    .pb-ae-column-icon--adverse { color:#dc3545; }
-    .pb-ae-column-icon--other { color:#fd7e14; }
+    .pb-ae-column-title-icon {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:auto;
+      height:auto;
+      border-radius:0;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+      color:#0b5cab;
+      font-size:12px;
+      line-height:1;
+      flex-shrink:0;
+      margin-right:0;
+      padding:0;
+    }
     .pb-ae-column-title {
       font-size:11px;
       font-weight:700;
@@ -8073,46 +8331,31 @@ const PatientBoard = () => {
       min-width:18px;
       height:16px;
       padding:0 5px;
-      border-radius:5px;
+      border-radius:4px;
       font-size:10px;
       font-weight:500;
-      color:#fff;
+      color:#0b5cab;
+      background:#f0f7ff;
+      border:1px solid #cfe3f7;
       flex-shrink:0;
       line-height:1;
     }
     .pb-ae-column--serious .pb-ae-column-badge,
-    .pb-ae-column--adverse .pb-ae-column-badge { background:#dc3545; }
-    .pb-ae-column--other .pb-ae-column-badge { background:#fd7e14; }
-    .pb-ae-filter-btn {
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      width:24px;
-      height:24px;
-      padding:0;
-      border:1px solid transparent;
-      border-radius:5px;
-      background:transparent;
-      color:#6c757d;
-      cursor:pointer;
-      transition:background-color .15s ease, color .15s ease, border-color .15s ease;
-      flex-shrink:0;
-    }
-    .pb-ae-filter-btn i {
-      font-size:12px;
-      line-height:1;
-    }
-    .pb-ae-filter-btn:hover,
-    .pb-ae-filter-btn.active {
-      background:#fff;
-      border-color:#dee2e6;
-      color:#495057;
+    .pb-ae-column--other .pb-ae-column-badge,
+    .pb-ae-column--adverse .pb-ae-column-badge {
+      color:#0b5cab;
+      background:#f0f7ff;
+      border:1px solid #cfe3f7;
     }
     .pb-ae-column-search {
-      padding:4px 8px;
-      border-bottom:1px solid #eef2f6;
-      flex-shrink:0;
-      background:linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+      min-width:110px;
+      max-width:170px;
+      flex:1 1 120px;
+      margin:0;
+      padding:0;
+      display:flex;
+      align-items:center;
+      height:28px;
     }
     .pb-ae-column-search .pb-questions-search-box {
       width:100%;
@@ -8204,64 +8447,9 @@ const PatientBoard = () => {
       font-size:11px;
       font-weight:500;
     }
-    .pb-ae-column-footer {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:6px;
-      padding:4px 8px;
-      min-height:28px;
-      box-sizing:border-box;
-      border-top:1px solid #eef2f6;
-      background:linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+    .pb-clinical-header-bar__select-row .pb-ae-reference-btn {
       flex-shrink:0;
-      flex-wrap:wrap;
-    }
-    .pb-ae-item-count {
-      display:inline-flex;
-      align-items:center;
-      gap:4px;
-      font-size:11px;
-      color:#6c757d;
-      white-space:nowrap;
-    }
-    .pb-ae-item-count i {
-      font-size:12px;
-    }
-    .pb-ae-scroll-indicator {
-      display:inline-flex;
-      align-items:center;
-      gap:3px;
-      margin-left:auto;
-      font-size:11px;
-      font-weight:500;
-      color:#0b5cab;
-      white-space:nowrap;
-    }
-    .pb-ae-scroll-hint {
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:4px;
-      padding:6px 4px;
-      font-size:11px;
-      color:#868e96;
-    }
-    .pb-ae-footer {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      padding:2px 0 0;
-      flex-shrink:0;
-      flex-wrap:wrap;
-    }
-    .pb-ae-disclaimer {
-      margin:0;
-      font-size:11px;
-      color:#868e96;
-      font-style:italic;
-      line-height:1.35;
+      margin-left:0;
     }
     .pb-ae-reference-btn {
       display:inline-flex;
@@ -8766,9 +8954,10 @@ const PatientBoard = () => {
       box-shadow:0 2px 8px rgba(11, 92, 171, 0.28);
     }
     .modal-header-btn.modal-header-btn--lang {
-      width:auto;
+      width:32px;
       min-width:32px;
-      padding:0 9px;
+      max-width:32px;
+      padding:0;
       letter-spacing:0.02em;
     }
     .pb-rubric-tools {
@@ -9420,6 +9609,9 @@ const PatientBoard = () => {
       word-break:break-word;
       overflow-wrap:anywhere;
       transition:background-color .12s ease, color .12s ease, box-shadow .12s ease;
+    }
+    .pb-tab-panel--questions .pb-questions-group-item {
+      padding:5px 8px 5px 10px !important;
     }
     .pb-tab-panel--questions .pb-questions-section-item__icon,
     .pb-tab-panel--questions .pb-questions-group-item__icon {
@@ -10804,6 +10996,7 @@ const PatientBoard = () => {
       width:22px;
       height:22px;
       min-width:22px;
+      max-width:22px;
       padding:0;
       font-size:12px;
       border:0;
@@ -10812,12 +11005,13 @@ const PatientBoard = () => {
       box-shadow:none;
     }
     .pb-tab-panel--repertory .pb-panel-header-actions .modal-header-btn.modal-header-btn--lang {
-      width:auto;
-      min-width:0;
+      width:22px;
+      min-width:22px;
+      max-width:22px;
       height:22px;
-      padding:0 5px;
+      padding:0;
       font-size:10px;
-      gap:2px;
+      gap:0;
     }
     .pb-tab-panel--repertory .pb-panel-header-actions .modal-header-btn.active {
       background:linear-gradient(180deg, #1e88e5 0%, #0b5cab 100%);
@@ -11367,6 +11561,18 @@ const PatientBoard = () => {
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .pb-tab-panel--repertorize .pb-repertorize-cog-btn {
+      margin-left:auto !important;
+      flex-shrink:0;
+      height:22px !important;
+      min-height:22px !important;
+      padding:0 8px !important;
+      font-size:10px !important;
+      font-weight:700 !important;
+      letter-spacing:0.04em;
+      line-height:1 !important;
+      border-radius:4px !important;
+    }
     .pb-repertorize-side-header__icon {
       width:20px !important;
       height:20px !important;
@@ -11531,7 +11737,7 @@ const PatientBoard = () => {
       min-width:0;
       max-width:none;
       padding:5px 6px;
-      border-radius:999px;
+      border-radius:5px;
       border:1px solid #cfd8e3;
       background:#fff;
       color:#475569;
@@ -12152,6 +12358,7 @@ const PatientBoard = () => {
       width:22px;
       height:22px;
       min-width:22px;
+      max-width:22px;
       padding:0;
       font-size:12px;
       border:0;
@@ -12161,13 +12368,14 @@ const PatientBoard = () => {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      gap:2px;
+      gap:0;
     }
     .pb-rubric-remedy-modal__header .modal-header-btn.modal-header-btn--lang {
-      width:auto;
-      min-width:0;
+      width:22px;
+      min-width:22px;
+      max-width:22px;
       height:22px;
-      padding:0 5px;
+      padding:0;
       font-size:10px;
     }
     .pb-rubric-remedy-modal__header .modal-header-btn:hover {
@@ -12484,13 +12692,21 @@ const PatientBoard = () => {
       .pb-clinical-header-bar__select-row {
         width:100%;
         flex:0 0 auto !important;
+        display:flex !important;
+        align-items:center !important;
+        flex-wrap:wrap !important;
+        gap:6px !important;
       }
       .pb-clinical-header-bar__select-row .pb-ae-header-bar__select-wrap,
       .pb-tab-panel--adverse .pb-ae-header-bar__select-wrap {
-        flex:1 1 auto !important;
-        min-width:0 !important;
-        max-width:none !important;
-        width:100%;
+        flex:1 1 160px !important;
+        min-width:140px !important;
+        max-width:280px !important;
+        width:auto !important;
+      }
+      .pb-clinical-header-bar__select-row .pb-ae-reference-btn {
+        flex:0 0 auto !important;
+        margin-left:0 !important;
       }
       .pb-clinical-header-bar__meta {
         width:100%;
@@ -12698,9 +12914,13 @@ const PatientBoard = () => {
       }
 
       .pb-tab-cards-row,
-      .pb-clinical-main-row,
-      .pb-ae-columns-row {
+      .pb-clinical-main-row {
         flex-direction:column !important;
+      }
+      .pb-ae-columns-row {
+        display:grid !important;
+        grid-template-columns:minmax(0, 1fr) !important;
+        row-gap:0.25rem !important;
       }
       .pb-tab-cards-row > [class*="col"],
       .pb-clinical-main-row > [class*="col"],
@@ -13945,11 +14165,11 @@ const PatientBoard = () => {
                   if (!age) return null;
                   const genderMap = { 0: 'M', 1: 'F', 2: 'O' };
                   const genderLabel = genderMap[patientDetails.gender] || 'N/A';
-                  const ageLabel = `${age.years}y ${age.months}m ${age.days}d`;
+                  const ageLabel = `${age.years}Y|${genderLabel}`;
                   return (
                     <span className="pb-info__meta">
                       <i className="ri-user-heart-line" aria-hidden="true" />
-                      {ageLabel}/{genderLabel}
+                      {ageLabel}
                     </span>
                   );
                 })()}
@@ -13971,6 +14191,44 @@ const PatientBoard = () => {
                 >
                   <i className="ri-heart-pulse-line" />
                 </Button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-soft-primary btn-icon"
+                  onClick={openComplaints}
+                  disabled={!patientId}
+                  title={patientId ? 'Chief complaints for this patient' : 'Choose a patient first'}
+                  aria-label="Complaints"
+                >
+                  <i className="ri-chat-smile-2-line" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-soft-primary btn-icon"
+                  onClick={openCaseDetails}
+                  title="Symptoms and grades for this case"
+                  aria-label="Case details"
+                >
+                  <i className="ri-file-list-2-line" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-soft-primary btn-icon"
+                  onClick={handleOpenVisitHistory}
+                  disabled={!patientId}
+                  title={patientId ? 'Past visits and prescriptions' : 'Choose a patient first'}
+                  aria-label="History"
+                >
+                  <i className="ri-history-line" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-soft-primary btn-icon"
+                  onClick={handleExportCasePdf}
+                  title="Export case PDF"
+                  aria-label="Export PDF"
+                >
+                  <i className="ri-file-pdf-2-line" aria-hidden="true" />
+                </button>
               </div>
             </div>
             <PatientContinuityModal
@@ -14089,44 +14347,6 @@ const PatientBoard = () => {
               </span>
             </div>
             <div className="pb-main-toolbar__right">
-              <button
-                type="button"
-                className="pb-tab pb-tab--tool"
-                onClick={openComplaints}
-                disabled={!patientId}
-                title={patientId ? 'Chief complaints for this patient' : 'Choose a patient first'}
-              >
-                <i className="ri-heart-pulse-line" aria-hidden="true" />
-                Complaints
-              </button>
-              <button
-                type="button"
-                className="pb-tab pb-tab--tool"
-                onClick={openCaseDetails}
-                title="Symptoms and grades for this case"
-              >
-                <i className="ri-file-list-2-line" aria-hidden="true" />
-                Case details
-              </button>
-              <button
-                type="button"
-                className="pb-tab pb-tab--tool"
-                onClick={handleOpenVisitHistory}
-                disabled={!patientId}
-                title={patientId ? 'Past visits and prescriptions' : 'Choose a patient first'}
-              >
-                <i className="ri-history-line" aria-hidden="true" />
-                History
-              </button>
-              <button
-                type="button"
-                className="pb-tab pb-tab--tool"
-                onClick={handleExportCasePdf}
-                title="Export case PDF"
-              >
-                <i className="ri-file-pdf-2-line" aria-hidden="true" />
-                Export PDF
-              </button>
               {activeTab === 'Repertorize' && (
                 <Button
                   type="button"
@@ -14314,7 +14534,7 @@ const PatientBoard = () => {
                                   {filteredRubricRemedies.length} rubric{filteredRubricRemedies.length === 1 ? '' : 's'}
                                 </span>
                               )}
-                              <div className="pb-questions-search-wrap" style={{ minWidth: 140, maxWidth: 220, flex: '1 1 140px' }}>
+                              <div className="pb-questions-search-wrap">
                                 {renderQuestionsSearchInput(
                                   rubricRemedySearch,
                                   setRubricRemedySearch,
@@ -14809,7 +15029,6 @@ const PatientBoard = () => {
                                 onMouseEnter={() => setShowEnglishTooltip(true)}
                                 onMouseLeave={() => setShowEnglishTooltip(false)}
                               >
-                                <i className="ri-translate-2" aria-hidden="true" />
                                 En
                               </Button>
                               <Button
@@ -14819,7 +15038,6 @@ const PatientBoard = () => {
                                 onMouseEnter={() => setShowMarathiTooltip(true)}
                                 onMouseLeave={() => setShowMarathiTooltip(false)}
                               >
-                                <i className="ri-translate" aria-hidden="true" />
                                 म
                               </Button>
                             </div>
@@ -14917,8 +15135,8 @@ const PatientBoard = () => {
               <div className="text-center text-muted fw-semibold py-3">{activeTab}</div>
             )}
             {activeTab === 'Adverse Effect' && (
-              <div className="p-0 pb-tab-panel pb-tab-panel--adverse d-flex flex-column">
-                <div className="pb-ae-header-bar pb-clinical-header-bar">
+              <div className="p-0 pb-tab-panel pb-tab-panel--adverse d-flex flex-column h-100 min-h-0">
+                <div className="pb-ae-header-bar pb-clinical-header-bar flex-shrink-0">
                   <div className="pb-clinical-header-bar__select-row">
                   <div className="pb-ae-header-bar__icon" aria-hidden="true">
                     <i className="ri-capsule-line" />
@@ -14941,6 +15159,15 @@ const PatientBoard = () => {
                       loadingMessage={() => 'Loading drugs...'}
                     />
                   </div>
+                  <Button
+                    color="light"
+                    className="pb-ae-reference-btn border"
+                    disabled={!adverseDrugDetails}
+                    onClick={() => setAdverseReferenceModalOpen(true)}
+                  >
+                    <i className="ri-book-open-line" aria-hidden="true" />
+                    View Reference
+                  </Button>
                   </div>
                   <div className="pb-ae-header-bar__divider d-none d-md-block" aria-hidden="true" />
                   <div className="pb-clinical-header-bar__meta">
@@ -14970,7 +15197,7 @@ const PatientBoard = () => {
                 </div>
 
                 <div className="pb-ae-columns-wrapper">
-                  <div className="row g-2 pb-ae-columns-row h-100">
+                  <div className="row g-0 pb-ae-columns-row h-100">
                     <div className="col-md-4">
                       <AdverseEffectColumn
                         variant="serious"
@@ -14989,8 +15216,6 @@ const PatientBoard = () => {
                         getItemName={(effect) => effect.seriousSideEffectName}
                         emptySearchMessage="No serious effects found"
                         emptyMessage={selectedAdverseType ? 'No serious effects available' : 'Select a drug to view effects'}
-                        searchOpen={seriousEffectsSearchOpen}
-                        onToggleSearch={() => setSeriousEffectsSearchOpen((open) => !open)}
                         searchDisabled={!selectedAdverseType}
                       />
                     </div>
@@ -15012,8 +15237,6 @@ const PatientBoard = () => {
                         getItemName={(effect) => effect.otherSideEffectName}
                         emptySearchMessage="No other effects found"
                         emptyMessage={selectedAdverseType ? 'No other effects available' : 'Select a drug to view effects'}
-                        searchOpen={otherEffectsSearchOpen}
-                        onToggleSearch={() => setOtherEffectsSearchOpen((open) => !open)}
                         searchDisabled={!selectedAdverseType}
                       />
                     </div>
@@ -15035,27 +15258,10 @@ const PatientBoard = () => {
                         getItemName={(reaction) => reaction.adverseReactionName}
                         emptySearchMessage="No adverse effects found"
                         emptyMessage={selectedAdverseType ? 'No adverse effects available' : 'Select a drug to view effects'}
-                        searchOpen={adverseReactionsSearchOpen}
-                        onToggleSearch={() => setAdverseReactionsSearchOpen((open) => !open)}
                         searchDisabled={!selectedAdverseType}
                       />
                     </div>
                   </div>
-                </div>
-
-                <div className="pb-ae-footer">
-                  <p className="pb-ae-disclaimer">
-                    Note: Adverse effects listed are based on materia medica references. Verify with clinical judgment.
-                  </p>
-                  <Button
-                    color="light"
-                    className="pb-ae-reference-btn border"
-                    disabled={!adverseDrugDetails}
-                    onClick={() => setAdverseReferenceModalOpen(true)}
-                  >
-                    <i className="ri-book-open-line" aria-hidden="true" />
-                    View Reference
-                  </Button>
                 </div>
 
                 <Modal
@@ -15434,16 +15640,16 @@ const PatientBoard = () => {
                           </span>
                           Repertorization
                           <span className="pb-repertorize-count-pill">{repertorizationRubrics.length}</span>
-                          <Button type="button" className="btn btn-sm ms-2" onClick={handleRunCenterOfGravity}>
-                            Center of gravity
-                          </Button>
                         </div>
-                        {/* Ascending / descending sort icons — hidden per request
-                        <div className="d-flex gap-1">
-                          <i className="ri-arrow-up-line text-success" style={{ fontSize: '12px', fontWeight: 'bold' }}></i>
-                          <i className="ri-arrow-down-line text-danger" style={{ fontSize: '12px', fontWeight: 'bold' }}></i>
-                        </div>
-                        */}
+                        <Button
+                          type="button"
+                          className="btn btn-sm btn-soft-primary pb-repertorize-cog-btn"
+                          onClick={handleRunCenterOfGravity}
+                          title="Center of gravity"
+                          aria-label="Center of gravity"
+                        >
+                          COG
+                        </Button>
                       </div>
                       <div className="pb-section-divider"></div>
                       <div className="flex-grow-1 custom-scrollbar pb-tab-card-scroll">
@@ -16281,9 +16487,6 @@ const PatientBoard = () => {
                                   style={{ cursor: 'pointer' }}
                                   onClick={() => handleQuestionGroupSelect(group)}
                                 >
-                                  <span className="pb-questions-group-item__icon" aria-hidden="true">
-                                    <i className="ri-folder-3-line" />
-                                  </span>
                                   <span className="pb-questions-group-item__label">
                                     {group.name}
                                   </span>
@@ -16384,7 +16587,7 @@ const PatientBoard = () => {
                                   {' '}rubric{rubrics.length === 1 ? '' : 's'}
                                 </span>
                               )}
-                              <div className="pb-questions-search-wrap" style={{ minWidth: 140, maxWidth: 220, flex: '1 1 140px' }}>
+                              <div className="pb-questions-search-wrap">
                                 {renderQuestionsSearchInput(
                                   rubricSearch,
                                   setRubricSearch,
@@ -16550,7 +16753,6 @@ const PatientBoard = () => {
               onMouseEnter={() => setShowEnglishTooltip(true)}
               onMouseLeave={() => setShowEnglishTooltip(false)}
             >
-              <i className="ri-translate-2" aria-hidden="true" />
               En
             </Button>
             <Button
@@ -16560,7 +16762,6 @@ const PatientBoard = () => {
               onMouseEnter={() => setShowMarathiTooltip(true)}
               onMouseLeave={() => setShowMarathiTooltip(false)}
             >
-              <i className="ri-translate" aria-hidden="true" />
               म
             </Button>
           </div>
@@ -16662,7 +16863,6 @@ const PatientBoard = () => {
               onMouseEnter={() => setShowEnglishTooltip(true)}
               onMouseLeave={() => setShowEnglishTooltip(false)}
             >
-              <i className="ri-translate-2" aria-hidden="true" />
               En
             </Button>
             <Button
@@ -16672,7 +16872,6 @@ const PatientBoard = () => {
               onMouseEnter={() => setShowMarathiTooltip(true)}
               onMouseLeave={() => setShowMarathiTooltip(false)}
             >
-              <i className="ri-translate" aria-hidden="true" />
               म
             </Button>
           </div>
@@ -16795,25 +16994,40 @@ const PatientBoard = () => {
         </ModalFooter>
       </Modal>
 
-      <Modal isOpen={cogModalOpen} toggle={() => setCogModalOpen(false)} centered scrollable>
-        <ModalHeader toggle={() => setCogModalOpen(false)}>Center of gravity</ModalHeader>
+      <Modal
+        isOpen={cogModalOpen}
+        toggle={() => setCogModalOpen(false)}
+        centered
+        scrollable
+        className="patient-list-modal pb-cog-modal"
+      >
+        <ModalHeader className="patient-list-modal__header" toggle={() => setCogModalOpen(false)}>
+          <span className="patient-list-modal__title patient-list-modal__title--simple">
+            <span className="patient-list-modal__title-icon" aria-hidden="true">
+              <i className="ri-focus-3-line" />
+            </span>
+            <span className="patient-list-modal__title-text">COG</span>
+          </span>
+        </ModalHeader>
         <ModalBody>
           {cogLoading ? (
-            <div className="text-center py-3"><Spinner size="sm" /> Comparing remedies…</div>
+            <div className="pb-cog-modal__state">
+              <Spinner size="sm" /> Comparing remedies…
+            </div>
           ) : cogRows.length === 0 ? (
-            <p className="text-muted mb-0">{cogNotice || 'No remedies matched these symptoms.'}</p>
+            <p className="pb-cog-modal__empty mb-0">{cogNotice || 'No remedies matched these symptoms.'}</p>
           ) : (
-            <ul className="list-group">
+            <ul className="list-group list-group-flush pb-cog-modal__list">
               {cogRows.map((row) => (
-                <li key={row.name} className="list-group-item py-2 d-flex justify-content-between">
-                  <span>{row.name}</span>
-                  <span className="text-muted">{row.score}</span>
+                <li key={row.name} className="list-group-item pb-cog-modal__row d-flex justify-content-between align-items-center gap-2">
+                  <span className="pb-cog-modal__name">{row.name}</span>
+                  <span className="pb-cog-modal__score">{row.score}</span>
                 </li>
               ))}
             </ul>
           )}
         </ModalBody>
-        <ModalFooter>
+        <ModalFooter className="justify-content-end pb-cog-modal__footer">
           <ModalActionButton action="close" onClick={() => setCogModalOpen(false)} />
         </ModalFooter>
       </Modal>
@@ -17029,11 +17243,12 @@ const PatientBoard = () => {
             <div className="pb-prescription-modal__panel">
               {/* Form Row - Always Visible */}
               <div className="pb-prescription-modal__form-row">
-                <div style={{ flex: '0 0 280px' }}>
+                <div className="pb-prescription-modal__field pb-prescription-modal__field--remedy">
                   <Select
                     isSearchable
                     isClearable
                     placeholder="Select Remedy"
+                    classNamePrefix="pb-prescription-select"
                     options={prescriptionRemedyList && Array.isArray(prescriptionRemedyList) ? prescriptionRemedyList.map(remedy => ({
                       value: remedy.remedyId,
                       label: remedy.remedyName
@@ -17042,45 +17257,33 @@ const PatientBoard = () => {
                     onChange={(selected) => setSelectedPrescriptionRemedy(selected)}
                     isLoading={prescriptionRemedyLoading}
                     {...modalSelectPortalProps}
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        fontSize: '14px',
-                      }),
-                      menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
-                    }}
+                    styles={prescriptionSelectStyles}
                   />
                 </div>
-                <div style={{ flex: '1 1 220px' }}>
+                <div className="pb-prescription-modal__field pb-prescription-modal__field--desc">
                   <Input
-                    type="textarea"
+                    type="text"
                     name="remedyDescription"
                     placeholder="Remedy Description"
-                    rows="1"
                     value={prescriptionRemedyDescription}
                     onChange={(e) => setPrescriptionRemedyDescription(e.target.value)}
-                    style={{ fontSize: '14px', resize: 'none' }}
                   />
                 </div>
-                <div style={{ flex: '0 0 160px' }}>
+                <div className="pb-prescription-modal__field pb-prescription-modal__field--potency">
                   <Select
                     isSearchable
                     isClearable
-                    placeholder="Potency (optional)"
+                    placeholder="Potency"
+                    title="Potency (optional)"
+                    classNamePrefix="pb-prescription-select"
                     options={potencyOptions}
                     value={selectedPotency}
                     onChange={(selected) => setSelectedPotency(selected)}
                     {...modalSelectPortalProps}
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        fontSize: '14px',
-                      }),
-                      menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
-                    }}
+                    styles={prescriptionSelectStyles}
                   />
                 </div>
-                <div className="pb-prescription-modal__dosage-field">
+                <div className="pb-prescription-modal__field pb-prescription-modal__field--dosage">
                   <Input
                     type="select"
                     aria-label="Frequency"
@@ -17093,7 +17296,7 @@ const PatientBoard = () => {
                     ))}
                   </Input>
                 </div>
-                <div className="pb-prescription-modal__dosage-field">
+                <div className="pb-prescription-modal__field pb-prescription-modal__field--dosage">
                   <Input
                     type="select"
                     aria-label="Duration"
@@ -17106,7 +17309,7 @@ const PatientBoard = () => {
                     ))}
                   </Input>
                 </div>
-                <div className="pb-prescription-modal__dosage-field">
+                <div className="pb-prescription-modal__field pb-prescription-modal__field--instructions">
                   <Input
                     type="select"
                     aria-label="Instructions"
@@ -17164,6 +17367,8 @@ const PatientBoard = () => {
                     setPrescriptionInstructions('');
                   }}
                   className="pb-prescription-modal__add-btn"
+                  title="Add remedy"
+                  aria-label="Add remedy"
                 >
                   <i className="ri-add-line" aria-hidden="true"></i>
                 </Button>
@@ -17174,34 +17379,34 @@ const PatientBoard = () => {
                 <table className="table table-bordered table-sm pb-prescription-modal__table">
                   <thead>
                     <tr>
-                      <th style={{ width: '50px', textAlign: 'center' }}>No.</th>
+                      <th style={{ width: '48px', textAlign: 'center' }}>No.</th>
                       <th>Remedy Name</th>
-                      <th style={{ width: '90px' }}>Potency</th>
+                      <th style={{ width: '88px' }}>Potency</th>
                       <th>Dosage</th>
                       <th>Remedy Description</th>
-                      <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
+                      <th style={{ width: '56px', textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {prescriptionRemedyDetailList.length > 0 ? (
                       prescriptionRemedyDetailList.map((item, index) => (
                         <tr key={`${item.remedyId}-${index}`}>
-                          <td style={{ textAlign: 'center', padding: '4px 8px' }}>{index + 1}</td>
-                          <td style={{ padding: '4px 8px' }}>{item.remedyName}</td>
-                          <td style={{ padding: '4px 8px' }}>{item.potencyCode || item.dose || '—'}</td>
-                          <td style={{ padding: '4px 8px' }} className="pb-prescription-modal__dosage-text">{formatDosage(item) || '—'}</td>
-                          <td style={{ padding: '4px 8px' }}>{item.description}</td>
-                          <td style={{ textAlign: 'center', padding: '4px 4px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                              <Button
-                                color="danger"
-                                size="sm"
-                                onClick={() => setPrescriptionRemedyDetailList(prescriptionRemedyDetailList.filter((_, i) => i !== index))}
-                                style={{ padding: '2px 4px', minWidth: '24px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              >
-                                <i className="ri-delete-bin-line" style={{ fontSize: '14px' }}></i>
-                              </Button>
-                            </div>
+                          <td style={{ textAlign: 'center' }}>{index + 1}</td>
+                          <td>{item.remedyName}</td>
+                          <td>{item.potencyCode || item.dose || '—'}</td>
+                          <td className="pb-prescription-modal__dosage-text">{formatDosage(item) || '—'}</td>
+                          <td>{item.description}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <Button
+                              color="danger"
+                              size="sm"
+                              className="pb-prescription-modal__row-action"
+                              onClick={() => setPrescriptionRemedyDetailList(prescriptionRemedyDetailList.filter((_, i) => i !== index))}
+                              title="Remove"
+                              aria-label="Remove remedy"
+                            >
+                              <i className="ri-delete-bin-line" aria-hidden="true" />
+                            </Button>
                           </td>
                         </tr>
                       ))
@@ -17248,68 +17453,55 @@ const PatientBoard = () => {
 
               {/* Tab Content */}
               {labsImagingTab === 'Ordered Labs & Imaging' && (
-                <div className="custom-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: '1', overflow: 'hidden' }}>
-                  {/* Form Rows - Always Visible */}
-                  <div style={{ flexShrink: 0 }}>
-                    {/* First Row: Test Name, Test Date, Lab Name */}
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                      <div style={{ flex: '1' }}>
-                        <Select
-                          isSearchable
-                          isClearable
-                          placeholder="Test Name"
-                          options={labTestOptions}
-                          isLoading={patientLabTestDDLLoading}
-                          value={labOrderForm.patientLabTestId ? labTestOptions?.find(opt => opt.value === labOrderForm.patientLabTestId) : null}
-                          onChange={(selected) => setLabOrderForm({ ...labOrderForm, patientLabTestId: selected?.value || null })}
-                          {...modalSelectPortalProps}
-                          styles={{
-                            control: (base) => ({
-                              ...base,
-                              fontSize: '14px',
-                            }),
-                            menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
-                          }}
-                        />
-                      </div>
-                      <div style={{ flex: '1' }}>
-                        <Input
-                          type="date"
-                          name="testDate"
-                          value={labOrderForm.testDate}
-                          onChange={(e) => setLabOrderForm({ ...labOrderForm, testDate: e.target.value })}
-                          style={{ fontSize: '14px', height: '38px' }}
-                        />
-                      </div>
-                      <div style={{ flex: '1' }}>
-                        <Input
-                          type="text"
-                          name="labName"
-                          placeholder="Lab Name"
-                          value={labOrderForm.labName}
-                          onChange={(e) => setLabOrderForm({ ...labOrderForm, labName: e.target.value })}
-                          style={{ fontSize: '14px', height: '38px' }}
-                        />
-                      </div>
+                <div className="pb-prescription-modal__labs-panel">
+                  <div className="pb-prescription-modal__form-row">
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--grow">
+                      <Select
+                        isSearchable
+                        isClearable
+                        placeholder="Test Name"
+                        classNamePrefix="pb-prescription-select"
+                        options={labTestOptions}
+                        isLoading={patientLabTestDDLLoading}
+                        value={labOrderForm.patientLabTestId ? labTestOptions?.find(opt => opt.value === labOrderForm.patientLabTestId) : null}
+                        onChange={(selected) => setLabOrderForm({ ...labOrderForm, patientLabTestId: selected?.value || null })}
+                        {...modalSelectPortalProps}
+                        styles={prescriptionSelectStyles}
+                      />
                     </div>
-
-                    {/* Second Row: Description and Plus Button */}
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                      <div style={{ flex: '1' }}>
-                        <Input
-                          type="textarea"
-                          name="description"
-                          placeholder="Description"
-                          rows="2"
-                          value={labOrderForm.description}
-                          onChange={(e) => setLabOrderForm({ ...labOrderForm, description: e.target.value })}
-                          style={{ fontSize: '14px', resize: 'none' }}
-                        />
-                      </div>
-                      <Button
-                        color="primary"
-                        size="sm"
-                        onClick={async () => {
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--date">
+                      <Input
+                        type="date"
+                        name="testDate"
+                        value={labOrderForm.testDate}
+                        onChange={(e) => setLabOrderForm({ ...labOrderForm, testDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--grow">
+                      <Input
+                        type="text"
+                        name="labName"
+                        placeholder="Lab Name"
+                        value={labOrderForm.labName}
+                        onChange={(e) => setLabOrderForm({ ...labOrderForm, labName: e.target.value })}
+                      />
+                    </div>
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--desc-lab">
+                      <Input
+                        type="text"
+                        name="description"
+                        placeholder="Description"
+                        value={labOrderForm.description}
+                        onChange={(e) => setLabOrderForm({ ...labOrderForm, description: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      color="primary"
+                      size="sm"
+                      className="pb-prescription-modal__add-btn"
+                      title="Add lab order"
+                      aria-label="Add lab order"
+                      onClick={async () => {
                           if (!patientAppId) {
                             Swal.fire({
                               icon: 'warning',
@@ -17399,47 +17591,43 @@ const PatientBoard = () => {
                           }
                         }}
                         disabled={patientLabOrderLoading}
-                        style={{ minWidth: '40px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        {patientLabOrderLoading ? (
-                          <div className="spinner-border spinner-border-sm" role="status">
-                            <span className="visually-hidden">Loading...</span>
-                          </div>
-                        ) : (
-                          <i className="ri-add-line" style={{ fontSize: '18px' }}></i>
-                        )}
-                      </Button>
-                    </div>
+                    >
+                      {patientLabOrderLoading ? (
+                        <div className="spinner-border spinner-border-sm" role="status">
+                          <span className="visually-hidden">Loading...</span>
+                        </div>
+                      ) : (
+                        <i className="ri-add-line" aria-hidden="true" />
+                      )}
+                    </Button>
                   </div>
 
-                  {/* Table - Scrollable Only */}
-                  <div className="custom-scrollbar" style={{ flex: '1', overflowY: 'auto', overflowX: 'auto' }}>
-                    <table className="table table-bordered table-sm" style={{ fontSize: '12px', marginBottom: '0' }}>
-                      <thead style={{ background: '#f8f9fa', position: 'sticky', top: 0, zIndex: 10 }}>
+                  <div className="custom-scrollbar pb-prescription-modal__table-wrap">
+                    <table className="table table-bordered table-sm pb-prescription-modal__table">
+                      <thead>
                         <tr>
-                          <th style={{ width: '50px', textAlign: 'center', padding: '6px 8px', fontSize: '12px' }}>No.</th>
-                          <th style={{ padding: '6px 8px', fontSize: '12px' }}>Test Name</th>
-                          <th style={{ padding: '6px 8px', fontSize: '12px' }}>Test Date</th>
-                          <th style={{ padding: '6px 8px', fontSize: '12px' }}>Lab Name</th>
-                          {/* <th style={{ width: '50px', textAlign: 'center', padding: '6px 4px', fontSize: '12px' }}>Action</th> */}
+                          <th style={{ width: '48px', textAlign: 'center' }}>No.</th>
+                          <th>Test Name</th>
+                          <th>Test Date</th>
+                          <th>Lab Name</th>
                         </tr>
                       </thead>
                       <tbody>
                         {patientLabOrderLoading ? (
                           <tr>
-                            <td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>
-                              <div className="spinner-border spinner-border-sm me-2" role="status">
-                                <span className="visually-hidden">Loading...</span>
-                              </div>
-                              Saving lab order...
+                            <td colSpan={4} className="pb-prescription-modal__empty">
+                              <span className="pb-prescription-modal__empty-inner">
+                                <Spinner size="sm" />
+                                Saving lab order...
+                              </span>
                             </td>
                           </tr>
                         ) : sessionLabOrderList.length > 0 ? (
                           sessionLabOrderList.map((order, index) => (
                             <tr key={order.patientOrderedTestId || index}>
-                              <td style={{ textAlign: 'center', padding: '4px 8px' }}>{index + 1}</td>
-                              <td style={{ padding: '4px 8px' }}>{order.patientLabTestName || 'N/A'}</td>
-                              <td style={{ padding: '4px 8px' }}>
+                              <td style={{ textAlign: 'center' }}>{index + 1}</td>
+                              <td>{order.patientLabTestName || 'N/A'}</td>
+                              <td>
                                 {order.orderDate ? (
                                   Number.isNaN(new Date(order.orderDate).getTime())
                                     ? String(order.orderDate)
@@ -17450,13 +17638,18 @@ const PatientBoard = () => {
                                       }).replace(/\//g, '-')
                                 ) : 'N/A'}
                               </td>
-                              <td style={{ padding: '4px 8px' }}>{order.labName || 'N/A'}</td>
+                              <td>{order.labName || 'N/A'}</td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-                              No lab orders added
+                            <td colSpan={4} className="pb-prescription-modal__empty">
+                              <span className="pb-prescription-modal__empty-inner">
+                                <span className="pb-prescription-modal__empty-icon" aria-hidden="true">
+                                  <i className="ri-test-tube-line" />
+                                </span>
+                                No lab orders added
+                              </span>
                             </td>
                           </tr>
                         )}
@@ -17466,78 +17659,64 @@ const PatientBoard = () => {
                 </div>
               )}
               {labsImagingTab === 'Labs & Imaging Results' && (
-                <div className="custom-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: '1', overflow: 'hidden' }}>
-                  {/* Form Rows - Always Visible */}
-                  <div style={{ flexShrink: 0 }}>
-                    {/* First Row: Test Name, Test Date, Parameter Name, Parameter Value */}
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                      <div style={{ flex: '1' }}>
-                        <Select
-                          isSearchable
-                          isClearable
-                          placeholder="Test Name"
-                          options={labTestOptions}
-                          isLoading={patientLabTestDDLLoading}
-                          value={labEntryForm.patientLabTestId ? labTestOptions?.find(opt => opt.value === labEntryForm.patientLabTestId) : null}
-                          onChange={(selected) => setLabEntryForm({ ...labEntryForm, patientLabTestId: selected?.value || null })}
-                          {...modalSelectPortalProps}
-                          styles={{
-                            control: (base) => ({
-                              ...base,
-                              fontSize: '14px',
-                            }),
-                            menuPortal: (base) => ({ ...base, zIndex: MODAL_SELECT_MENU_Z }),
-                          }}
-                        />
-                      </div>
-                      <div style={{ flex: '1' }}>
-                        <Input
-                          type="date"
-                          name="testDate"
-                          value={labEntryForm.testDate}
-                          onChange={(e) => setLabEntryForm({ ...labEntryForm, testDate: e.target.value })}
-                          style={{ fontSize: '14px', height: '38px' }}
-                        />
-                      </div>
-                      <div style={{ flex: '1' }}>
-                        <Input
-                          type="text"
-                          name="parameterName"
-                          placeholder="Parameter Name"
-                          value={labEntryForm.parameterName}
-                          onChange={(e) => setLabEntryForm({ ...labEntryForm, parameterName: e.target.value })}
-                          style={{ fontSize: '14px', height: '38px' }}
-                        />
-                      </div>
-                      <div style={{ flex: '1' }}>
-                        <Input
-                          type="text"
-                          name="parameterValue"
-                          placeholder="Parameter Value"
-                          value={labEntryForm.parameterValue}
-                          onChange={(e) => setLabEntryForm({ ...labEntryForm, parameterValue: e.target.value })}
-                          style={{ fontSize: '14px', height: '38px' }}
-                        />
-                      </div>
+                <div className="pb-prescription-modal__labs-panel">
+                  <div className="pb-prescription-modal__form-row">
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--grow">
+                      <Select
+                        isSearchable
+                        isClearable
+                        placeholder="Test Name"
+                        classNamePrefix="pb-prescription-select"
+                        options={labTestOptions}
+                        isLoading={patientLabTestDDLLoading}
+                        value={labEntryForm.patientLabTestId ? labTestOptions?.find(opt => opt.value === labEntryForm.patientLabTestId) : null}
+                        onChange={(selected) => setLabEntryForm({ ...labEntryForm, patientLabTestId: selected?.value || null })}
+                        {...modalSelectPortalProps}
+                        styles={prescriptionSelectStyles}
+                      />
                     </div>
-
-                    {/* Second Row: Test Description and Plus Button */}
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                      <div style={{ flex: '1' }}>
-                        <Input
-                          type="textarea"
-                          name="testDescription"
-                          placeholder="Test Description"
-                          rows="2"
-                          value={labEntryForm.testDescription}
-                          onChange={(e) => setLabEntryForm({ ...labEntryForm, testDescription: e.target.value })}
-                          style={{ fontSize: '14px', resize: 'none' }}
-                        />
-                      </div>
-                      <Button
-                        color="primary"
-                        size="sm"
-                        onClick={async () => {
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--date">
+                      <Input
+                        type="date"
+                        name="testDate"
+                        value={labEntryForm.testDate}
+                        onChange={(e) => setLabEntryForm({ ...labEntryForm, testDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--grow">
+                      <Input
+                        type="text"
+                        name="parameterName"
+                        placeholder="Parameter Name"
+                        value={labEntryForm.parameterName}
+                        onChange={(e) => setLabEntryForm({ ...labEntryForm, parameterName: e.target.value })}
+                      />
+                    </div>
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--grow">
+                      <Input
+                        type="text"
+                        name="parameterValue"
+                        placeholder="Parameter Value"
+                        value={labEntryForm.parameterValue}
+                        onChange={(e) => setLabEntryForm({ ...labEntryForm, parameterValue: e.target.value })}
+                      />
+                    </div>
+                    <div className="pb-prescription-modal__field pb-prescription-modal__field--desc-lab">
+                      <Input
+                        type="text"
+                        name="testDescription"
+                        placeholder="Test Description"
+                        value={labEntryForm.testDescription}
+                        onChange={(e) => setLabEntryForm({ ...labEntryForm, testDescription: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      color="primary"
+                      size="sm"
+                      className="pb-prescription-modal__add-btn"
+                      title="Add lab result"
+                      aria-label="Add lab result"
+                      onClick={async () => {
                           if (!patientAppId) {
                             Swal.fire({
                               icon: 'warning',
@@ -17640,48 +17819,44 @@ const PatientBoard = () => {
                           }
                         }}
                         disabled={patientLabEntryLoading}
-                        style={{ minWidth: '40px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        {patientLabEntryLoading ? (
-                          <div className="spinner-border spinner-border-sm" role="status">
-                            <span className="visually-hidden">Loading...</span>
-                          </div>
-                        ) : (
-                          <i className="ri-add-line" style={{ fontSize: '18px' }}></i>
-                        )}
-                      </Button>
-                    </div>
+                    >
+                      {patientLabEntryLoading ? (
+                        <div className="spinner-border spinner-border-sm" role="status">
+                          <span className="visually-hidden">Loading...</span>
+                        </div>
+                      ) : (
+                        <i className="ri-add-line" aria-hidden="true" />
+                      )}
+                    </Button>
                   </div>
 
-                  {/* Table - Scrollable Only */}
-                  <div className="custom-scrollbar" style={{ flex: '1', overflowY: 'auto', overflowX: 'auto' }}>
-                    <table className="table table-bordered table-sm" style={{ fontSize: '12px', marginBottom: '0' }}>
-                      <thead style={{ background: '#f8f9fa', position: 'sticky', top: 0, zIndex: 10 }}>
+                  <div className="custom-scrollbar pb-prescription-modal__table-wrap">
+                    <table className="table table-bordered table-sm pb-prescription-modal__table">
+                      <thead>
                         <tr>
-                          <th style={{ width: '50px', textAlign: 'center', padding: '6px 8px', fontSize: '12px' }}>No.</th>
-                          <th style={{ padding: '6px 8px', fontSize: '12px' }}>Test Name</th>
-                          <th style={{ padding: '6px 8px', fontSize: '12px' }}>Test Date</th>
-                          <th style={{ padding: '6px 8px', fontSize: '12px' }}>Parameter Name</th>
-                          <th style={{ padding: '6px 8px', fontSize: '12px' }}>Parameter Value</th>
-                          {/* <th style={{ width: '50px', textAlign: 'center', padding: '6px 4px', fontSize: '12px' }}>Action</th> */}
+                          <th style={{ width: '48px', textAlign: 'center' }}>No.</th>
+                          <th>Test Name</th>
+                          <th>Test Date</th>
+                          <th>Parameter Name</th>
+                          <th>Parameter Value</th>
                         </tr>
                       </thead>
                       <tbody>
                         {patientLabEntryLoading ? (
                           <tr>
-                            <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
-                              <div className="spinner-border spinner-border-sm me-2" role="status">
-                                <span className="visually-hidden">Loading...</span>
-                              </div>
-                              Saving lab entry...
+                            <td colSpan={5} className="pb-prescription-modal__empty">
+                              <span className="pb-prescription-modal__empty-inner">
+                                <Spinner size="sm" />
+                                Saving lab entry...
+                              </span>
                             </td>
                           </tr>
                         ) : sessionLabEntryList.length > 0 ? (
                           sessionLabEntryList.map((entry, index) => (
                             <tr key={entry.patientLabId || index}>
-                              <td style={{ textAlign: 'center', padding: '4px 8px' }}>{index + 1}</td>
-                              <td style={{ padding: '4px 8px' }}>{entry.patientLabTestName || 'N/A'}</td>
-                              <td style={{ padding: '4px 8px' }}>
+                              <td style={{ textAlign: 'center' }}>{index + 1}</td>
+                              <td>{entry.patientLabTestName || 'N/A'}</td>
+                              <td>
                                 {entry.labDate ? (
                                   Number.isNaN(new Date(entry.labDate).getTime())
                                     ? String(entry.labDate)
@@ -17692,14 +17867,19 @@ const PatientBoard = () => {
                                       }).replace(/\//g, '-')
                                 ) : 'N/A'}
                               </td>
-                              <td style={{ padding: '4px 8px' }}>{entry.parameterName || 'N/A'}</td>
-                              <td style={{ padding: '4px 8px' }}>{entry.parameterValue || 'N/A'}</td>
+                              <td>{entry.parameterName || 'N/A'}</td>
+                              <td>{entry.parameterValue || 'N/A'}</td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-                              No lab entries added
+                            <td colSpan={5} className="pb-prescription-modal__empty">
+                              <span className="pb-prescription-modal__empty-inner">
+                                <span className="pb-prescription-modal__empty-icon" aria-hidden="true">
+                                  <i className="ri-flask-line" />
+                                </span>
+                                No lab entries added
+                              </span>
                             </td>
                           </tr>
                         )}

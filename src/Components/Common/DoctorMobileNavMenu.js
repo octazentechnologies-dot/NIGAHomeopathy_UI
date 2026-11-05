@@ -37,11 +37,61 @@ const withoutEnquiries = (items) =>
         : { ...item, childItems: filtered };
     });
 
+const normalizeLink = (link) => String(link || "").split("?")[0].toLowerCase();
+
+const toMenuCase = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw
+    .split(/\s+/)
+    .map((word) => {
+      const lower = word.toLowerCase();
+      if (lower === "erx" || lower === "e-rx") return "eRx";
+      if (lower === "sms") return "SMS";
+      if (lower === "whatsapp") return "WhatsApp";
+      if (word === "—" || word === "-") return word;
+      if (/^[A-Z0-9]+$/.test(word) && word.length <= 4) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+};
+
+const PRACTICE_LINKS = [
+  {
+    id: "doctor-earnings",
+    label: "Earnings",
+    icon: "ri-line-chart-line",
+    link: "/doctor/earnings",
+    aliases: ["/doctor/earnings"],
+  },
+  {
+    id: "doctor-followups-due",
+    label: "Follow-Ups Due",
+    icon: "ri-calendar-check-line",
+    link: "/doctor/follow-ups",
+    aliases: ["/doctor/follow-ups", "/doctor/followups"],
+  },
+  {
+    id: "doctor-sms",
+    label: "SMS Events",
+    icon: "ri-chat-3-line",
+    link: "/doctor/sms",
+    aliases: ["/doctor/sms"],
+  },
+];
+
+const ItemIcon = ({ icon }) =>
+  icon ? <i className={`doctor-hamburger-menu__icon ${icon}`} aria-hidden="true" /> : null;
+
+const ItemLabel = ({ children }) => (
+  <span className="doctor-hamburger-menu__label">{children}</span>
+);
+
 /**
- * Phone / handoff overflow: one Menu control for tools that the compact topbar hides.
- * Desktop keeps the icon rail; this control is CSS-shown only under ~500px.
+ * Phone overflow menu — same sections / labels as the desktop hamburger.
+ * Extra: handoff return + open patient sessions (mobile-only).
  */
-const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
+const DoctorMobileNavMenu = ({ userRole, onOpenWhatsApp }) => {
   const dispatch = useDispatch();
   const { moreMenuItems: rawMoreMenuItems } = useLayoutMenu();
   const moreMenuItems = useMemo(
@@ -60,6 +110,39 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
     });
     return Array.from(uniqueByKey.values());
   }, [sessions]);
+
+  const practiceItems = useMemo(
+    () =>
+      PRACTICE_LINKS.map((entry) => {
+        const byLink = new Map();
+        (moreMenuItems || []).forEach((item) => {
+          const link = normalizeLink(item.link);
+          if (link) byLink.set(link, item);
+        });
+        const matched =
+          entry.aliases.map((alias) => byLink.get(alias)).find(Boolean) || null;
+        return {
+          ...entry,
+          link: matched?.link || entry.link,
+        };
+      }),
+    [moreMenuItems]
+  );
+
+  const extraMoreItems = useMemo(() => {
+    const practiceSet = new Set(PRACTICE_LINKS.flatMap((item) => item.aliases));
+    practiceSet.add("/doctor/support");
+    practiceSet.add("/doctor/reports");
+    return (moreMenuItems || []).filter((item) => {
+      if (item.isHeader) return false;
+      const link = normalizeLink(item.link);
+      if (link && practiceSet.has(link)) return false;
+      if (link && link.startsWith("/doctor/reports")) return false;
+      const label = String(item.label || "").trim().toLowerCase();
+      if (label === "reports" || label === "support") return false;
+      return true;
+    });
+  }, [moreMenuItems]);
 
   if (userRole !== UserRole.DOCTOR) return null;
 
@@ -86,62 +169,61 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
 
   const showReturn = isWebHandoffSession() && !webHandoffEndedReason();
 
+  const renderLeaf = (item, depth = 0) => (
+    <Link
+      key={item.id || `${item.label}-${depth}`}
+      to={item.link || "/#"}
+      className="dropdown-item doctor-hamburger-menu__item"
+      onClick={close}
+    >
+      <ItemIcon icon={item.icon} />
+      <ItemLabel>{toMenuCase(item.label)}</ItemLabel>
+    </Link>
+  );
+
+  const renderGroup = (key, label, icon, children) => {
+    const open = openGroup === key;
+    return (
+      <div key={key} className="doctor-mobile-nav__group">
+        <button
+          type="button"
+          className={`dropdown-item doctor-hamburger-menu__item doctor-hamburger-menu__parent${open ? " active" : ""}`}
+          aria-expanded={open}
+          onClick={() => toggleGroup(key)}
+        >
+          <ItemIcon icon={icon} />
+          <ItemLabel>{toMenuCase(label)}</ItemLabel>
+          <i className={`ri-arrow-${open ? "up" : "down"}-s-line doctor-hamburger-menu__caret`} aria-hidden="true" />
+        </button>
+        {open ? (
+          <div className="doctor-mobile-nav__subgroup" role="group">
+            {children}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   const renderMoreLeaves = (items, depth = 0) =>
     (items || []).map((item, index) => {
       const key = item.id || `${item.label}-${depth}-${index}`;
       if (item.isHeader) {
         return (
-          <div key={key} className="dropdown-header text-muted text-uppercase fs-11">
-            {item.label}
+          <div key={key} className="doctor-hamburger-menu__section">
+            {toMenuCase(item.label)}
           </div>
         );
       }
       const children = item.childItems || item.subItems;
       if (children?.length) {
-        const open = openGroup === key;
-        return (
-          <div key={key} className="doctor-mobile-nav__group">
-            <button
-              type="button"
-              className={`dropdown-item d-flex align-items-center justify-content-between${open ? " active" : ""}`}
-              aria-expanded={open}
-              onClick={() => toggleGroup(key)}
-            >
-              <span className="d-flex align-items-center gap-2">
-                {item.icon ? <i className={item.icon} /> : null}
-                <span>{item.label}</span>
-              </span>
-              <i className={`ri-arrow-${open ? "up" : "down"}-s-line`} aria-hidden="true" />
-            </button>
-            {open ? (
-              <div className="doctor-mobile-nav__subgroup" role="group">
-                {children.map((child) => (
-                  <Link
-                    key={child.id || child.link || child.label}
-                    to={child.link || "/#"}
-                    className="dropdown-item doctor-mobile-nav__sublink"
-                    onClick={close}
-                  >
-                    {child.icon ? <i className={`${child.icon} me-2`} /> : null}
-                    {child.label}
-                  </Link>
-                ))}
-              </div>
-            ) : null}
-          </div>
+        return renderGroup(
+          key,
+          item.label,
+          item.icon,
+          children.map((child) => renderLeaf(child, depth + 1))
         );
       }
-      return (
-        <Link
-          key={key}
-          to={item.link || "/#"}
-          className="dropdown-item"
-          onClick={close}
-        >
-          {item.icon ? <i className={`${item.icon} me-2`} /> : null}
-          {item.label}
-        </Link>
-      );
+      return renderLeaf(item, depth);
     });
 
   return (
@@ -162,70 +244,90 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
       <DropdownMenu
         container="body"
         strategy="fixed"
-        className="dropdown-menu-lg doctor-mobile-nav-panel"
+        className="dropdown-menu-lg doctor-mobile-nav-panel doctor-hamburger-menu-panel"
       >
-        <div className="doctor-mobile-nav-body">
+        <div className="doctor-mobile-nav-body doctor-hamburger-menu-body">
           {showReturn ? (
             <>
-              <button type="button" className="dropdown-item text-primary fw-semibold" onClick={goBackToApp}>
-                <i className="ri-smartphone-line me-2" />
-                Return to Doctor app
+              <button
+                type="button"
+                className="dropdown-item doctor-hamburger-menu__item"
+                onClick={goBackToApp}
+              >
+                <ItemIcon icon="ri-smartphone-line" />
+                <ItemLabel>Return To Doctor App</ItemLabel>
               </button>
-              <div className="dropdown-divider" />
+              <div className="doctor-hamburger-menu__divider" />
             </>
           ) : null}
 
-          <div className="dropdown-header text-muted text-uppercase fs-11">Clinic tools</div>
+          <div className="doctor-hamburger-menu__section">Clinic Tools</div>
           <button
             type="button"
-            className="dropdown-item"
+            className="dropdown-item doctor-hamburger-menu__item"
             onClick={() => {
               close();
               dispatchOpenLastWorkBackup();
             }}
           >
-            <i className="ri-history-line me-2" />
-            Last work backup
+            <ItemIcon icon="ri-history-line" />
+            <ItemLabel>Last Work Backup</ItemLabel>
           </button>
           <button
             type="button"
-            className="dropdown-item"
+            className="dropdown-item doctor-hamburger-menu__item"
             onClick={() => {
               close();
               dispatchOpenDoctorScheduleCalendar();
             }}
           >
-            <i className="ri-calendar-2-line me-2" />
-            My schedule
+            <ItemIcon icon="ri-calendar-2-line" />
+            <ItemLabel>My Schedule</ItemLabel>
           </button>
-          <Link to="/doctor/reception-staff" className="dropdown-item" onClick={close}>
-            <i className="ri-user-star-line me-2" />
-            Reception staff
+          <Link to="/doctor/reception-staff" className="dropdown-item doctor-hamburger-menu__item" onClick={close}>
+            <ItemIcon icon="ri-user-star-line" />
+            <ItemLabel>Reception Staff</ItemLabel>
           </Link>
-          <Link to="/doctor/appointment-requests" className="dropdown-item" onClick={close}>
-            <i className="ri-mail-check-line me-2" />
-            Appointment requests
+          <Link to="/doctor/appointment-requests" className="dropdown-item doctor-hamburger-menu__item" onClick={close}>
+            <ItemIcon icon="ri-mail-check-line" />
+            <ItemLabel>Appointment Requests</ItemLabel>
           </Link>
-          <Link to="/doctor/erx" className="dropdown-item" onClick={close}>
-            <i className="ri-file-text-line me-2" />
-            eRx — Sign &amp; download
+          <Link to="/doctor/erx" className="dropdown-item doctor-hamburger-menu__item" onClick={close}>
+            <ItemIcon icon="ri-file-text-line" />
+            <ItemLabel>eRx — Sign &amp; Download</ItemLabel>
           </Link>
-          <Link to="/doctor/mobile/refill" className="dropdown-item" onClick={close}>
-            <i className="ri-medicine-bottle-line me-2" />
-            Refill inbox
+          <Link to="/doctor/mobile/refill" className="dropdown-item doctor-hamburger-menu__item" onClick={close}>
+            <ItemIcon icon="ri-medicine-bottle-line" />
+            <ItemLabel>Refill Inbox</ItemLabel>
           </Link>
+          {renderGroup(
+            "doctor-reports",
+            "Reports",
+            "ri-bar-chart-box-line",
+            DOCTOR_REPORTS.map((report) => (
+              <Link
+                key={report.path}
+                to={report.path}
+                className="dropdown-item doctor-hamburger-menu__item"
+                onClick={close}
+              >
+                <ItemIcon icon={report.icon} />
+                <ItemLabel>{toMenuCase(report.label)}</ItemLabel>
+              </Link>
+            ))
+          )}
 
           {sortedSessions.length ? (
             <>
-              <div className="dropdown-divider" />
-              <div className="dropdown-header text-muted text-uppercase fs-11">Open patients</div>
+              <div className="doctor-hamburger-menu__divider" />
+              <div className="doctor-hamburger-menu__section">Open Patients</div>
               {sortedSessions.map((session) => {
                 const name = String(session.patientName || "Patient").trim();
                 const active = session.patientKey === activePatientKey;
                 return (
                   <div
                     key={session.patientKey}
-                    className={`dropdown-item d-flex align-items-center gap-2 doctor-mobile-nav__session${active ? " active" : ""}`}
+                    className={`dropdown-item doctor-hamburger-menu__item doctor-mobile-nav__session${active ? " active" : ""}`}
                   >
                     <HiddenLink
                       to={session.resumePath || "/doctor/patientboard"}
@@ -239,7 +341,7 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
                       >
                         {getPatientInitials(name)}
                       </span>
-                      <span className="text-truncate">{name}</span>
+                      <ItemLabel>{name}</ItemLabel>
                     </HiddenLink>
                     <button
                       type="button"
@@ -261,46 +363,37 @@ const DoctorMobileNavMenu = ({ userRole, onOpenHelp, onOpenWhatsApp }) => {
             </>
           ) : null}
 
-          <div className="dropdown-divider" />
-          <div className="dropdown-header text-muted text-uppercase fs-11">Reports</div>
-          {DOCTOR_REPORTS.map((report) => (
-            <Link key={report.path} to={report.path} className="dropdown-item" onClick={close}>
-              <i className={`${report.icon} me-2`} />
-              {report.label}
+          <div className="doctor-hamburger-menu__divider" />
+          <div className="doctor-hamburger-menu__section">Practice</div>
+          {practiceItems.map((item) => (
+            <Link
+              key={item.id}
+              to={item.link}
+              className="dropdown-item doctor-hamburger-menu__item"
+              onClick={close}
+            >
+              <ItemIcon icon={item.icon} />
+              <ItemLabel>{item.label}</ItemLabel>
             </Link>
           ))}
+          {extraMoreItems.length ? renderMoreLeaves(extraMoreItems) : null}
 
-          {moreMenuItems.length ? (
-            <>
-              <div className="dropdown-divider" />
-              <div className="dropdown-header text-muted text-uppercase fs-11">More</div>
-              {renderMoreLeaves(moreMenuItems)}
-            </>
-          ) : null}
-
-          <div className="dropdown-divider" />
-          <div className="dropdown-header text-muted text-uppercase fs-11">Help</div>
+          <div className="doctor-hamburger-menu__divider" />
+          <div className="doctor-hamburger-menu__section">Support</div>
+          <Link to="/doctor/support" className="dropdown-item doctor-hamburger-menu__item" onClick={close}>
+            <ItemIcon icon="ri-customer-service-2-line" />
+            <ItemLabel>Support &amp; Tickets</ItemLabel>
+          </Link>
           <button
             type="button"
-            className="dropdown-item"
-            onClick={() => {
-              close();
-              if (typeof onOpenHelp === "function") onOpenHelp();
-            }}
-          >
-            <i className="ri-question-line me-2" />
-            Help &amp; Support
-          </button>
-          <button
-            type="button"
-            className="dropdown-item"
+            className="dropdown-item doctor-hamburger-menu__item"
             onClick={() => {
               close();
               if (typeof onOpenWhatsApp === "function") onOpenWhatsApp();
             }}
           >
-            <i className="ri-whatsapp-line me-2" style={{ color: "#25D366" }} />
-            WhatsApp messaging
+            <ItemIcon icon="ri-whatsapp-line" />
+            <ItemLabel>WhatsApp Messaging</ItemLabel>
           </button>
         </div>
       </DropdownMenu>

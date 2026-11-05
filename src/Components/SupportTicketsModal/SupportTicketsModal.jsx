@@ -347,13 +347,11 @@ export default function SupportTicketsModal({ isOpen, toggle, onActiveCountChang
                     <td>{ticket.category}</td>
                     <td>
                       <span className={`badge patient-list-modal__status ${priorityBadgeClass(ticket.priority)}`}>
-                        <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                         {ticket.priority}
                       </span>
                     </td>
                     <td>
                       <span className={`badge patient-list-modal__status ${statusBadgeClass(ticket.status)}`}>
-                        <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                         {ticket.status}
                       </span>
                     </td>

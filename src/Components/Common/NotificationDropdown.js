@@ -619,14 +619,6 @@ const NotificationDropdown = () => {
     const unreadNotes = notes.filter((row) => !noteRead(row)).length;
     const badgeCount = unreadNotes + alerts.length;
 
-    const viewAll = (
-        <div className="my-3 text-center">
-            <button type="button" className="btn btn-soft-success waves-effect waves-light" onClick={() => openPage('/notifications')}>
-                View All Notifications <i className="ri-arrow-right-line align-middle"></i>
-            </button>
-        </div>
-    );
-
     return (
         <React.Fragment>
             <Dropdown isOpen={isNotificationDropdown} toggle={toggleNotificationDropdown} className="topbar-head-dropdown ms-1 header-item">
@@ -641,7 +633,7 @@ const NotificationDropdown = () => {
                 </DropdownToggle>
                 <DropdownMenu className="dropdown-menu-lg dropdown-menu-end p-0">
                     <div className="dropdown-head dropdown-head-minimal rounded-top">
-                        <div className="p-3">
+                        <div className="notification-dropdown-head">
                             <Row className="align-items-center">
                                 <Col>
                                     <h6 className="m-0 fs-16 fw-semibold text-body"> Notifications </h6>
@@ -658,7 +650,7 @@ const NotificationDropdown = () => {
                             </Row>
                         </div>
 
-                        <div className="px-2 pt-2">
+                        <div className="notification-dropdown-tabs">
                             <Nav className="nav-tabs dropdown-tabs nav-tabs-custom">
                                 <NavItem>
                                     <NavLink href="#" className={classnames({ active: activeTab === '1' })} onClick={() => toggleTab('1')}>
@@ -685,7 +677,6 @@ const NotificationDropdown = () => {
                                 {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openAlert} />)}
                                 {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} onOpen={openNote} />)}
                                 {alerts.length === 0 && notes.length === 0 ? <EmptyRow text="You are all caught up." /> : null}
-                                {viewAll}
                             </SimpleBar>
                         </TabPane>
 
@@ -693,7 +684,6 @@ const NotificationDropdown = () => {
                             <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
                                 {notes.map((row) => <NoteItem key={noteId(row)} row={row} onRead={markRead} onOpen={openNote} />)}
                                 {notes.length === 0 ? <EmptyRow text="No messages yet." /> : null}
-                                {viewAll}
                             </SimpleBar>
                         </TabPane>
 
@@ -701,7 +691,6 @@ const NotificationDropdown = () => {
                                 <SimpleBar style={{ maxHeight: "300px" }} className="pe-2">
                                 {alerts.map((alert) => <AlertItem key={alert.id} alert={alert} onOpen={openAlert} />)}
                                 {alerts.length === 0 ? <EmptyRow text="No alerts right now." /> : null}
-                                {viewAll}
                                 </SimpleBar>
                         </TabPane>
                     </TabContent>

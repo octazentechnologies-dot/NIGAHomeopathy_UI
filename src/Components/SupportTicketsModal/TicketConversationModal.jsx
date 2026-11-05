@@ -166,7 +166,6 @@ export default function TicketConversationModal({
             {idLabel} {ticket.id}
           </span>
           <span className={`badge patient-list-modal__status ${statusBadgeClass(ticket.status)}`}>
-            <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
             {ticket.status}
           </span>
         </span>
@@ -207,7 +206,6 @@ export default function TicketConversationModal({
               <dt>Status</dt>
               <dd>
                 <span className={`badge patient-list-modal__status ${statusBadgeClass(ticket.status)}`}>
-                  <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                   {ticket.status}
                 </span>
               </dd>

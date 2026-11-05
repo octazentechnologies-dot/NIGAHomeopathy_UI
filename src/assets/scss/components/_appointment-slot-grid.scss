@@ -216,7 +216,8 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   font-weight: 600;
 }
 
-.new-appointment-modal .appointment-slot-panel {
+.new-appointment-modal .appointment-slot-panel,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-panel {
   border: 0;
   border-radius: 0;
   padding: 0;
@@ -225,64 +226,79 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   box-shadow: none;
 }
 
-.new-appointment-modal .modal-dialog {
+.modal-dialog.new-appointment-modal,
+.modal-dialog.appointment-time-edit-modal,
+.new-appointment-modal.modal-dialog,
+.appointment-time-edit-modal.modal-dialog {
   max-width: 720px;
 }
 
 .new-appointment-modal .appointment-slot-grid,
-.new-appointment-modal .appointment-slot-grid--compact {
+.new-appointment-modal .appointment-slot-grid--compact,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-grid,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-grid--compact {
   gap: 0.35rem;
 }
 
-.new-appointment-modal .appointment-slot-summary {
+.new-appointment-modal .appointment-slot-summary,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-summary {
   flex-direction: row;
   align-items: center;
   gap: 0.55rem;
 }
 
-.new-appointment-modal .appointment-slot-summary-bar {
+.new-appointment-modal .appointment-slot-summary-bar,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-summary-bar {
   flex: 1 1 auto;
   height: 6px;
 }
 
-.new-appointment-modal .appointment-slot-legend {
+.new-appointment-modal .appointment-slot-legend,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-legend {
   flex: 0 0 auto;
   gap: 0.5rem;
   font-size: 0.65rem;
 }
 
-.new-appointment-modal .appointment-slot-legend-item {
+.new-appointment-modal .appointment-slot-legend-item,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-legend-item {
   gap: 0.28rem;
 }
 
-.new-appointment-modal .appointment-slot-legend-swatch {
+.new-appointment-modal .appointment-slot-legend-swatch,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-legend-swatch {
   width: 8px;
   height: 8px;
 }
 
-.new-appointment-modal .appointment-slot-grid-body {
+.new-appointment-modal .appointment-slot-grid-body,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-grid-body {
   max-height: 6.6rem;
   overflow-y: auto;
   gap: 3px;
   padding-right: 0.15rem;
 }
 
-.new-appointment-modal .appointment-slot-hour-row {
+.new-appointment-modal .appointment-slot-hour-row,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-hour-row {
   grid-template-columns: 2.55rem minmax(0, 1fr);
   gap: 0.35rem;
 }
 
-.new-appointment-modal .appointment-slot-hour-label {
+.new-appointment-modal .appointment-slot-hour-label,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-hour-label {
   font-size: 0.65rem;
   padding-right: 0;
 }
 
-.new-appointment-modal .appointment-slot-row {
+.new-appointment-modal .appointment-slot-row,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-row {
   grid-template-columns: repeat(auto-fit, minmax(4.35rem, 1fr));
   gap: 3px;
 }
 
-.new-appointment-modal .appointment-slot-chip {
+.new-appointment-modal .appointment-slot-chip,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-chip {
   min-height: 1.28rem;
   padding: 0.04rem 0.15rem;
   border-radius: 3px;
@@ -290,7 +306,8 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   line-height: 1.1;
 }
 
-.new-appointment-modal .appointment-slot-chip.available:hover {
+.new-appointment-modal .appointment-slot-chip.available:hover,
+.appointment-time-edit-modal.new-appointment-modal .appointment-slot-chip.available:hover {
   transform: none;
   box-shadow: none;
 }
@@ -319,15 +336,18 @@ $slot-color-current: #ffbc0a; // E-CONSULT
     min-height: 34px;
   }
 
-  .new-appointment-modal .appointment-slot-panel {
+  .new-appointment-modal .appointment-slot-panel,
+  .appointment-time-edit-modal.new-appointment-modal .appointment-slot-panel {
     padding: 0;
   }
 
-  .new-appointment-modal .appointment-slot-summary {
+  .new-appointment-modal .appointment-slot-summary,
+  .appointment-time-edit-modal.new-appointment-modal .appointment-slot-summary {
     align-items: flex-start;
   }
 
-  .new-appointment-modal .appointment-slot-grid-body {
+  .new-appointment-modal .appointment-slot-grid-body,
+  .appointment-time-edit-modal.new-appointment-modal .appointment-slot-grid-body {
     max-height: 8.5rem;
   }
 }
@@ -338,7 +358,7 @@ $slot-color-current: #ffbc0a; // E-CONSULT
   }
 }
 
-.appointment-time-edit-modal .modal-body {
-  max-height: calc(100vh - 180px);
+.appointment-time-edit-modal.new-appointment-modal .modal-body {
+  max-height: calc(100vh - 160px);
   overflow-y: auto;
 }

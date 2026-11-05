@@ -332,7 +332,6 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
                     <td>{ticket.category}</td>
                     <td>
                       <span className={`badge patient-list-modal__status ${priorityBadgeClass(ticket.priority)}`}>
-                        <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                         {ticket.priority}
                       </span>
                     </td>
@@ -342,7 +341,6 @@ export default function EnquiriesModal({ isOpen, toggle, onActiveCountChange }) 
                     </td>
                     <td>
                       <span className={`badge patient-list-modal__status ${statusBadgeClass(ticket.status)}`}>
-                        <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
                         {ticket.status}
                       </span>
                     </td>

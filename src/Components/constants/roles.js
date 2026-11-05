@@ -33,19 +33,24 @@ const usesPatientDashboardLayout = (role) => role === UserRole.PATIENT;
 /** Reception portal: horizontal top nav (same shell as admin/account) */
 const usesReceptionDashboardLayout = (role) => role === UserRole.RECEPTION;
 
-/** Admin / Account / Pharmacy / Patient / Reception: full-width fixed topbar + horizontal nav */
+/** Admin / Management / Account / Pharmacy / Patient / Reception: full-width fixed topbar + horizontal nav */
 const usesAdminDashboardLayout = (role) =>
     role === UserRole.ADMIN ||
+    role === UserRole.MANAGEMENT ||
     usesAccountDashboardLayout(role) ||
     usesPharmacyDashboardLayout(role) ||
     usesPatientDashboardLayout(role) ||
     usesReceptionDashboardLayout(role);
 
-/** Topbar briefcase "More" overflow menu (admin + doctor + patient) */
+/** Topbar hamburger / More overflow (admin + management + account + pharmacy + patient + reception + doctor) */
 const usesTopbarMoreMenu = (role) =>
     role === UserRole.ADMIN ||
-    usesDoctorDashboardLayout(role) ||
-    usesPatientDashboardLayout(role);
+    role === UserRole.MANAGEMENT ||
+    usesAccountDashboardLayout(role) ||
+    usesPharmacyDashboardLayout(role) ||
+    usesPatientDashboardLayout(role) ||
+    usesReceptionDashboardLayout(role) ||
+    usesDoctorDashboardLayout(role);
 
 const resolveUserRole = (userProfile) => {
     if (userProfile?.role) return userProfile.role;

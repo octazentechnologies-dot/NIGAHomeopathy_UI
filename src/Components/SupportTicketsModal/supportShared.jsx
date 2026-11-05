@@ -4,9 +4,9 @@ import { PaginationItem, PaginationLink } from "reactstrap";
 export const PAGE_SIZE = 5;
 
 export const priorityBadgeClass = (priority) => {
-  if (priority === "High" || priority === "Urgent") return "bg-danger";
-  if (priority === "Medium") return "bg-warning";
-  return "bg-success";
+  if (priority === "High" || priority === "Urgent") return "bg-danger-subtle text-danger";
+  if (priority === "Medium") return "bg-warning-subtle text-warning";
+  return "bg-success-subtle text-success";
 };
 
 export const priorityTextClass = (priority) => {
@@ -16,11 +16,11 @@ export const priorityTextClass = (priority) => {
 };
 
 export const statusBadgeClass = (status) => {
-  if (status === "Open") return "bg-primary";
-  if (status === "Pending") return "bg-warning";
-  if (status === "In Progress") return "bg-info";
-  if (status === "Closed" || status === "Resolved") return "bg-secondary";
-  return "bg-success";
+  if (status === "Open") return "bg-primary-subtle text-primary";
+  if (status === "Pending") return "bg-warning-subtle text-warning";
+  if (status === "In Progress") return "bg-info-subtle text-info";
+  if (status === "Closed" || status === "Resolved") return "bg-secondary-subtle text-secondary";
+  return "bg-success-subtle text-success";
 };
 
 export const formatFileSize = (bytes) => {

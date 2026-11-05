@@ -39,11 +39,28 @@ export function iconForPopup({ title, text, html } = {}) {
   return bodyIcon || titleIcon;
 }
 
+const COMPACT_POPUP_DEFAULTS = {
+  width: '26rem',
+  buttonsStyling: true,
+  reverseButtons: false,
+  focusConfirm: true,
+};
+
 const originalFire = Swal.fire.bind(Swal);
+
+function withCompactDefaults(opts = {}) {
+  const next = { ...COMPACT_POPUP_DEFAULTS, ...opts };
+  // Keep confirm dialogs visually consistent when callers omit colors.
+  if (next.showCancelButton && !next.input) {
+    if (!next.confirmButtonColor) next.confirmButtonColor = '#25a0e2';
+    if (!next.cancelButtonColor) next.cancelButtonColor = '#64748b';
+  }
+  return next;
+}
 
 Swal.fire = function fireWithMessageIcon(...args) {
   if (args.length >= 1 && args[0] && typeof args[0] === 'object') {
-    const opts = { ...args[0] };
+    const opts = withCompactDefaults(args[0]);
     if (typeof opts.didOpen === 'function') {
       return originalFire(opts);
     }
@@ -63,10 +80,12 @@ Swal.fire = function fireWithMessageIcon(...args) {
     const text = typeof args[1] === 'string' ? args[1] : undefined;
     const icon = typeof args[2] === 'string' ? args[2] : undefined;
     const inferred = iconForPopup({ title, text });
-    if (!icon && inferred) return originalFire({ title, text, icon: inferred });
+    const base = withCompactDefaults({ title, text });
+    if (!icon && inferred) return originalFire({ ...base, icon: inferred });
     if (icon === 'success' && inferred && inferred !== 'success') {
-      return originalFire({ title, text, icon: inferred });
+      return originalFire({ ...base, icon: inferred });
     }
+    return originalFire({ ...base, ...(icon ? { icon } : {}) });
   }
 
   return originalFire(...args);

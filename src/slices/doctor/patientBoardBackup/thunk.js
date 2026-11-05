@@ -134,7 +134,6 @@ export const restorePatientBoardBackupSessions = () => async (dispatch, getState
         showCancelButton: true,
         confirmButtonText: 'Replace & Restore',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#000000',
       });
       if (!mergeConfirm.isConfirmed) {
         return false;
@@ -214,26 +213,24 @@ export const logoutWithBackupPrompt = () => async (dispatch, getState) => {
 
   if (shouldOfferBackupOnLogout(role, sessions)) {
     const patientList = patientNames
-      .map((name) => `<li style="margin-bottom:4px;">${name}</li>`)
+      .map((name) => `<li>${name}</li>`)
       .join('');
 
     const result = await Swal.fire({
       icon: 'question',
       title: 'Save your ongoing work?',
       html: `
-        <div style="text-align:left;font-size:14px;line-height:1.5;">
-          <p style="margin-bottom:12px;">
+        <div class="swal2-confirm-body">
+          <p>
             You have in-progress work for <strong>${patientNames.length}</strong> patient(s).
             Would you like to save a backup before logout?
           </p>
-          <ul style="margin:0;padding-left:18px;">${patientList}</ul>
+          <ul>${patientList}</ul>
         </div>
       `,
       showCancelButton: true,
       confirmButtonText: 'Save & Logout',
       cancelButtonText: 'Logout without saving',
-      confirmButtonColor: '#000000',
-      cancelButtonColor: '#6c757d',
     });
 
     if (result.isConfirmed) {
@@ -255,7 +252,6 @@ export const logoutWithBackupPrompt = () => async (dispatch, getState) => {
           showCancelButton: true,
           confirmButtonText: 'Logout anyway',
           cancelButtonText: 'Stay logged in',
-          confirmButtonColor: '#000000',
         });
         if (!retry.isConfirmed) {
           return false;

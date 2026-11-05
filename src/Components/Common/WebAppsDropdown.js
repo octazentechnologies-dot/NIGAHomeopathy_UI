@@ -22,15 +22,10 @@ const LINKS_BY_ROLE = {
         { to: '/reception/case-paper', icon: 'ri-file-user-line', label: 'Case paper' },
         { to: '/notifications', icon: 'ri-notification-3-line', label: 'Notifications' },
     ],
-    // Account: top navbar + dashboard Quick Actions cover menus — no Quick Links grid (avoids duplicates).
+    // Account / Pharmacy: horizontal top nav covers menus — no Quick Links grid (avoids duplicates).
     [UserRole.ACCOUNT]: [],
-
-    [UserRole.PHARMACY]: [
-        { to: '/pharmacydashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
-        { to: '/pharmacy/orders', icon: 'ri-shopping-bag-3-line', label: 'Orders' },
-        { to: '/pharmacy/quotes', icon: 'ri-price-tag-3-line', label: 'Quotes' },
-        { to: '/pharmacy/onboarding', icon: 'ri-store-2-line', label: 'Onboarding' },
-    ],
+    [UserRole.PHARMACY]: [],
+    [UserRole.PHARMACY_PARTNER]: [],
     [UserRole.PATIENT]: [
         { to: '/patient/prescriptions', icon: 'ri-file-list-3-line', label: 'Prescriptions' },
         { to: '/patient/medicine-orders', icon: 'ri-capsule-line', label: 'Medicines' },

@@ -30,7 +30,6 @@ import {
     updateAppointmentStatus,
     fetchDoctorDashboardCounts,
     createPatient,
-    deletePatient,
 } from '../../../slices/doctor/dashboard/thunk';
 import { buildPatientApiPayload, formatCalendarDateForApi, getPatientAuthContext, getPatientEmailForEdit } from '../../../helpers/patient_payload_helper';
 import DateOfBirthPicker, { DOB_DISPLAY_FORMAT } from '../../../Components/Common/DateOfBirthPicker';
@@ -434,10 +433,9 @@ const AppointmentTimeCell = ({
     return (
         <>
             <div className="appointment-time-cell">
-                <span className="appointment-time-value">{displayTime}</span>
                 <span
                     id={editButtonId}
-                    className="d-inline-block"
+                    className="appointment-time-edit-wrap"
                     tabIndex={isLocked ? 0 : undefined}
                     title={isLocked ? COMPLETED_APPOINTMENT_LOCKED_MESSAGE : 'Edit appointment — update time, reschedule, or cancel'}
                 >
@@ -453,6 +451,7 @@ const AppointmentTimeCell = ({
                         <i className="ri-pencil-fill" aria-hidden="true" />
                     </button>
                 </span>
+                <span className="appointment-time-value">{displayTime}</span>
             </div>
 
             <Modal
@@ -460,54 +459,66 @@ const AppointmentTimeCell = ({
                 toggle={onCancelEdit}
                 centered
                 size="lg"
-                className="patient-list-modal appointment-time-edit-modal"
+                className="patient-list-modal new-appointment-modal appointment-time-edit-modal"
                 backdrop="static"
             >
                 <ModalHeader className="patient-list-modal__header" toggle={onCancelEdit}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-calendar-event-line" style={{ color: '#25a0e2', fontSize: 15 }} />
+                        <span className="patient-list-modal__title-icon" aria-hidden="true">
+                            <i className="ri-calendar-event-line" />
+                        </span>
                         <span className="patient-list-modal__title-text">Edit Appointment</span>
                     </span>
                 </ModalHeader>
                 <ModalBody>
-                    <div className="appointment-time-patient-chip mb-3">
-                        <i className="ri-user-3-line" aria-hidden="true" />
-                        <span>{patientName}</span>
-                    </div>
-                    <p className="text-muted small mb-3">
-                        Update the slot on this day list, reschedule with patient notice, or cancel the visit.
-                    </p>
-                    <div className="row g-3 mb-3">
-                        <div className="col-md-6">
-                            <Label className="form-label appointment-time-edit-modal__label">
-                                <i className="ri-calendar-line" />
-                                Appointment Date
-                            </Label>
-                            <Input readOnly disabled value={appointmentDate || '—'} />
+                    <div className="appointment-time-edit-modal__intro">
+                        <div className="appointment-time-patient-chip">
+                            <i className="ri-user-3-line" aria-hidden="true" />
+                            <span>{patientName}</span>
                         </div>
+                        <p className="appointment-time-edit-modal__lead text-muted mb-0">
+                            Update the slot on this day list, reschedule with patient notice, or cancel the visit.
+                        </p>
+                    </div>
+                    <div className="row g-3 new-appointment-form-fields">
                         <div className="col-md-6">
-                            <Label className="form-label appointment-time-edit-modal__label">
-                                <i className="ri-timer-line" />
-                                Slot Interval
+                            <Label className="form-label new-appointment-modal__label">
+                                <i className="ri-calendar-line" aria-hidden="true" />
+                                Appointment Date
                             </Label>
                             <Input
                                 readOnly
                                 disabled
-                                className="appointment-slot-interval-display"
-                                value={
-                                    hasSchedule && slotInterval
-                                        ? formatSlotIntervalLabel(slotInterval)
-                                        : 'Not configured'
-                                }
+                                className="new-appointment-modal__field"
+                                value={appointmentDate || '—'}
                             />
                         </div>
                         <div className="col-md-6">
-                            <Label className="form-label appointment-time-edit-modal__label">
-                                <i className="ri-refresh-line" />
+                            <Label className="form-label new-appointment-modal__label">
+                                <i className="ri-timer-line" aria-hidden="true" />
+                                Slot Interval
+                            </Label>
+                            <div className="new-appointment-modal__interval">
+                                <Input
+                                    readOnly
+                                    disabled
+                                    className="appointment-slot-interval-display"
+                                    value={
+                                        hasSchedule && slotInterval
+                                            ? formatSlotIntervalLabel(slotInterval)
+                                            : 'Not configured'
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="col-md-6">
+                            <Label className="form-label new-appointment-modal__label">
+                                <i className="ri-refresh-line" aria-hidden="true" />
                                 Reason
                             </Label>
                             <Input
                                 type="select"
+                                className="new-appointment-modal__field"
                                 value={rescheduleReason}
                                 onChange={(e) => setRescheduleReason(e.target.value)}
                                 disabled={saving || cancelling}
@@ -520,76 +531,98 @@ const AppointmentTimeCell = ({
                             </Input>
                         </div>
                         <div className="col-md-6">
-                            <Label className="form-label appointment-time-edit-modal__label">
-                                <i className="ri-sticky-note-line" />
+                            <Label className="form-label new-appointment-modal__label">
+                                <i className="ri-sticky-note-line" aria-hidden="true" />
                                 Additional Note
                             </Label>
                             <Input
                                 type="text"
+                                className="new-appointment-modal__field"
                                 value={additionalNote}
                                 onChange={(e) => setAdditionalNote(e.target.value)}
                                 disabled={saving || cancelling}
                                 placeholder=""
                             />
                         </div>
-                    </div>
-                    {!doctorId ? (
-                        <div className="text-muted">Doctor information is missing for this appointment.</div>
-                    ) : !hasSchedule ? (
-                        <div className="border rounded p-3 bg-light">
-                            <p className="text-muted mb-2">No slot schedule exists for this date.</p>
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="new-appointment-modal__setup-btn"
-                                onClick={() => setScheduleModalOpen(true)}
-                            >
-                                <i className="ri-calendar-line" aria-hidden="true" /> Set up slots for this date
-                            </Button>
+                        <div className="col-12">
+                            <div className="new-appointment-modal__slots">
+                                <div className="new-appointment-modal__slots-header">
+                                    <Label className="form-label mb-0 new-appointment-modal__label">
+                                        <i className="ri-grid-line" aria-hidden="true" />
+                                        Appointment Time Slots
+                                    </Label>
+                                </div>
+                                {!doctorId ? (
+                                    <div className="new-appointment-modal__empty">
+                                        <span className="new-appointment-modal__empty-icon" aria-hidden="true">
+                                            <i className="ri-user-forbid-line" />
+                                        </span>
+                                        <div>
+                                            <div className="new-appointment-modal__empty-title">Doctor missing</div>
+                                            <div className="text-muted">Doctor information is missing for this appointment.</div>
+                                        </div>
+                                    </div>
+                                ) : !hasSchedule ? (
+                                    <div className="new-appointment-modal__setup border rounded p-3">
+                                        <div className="d-flex align-items-start gap-2 mb-2">
+                                            <i className="ri-settings-3-line new-appointment-modal__setup-icon" aria-hidden="true" />
+                                            <p className="text-muted mb-0">No slot schedule exists for this date.</p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="new-appointment-modal__setup-btn"
+                                            onClick={() => setScheduleModalOpen(true)}
+                                        >
+                                            <i className="ri-add-circle-line me-1" aria-hidden="true" />
+                                            Set up slots for this date
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="appointment-slot-panel">
+                                        <AppointmentSlotGrid
+                                            slots={slots}
+                                            loading={slotsLoading || saving}
+                                            selectedTime={selectedSlot?.time}
+                                            onSlotClick={handleSlotClick}
+                                            emptyMessage="No slots configured for this date."
+                                            showSummaryBar
+                                        />
+                                    </div>
+                                )}
+                                <div className="new-appointment-modal__hint">
+                                    <i className="ri-cursor-line" aria-hidden="true" />
+                                    Select an available slot, then click Update time. Use Reschedule to notify the patient.
+                                </div>
+                            </div>
                         </div>
-                    ) : (
-                        <div className="appointment-slot-panel">
-                            <AppointmentSlotGrid
-                                slots={slots}
-                                loading={slotsLoading || saving}
-                                selectedTime={selectedSlot?.time}
-                                onSlotClick={handleSlotClick}
-                                emptyMessage="No slots configured for this date."
-                                showSummaryBar
-                            />
-                        </div>
-                    )}
-                    <div className="text-muted mt-2" style={{ fontSize: '0.875rem' }}>
-                        Select an available slot, then click Update time (no patient notice). Use Reschedule to move the visit and notify the patient.
                     </div>
                 </ModalBody>
-                <ModalFooter className="appointment-time-edit-modal__footer appointment-time-edit-modal__footer--actions">
-                    <button
-                        type="button"
-                        className="btn btn-soft-danger modal-action-btn"
+                <ModalFooter className="justify-content-end appointment-time-edit-modal__footer">
+                    <ModalActionButton
+                        action="cancel"
                         onClick={() => setCancelModalOpen(true)}
                         disabled={saving || cancelling}
                     >
-                        <i className="ri-calendar-close-line align-middle" aria-hidden />
-                        <span>Cancel</span>
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-soft-info modal-action-btn"
+                        Cancel
+                    </ModalActionButton>
+                    <ModalActionButton
+                        action="add"
+                        iconClassName="ri-calendar-event-line"
                         onClick={() => setRescheduleModalOpen(true)}
                         disabled={saving || cancelling || !patientAppId}
                     >
-                        <i className="ri-calendar-schedule-line align-middle" aria-hidden />
-                        <span>Reschedule</span>
-                    </button>
+                        Reschedule
+                    </ModalActionButton>
                     <ModalActionButton
-                        action="update"
+                        action="save"
+                        iconClassName="ri-refresh-line"
                         onClick={handleUpdateAppointment}
                         disabled={saving || cancelling || !selectedSlot || !hasSchedule}
                         loading={saving}
-                        loadingLabel="Update time"
+                        loadingLabel="Update Time"
                     >
-                        Update time
+                        Update Time
                     </ModalActionButton>
                 </ModalFooter>
             </Modal>
@@ -617,81 +650,86 @@ const AppointmentTimeCell = ({
             >
                 <ModalHeader className="patient-list-modal__header" toggle={closeCancelModal}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
+                        <span className="patient-list-modal__title-icon patient-list-modal__title-icon--danger" aria-hidden="true">
+                            <i className="ri-calendar-close-line" />
+                        </span>
                         <span className="patient-list-modal__title-text">Cancel Appointment</span>
                     </span>
                 </ModalHeader>
                 <ModalBody>
-                    <div className="cancel-appointment-modal__warning">
-                        <i className="ri-error-warning-fill" aria-hidden="true" />
-                        <div>
-                            <p className="cancel-appointment-modal__warning-title mb-2">
-                                Are you sure you want to cancel this appointment?
-                            </p>
-                            <div className="cancel-appointment-modal__summary">
-                                <span className="cancel-appointment-modal__avatar" aria-hidden="true">
-                                    <i className="ri-user-3-line" />
-                                </span>
-                                <div className="cancel-appointment-modal__summary-text">
-                                    <div className="cancel-appointment-modal__patient">{patientName}</div>
-                                    <div className="cancel-appointment-modal__meta">{doctorName}</div>
-                                    <div className="cancel-appointment-modal__meta">
-                                        {appointmentSummaryWhen}
-                                        {' • '}
-                                        {appointmentTypeLabel}
-                                    </div>
-                                </div>
-                            </div>
+                    <div className="cancel-appointment-modal__intro">
+                        <div className="cancel-appointment-modal__patient-chip">
+                            <i className="ri-user-3-line" aria-hidden="true" />
+                            <span>{patientName}</span>
+                        </div>
+                        <p className="cancel-appointment-modal__lead mb-0">
+                            Cancel this visit for {doctorName}? Slot will free up after confirm.
+                        </p>
+                    </div>
+                    <div className="cancel-appointment-modal__summary">
+                        <div className="cancel-appointment-modal__meta-row">
+                            <i className="ri-time-line" aria-hidden="true" />
+                            <span>{appointmentSummaryWhen}</span>
+                        </div>
+                        <div className="cancel-appointment-modal__meta-row">
+                            <i className="ri-hospital-line" aria-hidden="true" />
+                            <span>{appointmentTypeLabel}</span>
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <Label className="form-label appointment-time-edit-modal__label">
-                            Cancellation Reason
-                        </Label>
-                        <Input
-                            type="select"
-                            value={cancellationReason}
-                            onChange={(e) => setCancellationReason(e.target.value)}
-                            disabled={cancelling}
-                        >
-                            {CANCELLATION_REASON_OPTIONS.map((option) => (
-                                <option key={option.label} value={option.value} disabled={option.value === ''}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </Input>
-                    </div>
-                    <div className="mt-3">
-                        <Label className="form-label appointment-time-edit-modal__label">
-                            Additional Note
-                        </Label>
-                        <Input
-                            type="textarea"
-                            rows={3}
-                            value={cancellationNote}
-                            onChange={(e) => setCancellationNote(e.target.value)}
-                            disabled={cancelling}
-                        />
+                    <div className="row g-3 cancel-appointment-modal__fields">
+                        <div className="col-12">
+                            <Label className="form-label cancel-appointment-modal__label">
+                                <i className="ri-error-warning-line" aria-hidden="true" />
+                                Cancellation Reason
+                            </Label>
+                            <Input
+                                type="select"
+                                value={cancellationReason}
+                                onChange={(e) => setCancellationReason(e.target.value)}
+                                disabled={cancelling}
+                            >
+                                {CANCELLATION_REASON_OPTIONS.map((option) => (
+                                    <option key={option.label} value={option.value} disabled={option.value === ''}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </Input>
+                        </div>
+                        <div className="col-12">
+                            <Label className="form-label cancel-appointment-modal__label">
+                                <i className="ri-sticky-note-line" aria-hidden="true" />
+                                Additional Note
+                            </Label>
+                            <Input
+                                type="textarea"
+                                rows={2}
+                                value={cancellationNote}
+                                onChange={(e) => setCancellationNote(e.target.value)}
+                                disabled={cancelling}
+                                placeholder="Optional note for the record"
+                            />
+                        </div>
                     </div>
                 </ModalBody>
                 <ModalFooter className="cancel-appointment-modal__footer">
-                    <button
-                        type="button"
-                        className="btn btn-outline-primary cancel-appointment-modal__keep-btn"
+                    <ModalActionButton
+                        action="close"
+                        iconClassName="ri-calendar-check-line"
+                        className="cancel-appointment-modal__keep-btn"
                         onClick={closeCancelModal}
                         disabled={cancelling}
                     >
-                        <i className="ri-calendar-check-line align-middle" aria-hidden />
-                        <span>Keep Appointment</span>
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-danger cancel-appointment-modal__confirm-btn"
+                        Keep Appointment
+                    </ModalActionButton>
+                    <ModalActionButton
+                        action="cancel"
                         onClick={handleConfirmCancelAppointment}
                         disabled={cancelling}
+                        loading={cancelling}
+                        loadingLabel="Cancelling..."
                     >
-                        <i className="ri-calendar-close-line align-middle" aria-hidden />
-                        <span>{cancelling ? 'Cancelling...' : 'Cancel Appointment'}</span>
-                    </button>
+                        Cancel Appointment
+                    </ModalActionButton>
                 </ModalFooter>
             </Modal>
 
@@ -1000,7 +1038,12 @@ const BestSellingProducts = () => {
 
         const tableModel = buildPrescriptionTableModel(details);
         if (!tableModel) {
-            return <p className="text-muted mb-0">No prescription details available.</p>;
+            return (
+                <div className="history-patient-modal__empty-detail">
+                    <i className="ri-file-list-3-line" aria-hidden="true" />
+                    <span>No prescription details available.</span>
+                </div>
+            );
         }
 
         const { symptomRows, remedyRows, rowSpan } = tableModel;
@@ -1223,13 +1266,20 @@ const BestSellingProducts = () => {
             const notes = extractCaseNotesList(appointmentHistoryNotes);
 
             if (notes.length > 0) {
-                const tabs = notes.map((note, index) => ({
-                    id: String(index + 1),
-                    title: note.createdDate || `Note ${index + 1}`,
-                    historyId: note.historyId,
-                    appointmentId: note.appointmentId,
-                    historyNote: note.historyNote || '',
-                }));
+                const tabs = notes.map((note, index) => {
+                    const rawDate = note.createdDate || note.CreatedDate || '';
+                    const parsed = rawDate ? moment(rawDate) : null;
+                    const title = parsed?.isValid()
+                        ? parsed.format('D MMM YYYY, hh:mm A')
+                        : (rawDate || `Note ${index + 1}`);
+                    return {
+                        id: String(index + 1),
+                        title,
+                        historyId: note.historyId,
+                        appointmentId: note.appointmentId,
+                        historyNote: note.historyNote || '',
+                    };
+                });
 
                 setCaseNotesTabs(tabs);
                 applyCaseNoteToEditor(tabs[0]);
@@ -1343,12 +1393,41 @@ const BestSellingProducts = () => {
         return gender === 0 ? 'M' : gender === 1 ? 'F' : 'N/A';
     };
 
-    // Helper function to format age/sex display (compact, single-line)
+    // Age column cells keep AgeY|Sex (e.g. 23Y|M); header text stays "Age"
     const getAgeSexDisplay = (dateOfBirth, gender) => {
         const age = calculateAgeYMD(dateOfBirth);
         const genderLabel = getGenderDisplay(gender);
-        if (!age) return `N/A/${genderLabel}`;
-        return `${age.years}y${age.months}m${age.days}d/${genderLabel}`;
+        if (!age) return `—|${genderLabel}`;
+        return `${age.years}Y|${genderLabel}`;
+    };
+
+    // Place column: city only (not full address)
+    const getCityPlaceDisplay = (row) => {
+        const direct = [
+            row?.cityName, row?.CityName, row?.city, row?.City,
+            row?.place, row?.Place,
+        ].find((value) => value != null && String(value).trim() !== '');
+        if (direct) return String(direct).trim();
+
+        const address = String(row?.address ?? row?.Address ?? '').trim();
+        if (!address) return '-';
+
+        const parts = address.split(/[,|/]+/).map((part) => part.replace(/\.$/, '').trim()).filter(Boolean);
+        if (!parts.length) return '-';
+        if (parts.length === 1) {
+            const words = parts[0].split(/\s+/).filter(Boolean);
+            return words.length <= 2 ? parts[0] : (words[words.length - 1] || '-');
+        }
+
+        for (let i = parts.length - 1; i >= 0; i -= 1) {
+            const part = parts[i];
+            if (/^\d{5,6}$/.test(part)) continue;
+            if (/^(india|maharashtra|mh)$/i.test(part)) continue;
+            const words = part.split(/\s+/).filter(Boolean);
+            if (words.length <= 3) return part;
+            return words[words.length - 1] || part;
+        }
+        return parts[parts.length - 1] || '-';
     };
 
     const formatPatientDisplayName = (name) => {
@@ -1506,7 +1585,7 @@ const BestSellingProducts = () => {
                 name: patientName,
                 patientName,
                 ageSex: getAgeSexDisplay(appointment.dateOfBirth, appointment.gender),
-                place: appointment.address || '-',
+                place: getCityPlaceDisplay(appointment),
                 appStatus: appointment.status || '-',
                 paymentStatus: appointment.paymentStatus ?? appointment.PaymentStatus ?? null,
                 paymentMethod: appointment.paymentMethod ?? appointment.PaymentMethod ?? null,
@@ -1526,7 +1605,7 @@ const BestSellingProducts = () => {
         id: patient.patientID,
         name: patient.patientName,
         ageSex: getAgeSexDisplay(patient.dateOfBirth, patient.gender),
-        place: patient.address || 'N/A',
+        place: getCityPlaceDisplay(patient),
         lastVisitAt: patient.lastVisitAt ?? patient.LastVisitAt ?? patient.dateodFirstVisit ?? patient.DateodFirstVisit ?? null,
         ...patient // Include all original patient data
     }));
@@ -2056,58 +2135,6 @@ const BestSellingProducts = () => {
         dispatchOpenNewAppointmentModal(patient);
     };
 
-    const handleDeletePatientFromAll = (patient) => {
-        const patientId = patient?.patientID || patient?.patientId || patient?.id;
-        if (!patientId) {
-            Swal.fire({
-                title: 'Error!',
-                text: 'Patient ID not found',
-                icon: 'error',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            return;
-        }
-
-        Swal.fire({
-            title: 'Are you sure want to delete this patient?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            showClass: { popup: 'animate__animated animate__fadeInDown' },
-            hideClass: { popup: 'animate__animated animate__fadeOutUp' }
-        }).then(async (result) => {
-            if (!result.isConfirmed) return;
-
-            try {
-                await dispatch(deletePatient({ patientId }));
-                const { userId } = getPatientAuthContext();
-                if (userId) {
-                    await dispatch(getPatientList({ userId }));
-                }
-                Swal.fire({
-                    title: 'Deleted!',
-                    text: 'Patient has been deleted.',
-                    icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            } catch (error) {
-                const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete patient';
-                Swal.fire({
-                    title: 'Error!',
-                    text: errorMessage,
-                    icon: 'error',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        });
-    };
-
     const handleAppointmentTimeUpdated = async () => {
         const { userId } = getPatientAuthContext();
         const todayDisplay = getTodayDisplayDate();
@@ -2274,6 +2301,20 @@ const BestSellingProducts = () => {
                             : '—'}
                     </td>
                 )}
+                {idPrefix === 'all' ? (
+                    <td className="dashboard-patient-col-edit text-center">
+                        <PatientDashboardActionGroup>
+                            <PatientDashboardActionButton
+                                id={`${idPrefix}-edit-${patient.id}`}
+                                icon="ri-pencil-fill"
+                                label="Edit"
+                                btnClass="btn-soft-success"
+                                tooltip="Edit Patient"
+                                onClick={() => openEditModal(patient)}
+                            />
+                        </PatientDashboardActionGroup>
+                    </td>
+                ) : null}
                 <td className="dashboard-patient-col-actions-combined">
                     <div className="dashboard-patient-actions">
                         <div className="dashboard-patient-actions-bar">
@@ -2318,7 +2359,6 @@ const BestSellingProducts = () => {
                         ) : null}
                         <div className="dashboard-patient-actions-section dashboard-patient-actions-section--followup">
                             <PatientDashboardActionGroup>
-                            {isTodayTab ? (
                                 <PatientDashboardActionButton
                                     id={`${idPrefix}-appt-${patient.id}`}
                                     icon="ri-calendar-event-line"
@@ -2327,35 +2367,6 @@ const BestSellingProducts = () => {
                                     tooltip="Next Appointment"
                                     onClick={() => handleNewAppointmentFromAll(patient)}
                                 />
-                            ) : (
-                                <>
-                                    <PatientDashboardActionButton
-                                        id={`${idPrefix}-edit-${patient.id}`}
-                                        icon="ri-pencil-fill"
-                                        label="Edit"
-                                        btnClass="btn-soft-success"
-                                        tooltip="Edit Patient"
-                                        onClick={() => openEditModal(patient)}
-                                    />
-                                    <PatientDashboardActionButton
-                                        id={`${idPrefix}-appt-${patient.id}`}
-                                        icon="ri-calendar-event-line"
-                                        label="Appointment"
-                                        btnClass="btn-soft-primary"
-                                        tooltip="Next Appointment"
-                                        onClick={() => handleNewAppointmentFromAll(patient)}
-                                    />
-                                    <PatientDashboardActionButton
-                                        id={`${idPrefix}-del-${patient.id}`}
-                                        icon="ri-delete-bin-5-line"
-                                        label="Delete"
-                                        btnClass="btn-soft-danger"
-                                        variant="remove"
-                                        tooltip="Delete Patient"
-                                        onClick={() => handleDeletePatientFromAll(patient)}
-                                    />
-                                </>
-                            )}
                             </PatientDashboardActionGroup>
                         </div>
                         </div>
@@ -2444,8 +2455,8 @@ const BestSellingProducts = () => {
         <React.Fragment>
             <style>{`
                 .dashboard-patient-table {
-                    table-layout: fixed;
-                    width: 100%;
+                    table-layout: fixed !important;
+                    width: 100% !important;
                 }
                 @media (max-width: 767.98px) {
                     .dashboard-patient-table,
@@ -2456,79 +2467,138 @@ const BestSellingProducts = () => {
                     }
                 }
                 .dashboard-patient-table .dashboard-patient-col-index {
-                    width: 2rem;
-                }
-                .dashboard-patient-table .dashboard-patient-col-name {
-                    width: 18%;
-                    min-width: 10rem;
-                }
-                .dashboard-patient-table .dashboard-patient-col-agesex {
-                    width: 6.75rem;
-                    min-width: 6.75rem;
-                    padding-right: 0.75rem !important;
-                }
-                .dashboard-patient-table .dashboard-patient-col-place {
-                    width: 10%;
-                    min-width: 6.25rem;
-                    padding-left: 0.55rem !important;
-                }
-                .dashboard-patient-table .dashboard-patient-col-mobile {
-                    width: 5.75rem;
-                }
-                .dashboard-patient-table .dashboard-patient-col-status {
-                    width: 6.25rem;
-                }
-                .dashboard-patient-table .dashboard-patient-col-apptime {
-                    width: 5.5rem;
-                    min-width: 5.5rem;
-                    max-width: 5.5rem;
+                    width: 2.75rem;
+                    min-width: 2.75rem;
+                    max-width: 3rem;
                     padding-left: 0.35rem !important;
                     padding-right: 0.35rem !important;
                     white-space: nowrap;
+                    text-align: center;
+                    vertical-align: middle;
+                }
+                .dashboard-patient-table .dashboard-patient-col-name {
+                    width: 12%;
+                    min-width: 7.5rem;
+                }
+                .dashboard-patient-table .dashboard-patient-col-agesex {
+                    width: 4.5rem;
+                    min-width: 4.5rem;
+                    max-width: 4.75rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
+                }
+                .dashboard-patient-table .dashboard-patient-col-place {
+                    width: 11%;
+                    min-width: 7.75rem;
+                    max-width: none;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.3rem !important;
+                }
+                .dashboard-patient-table .dashboard-patient-col-mobile {
+                    width: 6rem;
+                    min-width: 6rem;
+                    max-width: 6.25rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
+                }
+                .dashboard-patient-table .dashboard-patient-col-status {
+                    width: 5.5rem;
+                    min-width: 5.25rem;
+                    max-width: 5.75rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
+                }
+                .dashboard-patient-table .dashboard-patient-col-apptime {
+                    width: 6.5rem;
+                    min-width: 6.5rem;
+                    max-width: 6.75rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
+                    white-space: nowrap;
+                }
+                .dashboard-patient-table .dashboard-patient-col-edit {
+                    width: 2.75rem;
+                    min-width: 2.75rem;
+                    max-width: 3rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
+                    vertical-align: middle;
+                    white-space: nowrap;
+                }
+                .dashboard-patient-table .dashboard-patient-col-edit .dashboard-patient-action-group {
+                    width: 100% !important;
+                    justify-content: center !important;
                 }
                 .dashboard-patient-table .dashboard-patient-col-actions-combined {
-                    width: 16rem;
-                    min-width: 16rem;
-                    padding-left: 0.85rem !important;
-                    padding-right: 0.7rem !important;
+                    width: 8rem;
+                    min-width: 8rem;
+                    max-width: 8.25rem;
+                    padding-left: 0.4rem !important;
+                    padding-right: 0.4rem !important;
                 }
                 .dashboard-patient-table--today {
-                    table-layout: auto;
-                    width: max-content;
-                    min-width: 100%;
+                    table-layout: fixed !important;
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    max-width: 100% !important;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-actions-combined {
-                    width: auto;
-                    min-width: 15.5rem;
+                    width: 8rem;
+                    min-width: 8rem;
+                    max-width: 8.5rem;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-name {
-                    width: 20%;
-                    min-width: 10.5rem;
+                    width: 12%;
+                    min-width: 0;
+                    max-width: none;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-agesex {
-                    width: 6.75rem;
-                    min-width: 6.75rem;
-                    padding-right: 0.75rem !important;
+                    width: 4.5rem;
+                    min-width: 4.5rem;
+                    max-width: 4.75rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
+                    white-space: nowrap;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-place {
-                    width: 10%;
-                    min-width: 6.5rem;
-                    padding-left: 0.55rem !important;
+                    width: 11%;
+                    min-width: 7.75rem;
+                    max-width: none;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.3rem !important;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-mobile {
-                    width: 5.5rem;
+                    width: 6rem;
+                    min-width: 6rem;
+                    max-width: 6.25rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
+                    white-space: nowrap;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-status {
-                    width: 5.75rem;
-                    min-width: 5.75rem;
+                    width: 5.5rem;
+                    min-width: 5.25rem;
+                    max-width: 5.75rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
                     vertical-align: middle;
                 }
                 .dashboard-patient-table .dashboard-patient-col-paid,
                 .dashboard-patient-table--today .dashboard-patient-col-paid {
-                    width: 5.25rem;
-                    min-width: 5.25rem;
+                    width: 5rem;
+                    min-width: 4.85rem;
+                    max-width: 5.25rem;
+                    padding-left: 0.25rem !important;
+                    padding-right: 0.25rem !important;
                     vertical-align: middle;
                     white-space: nowrap;
+                }
+                .dashboard-patient-table .dashboard-patient-col-lastvisit {
+                    width: 6.5rem;
+                    min-width: 6.25rem;
+                    max-width: 7rem;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.3rem !important;
                 }
                 .dashboard-patient-status-stack {
                     display: flex;
@@ -2545,20 +2615,21 @@ const BestSellingProducts = () => {
                     display: inline-flex;
                     align-items: center;
                     margin: 0 !important;
-                    padding: 0.08rem 0.35rem !important;
-                    border-radius: 999px !important;
-                    font-size: 0.6rem !important;
+                    padding: 0.05rem 0.3rem !important;
+                    border-radius: 3px !important;
+                    font-size: 0.55rem !important;
                     font-weight: 700 !important;
-                    line-height: 1.2 !important;
+                    line-height: 1.15 !important;
+                    letter-spacing: 0 !important;
                     white-space: nowrap;
                 }
                 .dashboard-patient-table--today .dashboard-patient-col-apptime {
-                    width: 5.5rem;
-                    min-width: 5.5rem;
-                    max-width: 5.5rem;
-                    padding-left: 0.35rem !important;
-                    padding-right: 0.35rem !important;
-                    white-space: nowrap;
+                    width: 6.75rem;
+                    min-width: 6.75rem;
+                    max-width: 7rem;
+                    padding-left: 0.3rem !important;
+                    padding-right: 0.3rem !important;
+                    white-space: nowrap !important;
                 }
                 .appointment-time-edit-modal__footer--actions {
                     display: flex;
@@ -2574,39 +2645,44 @@ const BestSellingProducts = () => {
                     gap: 0.25rem;
                 }
                 .dashboard-patient-col-actions-combined {
-                    min-width: 9.5rem;
-                    width: 9.5rem;
+                    min-width: 8rem;
+                    width: 8rem;
+                    max-width: 8.25rem;
                     vertical-align: middle;
                 }
                 .dashboard-patient-table--reception .dashboard-patient-col-actions-combined {
                     min-width: 3.5rem;
                     width: 3.5rem;
+                    max-width: none;
                 }
                 .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-col-actions-combined {
-                    min-width: 12rem;
-                    width: 12rem;
+                    min-width: 7.25rem;
+                    width: 7.25rem;
+                    max-width: 7.5rem;
                 }
                 .dashboard-patient-actions {
                     display: flex;
                     align-items: center;
-                    width: 100%;
+                    justify-content: flex-start;
+                    width: max-content;
+                    max-width: 100%;
                 }
                 .dashboard-patient-actions-header,
                 .dashboard-patient-actions-bar {
                     display: grid;
-                    grid-template-columns: 5.75rem 2.75rem;
-                    column-gap: 0.65rem;
+                    grid-template-columns: 4.5rem 2.1rem;
+                    column-gap: 0.45rem;
                     align-items: center;
                     width: max-content;
                     max-width: 100%;
                 }
                 .dashboard-patient-table--reception .dashboard-patient-actions-header,
                 .dashboard-patient-table--reception .dashboard-patient-actions-bar {
-                    grid-template-columns: 2.75rem;
+                    grid-template-columns: 2.1rem;
                 }
                 .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-actions-header,
                 .dashboard-patient-table:not(.dashboard-patient-table--today) .dashboard-patient-actions-bar {
-                    grid-template-columns: 5.75rem 5.75rem;
+                    grid-template-columns: 4.5rem 2.1rem;
                 }
                 .dashboard-patient-actions-header span {
                     text-align: center;
@@ -2628,19 +2704,27 @@ const BestSellingProducts = () => {
                     min-width: 0;
                     width: 100%;
                 }
+                .dashboard-patient-actions-section--history,
+                .dashboard-patient-actions-section--followup {
+                    justify-content: center;
+                }
                 .dashboard-patient-actions-section__spacer {
                     display: inline-block;
-                    width: 1.35rem;
-                    height: 1.35rem;
+                    width: 1.1rem;
+                    height: 1.1rem;
                 }
                 .dashboard-patient-action-group {
                     display: inline-flex !important;
                     align-items: center;
                     justify-content: center;
                     flex-wrap: nowrap;
-                    gap: 0.35rem !important;
+                    gap: 0.18rem !important;
                     width: auto !important;
                     max-width: 100%;
+                }
+                .dashboard-patient-actions-section--history .dashboard-patient-action-group,
+                .dashboard-patient-actions-section--followup .dashboard-patient-action-group {
+                    gap: 0.18rem !important;
                 }
                 .dashboard-patient-action-group .edit,
                 .dashboard-patient-action-group .remove {
@@ -2650,16 +2734,32 @@ const BestSellingProducts = () => {
                     margin: 0 !important;
                     padding: 0 !important;
                     flex: 0 0 auto !important;
+                    width: auto !important;
                 }
                 .dashboard-patient-action-group .edit-item-btn,
                 .dashboard-patient-action-group .remove-item-btn {
                     margin: 0 !important;
-                    padding: 0.15rem 0.25rem !important;
-                    min-width: 1.35rem !important;
+                    padding: 0.08rem !important;
+                    min-width: 1.1rem !important;
+                    width: 1.1rem !important;
+                    height: 1.1rem !important;
+                    line-height: 1 !important;
                     border: none !important;
                     box-shadow: none !important;
                     background-color: transparent !important;
                     background-image: none !important;
+                }
+                .dashboard-patient-actions-section--history .edit-item-btn,
+                .dashboard-patient-actions-section--followup .edit-item-btn {
+                    min-width: 1.1rem !important;
+                    width: 1.1rem !important;
+                    height: 1.1rem !important;
+                    padding: 0.08rem !important;
+                }
+                .dashboard-patient-actions-section--history .edit-item-btn i,
+                .dashboard-patient-actions-section--followup .edit-item-btn i {
+                    font-size: 0.85rem !important;
+                    line-height: 1 !important;
                 }
                 .dashboard-patient-action-group .edit-item-btn:hover:not(:disabled):not(.disabled),
                 .dashboard-patient-action-group .remove-item-btn:hover:not(:disabled):not(.disabled),
@@ -2762,32 +2862,38 @@ const BestSellingProducts = () => {
                     color: #25a0e2 !important;
                     background-color: #f0f7ff !important;
                 }
-                .appointment-time-column {
-                    width: 5.5rem !important;
-                    min-width: 5.5rem !important;
-                    max-width: 5.5rem !important;
+                .appointment-time-column,
+                td.dashboard-patient-col-apptime.appointment-time-column {
+                    width: 6.75rem !important;
+                    min-width: 6.75rem !important;
+                    max-width: 7rem !important;
                     vertical-align: middle !important;
                     white-space: nowrap !important;
                 }
+                td.dashboard-patient-col-apptime .appointment-time-cell,
                 .appointment-time-cell {
                     display: inline-flex !important;
                     flex-direction: row !important;
                     flex-wrap: nowrap !important;
                     align-items: center !important;
                     justify-content: flex-start !important;
-                    gap: 0.15rem !important;
-                    width: fit-content !important;
-                    max-width: none !important;
+                    gap: 0.25rem !important;
+                    width: max-content !important;
+                    max-width: 100% !important;
                     min-width: 0 !important;
-                    line-height: 1;
-                    vertical-align: middle;
+                    height: 1.15rem !important;
+                    line-height: 1.15rem !important;
+                    white-space: nowrap !important;
                 }
+                td.dashboard-patient-col-apptime .appointment-time-value,
                 .appointment-time-value {
                     color: #495057;
                     font-weight: 400;
-                    font-size: 0.6875rem;
-                    line-height: 1;
-                    display: inline !important;
+                    font-size: 0.6875rem !important;
+                    line-height: 1.15rem !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    height: 1.15rem !important;
                     width: auto !important;
                     min-width: 0 !important;
                     max-width: none !important;
@@ -2798,33 +2904,48 @@ const BestSellingProducts = () => {
                     margin: 0 !important;
                     padding: 0 !important;
                 }
-                .appointment-time-edit-btn.edit-item-btn {
+                td.dashboard-patient-col-apptime .appointment-time-edit-wrap,
+                .appointment-time-edit-wrap {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    flex: 0 0 auto !important;
+                    width: 1rem !important;
+                    height: 1.15rem !important;
+                    line-height: 1 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                td.dashboard-patient-col-apptime .appointment-time-edit-btn.btn.btn-sm.edit-item-btn,
+                .appointment-time-edit-btn.btn.btn-sm.edit-item-btn {
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     flex: 0 0 auto !important;
                     float: none !important;
-                    margin: 0 0 0 0.15rem !important;
-                    margin-left: 0.15rem !important;
-                    margin-right: 0 !important;
+                    margin: 0 !important;
                     padding: 0 !important;
+                    border: 0 !important;
                     min-width: 1rem !important;
                     width: 1rem !important;
                     min-height: 1rem !important;
                     height: 1rem !important;
+                    max-height: 1rem !important;
                     line-height: 1 !important;
                     transform: none !important;
-                    vertical-align: middle;
-                    justify-self: start;
+                    position: relative !important;
+                    top: 0 !important;
                 }
+                td.dashboard-patient-col-apptime .appointment-time-edit-btn.edit-item-btn i,
                 .appointment-time-edit-btn.edit-item-btn i {
-                    display: inline-flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
+                    display: block !important;
+                    width: 0.8125rem !important;
+                    height: 0.8125rem !important;
                     font-size: 0.8125rem !important;
-                    line-height: 1 !important;
-                    transform: none !important;
+                    line-height: 0.8125rem !important;
                     margin: 0 !important;
+                    padding: 0 !important;
+                    transform: translateY(-0.5px) !important;
                 }
                 .appointment-time-edit-modal .modal-dialog {
                     width: auto;
@@ -2925,7 +3046,7 @@ const BestSellingProducts = () => {
 
 
                     <CardHeader className="align-items-center d-flex flex-wrap gap-2 doctor-dashboard-card-header doctor-patient-nav-tabs doctor-appointments-toolbar">
-                        <div className="d-flex align-items-center gap-2 flex-wrap doctor-appointments-toolbar__primary">
+                        <div className="d-flex align-items-center doctor-appointments-toolbar__primary">
                         {isReceptionUser && focusedAppointmentId ? (
                             <div className="w-100 small text-muted">Appointment {focusedAppointmentId}. Repertory was not opened.</div>
                         ) : null}
@@ -3007,10 +3128,10 @@ const BestSellingProducts = () => {
                                             <tr>
                                                 <th scope="col" className='text-center dashboard-patient-col-index'>#</th>
                                                 <th scope="col" className="dashboard-patient-col-name">Name</th>
-                                                <th scope="col" className="dashboard-patient-col-agesex">Age/Sex</th>
+                                                <th scope="col" className="dashboard-patient-col-agesex">Age</th>
                                                 <th scope="col" className="dashboard-patient-col-place">Place</th>
                                                 <th scope="col" className="dashboard-patient-col-mobile">Mobile</th>
-                                                <th scope="col" className="dashboard-patient-col-status">App.Status</th>
+                                                <th scope="col" className="dashboard-patient-col-status">Status</th>
                                                 <th scope="col" className="dashboard-patient-col-paid">Paid?</th>
                                                 <th scope="col" className="dashboard-patient-col-apptime">App.Time</th>
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
@@ -3060,18 +3181,19 @@ const BestSellingProducts = () => {
                                             <tr>
                                                 <th scope="col" className='text-center dashboard-patient-col-index'>#</th>
                                                 <th scope="col" className="dashboard-patient-col-name">Name</th>
-                                                <th scope="col" className="dashboard-patient-col-agesex">Age/Sex</th>
+                                                <th scope="col" className="dashboard-patient-col-agesex">Age</th>
                                                 <th scope="col" className="dashboard-patient-col-place">Place</th>
                                                 <th scope="col" className="dashboard-patient-col-mobile">Mobile</th>
                                                 {showingAllByDate ? (
                                                     <>
-                                                        <th scope="col" className="dashboard-patient-col-status">App.Status</th>
+                                                        <th scope="col" className="dashboard-patient-col-status">Status</th>
                                                         <th scope="col" className="dashboard-patient-col-paid">Paid?</th>
                                                         <th scope="col" className="dashboard-patient-col-apptime">App.Time</th>
                                                     </>
                                                 ) : (
                                                     <th scope="col" className="dashboard-patient-col-lastvisit">Last visit</th>
                                                 )}
+                                                <th scope="col" className="dashboard-patient-col-edit text-center">Edit</th>
                                                 <th scope="col" className="dashboard-patient-col-actions-combined">
                                                     <div className="dashboard-patient-actions-header">
                                                         <span className="dashboard-patient-actions-header__history">History</span>
@@ -3083,7 +3205,7 @@ const BestSellingProducts = () => {
                                         <tbody>
                                             {allTabLoading ? (
                                                 <tr>
-                                                    <td colSpan={showingAllByDate ? 9 : 7} className='text-center text-muted'>
+                                                    <td colSpan={showingAllByDate ? 10 : 8} className='text-center text-muted'>
                                                         <div className="d-flex justify-content-center align-items-center">
                                                             <div className="spinner-border spinner-border-sm me-2" role="status">
                                                                 <span className="visually-hidden">Loading...</span>
@@ -3097,7 +3219,7 @@ const BestSellingProducts = () => {
                                                     {renderTableRows(allPageData, allStartIndex, 'all', showingAllByDate, allListDate || null)}
                                                     {allPageData.length === 0 && !allTabLoading && (
                                                         <tr>
-                                                            <td colSpan={showingAllByDate ? 9 : 7} className='text-center text-muted'>
+                                                            <td colSpan={showingAllByDate ? 10 : 8} className='text-center text-muted'>
                                                                 {searchTerm
                                                                     ? (showingAllByDate ? 'No appointments found matching your search' : 'No patients found matching your search')
                                                                     : showingAllByDate
@@ -3128,7 +3250,9 @@ const BestSellingProducts = () => {
                     >
                         <ModalHeader className="patient-list-modal__header" toggle={() => !importLoading && setImportModal(false)}>
                             <span className="patient-list-modal__title patient-list-modal__title--simple">
-                                <i className="ri-upload-2-line" style={{ color: '#25a0e2', fontSize: 15 }} aria-hidden="true" />
+                                <span className="patient-list-modal__title-icon" aria-hidden="true">
+                                    <i className="ri-upload-2-line" />
+                                </span>
                                 <span className="patient-list-modal__title-text">Import Patients</span>
                             </span>
                         </ModalHeader>
@@ -3198,7 +3322,9 @@ const BestSellingProducts = () => {
                     >
                         <ModalHeader className="patient-list-modal__header" toggle={() => !exportLoading && setExportModal(false)}>
                             <span className="patient-list-modal__title patient-list-modal__title--simple">
-                                <i className="ri-download-2-line" style={{ color: '#25a0e2', fontSize: 15 }} aria-hidden="true" />
+                                <span className="patient-list-modal__title-icon" aria-hidden="true">
+                                    <i className="ri-download-2-line" />
+                                </span>
                                 <span className="patient-list-modal__title-text">Export Data</span>
                             </span>
                         </ModalHeader>
@@ -3273,10 +3399,12 @@ const BestSellingProducts = () => {
                 </Card>
             </Col>
             {/* History Modal */}
-            <Modal size="lg" isOpen={historyModalOpen} toggle={closeHistoryModal} className="patient-list-modal history-patient-modal">
+            <Modal size="lg" isOpen={historyModalOpen} toggle={closeHistoryModal} className="patient-list-modal history-patient-modal" centered>
                 <ModalHeader className="patient-list-modal__header" toggle={closeHistoryModal}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-history-line" style={{ color: '#25a0e2', fontSize: 15 }} />
+                        <span className="patient-list-modal__title-icon" aria-hidden="true">
+                            <i className="ri-history-line" />
+                        </span>
                         <span className="patient-list-modal__title-text">
                             {selectedPatientForHistory
                                 ? `${selectedPatientForHistory.patientName || selectedPatientForHistory.name || 'Patient'}'s History`
@@ -3286,21 +3414,21 @@ const BestSellingProducts = () => {
                 </ModalHeader>
                 <ModalBody className="position-relative">
                     {appointmentsLoading ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary" role="status">
+                        <div className="history-patient-modal__state">
+                            <div className="spinner-border spinner-border-sm text-primary" role="status">
                                 <span className="visually-hidden">Loading...</span>
                             </div>
-                            <p className="mt-2 mb-0">Loading appointments...</p>
+                            <span>Loading appointments...</span>
                         </div>
                     ) : patientAppointments.length === 0 ? (
-                        <div className="patient-list-modal__empty">
+                        <div className="patient-list-modal__empty history-patient-modal__empty">
                             <span className="patient-list-modal__empty-icon" aria-hidden="true">
                                 <i className="ri-history-line" />
                             </span>
                             No appointment history found.
                         </div>
                     ) : (
-                        <div className="patient-list-modal__table-wrap history-patient-modal__accordion-wrap">
+                        <div className="history-patient-modal__accordion-wrap">
                             <Accordion
                                 id="history-accordion"
                                 className="accordion-flush history-patient-modal__accordion mb-0"
@@ -3319,19 +3447,19 @@ const BestSellingProducts = () => {
                                                 className={`accordion-button ${!isOpen ? 'collapsed' : ''}`}
                                                 type="button"
                                                 onClick={() => handleAppointmentAccordionToggle(appointment)}
-                                                style={{ cursor: 'pointer' }}
                                             >
-                                                {formatAppointmentAccordionTitle(appointment)}
+                                                <i className="ri-calendar-schedule-line history-patient-modal__acc-icon" aria-hidden="true" />
+                                                <span>{formatAppointmentAccordionTitle(appointment)}</span>
                                             </button>
                                         </h2>
                                         <Collapse isOpen={isOpen} className="accordion-collapse">
                                             <div className="accordion-body">
                                                 {isLoadingPrescription ? (
-                                                    <div className="text-center py-3">
-                                                        <div className="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                                    <div className="history-patient-modal__state history-patient-modal__state--inline">
+                                                        <div className="spinner-border spinner-border-sm text-primary" role="status">
                                                             <span className="visually-hidden">Loading...</span>
                                                         </div>
-                                                        Loading prescription...
+                                                        <span>Loading prescription...</span>
                                                     </div>
                                                 ) : (
                                                     renderPrescriptionTable(appointmentId)
@@ -3346,22 +3474,35 @@ const BestSellingProducts = () => {
                     )}
                     {renderMedicineTooltipPopup()}
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter className="justify-content-end">
                     <ModalActionButton action="close" onClick={closeHistoryModal} />
                 </ModalFooter>
             </Modal>
 
             {/* Add Case Notes Modal */}
-            <Modal size="lg" isOpen={addCaseModalOpen} toggle={closeAddCaseModal}>
-                <ModalHeader toggle={closeAddCaseModal}><i className="ri-add-circle-line" aria-hidden="true" />Add Case Notes</ModalHeader>
+            <Modal size="lg" isOpen={addCaseModalOpen} toggle={closeAddCaseModal} className="patient-list-modal new-patient-modal add-case-notes-modal" centered>
+                <ModalHeader className="patient-list-modal__header" toggle={closeAddCaseModal}>
+                    <span className="patient-list-modal__title patient-list-modal__title--simple">
+                        <span className="patient-list-modal__title-icon" aria-hidden="true">
+                            <i className="ri-add-circle-line" />
+                        </span>
+                        <span className="patient-list-modal__title-text">Add Case Notes</span>
+                    </span>
+                </ModalHeader>
                 <ModalBody>
-                    <div className="row g-3">
+                    <div className="row g-3 new-patient-modal__fields">
                         <div className="col-md-6">
-                            <label className="form-label">Patient Name</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-user-line" aria-hidden="true" />
+                                Patient Name
+                            </Label>
                             <Input type="text" value={addCaseForm.patientName} onChange={(e) => setAddCaseForm({ ...addCaseForm, patientName: e.target.value })} />
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Prescription Type</label>
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-file-list-3-line" aria-hidden="true" />
+                                Prescription Type
+                            </Label>
                             <Input type="select" value={addCaseForm.prescriptionType} onChange={(e) => setAddCaseForm({ ...addCaseForm, prescriptionType: e.target.value })}>
                                 <option>New Prescription</option>
                                 <option>Follow-up</option>
@@ -3369,17 +3510,22 @@ const BestSellingProducts = () => {
                             </Input>
                         </div>
                         <div className="col-12">
-                            <label className="form-label">Notes</label>
-                            <CKEditor
-                                key={selectedPatientForAddCase?.patientAppId || selectedPatientForAddCase?.id || 'add-case'}
-                                editor={ClassicEditor}
-                                data={addCaseForm.notes}
-                                onChange={(event, editor) => setAddCaseForm({ ...addCaseForm, notes: editor.getData() })}
-                            />
+                            <Label className="form-label new-patient-modal__label">
+                                <i className="ri-sticky-note-line" aria-hidden="true" />
+                                Notes
+                            </Label>
+                            <div className="add-case-notes-modal__editor">
+                                <CKEditor
+                                    key={selectedPatientForAddCase?.patientAppId || selectedPatientForAddCase?.id || 'add-case'}
+                                    editor={ClassicEditor}
+                                    data={addCaseForm.notes}
+                                    onChange={(event, editor) => setAddCaseForm({ ...addCaseForm, notes: editor.getData() })}
+                                />
+                            </div>
                         </div>
                     </div>
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter className="justify-content-end">
                     <ModalActionButton action="cancel" onClick={closeAddCaseModal} disabled={savingAddCaseNote} />
                     <ModalActionButton
                         action="save"
@@ -3392,10 +3538,10 @@ const BestSellingProducts = () => {
             </Modal>
 
             {/* Case Notes Modal */}
-            <Modal size="xl" isOpen={caseNotesModalOpen} toggle={closeCaseNotesModal} className="patient-list-modal case-notes-modal">
+            <Modal size="lg" isOpen={caseNotesModalOpen} toggle={closeCaseNotesModal} className="patient-list-modal case-notes-modal" centered>
                 <ModalHeader className="patient-list-modal__header" toggle={closeCaseNotesModal}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-file-text-line" style={{ color: '#25a0e2', fontSize: 15 }} />
+                        <i className="ri-file-text-line" aria-hidden="true" />
                         <span className="patient-list-modal__title-text">
                             {selectedPatientForCaseNotes ? `${selectedPatientForCaseNotes.name}'s Case Notes` : 'Case Notes'}
                         </span>
@@ -3403,36 +3549,44 @@ const BestSellingProducts = () => {
                 </ModalHeader>
                 <ModalBody>
                     {appointmentHistoryNotesLoading ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary" role="status">
+                        <div className="case-notes-modal__state">
+                            <div className="spinner-border spinner-border-sm text-primary" role="status">
                                 <span className="visually-hidden">Loading...</span>
                             </div>
-                            <p className="mt-2">Loading case notes...</p>
+                            <span>Loading case notes...</span>
                         </div>
                     ) : caseNotesTabs.length === 0 ? (
-                        <div className="text-center py-5">
-                            <p className="text-muted">No case notes available for this patient.</p>
+                        <div className="patient-list-modal__empty case-notes-modal__empty">
+                            <span className="patient-list-modal__empty-icon" aria-hidden="true">
+                                <i className="ri-file-text-line" />
+                            </span>
+                            No case notes available for this patient.
                         </div>
                     ) : (
-                        <div className="row g-3">
-                            <div className="col-md-3">
-                                <Nav pills className="flex-column case-notes-modal__history-nav">
+                        <div className="case-notes-modal__layout">
+                            <div className="case-notes-modal__notes-bar">
+                                <Label className="form-label case-notes-modal__label mb-0">
+                                    <i className="ri-time-line" aria-hidden="true" />
+                                    Entries
+                                </Label>
+                                <Nav pills className="case-notes-modal__history-nav">
                                     {caseNotesTabs.map(tab => (
-                                        <NavItem key={tab.id} className='mb-2'>
+                                        <NavItem key={tab.id}>
                                             <NavLink
                                                 style={{ cursor: 'pointer' }}
-                                                className={`${caseNotesActive === tab.id ? 'active' : ''} text-center w-100`}
+                                                className={caseNotesActive === tab.id ? 'active' : ''}
                                                 onClick={() => handleSelectCaseNoteTab(tab)}
                                             >
-                                                {tab.title}
+                                                <i className="ri-calendar-check-line" aria-hidden="true" />
+                                                <span>{tab.title}</span>
                                             </NavLink>
                                         </NavItem>
                                     ))}
                                 </Nav>
                             </div>
-                            <div className="col-md-9">
+                            <div className="case-notes-modal__editor-panel">
                                 <Label className="form-label case-notes-modal__label">
-                                    <i className="ri-sticky-note-line" />
+                                    <i className="ri-sticky-note-line" aria-hidden="true" />
                                     Case Notes
                                 </Label>
                                 <div className="case-notes-modal__editor-wrap">
@@ -3442,16 +3596,28 @@ const BestSellingProducts = () => {
                                         editorState={caseNoteEditorState}
                                         onEditorStateChange={handleCaseNoteEditorChange}
                                         toolbarClassName="toolbar-class"
+                                        toolbar={{
+                                            options: ['inline', 'blockType', 'list', 'textAlign', 'link', 'history'],
+                                            inline: {
+                                                options: ['bold', 'italic', 'underline', 'strikethrough'],
+                                            },
+                                            blockType: {
+                                                options: ['Normal', 'H3', 'H4', 'Blockquote'],
+                                            },
+                                            list: {
+                                                options: ['unordered', 'ordered'],
+                                            },
+                                        }}
                                         wrapperStyle={{
-                                            borderRadius: 8,
+                                            borderRadius: 3,
                                             borderWidth: 1,
                                             borderColor: '#e2ebf3',
                                         }}
                                         editorStyle={{
                                             border: 'none',
                                             backgroundColor: '#FFFFFF',
-                                            minHeight: '420px',
-                                            height: '420px',
+                                            minHeight: '220px',
+                                            height: '220px',
                                         }}
                                     />
                                 </div>
@@ -3459,7 +3625,7 @@ const BestSellingProducts = () => {
                         </div>
                     )}
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter className="justify-content-end">
                     <ModalActionButton action="close" onClick={closeCaseNotesModal} disabled={savingCaseNote} />
                     {caseNotesTabs.length > 0 && (
                         <ModalActionButton
@@ -3476,7 +3642,9 @@ const BestSellingProducts = () => {
             <Modal size="lg" isOpen={editModalOpen} toggle={closeEditModal} className="patient-list-modal new-patient-modal edit-patient-modal">
                 <ModalHeader className="patient-list-modal__header" toggle={closeEditModal}>
                     <span className="patient-list-modal__title patient-list-modal__title--simple">
-                        <i className="ri-user-settings-line" style={{ color: '#25a0e2', fontSize: 15 }} />
+                        <span className="patient-list-modal__title-icon" aria-hidden="true">
+                            <i className="ri-user-settings-line" />
+                        </span>
                         <span className="patient-list-modal__title-text">Edit Patient</span>
                     </span>
                 </ModalHeader>

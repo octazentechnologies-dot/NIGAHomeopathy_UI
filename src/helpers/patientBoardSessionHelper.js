@@ -3,7 +3,16 @@ import Swal from 'sweetalert2';
 
 export const MAX_ACTIVE_PATIENT_SESSIONS = 5;
 
-const AVATAR_COLORS = ['#e91e63', '#9c27b0', '#ffc107', '#2196f3', '#4caf50', '#ff5722', '#009688', '#673ab7'];
+const AVATAR_COLORS = [
+  '#fde2e4', // soft rose
+  '#e2eafc', // soft periwinkle
+  '#fff1d6', // soft peach
+  '#d8f3dc', // soft mint
+  '#e7d6f5', // soft lilac
+  '#d7effa', // soft sky
+  '#fce8d5', // soft apricot
+  '#e8f0fe', // soft blue
+];
 
 const serializeSet = (value) => (value instanceof Set ? Array.from(value) : []);
 

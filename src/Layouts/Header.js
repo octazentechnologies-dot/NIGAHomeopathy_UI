@@ -11,8 +11,6 @@ import WebAppsDropdown from '../Components/Common/WebAppsDropdown';
 import FullScreenDropdown from '../Components/Common/FullScreenDropdown';
 import NotificationDropdown from '../Components/Common/NotificationDropdown';
 import ProfileDropdown from '../Components/Common/ProfileDropdown';
-import ThemeCustomizerHeaderButton from '../Components/Common/ThemeCustomizerHeaderButton';
-
 import { changeSidebarVisibility } from '../slices/thunks';
 import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from 'reselect';
@@ -23,13 +21,12 @@ import { WhatsAppModal } from '../Components/WhatsAppModal';
 import { EnquiriesModal, SupportTicketsModal } from '../Components/SupportTicketsModal';
 import ActivePatientSessionsStack from '../Components/Common/ActivePatientSessionsStack';
 import LastWorkBackupHeaderButton from '../Components/Common/LastWorkBackupHeaderButton';
-import ReceptionStaffHeaderButton from '../Components/Common/ReceptionStaffHeaderButton';
 import DoctorScheduleCalendarHeaderButton from '../Components/Common/DoctorScheduleCalendarHeaderButton';
-import DoctorMobileHeaderButtons from '../Components/Common/DoctorMobileHeaderButtons';
 import DoctorMobileNavMenu from '../Components/Common/DoctorMobileNavMenu';
 import PortalMobileNavMenu from '../Components/Common/PortalMobileNavMenu';
 import WebHandoffReturnButton from '../Components/Common/WebHandoffReturnButton';
 import AdminMoreMenuDropdown from '../Components/Common/AdminMoreMenuDropdown';
+import DoctorHamburgerMenu from '../Components/Common/DoctorHamburgerMenu';
 
 const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
     const dispatch = useDispatch();
@@ -132,14 +129,17 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                             </div>
 
                             {userRole === UserRole.DOCTOR ? (
-                                <div className="d-flex align-items-center header-doctor-session-tools">
-                                    <WebHandoffReturnButton />
-                                    <LastWorkBackupHeaderButton userRole={userRole} />
-                                    <ReceptionStaffHeaderButton userRole={userRole} />
-                                    <DoctorScheduleCalendarHeaderButton userRole={userRole} />
-                                    <DoctorMobileHeaderButtons userRole={userRole} />
-                                    <ActivePatientSessionsStack />
-                                </div>
+                                <>
+                                    {/* Modal hosts stay mounted for hamburger / mobile menu actions. */}
+                                    <div className="header-doctor-modal-hosts" aria-hidden="true">
+                                        <LastWorkBackupHeaderButton userRole={userRole} />
+                                        <DoctorScheduleCalendarHeaderButton userRole={userRole} />
+                                    </div>
+                                    <div className="d-flex align-items-center header-doctor-session-tools">
+                                        <WebHandoffReturnButton />
+                                        <ActivePatientSessionsStack />
+                                    </div>
+                                </>
                             ) : null}
 
                             {!noSidebarLayout && !adminChromeLayout && (
@@ -157,10 +157,14 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                             )}
 
                             <div className="d-flex align-items-center header-topbar-actions-extra">
-                                {showTopbarMoreMenu ? <AdminMoreMenuDropdown showLabel={userRole === UserRole.ADMIN} /> : null}
-                                {userRole !== UserRole.PATIENT ? <ThemeCustomizerHeaderButton /> : null}
-                                {userRole !== UserRole.PATIENT ? (
-                                    <div className="vr header-topbar-divider align-self-center mx-1" aria-hidden="true" />
+                                {userRole === UserRole.DOCTOR ? (
+                                    <DoctorHamburgerMenu
+                                        userRole={userRole}
+                                        onOpenWhatsApp={() => setWhatsAppModalOpen(true)}
+                                    />
+                                ) : null}
+                                {showTopbarMoreMenu && userRole !== UserRole.DOCTOR ? (
+                                    <AdminMoreMenuDropdown />
                                 ) : null}
                                 <div className="ms-1 header-item">
                                     <button
@@ -183,7 +187,11 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 {userRole !== UserRole.ADMIN &&
                                 userRole !== UserRole.MANAGEMENT &&
                                 userRole !== UserRole.PATIENT &&
-                                userRole !== UserRole.RECEPTION ? (
+                                userRole !== UserRole.RECEPTION &&
+                                userRole !== UserRole.DOCTOR &&
+                                userRole !== UserRole.PHARMACY &&
+                                userRole !== UserRole.PHARMACY_PARTNER &&
+                                userRole !== UserRole.ACCOUNT ? (
                                   <WebAppsDropdown />
                                 ) : null}
                                 <FullScreenDropdown />
@@ -192,19 +200,6 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                             <div className="header-notification-item">
                                 <NotificationDropdown />
                             </div>
-
-                            {userRole === UserRole.DOCTOR ? (
-                                <div className="ms-1 header-item header-whatsapp-item">
-                                    <button
-                                        type="button"
-                                        className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
-                                        title="WhatsApp Messaging"
-                                        onClick={() => setWhatsAppModalOpen(true)}
-                                    >
-                                        <i className="ri-whatsapp-line fs-20" style={{ color: '#25D366' }}></i>
-                                    </button>
-                                </div>
-                            ) : null}
 
                             <div className="d-flex align-items-center header-profile-separator-group ms-1">
                                 <div className="vr header-topbar-divider" aria-hidden="true" />

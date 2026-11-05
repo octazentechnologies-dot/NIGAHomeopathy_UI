@@ -4,7 +4,6 @@ import { Dropdown, DropdownMenu, DropdownToggle } from "reactstrap";
 import { UserRole } from "../constants/roles";
 import { useLayoutMenu } from "../../Layouts/LayoutMenuContext";
 import { groupMoreMenuFlyoutItems, isAdminEnquiriesNavItem } from "../../helpers/menuByRole";
-import { getAccountOverflowMenuItems } from "../../helpers/horizontalMenuSplit";
 
 const PHARMACY_EXTRAS = [
   { id: "pharmacy-inventory", label: "Stock confirmation", icon: "ri-archive-line", link: "/pharmacy/inventory" },
@@ -27,6 +26,7 @@ const mergeMissing = (items, extras) => {
 
 const PORTAL_ROLES = new Set([
   UserRole.ADMIN,
+  UserRole.MANAGEMENT,
   UserRole.ACCOUNT,
   UserRole.PHARMACY,
   UserRole.PHARMACY_PARTNER,
@@ -47,8 +47,8 @@ const withoutEnquiries = (items) =>
     });
 
 /**
- * Phone overflow for Admin, Account, Pharmacy, Patient (including Caregiver), and Reception.
- * Desktop keeps the horizontal bar; this control is shown only under ~500px.
+ * Phone overflow for Admin, Account, Pharmacy, Patient, and Reception.
+ * Shown only under ~500px. Includes the horizontal bottom-nav items when that bar is hidden.
  */
 const PortalMobileNavMenu = ({ userRole, onOpenHelp }) => {
   const { menuItems: rawMenuItems, moreMenuItems: rawMoreMenuItems } = useLayoutMenu();
@@ -60,11 +60,9 @@ const PortalMobileNavMenu = ({ userRole, onOpenHelp }) => {
     return cleaned;
   }, [rawMenuItems, userRole]);
   const moreMenuItems = useMemo(() => {
-    const grouped = groupMoreMenuFlyoutItems(withoutEnquiries(rawMoreMenuItems));
-    if (userRole === UserRole.ACCOUNT) {
-      return mergeMissing(grouped, getAccountOverflowMenuItems());
-    }
-    return grouped;
+    // Account has no top-bar More — overflow lives on dashboard Quick Actions only.
+    if (userRole === UserRole.ACCOUNT) return [];
+    return groupMoreMenuFlyoutItems(withoutEnquiries(rawMoreMenuItems));
   }, [rawMoreMenuItems, userRole]);
   const [isOpen, setIsOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState(null);
@@ -102,11 +100,11 @@ const PortalMobileNavMenu = ({ userRole, onOpenHelp }) => {
               aria-expanded={open}
               onClick={() => toggleGroup(key)}
             >
-              <span className="d-flex align-items-center gap-2">
+              <span className="d-flex align-items-center gap-2 min-w-0">
                 {item.icon ? <i className={item.icon} /> : null}
-                <span>{item.label}</span>
+                <span className="text-truncate">{item.label}</span>
               </span>
-              <i className={`ri-arrow-${open ? "up" : "down"}-s-line`} aria-hidden="true" />
+              <i className={`ri-arrow-${open ? "up" : "down"}-s-line flex-shrink-0`} aria-hidden="true" />
             </button>
             {open ? (
               <div className="doctor-mobile-nav__subgroup" role="group">
@@ -124,6 +122,9 @@ const PortalMobileNavMenu = ({ userRole, onOpenHelp }) => {
         </Link>
       );
     });
+
+  const isAdminRole = userRole === UserRole.ADMIN || userRole === UserRole.MANAGEMENT;
+  const overflowLabel = isAdminRole ? "Admin Tools" : "More";
 
   return (
     <Dropdown
@@ -143,14 +144,19 @@ const PortalMobileNavMenu = ({ userRole, onOpenHelp }) => {
       <DropdownMenu
         container="body"
         strategy="fixed"
-        className="dropdown-menu-lg doctor-mobile-nav-panel"
+        className="dropdown-menu-lg doctor-mobile-nav-panel portal-mobile-nav-panel"
       >
         <div className="doctor-mobile-nav-body">
-          {renderItems(menuItems)}
+          {menuItems.length ? (
+            <>
+              <div className="dropdown-header text-muted text-uppercase fs-11">Menu</div>
+              {renderItems(menuItems)}
+            </>
+          ) : null}
           {moreMenuItems.length ? (
             <>
               <div className="dropdown-divider" />
-              <div className="dropdown-header text-muted text-uppercase fs-11">More</div>
+              <div className="dropdown-header text-muted text-uppercase fs-11">{overflowLabel}</div>
               {renderItems(moreMenuItems)}
             </>
           ) : null}

@@ -31,7 +31,6 @@ import {
 } from '../../../slices/doctor/dashboard/thunk';
 import { refreshAuthSubscriptionStatus } from '../../../slices/auth/login/thunk';
 import { readPlanActive } from '../../../helpers/client_error_reporter';
-import { getInitials } from "../../../helpers/initials";
 import { getLoggedinUserInfo } from "../../../helpers/api_helper";
 import { getDoctorProfileMe } from "../../../helpers/realbackend_helper";
 import {
@@ -110,13 +109,41 @@ const getGenderDisplay = (gender) => {
     return gender === 0 ? 'M' : gender === 1 ? 'F' : 'N/A';
 };
 
-// Helper function to format age/sex display
+// Age column cells keep AgeY|Sex (e.g. 23Y|M); header text stays "Age"
 const getAgeSexDisplay = (dateOfBirth, gender) => {
     const age = calculateAgeYMD(dateOfBirth);
     const genderLabel = getGenderDisplay(gender);
-    if (!age) return `N/A/${genderLabel}`;
-    const ageLabel = `${age.years}y ${age.months}m ${age.days}d`;
-    return `${ageLabel}/${genderLabel}`;
+    if (!age) return `—|${genderLabel}`;
+    return `${age.years}Y|${genderLabel}`;
+};
+
+// Place column: city only (not full address)
+const getCityPlaceDisplay = (row) => {
+    const direct = [
+        row?.cityName, row?.CityName, row?.city, row?.City,
+        row?.place, row?.Place,
+    ].find((value) => value != null && String(value).trim() !== '');
+    if (direct) return String(direct).trim();
+
+    const address = String(row?.address ?? row?.Address ?? '').trim();
+    if (!address) return 'N/A';
+
+    const parts = address.split(/[,|/]+/).map((part) => part.replace(/\.$/, '').trim()).filter(Boolean);
+    if (!parts.length) return 'N/A';
+    if (parts.length === 1) {
+        const words = parts[0].split(/\s+/).filter(Boolean);
+        return words.length <= 2 ? parts[0] : (words[words.length - 1] || 'N/A');
+    }
+
+    for (let i = parts.length - 1; i >= 0; i -= 1) {
+        const part = parts[i];
+        if (/^\d{5,6}$/.test(part)) continue;
+        if (/^(india|maharashtra|mh)$/i.test(part)) continue;
+        const words = part.split(/\s+/).filter(Boolean);
+        if (words.length <= 3) return part;
+        return words[words.length - 1] || part;
+    }
+    return parts[parts.length - 1] || 'N/A';
 };
 
 // Helper function to check if status matches (handles both uppercase and mixed case)
@@ -149,13 +176,14 @@ const formatPatientListAppointmentDisplay = (appointment) => {
     return 'N/A';
 };
 
-const PatientListModalTitle = ({ icon, title, subtitle, variant = 'boxed', iconColor }) => {
+const PatientListModalTitle = ({ icon, title, subtitle, variant = 'simple', iconColor }) => {
+    const tone = iconColor || '#25a0e2';
     if (variant === 'simple') {
         return (
             <span className="patient-list-modal__title patient-list-modal__title--simple">
                 <i
                     className={icon}
-                    style={{ color: iconColor || '#25a0e2', fontSize: 15 }}
+                    style={{ color: tone, fontSize: 15 }}
                     aria-hidden="true"
                 />
                 <span className="patient-list-modal__title-text">{title}</span>
@@ -165,9 +193,11 @@ const PatientListModalTitle = ({ icon, title, subtitle, variant = 'boxed', iconC
 
     return (
         <span className="patient-list-modal__title">
-            <span className="patient-list-modal__title-icon" aria-hidden="true">
-                <i className={icon} />
-            </span>
+            <i
+                className={icon}
+                style={{ color: tone, fontSize: 15 }}
+                aria-hidden="true"
+            />
             <span>
                 <span className="patient-list-modal__title-text">{title}</span>
                 {subtitle ? <span className="patient-list-modal__title-sub">{subtitle}</span> : null}
@@ -219,7 +249,7 @@ const PatientListTableHead = () => (
                 <span className="patient-list-modal__th">Patient Name</span>
             </th>
             <th scope="col">
-                <span className="patient-list-modal__th">Age/Sex</span>
+                <span className="patient-list-modal__th">Age</span>
             </th>
             <th scope="col">
                 <span className="patient-list-modal__th">Place</span>
@@ -240,24 +270,7 @@ const PatientListNameCell = ({ appointment }) => {
     const patientId = appointment.patientID ?? appointment.patientId ?? appointment.PatientId;
     const name = appointment.patientName || 'N/A';
     return (
-        <div className="d-flex align-items-center patient-list-modal__name">
-            <div className="flex-shrink-0 me-2">
-                {appointment.avatar ? (
-                    <img
-                        src={appointment.avatar}
-                        alt=""
-                        className="avatar-xxs rounded-circle patient-list-modal__avatar"
-                    />
-                ) : (
-                    <span
-                        className="avatar-xxs rounded-circle patient-list-modal__avatar d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-semibold"
-                        style={{ fontSize: 10 }}
-                        aria-hidden="true"
-                    >
-                        {getInitials(appointment.patientName)}
-                    </span>
-                )}
-            </div>
+        <div className="patient-list-modal__name">
             {isReception && patientId ? (
                 <button
                     type="button"
@@ -267,7 +280,7 @@ const PatientListNameCell = ({ appointment }) => {
                     {name}
                 </button>
             ) : (
-                <div className="flex-grow-1 patient-list-modal__name-text">{name}</div>
+                <div className="patient-list-modal__name-text">{name}</div>
             )}
         </div>
     );
@@ -275,21 +288,18 @@ const PatientListNameCell = ({ appointment }) => {
 
 const PatientListAgeCell = ({ appointment }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-user-heart-line" aria-hidden="true" />
         {getAgeSexDisplay(appointment.dateOfBirth, appointment.gender)}
     </span>
 );
 
 const PatientListPlaceCell = ({ appointment }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-map-pin-line" aria-hidden="true" />
-        {appointment.address || appointment.place || 'N/A'}
+        {getCityPlaceDisplay(appointment)}
     </span>
 );
 
 const PatientListTimeCell = ({ appointment }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-time-line" aria-hidden="true" />
         {formatPatientListAppointmentDisplay(appointment)}
     </span>
 );
@@ -302,8 +312,7 @@ const formatPatientListStatusLabel = (status) => {
 };
 
 const PatientListStatusBadge = ({ status, badgeClass }) => (
-    <span className={`badge patient-list-modal__status ${badgeClass || 'bg-secondary'}`}>
-        <i className="ri-checkbox-blank-circle-fill" aria-hidden="true" />
+    <span className={`badge patient-list-modal__status ${badgeClass || 'bg-secondary-subtle text-secondary'}`}>
         {formatPatientListStatusLabel(status)}
     </span>
 );
@@ -320,14 +329,15 @@ const PatientListEmptyCell = ({ message, colSpan = 6 }) => (
 );
 
 const getPatientListStatusBadgeClass = (status) => {
-    if (statusMatches(status, 'Waiting') || statusMatches(status, 'WAITING')) return 'bg-warning';
-    if (statusMatches(status, 'Completed') || statusMatches(status, 'COMPLETED')) return 'bg-success';
-    if (statusMatches(status, 'Not Arrived') || statusMatches(status, 'NOT ARRIVED')) return 'bg-danger';
-    if (statusMatches(status, 'Walk-in') || statusMatches(status, 'WALK-IN')) return 'bg-info';
-    if (statusMatches(status, 'E-Consult') || statusMatches(status, 'E-CONSULT')) return 'bg-purple';
-    if (statusMatches(status, 'Remaining') || statusMatches(status, 'REMAINING')) return 'bg-warning';
-    if (statusMatches(status, 'Cancelled') || statusMatches(status, 'CANCELLED')) return 'bg-danger';
-    return 'bg-secondary';
+    // Subtle chips like dashboard Paid? column (not solid oversized pills)
+    if (statusMatches(status, 'Waiting') || statusMatches(status, 'WAITING')) return 'bg-warning-subtle text-warning';
+    if (statusMatches(status, 'Completed') || statusMatches(status, 'COMPLETED')) return 'bg-success-subtle text-success';
+    if (statusMatches(status, 'Not Arrived') || statusMatches(status, 'NOT ARRIVED')) return 'bg-danger-subtle text-danger';
+    if (statusMatches(status, 'Walk-in') || statusMatches(status, 'WALK-IN')) return 'bg-info-subtle text-info';
+    if (statusMatches(status, 'E-Consult') || statusMatches(status, 'E-CONSULT')) return 'bg-primary-subtle text-primary';
+    if (statusMatches(status, 'Remaining') || statusMatches(status, 'REMAINING')) return 'bg-warning-subtle text-warning';
+    if (statusMatches(status, 'Cancelled') || statusMatches(status, 'CANCELLED')) return 'bg-danger-subtle text-danger';
+    return 'bg-secondary-subtle text-secondary';
 };
 
 const AppointmentListTableHead = () => (
@@ -355,21 +365,18 @@ const AppointmentListTableHead = () => (
 
 const AppointmentListMobileCell = ({ appointment }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-phone-line" aria-hidden="true" />
         {appointment.mobileNo || 'N/A'}
     </span>
 );
 
 const AppointmentListDateCell = ({ appointment }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-calendar-line" aria-hidden="true" />
         {appointment.appointmentDate ? moment(appointment.appointmentDate).format('DD-MM-YYYY') : 'N/A'}
     </span>
 );
 
 const AppointmentListTimeCell = ({ appointment }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-time-line" aria-hidden="true" />
         {appointment.appointmentTime ? moment(appointment.appointmentTime, 'HH:mm:ss').format('hh:mm A') : 'N/A'}
     </span>
 );
@@ -405,37 +412,33 @@ const PatientViewAllTableHead = () => (
 
 const PatientViewAllMobileCell = ({ patient }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-phone-line" aria-hidden="true" />
         {patient.mobileNo || 'N/A'}
     </span>
 );
 
 const PatientViewAllAddressCell = ({ patient }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-map-pin-line" aria-hidden="true" />
         {patient.address || 'N/A'}
     </span>
 );
 
 const PatientViewAllGenderCell = ({ patient }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-user-line" aria-hidden="true" />
         {patient.gender === 0 ? 'Male' : 'Female'}
     </span>
 );
 
 const PatientViewAllDateCell = ({ value }) => (
     <span className="patient-list-modal__meta">
-        <i className="ri-calendar-line" aria-hidden="true" />
         {value || '-'}
     </span>
 );
 
 const getBillingStatusBadgeClass = (status) => {
     const normalized = status?.toLowerCase() || '';
-    if (normalized === 'success' || normalized === 'paid') return 'bg-success';
-    if (normalized === 'failed' || normalized === 'unpaid') return 'bg-danger';
-    return 'bg-secondary';
+    if (normalized === 'success' || normalized === 'paid') return 'bg-success-subtle text-success';
+    if (normalized === 'failed' || normalized === 'unpaid') return 'bg-danger-subtle text-danger';
+    return 'bg-secondary-subtle text-secondary';
 };
 
 const UnpaidConsultationTableHead = () => (
@@ -726,7 +729,7 @@ const WaitingPatientsModal = ({ isOpen, toggle }) => {
                                         <td>
                                             <PatientListStatusBadge
                                                 status={appointment.status}
-                                                badgeClass={statusMatches(appointment.status, 'Waiting') || statusMatches(appointment.status, 'WAITING') ? 'bg-warning' : 'bg-secondary'}
+                                                badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                             />
                                         </td>
                                     </tr>
@@ -3469,7 +3472,7 @@ const Widgets = () => {
                                             <td>
                                                 <PatientListStatusBadge
                                                     status={appointment.status}
-                                                    badgeClass={appointment.status === 'Walk-in' ? 'bg-info' : 'bg-secondary'}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
                                             </td>
                                         </tr>
@@ -4153,7 +4156,7 @@ const Widgets = () => {
                                             <td>
                                                 <PatientListStatusBadge
                                                     status={appointment.status}
-                                                    badgeClass={appointment.status === 'Not Arrived' ? 'bg-danger' : 'bg-secondary'}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
                                             </td>
                                         </tr>
@@ -4327,7 +4330,7 @@ const Widgets = () => {
                                             <td>
                                                 <PatientListStatusBadge
                                                     status={appointment.status}
-                                                    badgeClass={appointment.status === 'Remaining' ? 'bg-warning' : 'bg-secondary'}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
                                             </td>
                                         </tr>
@@ -4414,7 +4417,7 @@ const Widgets = () => {
                                             <td>
                                                 <PatientListStatusBadge
                                                     status={appointment.status}
-                                                    badgeClass={appointment.status === 'Completed' ? 'bg-success' : 'bg-secondary'}
+                                                    badgeClass={getPatientListStatusBadgeClass(appointment.status)}
                                                 />
                                             </td>
                                         </tr>

@@ -731,10 +731,17 @@ body.admin-layout .page-content.pharmacy-dashboard-page .pharmacy-row-view:hover
 }
 
 body.admin-layout .page-content.pharmacy-dashboard-page .badge {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 0.68rem;
+  border-radius: 3px;
+  margin: 0;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.55rem;
   font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 body.admin-layout .page-content.pharmacy-dashboard-page .badge.bg-warning {

@@ -1,71 +1,165 @@
 
 //
-//  _sweetalert2.scss
+//  _sweetalert2.scss — compact app-wide confirm / alert popups
 //
 
 .swal2-container {
-  .swal2-title{
-    padding: 24px 24px 0;
-    font-size: 16px;
+  .swal2-title {
+    padding: 0.65rem 1rem 0;
+    font-size: 15px;
     font-weight: $font-weight-semibold;
+    line-height: 1.3;
     color: #000;
-  }  
+  }
 }
 
-.swal2-popup{
-  padding-bottom: 24px;
-  border-radius: $modal-content-border-radius;
+.swal2-popup {
+  width: 26rem !important;
+  max-width: calc(100vw - 1.5rem) !important;
+  padding: 1rem 1rem 0.85rem !important;
+  border-radius: 3px;
   background-color: var(--#{$prefix}secondary-bg);
   color: var(--#{$prefix}body-color);
+  box-sizing: border-box;
 
-  .swal2-title{
-    color: #000;
+  .swal2-title {
+    color: #111827;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    padding: 0.35rem 0 0 !important;
+    margin: 0 !important;
   }
 
-  .swal2-html-container{
-    color: var(--#{$prefix}body-color);
+  .swal2-html-container,
+  .swal2-html-container p,
+  .swal2-html-container li {
+    color: #4b5563;
   }
 }
 
-.swal2-footer{
+.swal2-footer {
   border-top: 1px solid var(--#{$prefix}border-color);
   color: var(--#{$prefix}body-color);
+  font-size: 12px;
+  padding: 0.5rem 0 0;
+  margin-top: 0.5rem;
 }
 
-.swal2-html-container{
-  font-size: 16px;
+.swal2-html-container {
+  margin: 0.55rem 0 0 !important;
+  padding: 0 !important;
+  font-size: 13px !important;
+  font-weight: 400;
+  line-height: 1.45 !important;
+  color: #4b5563 !important;
 }
 
-.swal2-icon{
-  &.swal2-question{
+.swal2-confirm-body {
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #4b5563;
+
+  p {
+    margin: 0 0 0.55rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+
+  li {
+    margin-bottom: 0.2rem;
+  }
+}
+
+.swal2-icon {
+  width: 3.25em !important;
+  height: 3.25em !important;
+  margin: 0.15rem auto 0.35rem !important;
+  border-width: 0.2em;
+
+  .swal2-icon-content {
+    font-size: 2.1em !important;
+    font-weight: 600;
+  }
+
+  &.swal2-question {
     border-color: $info;
     color: $info;
   }
+
   &.swal2-success {
-    [class^=swal2-success-line]{
+    [class^=swal2-success-line] {
       background-color: $success;
     }
 
-    .swal2-success-ring{
+    .swal2-success-ring {
       border-color: rgba($success, 0.3);
     }
   }
-  &.swal2-warning{
+
+  &.swal2-warning {
     border-color: $warning;
     color: $warning;
   }
-}
 
-.swal2-styled{
-  &:focus{
-    box-shadow: none;
+  &.swal2-error {
+    .swal2-x-mark-line-left,
+    .swal2-x-mark-line-right {
+      top: 1.45em;
+      width: 1.75em;
+    }
+
+    .swal2-x-mark-line-left {
+      left: 0.7em;
+    }
+
+    .swal2-x-mark-line-right {
+      right: 0.7em;
+    }
   }
 }
 
-// Black confirm (#000000) + SweetAlert2's initial disabled state made OK unusable
-// (BIB-UI-001). Keep the control readable and clickable.
-.swal2-actions:not(.swal2-loading) .swal2-confirm {
+.swal2-actions {
+  margin: 0.85rem auto 0 !important;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.swal2-styled {
+  margin: 0 !important;
+  min-height: 32px !important;
+  height: auto !important;
+  padding: 0.35rem 0.85rem !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+
+  &:focus {
+    box-shadow: none !important;
+  }
+}
+
+.swal2-styled.swal2-cancel {
+  background: #64748b !important;
+  border: 1px solid #64748b !important;
   color: #fff !important;
+
+  &:hover,
+  &:focus {
+    background: #475569 !important;
+    border-color: #475569 !important;
+    color: #fff !important;
+  }
+}
+
+// Keep confirm readable/clickable even when SweetAlert marks it disabled initially
+.swal2-actions:not(.swal2-loading) .swal2-confirm {
   pointer-events: auto !important;
   opacity: 1 !important;
   cursor: pointer !important;
@@ -73,55 +167,65 @@
   &:disabled,
   &[disabled],
   &[aria-disabled="true"] {
-    color: #fff !important;
     pointer-events: auto !important;
     opacity: 1 !important;
     cursor: pointer !important;
   }
 }
 
-.swal2-loader{
+.swal2-loader {
   border-color: $primary transparent $primary transparent;
 }
 
-.swal2-timer-progress-bar{
+.swal2-timer-progress-bar {
   background-color: rgba($success, 0.4);
 }
 
 .swal2-progress-steps {
-  .swal2-progress-step{
+  .swal2-progress-step {
     background: $primary;
-    &.swal2-active-progress-step{
+
+    &.swal2-active-progress-step {
       background: $primary;
-      &~.swal2-progress-step, &~.swal2-progress-step-line{
+
+      & ~ .swal2-progress-step,
+      & ~ .swal2-progress-step-line {
         background: rgba($primary, 0.3);
       }
     }
   }
-  .swal2-progress-step-line{
+
+  .swal2-progress-step-line {
     background: $primary;
   }
 }
 
-.swal2-actions.swal2-loading{
-  .swal2-styled.swal2-confirm{
+.swal2-actions.swal2-loading {
+  .swal2-styled.swal2-confirm {
     border-left-color: $primary !important;
     border-right-color: $primary !important;
   }
 }
 
-.swal2-file, .swal2-input, .swal2-textarea{
+.swal2-file,
+.swal2-input,
+.swal2-textarea {
   border: 1px solid $input-border-color;
-  &:focus{
+  font-size: 13px !important;
+  border-radius: 3px !important;
+
+  &:focus {
     box-shadow: none;
     border-color: $input-focus-border-color;
   }
 }
 
-.swal2-input{
+.swal2-input {
   height: auto;
+  min-height: 34px;
   display: block;
-  padding: $input-padding-y $input-padding-x;
+  margin: 0.75rem auto 0 !important;
+  padding: 0.4rem 0.65rem;
   font-family: $input-font-family;
   @include font-size($input-font-size);
   font-weight: $input-font-weight;
@@ -132,24 +236,27 @@
   border: $input-border-width solid $input-border-color;
 }
 
-.swal2-close{
+.swal2-close {
   font-family: $font-family-base;
   font-weight: 400;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
   color: #000;
   opacity: 0.55;
+  width: 1.75em;
+  height: 1.75em;
 
-  &:focus{
+  &:focus {
     box-shadow: none;
   }
 
-  &:hover{
+  &:hover {
     color: #000;
     opacity: 0.85;
   }
 }
 
-.swal2-validation-message{
+.swal2-validation-message {
   background-color: transparent;
+  font-size: 12px;
 }

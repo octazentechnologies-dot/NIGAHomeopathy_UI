@@ -6,7 +6,7 @@ export const MODAL_ACTIONS = {
   save: { soft: 'success', icon: 'ri-save-line', label: 'Save' },
   update: { soft: 'info', icon: 'ri-refresh-line', label: 'Update' },
   edit: { soft: 'success', icon: 'ri-pencil-fill', label: 'Edit' },
-  cancel: { soft: 'secondary', icon: 'ri-close-line', label: 'Cancel' },
+  cancel: { soft: 'danger', icon: 'ri-close-line', label: 'Cancel' },
   close: { soft: 'secondary', icon: 'ri-close-circle-line', label: 'Close' },
   delete: { soft: 'danger', icon: 'ri-delete-bin-line', label: 'Delete' },
   submit: { soft: 'primary', icon: 'ri-check-line', label: 'Submit' },
