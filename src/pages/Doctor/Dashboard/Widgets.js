@@ -234,11 +234,19 @@ const PatientListTableHead = () => (
     </thead>
 );
 
+const patientRegistrationLabel = (row) =>
+    row?.registrationChannelLabel
+    || row?.RegistrationChannelLabel
+    || row?.registrationChannel
+    || row?.RegistrationChannel
+    || '';
+
 const PatientListNameCell = ({ appointment }) => {
     const navigate = useNavigate();
     const isReception = resolveUserRole() === UserRole.RECEPTION;
     const patientId = appointment.patientID ?? appointment.patientId ?? appointment.PatientId;
     const name = appointment.patientName || 'N/A';
+    const regLabel = patientRegistrationLabel(appointment);
     return (
         <div className="d-flex align-items-center patient-list-modal__name">
             <div className="flex-shrink-0 me-2">
@@ -258,17 +266,28 @@ const PatientListNameCell = ({ appointment }) => {
                     </span>
                 )}
             </div>
-            {isReception && patientId ? (
-                <button
-                    type="button"
-                    className="btn btn-link p-0 text-start patient-list-modal__name-text"
-                    onClick={() => openReceptionPatientRow(patientId, navigate)}
-                >
-                    {name}
-                </button>
-            ) : (
-                <div className="flex-grow-1 patient-list-modal__name-text">{name}</div>
-            )}
+            <div className="flex-grow-1 min-w-0">
+                {isReception && patientId ? (
+                    <button
+                        type="button"
+                        className="btn btn-link p-0 text-start patient-list-modal__name-text"
+                        onClick={() => openReceptionPatientRow(patientId, navigate)}
+                    >
+                        {name}
+                    </button>
+                ) : (
+                    <div className="patient-list-modal__name-text">{name}</div>
+                )}
+                {regLabel ? (
+                    <span
+                        className="badge bg-soft-secondary text-secondary fw-normal"
+                        style={{ fontSize: 10 }}
+                        title="Registration / onboarding platform"
+                    >
+                        {regLabel}
+                    </span>
+                ) : null}
+            </div>
         </div>
     );
 };
