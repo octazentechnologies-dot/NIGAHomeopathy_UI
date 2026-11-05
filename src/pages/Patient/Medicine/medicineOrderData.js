@@ -13,6 +13,14 @@ export const formatINR = (value) => {
   return `₹${amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 };
 
+/** Allows 0 (known free delivery). Null/undefined → "—". */
+export const formatMoneyOrDash = (value) => {
+  if (value === null || value === undefined || value === "") return "—";
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "—";
+  return `₹${amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+};
+
 export const formatDate = (value, format = "DD MMM YYYY") => (value ? moment(value).format(format) : "—");
 
 export const TRACKING_STEPS = [
@@ -92,17 +100,40 @@ export const normalizeOrder = (row) => {
   const events = pick(row, "events", "Events") || [];
   const pharmacyName = pick(row, "pharmacyName", "PharmacyName");
   const pharmacyArea = pick(row, "pharmacyArea", "PharmacyArea");
+  const quoteAmount = pick(row, "quoteAmount", "QuoteAmount");
+  const deliveryFee = pick(row, "deliveryFee", "DeliveryFee");
+  const totalPaid = pick(row, "totalPaid", "TotalPaid");
+  const licence = pick(row, "pharmacyLicenceNumber", "PharmacyLicenceNumber");
   return {
     id,
     orderNo: `HM${String(id).padStart(6, "0")}`,
     date: pick(row, "createdAt", "CreatedAt"),
+    deliveredAt: pick(row, "deliveredAt", "DeliveredAt"),
     pharmacy: pharmacyName ? [pharmacyName, pharmacyArea].filter(Boolean).join(", ") : "Auto-routed pharmacy",
+    pharmacyName: pharmacyName || "",
+    pharmacyArea: pharmacyArea || "",
+    pharmacyLicenceNumber: licence || "",
+    pharmacyLicensed: Boolean(pick(row, "pharmacyLicensed", "PharmacyLicensed")),
+    pharmacyContactMasked: pick(row, "pharmacyContactMasked", "PharmacyContactMasked") || "",
     erxId: pick(row, "erxSnapshotId", "ErxSnapshotId"),
+    rxLabel: pick(row, "rxLabel", "RxLabel") || "",
     doctorName: pick(row, "doctorName", "DoctorName") || "",
     items: Array.isArray(items) ? items.map(normalizeItem) : [],
-    amount: Number(pick(row, "quoteAmount", "QuoteAmount") || 0),
+    amount: Number(quoteAmount || 0),
+    quoteAmount: quoteAmount == null ? null : Number(quoteAmount),
+    deliveryFee: deliveryFee == null ? null : Number(deliveryFee),
+    subtotalMedicines: (() => {
+      const s = pick(row, "subtotalMedicines", "SubtotalMedicines");
+      return s == null ? null : Number(s);
+    })(),
+    totalPaid: totalPaid == null ? null : Number(totalPaid),
+    currency: pick(row, "currency", "Currency") || "INR",
     quoteNote: pick(row, "quoteNote", "QuoteNote") || "",
     payMode: pick(row, "payMode", "PayMode") || "",
+    paymentOrderId: pick(row, "paymentOrderId", "PaymentOrderId"),
+    invoiceId: pick(row, "invoiceId", "InvoiceId"),
+    invoiceNumber: pick(row, "invoiceNumber", "InvoiceNumber") || "",
+    invoicePdfAvailable: Boolean(pick(row, "invoicePdfAvailable", "InvoicePdfAvailable")),
     status: String(pick(row, "status", "Status") || "OFFERED"),
     events: Array.isArray(events) ? events.map(normalizeEvent) : [],
     review: normalizeReview(pick(row, "review", "Review")),

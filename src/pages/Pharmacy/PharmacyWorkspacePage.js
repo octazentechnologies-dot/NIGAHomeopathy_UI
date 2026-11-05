@@ -59,6 +59,7 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const [otpById, setOtpById] = useState({});
   const [otpSentById, setOtpSentById] = useState({});
   const [quoteById, setQuoteById] = useState({});
+  const [deliveryFeeById, setDeliveryFeeById] = useState({});
   const [detailById, setDetailById] = useState({});
   const [openId, setOpenId] = useState(null);
   const [onboard, setOnboard] = useState({
@@ -205,14 +206,35 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
   const saveQuote = (id) => {
     const amount = Number(quoteById[id] || 0);
     if (!(amount > 0)) {
-      setError("Enter a quote amount greater than 0.");
+      setError("Enter a quote amount greater than 0 (total payable).");
       return;
     }
-    runAction(id, () => quoteMedicineOrder(id, { amount }), `Quote of ${formatAmount(amount)} sent for order ${id}.`).then(
-      (result) => {
-        if (result) setQuoteById((prev) => ({ ...prev, [id]: "" }));
+    const feeRaw = deliveryFeeById[id];
+    const payload = { amount };
+    if (feeRaw !== "" && feeRaw != null && String(feeRaw).trim() !== "") {
+      const deliveryFee = Number(feeRaw);
+      if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+        setError("Delivery fee must be 0 or greater, or leave blank if unknown.");
+        return;
       }
-    );
+      if (deliveryFee > amount) {
+        setError("Delivery fee cannot exceed the total quote amount.");
+        return;
+      }
+      payload.deliveryFee = deliveryFee;
+    }
+    const feeNote =
+      payload.deliveryFee != null ? ` (delivery ${formatAmount(payload.deliveryFee)})` : "";
+    runAction(
+      id,
+      () => quoteMedicineOrder(id, payload),
+      `Quote of ${formatAmount(amount)}${feeNote} sent for order ${id}.`
+    ).then((result) => {
+      if (result) {
+        setQuoteById((prev) => ({ ...prev, [id]: "" }));
+        setDeliveryFeeById((prev) => ({ ...prev, [id]: "" }));
+      }
+    });
   };
 
   const toggleDetail = async (id) => {
@@ -501,10 +523,22 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
             type="number"
             min="1"
             style={{ width: 110 }}
-            placeholder="Amount ₹"
+            placeholder="Total ₹"
+            title="Total payable (medicines + delivery)"
             value={quoteById[id] || ""}
             disabled={busy}
             onChange={(e) => setQuoteById({ ...quoteById, [id]: e.target.value })}
+          />
+          <Input
+            bsSize="sm"
+            type="number"
+            min="0"
+            style={{ width: 110 }}
+            placeholder="Delivery ₹"
+            title="Optional delivery fee (blank = unknown)"
+            value={deliveryFeeById[id] ?? ""}
+            disabled={busy}
+            onChange={(e) => setDeliveryFeeById({ ...deliveryFeeById, [id]: e.target.value })}
           />
           <button
             type="button"
@@ -577,6 +611,8 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
     if (detail.error) return <div className="small text-danger">{detail.error}</div>;
     const items = detail.items || detail.Items || [];
     const events = detail.events || detail.Events || [];
+    const deliveryFee = field(detail, "deliveryFee");
+    const quoteAmount = field(detail, "quoteAmount");
     return (
       <Row className="g-2">
         <Col md={6}>
@@ -592,6 +628,14 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               ))}
             </ul>
           )}
+          <p className="small text-muted mt-2 mb-0">
+            Quote {formatAmount(quoteAmount)}
+            {deliveryFee != null && deliveryFee !== ""
+              ? ` · Delivery ${Number(deliveryFee) === 0 ? "Included" : formatAmount(deliveryFee)}`
+              : ""}
+            {field(detail, "doctorName") ? ` · ${field(detail, "doctorName")}` : ""}
+            {field(detail, "rxLabel") ? ` · ${field(detail, "rxLabel")}` : ""}
+          </p>
         </Col>
         <Col md={6}>
           <h6 className="mb-2">Timeline</h6>
@@ -602,11 +646,16 @@ const PharmacyWorkspacePage = ({ mode = "orders" }) => {
               {events.map((event, index) => (
                 <li key={index}>
                   <strong>{field(event, "status")}</strong> · {formatDateTime(field(event, "at"))}
-                  {field(event, "detail") ? ` · ${field(event, "detail")}` : ""}
+                  {field(event, "label") || field(event, "detail")
+                    ? ` · ${field(event, "label") || field(event, "detail")}`
+                    : ""}
                 </li>
               ))}
             </ul>
           )}
+          {field(detail, "deliveredAt") ? (
+            <p className="small text-muted mt-2 mb-0">Delivered {formatDateTime(field(detail, "deliveredAt"))}</p>
+          ) : null}
         </Col>
       </Row>
     );

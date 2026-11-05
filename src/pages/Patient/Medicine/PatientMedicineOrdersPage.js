@@ -205,10 +205,17 @@ const PatientMedicineOrdersPage = () => {
       const data = unwrapS4(await medicineTracking(order.id)) || {};
       const status = pick(data, "status", "Status");
       const events = pick(data, "events", "Events");
+      const refreshed = normalizeOrder({ ...order, ...data, medicineOrderId: order.id });
       updateLocal(order, {
+        ...refreshed,
+        id: order.id,
         status: status || order.status,
         events: Array.isArray(events)
-          ? events.map((row) => ({ status: pick(row, "status", "Status") || "", detail: pick(row, "detail", "Detail") || "", at: pick(row, "at", "At") }))
+          ? events.map((row) => ({
+              status: pick(row, "status", "Status") || "",
+              detail: pick(row, "detail", "Detail") || pick(row, "label", "Label") || "",
+              at: pick(row, "at", "At"),
+            }))
           : order.events,
       });
     });

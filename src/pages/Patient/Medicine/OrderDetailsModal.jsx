@@ -2,7 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Input, Modal, ModalBody, ModalHeader, Spinner } from "reactstrap";
 
-import { TRACKING_STEPS, formatDate, formatINR, orderStage, trackingStepTime } from "./medicineOrderData";
+import {
+  TRACKING_STEPS,
+  formatDate,
+  formatINR,
+  formatMoneyOrDash,
+  orderStage,
+  trackingStepTime,
+} from "./medicineOrderData";
 import "./patientMedicine.css";
 
 const PAY_OPTIONS = [
@@ -53,14 +60,29 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
             <span>Ordered on</span>
             <strong>{formatDate(order.date)}</strong>
           </div>
+          {order.deliveredAt ? (
+            <div>
+              <span>Delivered on</span>
+              <strong>{formatDate(order.deliveredAt, "DD MMM YYYY, hh:mm A")}</strong>
+            </div>
+          ) : null}
           <div>
             <span>Pharmacy</span>
-            <strong>{order.pharmacy}</strong>
+            <strong>
+              {order.pharmacy}
+              {order.pharmacyLicensed ? " · Licensed" : ""}
+            </strong>
+            {order.pharmacyLicenceNumber ? (
+              <span className="med-muted d-block">{order.pharmacyLicenceNumber}</span>
+            ) : null}
           </div>
-          {order.doctorName ? (
+          {order.doctorName || order.rxLabel ? (
             <div>
               <span>Prescribed by</span>
-              <strong>{order.doctorName}</strong>
+              <strong>
+                {order.doctorName || "—"}
+                {order.rxLabel ? ` · ${order.rxLabel}` : order.erxId ? ` · eRx #${order.erxId}` : ""}
+              </strong>
             </div>
           ) : null}
           <StageChip status={order.status} />
@@ -105,10 +127,37 @@ const OrderDetailsModal = ({ order, toggle, busy, onAcceptQuote, onPay, onTrack,
                       <dd>{order.quoteNote}</dd>
                     </div>
                   ) : null}
+                  {order.subtotalMedicines != null ? (
+                    <div>
+                      <dt>Subtotal medicines</dt>
+                      <dd>{formatMoneyOrDash(order.subtotalMedicines)}</dd>
+                    </div>
+                  ) : null}
+                  {order.deliveryFee != null ? (
+                    <div>
+                      <dt>Delivery charges</dt>
+                      <dd>{Number(order.deliveryFee) === 0 ? "Included" : formatMoneyOrDash(order.deliveryFee)}</dd>
+                    </div>
+                  ) : null}
+                  {order.payMode ? (
+                    <div>
+                      <dt>Payment</dt>
+                      <dd>{order.payMode}</dd>
+                    </div>
+                  ) : null}
                   <div className="med-totals__grand">
-                    <dt>Quoted total</dt>
-                    <dd>{formatINR(total)}</dd>
+                    <dt>{order.totalPaid != null ? "Total paid" : "Quoted total"}</dt>
+                    <dd>{formatMoneyOrDash(order.totalPaid != null ? order.totalPaid : total)}</dd>
                   </div>
+                  {order.invoiceNumber || order.invoicePdfAvailable ? (
+                    <div>
+                      <dt>Tax invoice</dt>
+                      <dd>
+                        {order.invoiceNumber || (order.invoiceId ? `#${order.invoiceId}` : "Available")}
+                        {order.invoicePdfAvailable ? " · PDF ready" : ""}
+                      </dd>
+                    </div>
+                  ) : null}
                 </dl>
               ) : (
                 <div className="med-waiting">
